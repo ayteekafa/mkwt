@@ -514,22 +514,21 @@ async function importBackupJSON(file) {
 
     const ok = confirm(
       `Restore starten?\n\n` +
-      `Matches in Datei: ${backup.matches.length}\n` +
-      `Hinweis: Wir importieren nur Matches, die noch nicht existieren.\n` +
-      `Dein aktuelles Profil bleibt erhalten (optional kannst du danach Nickname/VR manuell setzen).`
+      `Matches in Datei: ${backup.matches.length}\n\n` +
+      `Wichtig: Nach dem Restore entspricht deine Match-Historie exakt dem Backup.\n` +
+      `Alle Matches, die NICHT im Backup sind, werden gelöscht.`
     );
     if (!ok) return;
 
     setStatus("Importing…", true);
 
-    // Damit "doppelte Imports" nicht passieren:
-    // Wir speichern eine client-seitige Import-ID pro Match (nicht vorhanden),
-    // daher nutzen wir hier als "Fingerprint" created_at+track+vr_change+opponents+placement+intermission.
-    // (Wenn du 100% safe willst, bauen wir später eine extra Spalte backup_hash in Supabase.)
-    const existing = new Set();
+    // --- Build backup fingerprint set ---
+    const backupFp = new Set();
+    for (const r of backup.matches) backupFp.add(fingerprintMatch(r));
 
-    // Bestehende Matches holen (nur Felder für Fingerprint)
-    const allExisting = [];
+    // --- Load all existing matches (for this user) incl. id for deletes ---
+    const existingFp = new Set();
+    const existingToDeleteIds = [];
     const chunk = 1000;
     let from = 0;
 
@@ -537,63 +536,78 @@ async function importBackupJSON(file) {
       const to = from + chunk - 1;
       const { data, error } = await supabaseClient
         .from("matches")
-        .select("created_at, intermission, track, vr_change, opponents, placement")
+        .select("id, created_at, intermission, track, vr_change, opponents, placement")
         .eq("user_id", SESSION.user.id)
         .range(from, to);
 
       if (error) throw error;
       if (!data || data.length === 0) break;
 
-      allExisting.push(...data);
+      for (const row of data) {
+        const fp = fingerprintMatch(row);
+        existingFp.add(fp);
+        if (!backupFp.has(fp)) existingToDeleteIds.push(row.id);
+      }
+
       if (data.length < chunk) break;
       from += chunk;
     }
 
-    for (const r of allExisting) {
-      existing.add(fingerprintMatch(r));
+    // --- Delete matches that are not in backup ---
+    let deleted = 0;
+    const delBatchSize = 500;
+    for (let i = 0; i < existingToDeleteIds.length; i += delBatchSize) {
+      const batchIds = existingToDeleteIds.slice(i, i + delBatchSize);
+      const { error } = await supabaseClient
+        .from("matches")
+        .delete()
+        .in("id", batchIds);
+      if (error) throw error;
+      deleted += batchIds.length;
     }
 
-    // Neue Matches filtern
+    // --- Insert matches that are in backup but not present ---
     const toInsert = [];
     for (const r of backup.matches) {
       const fp = fingerprintMatch(r);
-      if (!existing.has(fp)) {
+      if (!existingFp.has(fp)) {
         toInsert.push({
-  user_id: SESSION.user.id,
-  created_at: r.created_at,
-  intermission: r.intermission ?? null,
-  track: r.track ?? null,
-  vr_change: r.vr_change ?? 0,
-  vr_after: r.vr_after ?? null,   
-  opponents: r.opponents ?? null,
-  placement: r.placement ?? null,
-});
+          user_id: SESSION.user.id,
+          created_at: r.created_at,
+          intermission: r.intermission ?? null,
+          track: r.track ?? null,
+          vr_change: r.vr_change ?? 0,
+          vr_after: r.vr_after ?? null,
+          opponents: r.opponents ?? null,
+          placement: r.placement ?? null,
+        });
       }
     }
 
-    // Insert in Batches
     let inserted = 0;
-    const batchSize = 500;
-
-    for (let i = 0; i < toInsert.length; i += batchSize) {
-      const batch = toInsert.slice(i, i + batchSize);
-
-      // Falls created_at nicht insertbar ist in deiner Tabelle:
-      // dann nimm created_at hier raus.
+    const insBatchSize = 500;
+    for (let i = 0; i < toInsert.length; i += insBatchSize) {
+      const batch = toInsert.slice(i, i + insBatchSize);
       const { error } = await supabaseClient.from("matches").insert(batch);
       if (error) throw error;
-
       inserted += batch.length;
     }
 
-    setStatus(`✅ Import complete. Neu importiert: ${inserted} / ${backup.matches.length}`, true);
-    await refreshAll();
+    setStatus(
+      `✅ Restore complete. Backup matches: ${backup.matches.length} | Deleted: ${deleted} | Inserted: ${inserted}`,
+      true
+    );
 
+    // After restore, auto-set profile Current VR to the latest match's vr_after (if available)
+    await syncProfileVrFromLatestMatch();
+
+    await refreshAll();
   } catch (e) {
     setStatus("Import failed: " + (e?.message || e), false);
     setDebug(e?.stack || JSON.stringify(e, null, 2));
   }
 }
+
 
 function fingerprintMatch(r) {
   // Stabiler Vergleich (stringify null/undefined)
@@ -607,6 +621,41 @@ function fingerprintMatch(r) {
     String(r.placement ?? "")
   ].join("|");
 }
+
+// ========= Helper: set Profile current_vr from latest match (vr_after) =========
+async function syncProfileVrFromLatestMatch(){
+  try{
+    const { data, error } = await supabaseClient
+      .from("matches")
+      .select("vr_after, created_at")
+      .eq("user_id", SESSION.user.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    const latest = (data && data[0]) ? data[0] : null;
+    const latestVr = Number(latest?.vr_after);
+
+    if (!Number.isFinite(latestVr)) return false;
+
+    const { error: upErr } = await supabaseClient
+      .from("profiles")
+      .update({ current_vr: latestVr, updated_at: new Date().toISOString() })
+      .eq("id", SESSION.user.id);
+
+    if (upErr) throw upErr;
+
+    // keep local PROFILE in sync for immediate UI calculations
+    if (PROFILE) PROFILE.current_vr = latestVr;
+    return true;
+  } catch(e){
+    // don't hard-fail import/export; just surface debug
+    setDebug("syncProfileVrFromLatestMatch error: " + (e?.message || e));
+    return false;
+  }
+}
+
 // ========= Track-Liste =========
 const TRACKS = [
   "Acorn Heights","Airship Fortress","Boo Cinema","Bowser’s Castle","Cheep Cheep Falls",
