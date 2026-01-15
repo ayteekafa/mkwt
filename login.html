@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MKWT – Login</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --bg:#0f1115;
+  --card:#1b1f27;
+  --border:#2d3442;
+  --primary:#0af;
+  --text:#fff;
+  --muted:#9aa4b2;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.card{
+  width:100%;
+  max-width:360px;
+  background:var(--card);
+  border-radius:14px;
+  padding:24px;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+}
+
+.logo{
+  text-align:center;
+  font-weight:900;
+  letter-spacing:4px;
+  font-size:26px;
+  margin-bottom:10px;
+}
+
+h2{
+  text-align:center;
+  margin:0 0 18px 0;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:12px;
+}
+
+input{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#0f1115;
+  color:var(--text);
+}
+
+.row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:12px 0;
+  font-size:14px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:var(--primary);
+  color:#000;
+  font-weight:700;
+  cursor:pointer;
+}
+
+button:hover{opacity:.9}
+
+.status{
+  margin-top:12px;
+  text-align:center;
+  font-size:13px;
+  color:var(--muted);
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <div class="logo">MKWT</div>
+  <h2>Sign In</h2>
+
+  <div class="field">
+    <label>Email</label>
+    <input id="email" type="email" autocomplete="email">
+  </div>
+
+  <div class="field">
+    <label>Password</label>
+    <input id="password" type="password" autocomplete="current-password">
+  </div>
+
+  <div class="row">
+    <input type="checkbox" id="remember">
+    <label for="remember">Stay signed in</label>
+  </div>
+
+  <button id="btnLogin">Sign In</button>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+/* ===== SUPABASE (IDENTICAL to tracker.html) ===== */
+const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
+
+function makeClient(storage){
+  return supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+    auth:{ storage, persistSession:true }
+  });
+}
+
+const clientLocal = makeClient(localStorage);
+const clientSess  = makeClient(sessionStorage);
+
+const $ = id => document.getElementById(id);
+const status = $("status");
+
+// ✅ SET THIS to your real tracker file (b.html, tracker.html, etc.)
+const TRACKER_PAGE = "tracker.html";
+
+/* ===== AUTO-REDIRECT if already signed in ===== */
+async function autoRedirectIfSignedIn(){
+  try{
+    status.textContent = "Checking session…";
+
+    const { data: a, error: ea } = await clientLocal.auth.getSession();
+    if(ea) console.warn("local session check:", ea.message);
+    if(a?.session){
+      location.replace(TRACKER_PAGE);
+      return;
+    }
+
+    const { data: b, error: eb } = await clientSess.auth.getSession();
+    if(eb) console.warn("session session check:", eb.message);
+    if(b?.session){
+      location.replace(TRACKER_PAGE);
+      return;
+    }
+
+    status.textContent = "";
+  } catch(err){
+    console.warn(err);
+    status.textContent = "";
+  }
+}
+
+/* ===== LOGIN ===== */
+$("btnLogin").onclick = async () => {
+  status.textContent = "Signing in…";
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  const remember = $("remember").checked;
+
+  if(!email || !password){
+    status.textContent = "Please enter email and password";
+    return;
+  }
+
+  const client = remember ? clientLocal : clientSess;
+
+  const { error } = await client.auth.signInWithPassword({ email, password });
+
+  if(error){
+    status.textContent = error.message;
+    return;
+  }
+
+  location.replace(TRACKER_PAGE);
+};
+
+// run on load
+autoRedirectIfSignedIn();
+</script>
+
+</body>
+</html>

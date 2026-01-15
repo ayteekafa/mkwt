@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MKWT – Settings</title>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+  
+
+  <link rel="stylesheet" href="mkwt_theme_v3.css">
+</head>
+
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav">
+  <div class="navInner">
+    <div class="brand">MKWT</div>
+
+    <a class="navLink" href="tracker.html">Tracker</a>
+    <a class="navLink" href="stats.html">VR improvement</a>
+    <a class="navLink" href="settings.html">Settings</a>
+
+    <div class="navSpacer"></div>
+
+    <div class="navRight">
+      <button class="navAction" id="btnExport" type="button">Export</button>
+      <label class="navAction">
+        Import
+        <input id="fileImport" type="file" accept="application/json" />
+      </label>
+      <button class="navAction danger" id="btnLogout" type="button">Logout</button>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ===== CONTENT ===== -->
+<div class="wrap">
+  <div class="card">
+    <h2>Settings</h2>
+
+    <div class="row">
+      <div class="field">
+        <label class="muted">Nickname</label>
+        <input id="settingsNickname">
+      </div>
+
+      <div class="field">
+        <label class="muted">Current VR</label>
+        <input id="settingsVr" type="number">
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn" id="btnSaveSettings">Save</button>
+    </div>
+
+    <div class="muted" id="status"></div>
+  </div>
+</div>
+
+<script>
+/* ========= IDENTISCH ZU b.html ========= */
+
+const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
+
+function makeClient(storage){
+  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+    auth:{ storage, persistSession:true }
+  });
+}
+
+const clientLocal = makeClient(localStorage);
+const clientSess  = makeClient(sessionStorage);
+let supabaseClient = null;
+let SESSION = null;
+
+const $ = id => document.getElementById(id);
+const status = $("status");
+function setStatus(t){ status.textContent = t }
+
+/* ========= AUTH ========= */
+async function requireAuth(){
+  let { data:{session} } = await clientLocal.auth.getSession();
+  if(session){ supabaseClient=clientLocal; SESSION=session; return }
+
+  ({ data:{session} } = await clientSess.auth.getSession());
+  if(session){ supabaseClient=clientSess; SESSION=session; return }
+
+  location.href="login.html";
+}
+
+/* ========= PROFILE ========= */
+async function loadProfile(){
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("nickname,current_vr")
+    .eq("id", SESSION.user.id)
+    .maybeSingle();
+
+  if(error){ setStatus(error.message); return }
+
+  $("settingsNickname").value = data?.nickname || "";
+  $("settingsVr").value = data?.current_vr ?? "";
+}
+
+async function saveSettings(){
+  const nickname = $("settingsNickname").value.trim();
+  const vr = parseInt($("settingsVr").value,10);
+
+  if(!nickname || !Number.isFinite(vr)){
+    setStatus("Invalid input");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("profiles")
+    .update({ nickname, current_vr: vr })
+    .eq("id", SESSION.user.id);
+
+  if(error){ setStatus(error.message); return }
+
+  setStatus("✅ Saved");
+}
+
+/* ========= NAV ACTIONS (DUMMY) ========= */
+function exportJSON(){
+  alert("Use Export in Tracker (tracker.html)");
+}
+function importJSON(){
+  alert("Use Import in Tracker (tracker.html)");
+}
+async function logout(){
+  await supabaseClient.auth.signOut();
+  location.href="login.html";
+}
+
+/* ========= INIT ========= */
+$("btnSaveSettings").onclick = saveSettings;
+$("btnExport").onclick = exportJSON;
+$("fileImport").onchange = importJSON;
+$("btnLogout").onclick = logout;
+
+(async()=>{
+  await requireAuth();
+  await loadProfile();
+})();
+</script>
+
+
+<script>
+  (function(){
+    const p = (location.pathname.split("/").pop() || "").toLowerCase();
+    document.querySelectorAll(".navLink").forEach(a=>{
+      const href = (a.getAttribute("href")||"").toLowerCase();
+      if (href && href === p) a.classList.add("active");
+    });
+  })();
+</script>
+
+</body>
+</html>

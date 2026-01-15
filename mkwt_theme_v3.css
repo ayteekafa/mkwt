@@ -1,0 +1,426 @@
+/* MKWT Central Theme
+   - One place for width, colors, spacing, cards, tables, nav, buttons.
+   - Change variables in :root and everything updates across b/settings/stats.
+*/
+:root{
+  --page-width: 1100px;
+  --page-pad: 16px;
+
+  --bg: #0f1115;
+  --card: #1b1f27;
+  --card-2: #151922;
+  --hover: #141923;
+
+  --text: #ffffff;
+  --muted: #9aa4b2;
+  --border: #2d3442;
+
+  --primary: #0af;
+  --primary-text: #000;
+
+  --danger: #ff6b6b;
+  --danger-text: #111;
+
+  --radius: 12px;
+  --radius-sm: 10px;
+
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+/* Base */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* >>> HIER <<< */
+html {
+  height: 100%;
+  overflow-y: scroll;        /* Fix für Breiten-Verschiebung */
+  scrollbar-gutter: stable;  /* modern, falls unterstützt */
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a{ color:#7dd3fc; text-decoration:none; }
+
+/* Layout container */
+.wrap{
+  max-width: var(--page-width);
+  margin: 24px auto;
+  padding: 0 var(--page-pad);
+}
+
+/* Cards */
+.card{
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+
+/* Rows/Fields */
+.row{ display:flex; gap:14px; flex-wrap:wrap; }
+.row > *{ flex:1; min-width:220px; }
+.field{ display:flex; flex-direction:column; gap:6px; }
+label.muted{ display:block; margin:0; }
+
+/* Form controls */
+input, select{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+button{ border:none; background:transparent; color:inherit; font:inherit; }
+
+/* Buttons */
+.btn, .btn2, .danger, .navAction{
+  padding:10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor:pointer;
+  font-weight:800;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  user-select:none;
+  text-decoration:none;
+  line-height:1;
+}
+.btn{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+.btn2{ background: var(--border); color: var(--text); border-color: var(--border); }
+.danger{ background: var(--danger); color: var(--danger-text); border-color: var(--danger); }
+.btn:disabled, .btn2:disabled, .danger:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* Small text + status colors */
+.muted{ color: var(--muted); font-size:12px; white-space:pre-wrap; }
+.ok{ color:#7CFF7C; }
+.bad{ color:#FF7C7C; }
+
+.hidden{ display:none; }
+
+/* Pills */
+.pill{
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  background: var(--border);
+  color:#cbd5e1;
+  font-size:12px;
+}
+
+/* Tables */
+table{ width:100%; border-collapse:collapse; overflow:hidden; border-radius: var(--radius-sm); }
+th, td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; font-size:14px; }
+th{ background: var(--card-2); color:#cbd5e1; }
+tr:hover td{ background: var(--hover); }
+
+.actions{ display:flex; gap:8px; justify-content:flex-end; }
+.iconBtn{
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor:pointer;
+}
+.iconBtn:hover{ filter:brightness(1.1); }
+.iconBtn.danger, .iconDanger{ border-color:#7a3a3a; }
+
+/* Dialog */
+dialog{
+  border:none;
+  border-radius: var(--radius);
+  padding:0;
+  width:min(820px, 96vw);
+  background: var(--card);
+  color: var(--text);
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+dialog::backdrop{ background: rgba(0,0,0,.55); }
+
+/* Charts */
+canvas{ background: var(--card-2); border-radius: var(--radius); }
+
+/* Pie sizing (prevents giant pie) */
+.pie-wrap{
+  width: 360px;
+  height: 220px;
+  margin: 0 auto;
+}
+.pie-wrap canvas{
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+}
+
+/* Topbar (stats header) */
+.topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+
+/* ===== Navigation (unified) ===== */
+.nav{
+  position:sticky;
+  top:0;
+  z-index:50;
+  background: rgba(15,17,21,.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.navInner{
+  max-width: var(--page-width);
+  margin:0 auto;
+  padding: 10px var(--page-pad);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+}
+.navInner::-webkit-scrollbar{ height:8px; }
+.navInner::-webkit-scrollbar-thumb{ background: var(--border); border-radius:999px; }
+
+.brand{ font-weight:900; letter-spacing:.3px; margin-right:6px; color:#cbd5e1; }
+
+.navLink{
+  padding:8px 10px;
+  border-radius: var(--radius-sm);
+  border:1px solid transparent;
+  color:#cbd5e1;
+  text-decoration:none;
+  font-weight:700;
+}
+.navLink:hover{ border-color: var(--border); background: var(--hover); }
+.navLink.active{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+
+.navSpacer{ flex:1; }
+.navRight{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+
+/* Make action buttons match nav links */
+.navAction{
+  padding:8px 10px;
+  border-radius: var(--radius-sm);
+  border:1px solid transparent;
+  color:#cbd5e1;
+  font-weight:700;
+  background: transparent;
+  cursor:pointer;
+}
+.navAction:hover{ border-color: var(--border); background: var(--hover); }
+.navAction.danger{
+  background: var(--danger);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+.navAction.danger:hover{ filter:brightness(1.05); }
+.navAction input[type="file"]{ display:none; }
+
+/* ===== Mobile / Small screens ===== */
+@media (max-width: 720px){
+  :root{ --page-pad: 12px; }
+
+  .wrap{ margin: 16px auto; padding: 0 var(--page-pad); }
+
+  /* Nav: allow 2-line layout (links left, actions right) */
+  .navInner{
+    flex-wrap: wrap;
+    overflow-x: visible;
+    row-gap: 8px;
+  }
+  .navSpacer{ display:none; }
+  .navRight{
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .navLink, .navAction{
+    padding: 8px 9px;
+    font-size: 13px;
+  }
+
+  /* Tables: tighter + hide less important columns on phone */
+  th, td{ padding: 8px; font-size: 13px; }
+  /* tracker.html: columns are handled in the 420px card layout below */
+/* Charts: give more vertical room so Y-axis isn't cramped */
+  canvas{ height: 260px !important; }
+  .pie-wrap{ width: 100%; max-width: 360px; height: 220px; }
+}
+/* ===== Fix: Labels kleben optisch an falschem Feld ===== */
+
+/* Mehr Abstand nach jedem Feld */
+.field {
+  margin-bottom: 18px;
+}
+
+/* Label klar vom vorherigen Input trennen */
+.field > label {
+  display: block;
+  margin-top: 6px;      /* Abstand nach vorherigem Feld */
+  margin-bottom: 6px;   /* Abstand zum eigenen Input */
+  line-height: 1.2;
+}
+
+/* Inputs etwas tiefer setzen */
+.field > input,
+.field > select {
+  margin-top: 2px;
+}
+
+
+/* ===== iPhone / Narrow screens: Match list as cards ===== */
+@media (max-width: 480px) and (pointer: coarse){
+
+  /* use card layout only for the match list table */
+  #listCard table thead { display: none; }
+
+  /* each row becomes a card */
+  #listCard table tbody tr{
+    display: grid;
+    grid-template-columns: 1fr minmax(96px, 120px); /* left: text | right: VR */
+    gap: 4px 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  /* neutralize table cell look */
+  #listCard table tbody td{
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    white-space: normal;
+    display: block; /* IMPORTANT: overrides any earlier display:none */
+  }
+
+/* ===== Mobile Card Icons for Opponents & Placement ===== */
+@media (max-width: 480px) and (pointer: coarse){
+
+  /* Opponents: ♟ */
+  #listCard table tbody td:nth-child(7)::before{
+    content: "♟ ";
+    opacity: .85;
+    margin-right: 2px;
+  }
+
+  /* Placement: ♕ */
+  #listCard table tbody td:nth-child(8)::before{
+    content: "♕ ";
+    opacity: .85;
+    margin-right: 2px;
+  }
+
+  /* If empty -> no icon */
+  #listCard table tbody td:nth-child(7):empty::before,
+  #listCard table tbody td:nth-child(8):empty::before{
+    content: "";
+  }
+}
+
+  /* Match # */
+  #listCard table tbody td:nth-child(1){
+    grid-column: 1;
+    grid-row: 1;
+    font-weight: 900;
+  }
+
+  /* Make each card a positioning context */
+#listCard table tbody tr{
+  position: relative;
+  padding-bottom: 22px; /* space for the date at the bottom */
+}
+
+/* Created/Date -> pin to bottom-left WITHOUT stretching the card */
+#listCard table tbody tr td:nth-child(2){
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+
+  font-size: 11px;
+  opacity: .55;
+  line-height: 1.2;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  white-space: nowrap;
+}
+
+  /* Intermission */
+  #listCard table tbody td:nth-child(3){
+    grid-column: 1;
+    grid-row: 3;
+    font-weight: 800;
+  }
+
+  /* Track */
+  #listCard table tbody td:nth-child(4){
+    grid-column: 1;
+    grid-row: 4;
+    font-weight: 800;
+  }
+
+  /* VR after (right, top) */
+  #listCard table tbody td:nth-child(6){
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    font-weight: 900;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  /* VR Δ (right, under VR after) */
+  #listCard table tbody td:nth-child(5){
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+    font-weight: 900;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* Opponents */
+  #listCard table tbody td:nth-child(7){
+    grid-column: 2;
+    grid-row: 3;
+    text-align: right;
+    font-size: 11px;
+    opacity: .75;
+    white-space: nowrap;
+  }
+
+  /* Placement */
+  #listCard table tbody td:nth-child(8){
+    grid-column: 2;
+    grid-row: 4;
+    text-align: right;
+    font-size: 11px;
+    opacity: .75;
+    white-space: nowrap;
+  }
+
+  /* Actions: bottom-right */
+  #listCard table tbody td:nth-child(9){
+    grid-column: 2;
+    grid-row: 5;
+    display: flex !important; /* override */
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  /* hide Opp/Place if truly empty */
+  #listCard table tbody td:nth-child(7):empty,
+  #listCard table tbody td:nth-child(8):empty{
+    display: none !important;
+  }
+}
+

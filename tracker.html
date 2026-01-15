@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MKWT – App</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  
+  
+
+  <link rel="stylesheet" href="mkwt_theme_v3.css">
+</head>
+
+<body>
+
+  <nav class="nav">
+  <div class="navInner">
+    <div class="brand">MKWT</div>
+
+    <a class="navLink" href="tracker.html">Tracker</a>
+    <a class="navLink" href="stats.html">VR improvement</a>
+    <a class="navLink" href="settings.html">Settings</a>
+
+    <div class="navSpacer"></div>
+
+    <div class="navRight">
+      <button class="navAction" id="btnExport" type="button">Export</button>
+      <label class="navAction">
+        Import
+        <input id="fileImport" type="file" accept="application/json" />
+      </label>
+      <button class="navAction danger" id="btnLogout" type="button">Logout</button>
+    </div>
+  </div>
+</nav>
+
+
+  <div class="wrap">
+
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div>
+          <h2 style="margin:0 0 6px 0;">MKWT</h2>
+          <div class="muted" id="userInfo">Loading session…</div>
+          <div class="muted">Current VR: <span class="pill" id="currentVrPill">–</span></div>
+        </div>
+      </div>
+      <div class="muted" id="status"></div>
+      <div class="muted" id="debug"></div>
+    </div>
+
+    <!-- SETUP (nur beim ersten Login, wenn kein Profil existiert) -->
+    <div class="card hidden" id="setupCard">
+      <h3 style="margin-top:0;">Create profile (one time)</h3>
+      <div class="row">
+        <div class="field">
+          <label class="muted">Nickname</label>
+          <input id="setupNickname" placeholder="z.B. Nickname" />
+        </div>
+        <div class="field">
+          <label class="muted">Aktuelle VR</label>
+          <input id="setupVr" type="number" inputmode="numeric" placeholder="z.B. 8500" />
+          <div class="muted">Wenn leer: Default ist 8500.</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn" id="btnCreateProfile">Create profile</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS (immer verfügbar, wenn Profil existiert) -->
+    
+<!-- settingsCard removed (moved to settings.html) -->
+
+
+    <!-- MATCH INPUT -->
+    <div class="card hidden" id="matchCard">
+      <h3 style="margin-top:0;">Add new match</h3>
+
+      <div class="row">
+        <div class="field">
+          <label class="muted"></label>
+          <select id="intermission">
+            <option value="">Intermission start</option>
+            <option>Acorn Heights</option>
+            <option>Airship Fortress</option>
+            <option>Boo Cinema</option>
+            <option>Bowser’s Castle</option>
+            <option>Cheep Cheep Falls</option>
+            <option>Choco Mountain</option>
+            <option>Crown City</option>
+            <option>Dandelion Depths</option>
+            <option>Desert Hills</option>
+            <option>Dino Dino Jungle</option>
+            <option>DK Pass</option>
+            <option>DK Spaceport</option>
+            <option>Dry Bones Burnout</option>
+            <option>Faraway Oasis</option>
+            <option>Great Block Ruins</option>
+            <option>Koopa Troopa Beach</option>
+            <option>Mario Bros Circuit</option>
+            <option>Mario Bros. Piste</option>
+            <option>Moo Moo Meadows</option>
+            <option>Peach Beach</option>
+            <option>Peach Stadium</option>
+            <option>Rainbow Road</option>
+            <option>Salty Salty Speedway</option>
+            <option>Shy Guy Bazaar</option>
+            <option>Sky-High Sundae</option>
+            <option>Starview Peak</option>
+            <option>Toad’s Factory</option>
+            <option>Wario Shipyard</option>
+            <option>Wario Stadium</option>
+            <option>Whistlestop Summit</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="muted"></label>
+          <select id="track">
+            <option value="">Intermission end  /  3-Lap track</option>
+            <option>Acorn Heights</option>
+            <option>Airship Fortress</option>
+            <option>Boo Cinema</option>
+            <option>Bowser’s Castle</option>
+            <option>Cheep Cheep Falls</option>
+            <option>Choco Mountain</option>
+            <option>Crown City</option>
+            <option>Dandelion Depths</option>
+            <option>Desert Hills</option>
+            <option>Dino Dino Jungle</option>
+            <option>DK Pass</option>
+            <option>DK Spaceport</option>
+            <option>Dry Bones Burnout</option>
+            <option>Faraway Oasis</option>
+            <option>Great Block Ruins</option>
+            <option>Koopa Troopa Beach</option>
+            <option>Mario Bros Circuit</option>
+            <option>Mario Bros. Piste</option>
+            <option>Moo Moo Meadows</option>
+            <option>Peach Beach</option>
+            <option>Peach Stadium</option>
+            <option>Rainbow Road</option>
+            <option>Salty Salty Speedway</option>
+            <option>Shy Guy Bazaar</option>
+            <option>Sky-High Sundae</option>
+            <option>Starview Peak</option>
+            <option>Toad’s Factory</option>
+            <option>Wario Shipyard</option>
+            <option>Wario Stadium</option>
+            <option>Whistlestop Summit</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="muted">VR Δ</label>
+          <input id="vrChange" type="number" inputmode="numeric" placeholder="+ / -" />
+        </div>
+        <div class="field">
+          <label class="muted">new total VR</label>
+          <input id="vrAfterInput" type="number" inputmode="numeric" placeholder="z.B. 7980" />
+          <div class="muted"></div>
+        </div>
+
+        <div class="field">
+          <label class="muted">Opponents</label>
+          <select id="opponents">
+            <option value="">—</option>
+            <optgroup label="Häufig (15–23)">
+              <option>15</option><option>16</option><option>17</option><option>18</option><option>19</option>
+              <option>20</option><option>21</option><option>22</option><option>23</option>
+            </optgroup>
+            <optgroup label="Alle (1–23)">
+              <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+              <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+              <option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
+              <option>19</option><option>20</option><option>21</option><option>22</option><option>23</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="muted">Placement</label>
+          <select id="placement">
+            <option value="">—</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+            <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+            <option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
+            <option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn" id="btnSaveMatch">Save</button>
+        <button class="btn2" id="btnClear">Clear</button>
+      </div>
+    </div>
+
+    <!-- MATCH LIST -->
+    <div class="card hidden" id="listCard">
+  <h3 style="margin-top:0;">Recent matches</h3>
+  <div class="muted" style="margin-bottom:10px;">
+    
+  </div>
+
+  <div style="overflow:auto; max-height: 520px;">
+  <table>
+    <thead>
+        <tr>
+          <th>Match #</th>
+          <th>Created</th>
+          <th>Intermission</th>
+          <th>Track</th>
+          <th>VR Δ</th>
+          <th>VR after</th>
+          <th>Opp</th>
+          <th>Place</th>
+                    <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="10" class="muted">Loading…</td></tr>
+      </tbody>
+    </table>
+    <div class="row" style="align-items:center; margin-top:10px;">
+  <div class="muted" id="pageInfo">Page 1</div>
+  <div style="display:flex; gap:10px; justify-content:flex-end;">
+    <button class="btn2" id="btnPrev">← Prev</button>
+    <button class="btn2" id="btnNext">Next →</button>
+  </div>
+</div>
+  </div>
+</div>
+    <!-- EDIT DIALOG -->
+    <dialog id="editDlg">
+    <div style="padding:16px; border-bottom:1px solid #2d3442; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+        <div style="font-weight:800;">Edit match</div>
+        <div class="muted" id="editMeta">—</div>
+        </div>
+        <button class="btn2" id="btnCloseDlg">✕</button>
+    </div>
+
+    <div style="padding:16px;">
+        <div class="row">
+        <div class="field">
+            <label class="muted">Intermission start</label>
+            <select id="editIntermission"></select>
+        </div>
+        <div class="field">
+            <label class="muted">Intermission end  /  3-Lap Track</label>
+            <select id="editTrack"></select>
+        </div>
+        </div>
+
+        <div class="row">
+        <div class="field">
+            <label class="muted">VR Δ</label>
+            <input id="editVrChange" type="number" inputmode="numeric" placeholder="+ / -" />
+        </div>
+        <div class="field">
+            <label class="muted">new total VR</label>
+            <input id="editVrAfter" type="number" inputmode="numeric" placeholder="e.g. 9000" />
+        </div>
+        <div class="field">
+            <label class="muted">total opponents</label>
+            <input id="editOpponents"
+       type="number"
+       min="1"
+       max="23"
+       inputmode="numeric"
+       list="editOppList"
+       placeholder="1–23" />
+
+<datalist id="editOppList">
+  <option value="8"></option>
+  <option value="12"></option>
+  <option value="16"></option>
+  <option value="18"></option>
+  <option value="20"></option>
+  <option value="21"></option>
+  <option value="22"></option>
+  <option value="23"></option>
+</datalist>
+        </div>
+        <div class="field">
+            <label class="muted">Placement (1–24)</label>
+           <input id="editPlacement"
+       type="number"
+       min="1"
+       max="24"
+       inputmode="numeric"
+       list="editPlaceList"
+       placeholder="1–24" />
+
+<datalist id="editPlaceList">
+  <option value="1"></option>
+  <option value="2"></option>
+  <option value="3"></option>
+  <option value="4"></option>
+  <option value="5"></option>
+  <option value="6"></option>
+  <option value="7"></option>
+  <option value="8"></option>
+  <option value="9"></option>
+  <option value="10"></option>
+  <option value="11"></option>
+  <option value="12"></option>
+  <option value="13"></option>
+  <option value="14"></option>
+  <option value="15"></option>
+  <option value="16"></option>
+  <option value="17"></option>
+  <option value="18"></option>
+  <option value="19"></option>
+  <option value="20"></option>
+  <option value="21"></option>
+  <option value="22"></option>
+  <option value="23"></option>
+  <option value="24"></option>
+</datalist>
+        </div>
+        </div>
+
+        <div class="muted" style="margin-top:10px;">
+        Note: Enter VR Δ OR new total VR. Your current VR will be adjusted automatically.
+        </div>
+    </div>
+
+    <div style="padding:16px; border-top:1px solid #2d3442; display:flex; gap:10px; justify-content:flex-end;">
+        <button class="btn2" id="btnCancelDlg">Cancel</button>
+        <button class="btn" id="btnSaveDlg">Save</button>
+    </div>
+    </dialog>
+<script>
+  // ========= Fehler sichtbar machen =========
+  window.addEventListener("error", (e) => {
+    const msg = "JS Error: " + (e.message || e.type);
+    document.getElementById("status").textContent = msg;
+    document.getElementById("debug").textContent = (e.error?.stack || "");
+  });
+
+  // ========= Helpers =========
+  const $ = (id) => document.getElementById(id);
+  const $status = $("status");
+  const $debug  = $("debug");
+  const $rows   = $("rows");
+
+  function setStatus(msg, ok=false){
+    $status.className = "muted " + (ok ? "ok" : "bad");
+    $status.textContent = msg || "";
+  }
+  function setDebug(msg){ $debug.textContent = msg || ""; }
+  function show(el, on){ el.classList.toggle("hidden", !on); }
+
+  // ========= VR Δ <-> VR nach Match Sync =========
+  // ========= Edit VR Δ <-> new total VR Sync =========
+  let _syncingEditVr = false;
+
+  function getEditBaseVr(){
+    // base VR before this match = vr_after - vr_change (from stored snapshot)
+    const after = Number(EDIT_ROW?.vr_after);
+    const delta = Number(EDIT_ROW?.vr_change ?? 0);
+    if (Number.isFinite(after)) return after - delta;
+
+    // fallback if old rows had no vr_after: assume current profile VR minus old delta
+    const cur = Number(PROFILE?.current_vr ?? 8500);
+    return cur - delta;
+  }
+
+  function editSyncFromDelta(){
+    if (_syncingEditVr) return;
+    const elDelta = $("editVrChange");
+    const elAfter = $("editVrAfter");
+    if (!elDelta || !elAfter) return;
+
+    const d = Number(elDelta.value);
+    if (!Number.isFinite(d)) { elAfter.value = ""; return; }
+
+    _syncingEditVr = true;
+    elAfter.value = String(getEditBaseVr() + d);
+    _syncingEditVr = false;
+  }
+
+  function editSyncFromAfter(){
+    if (_syncingEditVr) return;
+    const elDelta = $("editVrChange");
+    const elAfter = $("editVrAfter");
+    if (!elDelta || !elAfter) return;
+
+    const a = Number(elAfter.value);
+    if (!Number.isFinite(a)) { elDelta.value = ""; return; }
+
+    _syncingEditVr = true;
+    elDelta.value = String(a - getEditBaseVr());
+    _syncingEditVr = false;
+  }
+
+  let _syncingVr = false;
+  function getBaseVr(){
+    return Number(PROFILE?.current_vr ?? 8500);
+  }
+  function syncFromDelta(){
+    if (_syncingVr) return;
+    const elDelta = $("vrChange");
+    const elAfter = $("vrAfterInput");
+    if (!elDelta || !elAfter) return;
+    const d = Number(elDelta.value);
+    if (!Number.isFinite(d)) { elAfter.value = ""; return; }
+    _syncingVr = true;
+    elAfter.value = String(getBaseVr() + d);
+    _syncingVr = false;
+  }
+  function syncFromAfter(){
+    if (_syncingVr) return;
+    const elDelta = $("vrChange");
+    const elAfter = $("vrAfterInput");
+    if (!elDelta || !elAfter) return;
+    const a = Number(elAfter.value);
+    if (!Number.isFinite(a)) { elDelta.value = ""; return; }
+    _syncingVr = true;
+    elDelta.value = String(a - getBaseVr());
+    _syncingVr = false;
+  }
+
+
+  function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function exportBackupJSON() {
+  try {
+    setStatus("Creating backup…", true);
+
+    // 1) Profil laden (zur Sicherheit frisch)
+    await loadProfile();
+
+    // 2) Alle Matches paginiert holen (Supabase max. 1000/Request ist üblich)
+    const allMatches = [];
+    const chunk = 1000;
+    let from = 0;
+
+    while (true) {
+      const to = from + chunk - 1;
+
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+        .eq("user_id", SESSION.user.id)
+        .order("created_at", { ascending: true }) // Backup chronologisch
+        .range(from, to);
+
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+
+      allMatches.push(...data);
+      if (data.length < chunk) break;
+      from += chunk;
+    }
+
+    const backup = {
+      app: "MKWT",
+      version: 1,
+      exported_at: new Date().toISOString(),
+      user: {
+        id: SESSION.user.id,
+        email: SESSION.user.email || null
+      },
+      profile: {
+        nickname: PROFILE?.nickname ?? null,
+        current_vr: PROFILE?.current_vr ?? null
+      },
+      matches: allMatches
+    };
+
+    const filename = `mkwt_backup_${(PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
+    downloadTextFile(filename, JSON.stringify(backup, null, 2));
+
+    setStatus(`✅ Backup created (${allMatches.length} Matches).`, true);
+  } catch (e) {
+    setStatus("Backup failed: " + (e?.message || e), false);
+    setDebug(e?.stack || JSON.stringify(e, null, 2));
+  }
+}
+async function importBackupJSON(file) {
+  try {
+    if (!file) return;
+
+    const text = await file.text();
+    const backup = JSON.parse(text);
+
+    if (!backup || backup.app !== "MKWT" || !Array.isArray(backup.matches)) {
+      setStatus("❌ Datei ist kein gültiges MKWT Backup.", false);
+      return;
+    }
+
+    const ok = confirm(
+      `Restore starten?\n\n` +
+      `Matches in Datei: ${backup.matches.length}\n` +
+      `Hinweis: Wir importieren nur Matches, die noch nicht existieren.\n` +
+      `Dein aktuelles Profil bleibt erhalten (optional kannst du danach Nickname/VR manuell setzen).`
+    );
+    if (!ok) return;
+
+    setStatus("Importing…", true);
+
+    // Damit "doppelte Imports" nicht passieren:
+    // Wir speichern eine client-seitige Import-ID pro Match (nicht vorhanden),
+    // daher nutzen wir hier als "Fingerprint" created_at+track+vr_change+opponents+placement+intermission.
+    // (Wenn du 100% safe willst, bauen wir später eine extra Spalte backup_hash in Supabase.)
+    const existing = new Set();
+
+    // Bestehende Matches holen (nur Felder für Fingerprint)
+    const allExisting = [];
+    const chunk = 1000;
+    let from = 0;
+
+    while (true) {
+      const to = from + chunk - 1;
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("created_at, intermission, track, vr_change, opponents, placement")
+        .eq("user_id", SESSION.user.id)
+        .range(from, to);
+
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+
+      allExisting.push(...data);
+      if (data.length < chunk) break;
+      from += chunk;
+    }
+
+    for (const r of allExisting) {
+      existing.add(fingerprintMatch(r));
+    }
+
+    // Neue Matches filtern
+    const toInsert = [];
+    for (const r of backup.matches) {
+      const fp = fingerprintMatch(r);
+      if (!existing.has(fp)) {
+        toInsert.push({
+  user_id: SESSION.user.id,
+  created_at: r.created_at,
+  intermission: r.intermission ?? null,
+  track: r.track ?? null,
+  vr_change: r.vr_change ?? 0,
+  vr_after: r.vr_after ?? null,   
+  opponents: r.opponents ?? null,
+  placement: r.placement ?? null,
+});
+      }
+    }
+
+    // Insert in Batches
+    let inserted = 0;
+    const batchSize = 500;
+
+    for (let i = 0; i < toInsert.length; i += batchSize) {
+      const batch = toInsert.slice(i, i + batchSize);
+
+      // Falls created_at nicht insertbar ist in deiner Tabelle:
+      // dann nimm created_at hier raus.
+      const { error } = await supabaseClient.from("matches").insert(batch);
+      if (error) throw error;
+
+      inserted += batch.length;
+    }
+
+    setStatus(`✅ Import complete. Neu importiert: ${inserted} / ${backup.matches.length}`, true);
+    await refreshAll();
+
+  } catch (e) {
+    setStatus("Import failed: " + (e?.message || e), false);
+    setDebug(e?.stack || JSON.stringify(e, null, 2));
+  }
+}
+
+function fingerprintMatch(r) {
+  // Stabiler Vergleich (stringify null/undefined)
+  const created = r.created_at ? String(r.created_at) : "";
+  return [
+    created,
+    String(r.intermission ?? ""),
+    String(r.track ?? ""),
+    String(r.vr_change ?? ""),
+    String(r.opponents ?? ""),
+    String(r.placement ?? "")
+  ].join("|");
+}
+// ========= Track-Liste =========
+const TRACKS = [
+  "Acorn Heights","Airship Fortress","Boo Cinema","Bowser’s Castle","Cheep Cheep Falls",
+  "Choco Mountain","Crown City","Dandelion Depths","Desert Hills","Dino Dino Jungle",
+  "DK Pass","DK Spaceport","Dry Bones Burnout","Faraway Oasis","Great Block Ruins",
+  "Koopa Troopa Beach","Mario Bros Circuit","Mario Bros. Piste","Moo Moo Meadows",
+  "Peach Beach","Peach Stadium","Rainbow Road","Salty Salty Speedway","Shy Guy Bazaar",
+  "Sky-High Sundae","Starview Peak","Toad’s Factory","Wario Shipyard","Wario Stadium",
+  "Whistlestop Summit"
+];
+
+function fillTrackSelect(selectEl, placeholder){
+  selectEl.innerHTML = "";
+  const opt0 = document.createElement("option");
+  opt0.value = "";
+  opt0.textContent = placeholder || "—";
+  selectEl.appendChild(opt0);
+
+  for (const t of TRACKS){
+    const o = document.createElement("option");
+    o.value = t;
+    o.textContent = t;
+    selectEl.appendChild(o);
+  }
+}
+
+function initSelects(){
+  // Intermission: optional (gleiche Liste)
+  fillTrackSelect($("intermission"), "Intermission start");
+  fillTrackSelect($("track"), "Intermission end  /  3-Lap track");
+
+  // Edit-Dialog
+  fillTrackSelect($("editIntermission"), "Intermission start");
+  fillTrackSelect($("editTrack"), "Intermission end  /  3-Lap track");
+}
+  // ========= Supabase (FIX: localStorage + sessionStorage unterstützen) =========
+  const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
+
+  function makeClient(storage) {
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      auth: {
+        storage,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      }
+    });
+  }
+
+  const clientLocal = makeClient(localStorage);
+  const clientSess  = makeClient(sessionStorage);
+
+  // wird nach requireAuth() gesetzt
+  let supabaseClient = null;
+
+  let SESSION = null;
+  let PROFILE = null;
+
+    // ===== Pagination =====
+    const PAGE_SIZE = 7;
+    let currentPage = 1;
+    let totalMatches = null;
+
+  // ========= Auth Guard (FIX: check localStorage ODER sessionStorage) =========
+  async function requireAuth() {
+    // 1) localStorage
+    let { data: { session }, error } = await clientLocal.auth.getSession();
+    if (error) setDebug("getSession(local) error: " + JSON.stringify(error, null, 2));
+    if (session) {
+      supabaseClient = clientLocal;
+      SESSION = session;
+      $("userInfo").textContent = "Profile: –";
+      return session;
+    }
+
+    // 2) sessionStorage
+    ({ data: { session }, error } = await clientSess.auth.getSession());
+    if (error) setDebug("getSession(session) error: " + JSON.stringify(error, null, 2));
+    if (session) {
+      supabaseClient = clientSess;
+      SESSION = session;
+      $("userInfo").textContent = "Profile: –";
+      return session;
+    }
+
+    // 3) keine session -> zurück zum Login
+    window.location.href = "login.html";
+    return null;
+  }
+
+  // ========= Profile =========
+  async function loadProfile() {
+    PROFILE = null;
+    $("currentVrPill").textContent = "–";
+
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id, nickname, current_vr")
+      .eq("id", SESSION.user.id)
+      .maybeSingle();
+
+    if (error) {
+      setStatus("Failed to load profile: " + error.message, false);
+      setDebug(JSON.stringify(error, null, 2));
+      return;
+    }
+
+    if (!data) {
+      PROFILE = null;
+      return;
+    }
+
+    PROFILE = data;
+    
+  // Anzeige im Header: Nickname
+  try { $("userInfo").textContent = "Profile: " + (PROFILE?.nickname || "–"); } catch(e) {}
+$("currentVrPill").textContent = String(PROFILE.current_vr ?? "–");
+  }
+
+  async function createProfile() {
+    const btn = $("btnCreateProfile");
+    btn.disabled = true;
+
+    try {
+      const nickname = $("setupNickname").value.trim();
+      const vrRaw = $("setupVr").value;
+      const current_vr = (vrRaw === "" ? 8500 : parseInt(vrRaw, 10));
+
+      if (!nickname) { setStatus("Please enter a nickname.", false); return; }
+      if (!Number.isFinite(current_vr)) { setStatus("Invalid VR value.", false); return; }
+
+      setStatus("Creating profile…", true);
+
+      const { error } = await supabaseClient.from("profiles").insert({
+        id: SESSION.user.id,
+        nickname,
+        current_vr
+      });
+
+      if (error) {
+        setStatus("Create profile fehlgeschlagen: " + error.message, false);
+        setDebug(JSON.stringify(error, null, 2));
+        return;
+      }
+
+      setStatus("✅ Profile created.", true);
+      await refreshAll();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  
+/* saveSettings removed (moved to settings.html) */
+
+
+ // ========= Matches (Pagination) =========
+
+async function getMatchesCount() {
+  const { count, error } = await supabaseClient
+    .from("matches")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", SESSION.user.id);
+
+  if (error) {
+    setDebug("Count error: " + JSON.stringify(error, null, 2));
+    return null;
+  }
+  return count ?? null;
+}
+
+async function loadMatches() {
+  $rows.innerHTML = `<tr><td colspan="10" class="muted">Loading…</td></tr>`;
+
+  // Count nur holen wenn noch nicht da
+  if (totalMatches == null) {
+    totalMatches = await getMatchesCount();
+  }
+
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to   = from + PAGE_SIZE - 1;
+
+  const { data, error } = await supabaseClient
+    .from("matches")
+    .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+    .eq("user_id", SESSION.user.id)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    setStatus("Failed to load matches: " + error.message, false);
+    setDebug(JSON.stringify(error, null, 2));
+    $rows.innerHTML = `<tr><td colspan="10" class="muted">Error loading.</td></tr>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    $rows.innerHTML = `<tr><td colspan="10" class="muted">No matches yet.</td></tr>`;
+    $("pageInfo").textContent = "Page 1";
+    $("btnPrev").disabled = true;
+    $("btnNext").disabled = true;
+    return;
+  }
+
+  const maxPage = (totalMatches != null) ? Math.max(1, Math.ceil(totalMatches / PAGE_SIZE)) : null;
+  $("pageInfo").textContent = maxPage ? `Page ${currentPage} / ${maxPage}` : `Page ${currentPage}`;
+  $("btnPrev").disabled = (currentPage <= 1);
+  $("btnNext").disabled = (maxPage != null) ? (currentPage >= maxPage) : (data.length < PAGE_SIZE);
+
+  $rows.innerHTML = data.map((r, idx) => {
+      const matchNo = totalMatches - (from + idx); // newest gets highest number
+      const created = r.created_at ? new Date(r.created_at).toLocaleString("de-DE") : "";
+      const intermission = (r.intermission ?? "") ? String(r.intermission) : "";
+      const track = (r.track ?? "") ? String(r.track) : "";
+      const delta = Number(r.vr_change || 0);
+      const vrAfter = (r.vr_after ?? null);
+      const vrNow = (vrAfter == null ? "" : Number(vrAfter));
+      const opp = Number(r.opponents || 0);
+      const place = Number(r.placement || 0);
+      const perf = (opp ? (delta / opp) : 0);
+      const perfStr = opp ? perf.toFixed(2) : "";
+      return `
+        <tr>
+          <td>${matchNo}</td>
+          <td>${created}</td>
+          <td>${escapeHtml(intermission)}</td>
+          <td>${escapeHtml(track)}</td>
+          <td class="${delta>=0?'ok':'bad'}">${delta}</td>
+          <td>${vrNow}</td>
+          <td>${opp||""}</td>
+          <td>${place||""}</td>
+                    <td>
+            <button class="iconBtn" title="Bearbeiten" data-action="edit" data-id="${r.id}">✏️</button>
+            <button class="iconBtn danger" title="Löschen" data-action="del" data-id="${r.id}">🗑️</button>
+          </td>
+        </tr>`;
+    }).join("");
+
+  // Klick-Handler für Edit & Delete
+  $rows.querySelectorAll("button[data-action]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-id");
+      const action = btn.getAttribute("data-action");
+      if (action === "edit") await openEditDialog(id);
+      if (action === "del") await deleteMatch(id);
+    });
+  });
+}
+
+  async function saveMatch() {
+    const btn = $("btnSaveMatch");
+    btn.disabled = true;
+
+    try {
+      const intermission = $("intermission").value || null;
+      const track = $("track").value;
+      const vr_change_raw = $("vrChange").value;
+      const vr_after_raw = $("vrAfterInput")?.value;
+      const vr_change_in = (vr_change_raw === "" ? NaN : parseInt(vr_change_raw, 10));
+      const vr_after_in = (vr_after_raw === "" || vr_after_raw == null ? NaN : parseInt(vr_after_raw, 10));
+const opponentsRaw = $("opponents").value;
+      const placementRaw = $("placement").value;
+
+      if (!track) { setStatus("Please select a track.", false); return; }
+      if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR Δ or VR after match.", false); return; }
+
+      let opponents = null;
+      if (opponentsRaw !== "") {
+        opponents = parseInt(opponentsRaw, 10);
+        if (!Number.isFinite(opponents) || opponents < 1 || opponents > 23) {
+          setStatus("Opponents must be 1–23.", false);
+          return;
+        }
+      }
+
+      let placement = null;
+      if (placementRaw !== "") {
+        placement = parseInt(placementRaw, 10);
+        if (!Number.isFinite(placement) || placement < 1 || placement > 24) {
+          setStatus("Placement must be 1–24.", false);
+          return;
+        }
+      }
+
+      setStatus("Saving match…", true);
+
+      const baseVr = (PROFILE?.current_vr ?? 8500);
+      let vr_after;
+      let vr_change;
+      if (Number.isFinite(vr_after_in)) {
+        vr_after = vr_after_in;
+        vr_change = vr_after - baseVr;
+        // Sync UI, falls beides gefüllt war
+        try { if ($("vrChange")) $("vrChange").value = String(vr_change); } catch(e) {}
+      } else {
+        vr_change = vr_change_in;
+        vr_after = baseVr + vr_change;
+        try { if ($("vrAfterInput")) $("vrAfterInput").value = String(vr_after); } catch(e) {}
+      }
+const { error: insErr } = await supabaseClient.from("matches").insert({
+        user_id: SESSION.user.id,
+        intermission,
+        track,
+        vr_change,
+        vr_after, // Snapshot: VR nach diesem Match
+        opponents,
+        placement
+      });
+
+      if (insErr) {
+        setStatus("Failed to save match: " + insErr.message, false);
+        setDebug(JSON.stringify(insErr, null, 2));
+        return;
+      }
+
+      const newVr = vr_after;
+
+      const { error: upErr } = await supabaseClient
+        .from("profiles")
+        .update({ current_vr: newVr, updated_at: new Date().toISOString() })
+        .eq("id", SESSION.user.id);
+
+      if (upErr) {
+        setStatus("⚠️ Match saved, but VR update failed: " + upErr.message, false);
+        setDebug(JSON.stringify(upErr, null, 2));
+      } else {
+        setStatus("✅ Match saved. VR updated.", true);
+      }
+
+      $("intermission").value = "";
+      $("track").value = "";
+      $("vrChange").value = "";
+      $("vrAfterInput").value = "";
+    $("vrAfterInput").value = "";
+      $("opponents").value = "";
+      $("placement").value = "";
+
+      await refreshAll();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ========= Logout (FIX: beide storages leeren) =========
+  async function logout() {
+    setStatus("Logging out…", true);
+
+    // beide Varianten abmelden
+    await clientLocal.auth.signOut();
+    await clientSess.auth.signOut();
+
+    window.location.href = "login.html";
+  }
+
+  // ========= Refresh / Init =========
+  async function refreshAll() {
+  setStatus("", true);
+
+  // Pagination-Cache reset (WICHTIG!)
+  totalMatches = null;
+  currentPage = 1;
+
+  await loadProfile();
+
+    if (!PROFILE) {
+      show($("setupCard"), true);
+      show($("matchCard"), false);
+      show($("listCard"), false);
+      $("currentVrPill").textContent = "–";
+      return;
+    }
+
+    show($("setupCard"), false);
+    show($("matchCard"), true);
+    show($("listCard"), true);
+
+    $("currentVrPill").textContent = String(PROFILE.current_vr ?? "–");
+    // Re-sync inputs with new base VR
+    try { syncFromDelta(); syncFromAfter(); } catch(e) {}
+    await loadMatches();
+  }
+// ========= Edit / Delete =========
+const editDlg = $("editDlg");
+let EDIT_ROW = null;
+
+async function fetchMatchById(id) {
+  const { data, error } = await supabaseClient
+    .from("matches")
+    .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+    .eq("id", id)
+    .eq("user_id", SESSION.user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+async function openEditDialog(id) {
+  try {
+    setStatus("", true);
+    EDIT_ROW = await fetchMatchById(id);
+    if (!EDIT_ROW) {
+      setStatus("Match nicht gefunden (oder keine Rechte).", false);
+      return;
+    }
+
+    $("editMeta").textContent =
+      "ID: " + EDIT_ROW.id + " • " +
+      (EDIT_ROW.created_at ? new Date(EDIT_ROW.created_at).toLocaleString() : "");
+
+    $("editIntermission").value = EDIT_ROW.intermission ?? "";
+    $("editTrack").value = EDIT_ROW.track ?? "";
+    $("editVrChange").value = (EDIT_ROW.vr_change ?? "");
+    if ($("editVrAfter")) $("editVrAfter").value = (EDIT_ROW.vr_after ?? "");
+    // bind live sync (same behavior as add match)
+    $("editVrChange")?.removeEventListener("input", editSyncFromDelta);
+    $("editVrAfter")?.removeEventListener("input", editSyncFromAfter);
+    $("editVrChange")?.addEventListener("input", editSyncFromDelta);
+    $("editVrAfter")?.addEventListener("input", editSyncFromAfter);
+
+    $("editOpponents").value = (EDIT_ROW.opponents ?? "");
+    $("editPlacement").value = (EDIT_ROW.placement ?? "");
+
+    editDlg.showModal();
+  } catch (e) {
+    setStatus("Failed to open editor: " + (e?.message || e), false);
+    setDebug(e?.stack || "");
+  }
+}
+
+function closeDlg(){
+  if (editDlg.open) editDlg.close();
+  EDIT_ROW = null;
+}
+
+async function saveEditDialog(){
+  if (!EDIT_ROW) return;
+
+  const btn = $("btnSaveDlg");
+  btn.disabled = true;
+
+  try {
+    const intermission = $("editIntermission").value || null;
+    const track = $("editTrack").value;
+    const vrChangeRaw = $("editVrChange").value;
+    const vrAfterRaw  = $("editVrAfter") ? $("editVrAfter").value : "";
+    const vr_change_in = (vrChangeRaw === "" ? NaN : parseInt(vrChangeRaw, 10));
+    const vr_after_in  = (vrAfterRaw === ""  ? NaN : parseInt(vrAfterRaw, 10));
+    const opponentsRaw = $("editOpponents").value;
+    const placementRaw = $("editPlacement").value;
+
+    if (!track) { setStatus("Please select a track.", false); return; }
+    if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR Δ or new total VR.", false); return; }
+
+    let opponents = null;
+    if (opponentsRaw !== "") {
+      opponents = parseInt(opponentsRaw, 10);
+      if (!Number.isFinite(opponents) || opponents < 1 || opponents > 23) {
+        setStatus("Opponents must be 1–23.", false);
+        return;
+      }
+    }
+
+    let placement = null;
+    if (placementRaw !== "") {
+      placement = parseInt(placementRaw, 10);
+      if (!Number.isFinite(placement) || placement < 1 || placement > 24) {
+        setStatus("Placement must be 1–24.", false);
+        return;
+      }
+    }
+
+    const baseVr = getEditBaseVr();
+
+    let vr_change;
+    let vr_after;
+
+    if (Number.isFinite(vr_after_in)) {
+      vr_after = vr_after_in;
+      vr_change = vr_after - baseVr;
+      // keep UI consistent
+      try { $("editVrChange").value = String(vr_change); } catch(e) {}
+    } else {
+      vr_change = vr_change_in;
+      vr_after = baseVr + vr_change;
+      try { if ($("editVrAfter")) $("editVrAfter").value = String(vr_after); } catch(e) {}
+    }
+
+    const oldVr = (EDIT_ROW.vr_change ?? 0);
+    const deltaVr = vr_change - oldVr; // profile VR adjustment
+
+    setStatus("Saving changes…", true);
+
+    // 1) Match updaten + updated row zurückholen (wichtig: array!)
+    const { data: updatedRows, error: upMatchErr } = await supabaseClient
+    .from("matches")
+    .update({ intermission, track, vr_change, vr_after, opponents, placement })
+    .eq("id", EDIT_ROW.id)
+    .eq("user_id", SESSION.user.id)
+    .select("id, vr_change, vr_after, intermission, track, opponents, placement");
+
+    if (upMatchErr) {
+    setStatus("Match update failed: " + upMatchErr.message, false);
+    setDebug(JSON.stringify(upMatchErr, null, 2));
+    return;
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+    setStatus("Match was NOT changed (0 Zeilen getroffen). Prüfe user_id / RLS Policy.", false);
+    setDebug(
+        "Update hit 0 rows.\n" +
+        "EDIT_ROW.id=" + EDIT_ROW.id + "\n" +
+        "SESSION.user.id=" + SESSION.user.id + "\n" +
+        "Tipp: Prüfe in Supabase, ob matches.user_id wirklich dein User ist."
+    );
+    return;
+}
+
+    if (deltaVr !== 0) {
+      await loadProfile();
+      const fixed = (PROFILE?.current_vr ?? 8500) + deltaVr;
+
+      const { error: upProfErr } = await supabaseClient
+        .from("profiles")
+        .update({ current_vr: fixed, updated_at: new Date().toISOString() })
+        .eq("id", SESSION.user.id);
+
+      if (upProfErr) {
+        setStatus("⚠️ Match geändert, aber Profil-VR Korrektur fehlgeschlagen: " + upProfErr.message, false);
+        setDebug(JSON.stringify(upProfErr, null, 2));
+        closeDlg();
+        await refreshAll();
+        return;
+      }
+    }
+
+    setStatus("✅ Changes saved.", true);
+    closeDlg();
+    await refreshAll();
+
+  } catch (e) {
+    setStatus("Save fehlgeschlagen: " + (e?.message || e), false);
+    setDebug(e?.stack || "");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteMatch(id){
+  try {
+    const row = await fetchMatchById(id);
+    if (!row) { setStatus("Match nicht gefunden.", false); return; }
+
+    const ok = confirm(
+      `Delete match?\n\nTrack: ${row.track}\nVR Δ: ${row.vr_change}\nZeit: ${row.created_at ? new Date(row.created_at).toLocaleString() : ""}`
+    );
+    if (!ok) return;
+
+    setStatus("Deleting match…", true);
+
+    const { error: delErr } = await supabaseClient
+      .from("matches")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", SESSION.user.id);
+
+    if (delErr) {
+      setStatus("Delete failed: " + delErr.message, false);
+      setDebug(JSON.stringify(delErr, null, 2));
+      return;
+    }
+
+    // Profil-VR korrigieren: Einfluss dieses Matches entfernen
+    const oldVr = (row.vr_change ?? 0);
+    await loadProfile();
+    const fixed = (PROFILE?.current_vr ?? 8500) - oldVr;
+
+    const { error: upProfErr } = await supabaseClient
+      .from("profiles")
+      .update({ current_vr: fixed, updated_at: new Date().toISOString() })
+      .eq("id", SESSION.user.id);
+
+    if (upProfErr) {
+      setStatus("⚠️ Match gelöscht, aber Profil-VR Korrektur fehlgeschlagen: " + upProfErr.message, false);
+      setDebug(JSON.stringify(upProfErr, null, 2));
+    } else {
+      setStatus("✅ Match deleted. VR adjusted.", true);
+    }
+
+    await refreshAll();
+  } catch (e) {
+    setStatus("Delete failed: " + (e?.message || e), false);
+    setDebug(e?.stack || "");
+  }
+}
+  // Buttons
+  $("btnLogout").addEventListener("click", logout);
+  $("btnCreateProfile").addEventListener("click", createProfile);
+  $("btnSaveMatch").addEventListener("click", saveMatch);
+
+  // Live-Sync der Eingabefelder
+  $("vrChange")?.addEventListener("input", syncFromDelta);
+  $("vrAfterInput")?.addEventListener("input", syncFromAfter);
+
+  $("btnClear").addEventListener("click", () => {
+    $("intermission").value = "";
+    $("track").value = "";
+    $("vrChange").value = "";
+    $("vrAfterInput").value = "";
+    $("opponents").value = "";
+    $("placement").value = "";
+    setStatus("", true);
+    setDebug("");
+  });
+  $("btnExport")?.addEventListener("click", exportBackupJSON);
+
+    $("fileImport")?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    // reset, damit gleiche Datei nochmal gewählt werden kann
+    e.target.value = "";
+    await importBackupJSON(file);
+    });
+    $("btnPrev").addEventListener("click", async () => {
+  if (currentPage <= 1) return;
+  currentPage--;
+  await loadMatches();
+    
+  });
+
+    $("btnNext").addEventListener("click", async () => {
+  // wenn wir totalMatches kennen, nicht über maxPage hinaus
+  if (totalMatches != null) {
+    const maxPage = Math.max(1, Math.ceil(totalMatches / PAGE_SIZE));
+    if (currentPage >= maxPage) return;
+  }
+
+  currentPage++;
+  await loadMatches();
+    });
+    // ===== Dialog Buttons (PART 7) =====
+    $("btnCloseDlg")?.addEventListener("click", closeDlg);
+    $("btnCancelDlg")?.addEventListener("click", closeDlg);
+    $("btnSaveDlg")?.addEventListener("click", saveEditDialog);
+
+    // Optional: ESC / Klick auf Backdrop -> schließt Dialog
+    $("editDlg")?.addEventListener("cancel", (e) => { e.preventDefault(); closeDlg(); });
+
+    function fixDatalistReopen(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+
+    el.addEventListener("focus", () => {
+        // Kurz leeren → Browser vergisst den Filter
+        const v = el.value;
+        el.value = "";
+        requestAnimationFrame(() => el.value = v);
+    });
+    }
+
+    // Für beide Felder aktivieren
+    fixDatalistReopen("editPlacement");
+    fixDatalistReopen("editOpponents");
+
+  // Start
+  (async () => {
+    setDebug("App starting…");
+
+    // Selects (Intermission/Track + Edit-Dialog) befüllen
+    initSelects();
+
+    const s = await requireAuth();
+    if (!s) return;
+
+    await refreshAll();
+    setDebug("Ready.");
+})();
+</script>
+
+
+
+
+
+<script>
+  (function(){
+    const p = (location.pathname.split("/").pop() || "").toLowerCase();
+    document.querySelectorAll(".navLink").forEach(a=>{
+      const href = (a.getAttribute("href")||"").toLowerCase();
+      if (href && href === p) a.classList.add("active");
+    });
+  })();
+</script>
+
+</body>
+</html>

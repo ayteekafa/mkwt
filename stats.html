@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MKWT – Stats</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  
+  
+
+  <link rel="stylesheet" href="mkwt_theme_v3.css">
+
+  <style>
+    /* ===== Mobile Chart Fix ===== */
+    .chartWrap { position: relative; width: 100%; height: 360px; }
+    @media (max-width: 520px){ .chartWrap { height: 320px; } }
+  </style>
+
+</head>
+
+<body>
+
+  <nav class="nav">
+  <div class="navInner">
+    <div class="brand">MKWT</div>
+
+    <a class="navLink" href="tracker.html">Tracker</a>
+    <a class="navLink" href="stats.html">VR improvement</a>
+    <a class="navLink" href="settings.html">Settings</a>
+
+    <div class="navSpacer"></div>
+
+    <div class="navRight">
+      <button class="navAction" id="btnExport" type="button">Export</button>
+      <label class="navAction">
+        Import
+        <input id="fileImport" type="file" accept="application/json" />
+      </label>
+      <button class="navAction danger" id="btnLogout" type="button">Logout</button>
+    </div>
+  </div>
+</nav>
+
+
+  <div class="wrap">
+
+    <div class="card">
+      <div class="topbar">
+        <div>
+          <h2 style="margin:0 0 6px 0;">MKWT – Stats</h2>
+          <div class="muted" id="userInfo">Loading session…</div>
+          <div class="muted">Current VR (Profile): <b id="currentVr">–</b></div>
+          <div class="muted">Matches: <b id="matchCount">–</b></div>
+        </div>
+        </div>
+      <div class="muted" id="status"></div>
+      <div class="muted" id="debug"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Chart 1 – VR History (with Trend)</h3>
+      <div class="muted" style="margin-bottom:10px;">
+        X = Match number (chronological), Y = VR. Trend line = linear regression.
+      </div>
+      <div class="chartWrap"><canvas id="chartVr" height="120"></canvas></div>
+    <div class="muted" style="margin-top:10px;">Avg VR (last 100 matches): <b id="avgVr100">–</b></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Chart 2 – Avg VR Δ per Track (3 Laps only)</h3>
+      <div class="muted" style="margin-bottom:10px;">
+        Y = VR Δ. Only rows where <b>intermission is empty</b> are used.
+      </div>
+      <div class="chartWrap"><canvas id="chartPerf" height="140"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Chart 3 – Intermission vs 3 Laps (Share)</h3>
+      <div class="muted" style="margin-bottom:10px;">
+        Intermission = intermission set, 3 Laps = intermission empty.
+      </div>
+      <div class="pie-wrap">
+      <canvas id="chartPie"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Chart 4 – VR Δ History: Intermission vs 3 Laps</h3>
+      <div class="muted" style="margin-bottom:10px;">
+        X = separate count within each category (Intermission-Matches bzw. 3-Laps-Matches).<br/>
+        Y = VR Δ. Beide Serien haben eigene Trendlinien. Hover shows values – trend line shows slope only.
+      </div>
+      <div class="chartWrap"><canvas id="chartItTr" height="140"></canvas></div>
+
+      <div class="muted" style="margin-top:10px;">
+        Intermission Avg VR Δ: <b id="avgDeltaInter">–</b> · 3 Laps Avg VR Δ: <b id="avgDelta3">–</b>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  // ========= UI Helpers =========
+  const $ = (id) => document.getElementById(id);
+  const $status = $("status");
+  const $debug = $("debug");
+
+  function setStatus(msg, ok=false){
+    $status.className = "muted " + (ok ? "ok" : "bad");
+    $status.textContent = msg || "";
+  }
+  function setDebug(msg){ $debug.textContent = msg || ""; }
+
+  // ========= Backup / Restore / Logout (wie b_new_v2) =========
+  function downloadTextFile(filename, text) {
+    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportBackupJSON() {
+    try {
+      setStatus("Creating backup…", true);
+
+      // Profil frisch laden
+      await loadProfile();
+
+      // Alle Matches paginiert holen (chronologisch)
+      const allMatches = [];
+      const chunk = 1000;
+      let from = 0;
+
+      while (true) {
+        const to = from + chunk - 1;
+        const { data, error } = await supabaseClient
+          .from("matches")
+          .select("id, created_at, intermission, track, vr_change, opponents, placement")
+          .eq("user_id", SESSION.user.id)
+          .order("created_at", { ascending: true })
+          .range(from, to);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allMatches.push(...data);
+        if (data.length < chunk) break;
+        from += chunk;
+      }
+
+      const backup = {
+        app: "MKWT",
+        version: 1,
+        exported_at: new Date().toISOString(),
+        user: {
+          id: SESSION.user.id,
+          email: SESSION.user.email || null
+        },
+        profile: {
+          nickname: PROFILE?.nickname ?? null,
+          current_vr: PROFILE?.current_vr ?? null
+        },
+        matches: allMatches
+      };
+
+      const filename =
+        `mkwt_backup_${(PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
+
+      downloadTextFile(filename, JSON.stringify(backup, null, 2));
+      setStatus(`✅ Backup created (${allMatches.length} Matches).`, true);
+    } catch (e) {
+      setStatus("Backup failed: " + (e?.message || e), false);
+      setDebug(e?.stack || JSON.stringify(e, null, 2));
+    }
+  }
+
+  function fingerprintMatch(r) {
+    const created = r.created_at ? String(r.created_at) : "";
+    return [
+      created,
+      String(r.intermission ?? ""),
+      String(r.track ?? ""),
+      String(r.vr_change ?? ""),
+      String(r.opponents ?? ""),
+      String(r.placement ?? "")
+    ].join("|");
+  }
+
+  async function importBackupJSON(file) {
+    try {
+      if (!file) return;
+
+      const text = await file.text();
+      const backup = JSON.parse(text);
+
+      if (!backup || backup.app !== "MKWT" || !Array.isArray(backup.matches)) {
+        setStatus("❌ Datei ist kein gültiges MKWT Backup.", false);
+        return;
+      }
+
+      const ok = confirm(
+        `Start import?\n\n` +
+        `Matches in Datei: ${backup.matches.length}\n` +
+        `Hinweis: Wir importieren nur Matches, die noch nicht existieren.`
+      );
+      if (!ok) return;
+
+      setStatus("Importing…", true);
+
+      // vorhandene Matches-Fingerprints sammeln
+      const existing = new Set();
+      const allExisting = [];
+      const chunk = 1000;
+      let from = 0;
+
+      while (true) {
+        const to = from + chunk - 1;
+        const { data, error } = await supabaseClient
+          .from("matches")
+          .select("created_at, intermission, track, vr_change, opponents, placement")
+          .eq("user_id", SESSION.user.id)
+          .range(from, to);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allExisting.push(...data);
+        if (data.length < chunk) break;
+        from += chunk;
+      }
+
+      for (const r of allExisting) existing.add(fingerprintMatch(r));
+
+      // neue Matches filtern
+      const toInsert = [];
+      for (const r of backup.matches) {
+        const fp = fingerprintMatch(r);
+        if (!existing.has(fp)) {
+          toInsert.push({
+            user_id: SESSION.user.id,
+            created_at: r.created_at,
+            intermission: r.intermission ?? null,
+            track: r.track ?? null,
+            vr_change: r.vr_change ?? 0,
+            opponents: r.opponents ?? null,
+            placement: r.placement ?? null,
+          });
+        }
+      }
+
+      // insert in batches
+      let inserted = 0;
+      const batchSize = 500;
+
+      for (let i = 0; i < toInsert.length; i += batchSize) {
+        const batch = toInsert.slice(i, i + batchSize);
+        const { error } = await supabaseClient.from("matches").insert(batch);
+        if (error) throw error;
+        inserted += batch.length;
+      }
+
+      setStatus(`✅ Import done. Newly imported: ${inserted} / ${backup.matches.length}`, true);
+      await refreshAll();
+    } catch (e) {
+      setStatus("Import failed: " + (e?.message || e), false);
+      setDebug(e?.stack || JSON.stringify(e, null, 2));
+    }
+  }
+
+  async function logout() {
+    setStatus("Logging out…", true);
+    await clientLocal.auth.signOut();
+    await clientSess.auth.signOut();
+    window.location.href = "login.html";
+  }
+
+
+  window.addEventListener("error", (e) => {
+    setStatus("JS Error: " + (e.message || e.type), false);
+    setDebug(e.error?.stack || "");
+  });
+
+  // ========= Supabase (wie tracker.html) =========
+  const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
+
+  function makeClient(storage) {
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      auth: {
+        storage,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      }
+    });
+  }
+
+  const clientLocal = makeClient(localStorage);
+  const clientSess  = makeClient(sessionStorage);
+  let supabaseClient = null;
+
+  let SESSION = null;
+  let PROFILE = null;
+
+  async function requireAuth() {
+    // localStorage
+    let { data: { session }, error } = await clientLocal.auth.getSession();
+    if (error) setDebug("getSession(local) error: " + JSON.stringify(error, null, 2));
+    if (session) {
+      supabaseClient = clientLocal;
+      SESSION = session;
+      $("userInfo").textContent = "Signed in as: " + (session.user?.email || "unknown");
+      return session;
+    }
+
+    // sessionStorage
+    ({ data: { session }, error } = await clientSess.auth.getSession());
+    if (error) setDebug("getSession(session) error: " + JSON.stringify(error, null, 2));
+    if (session) {
+      supabaseClient = clientSess;
+      SESSION = session;
+      $("userInfo").textContent = "Signed in as: " + (session.user?.email || "unknown");
+      return session;
+    }
+
+    // keine session -> login
+    window.location.href = "login.html";
+    return null;
+  }
+
+  async function loadProfile() {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id, nickname, current_vr")
+      .eq("id", SESSION.user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    PROFILE = data || null;
+    $("currentVr").textContent = String(PROFILE?.current_vr ?? "–");
+  }
+
+  // ========= Data Fetch =========
+  async function getAllMatchesAsc() {
+    // holt alle Matches in Pages (Supabase limit max 1000 pro request ist üblich)
+    const pageSize = 1000;
+    let from = 0;
+    let all = [];
+
+    while (true) {
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("id, created_at, intermission, track, vr_change, opponents, placement")
+        .eq("user_id", SESSION.user.id)
+        .order("created_at", { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+
+      all = all.concat(data);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+
+    return all;
+  }
+
+  // ========= Math Helpers =========
+  function linearRegression(xs, ys) {
+    // y = a + b*x
+    const n = xs.length;
+    if (n < 2) return { a: 0, b: 0 };
+
+    let sumX=0, sumY=0, sumXY=0, sumXX=0;
+    for (let i=0; i<n; i++){
+      const x = xs[i], y = ys[i];
+      sumX += x; sumY += y; sumXY += x*y; sumXX += x*x;
+    }
+    const denom = (n*sumXX - sumX*sumX);
+    const b = denom === 0 ? 0 : (n*sumXY - sumX*sumY) / denom;
+    const a = (sumY - b*sumX) / n;
+    return { a, b };
+  }
+
+  function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
+
+  // ========= Charts =========
+  let chartVr = null, chartPerf = null, chartPie = null, chartItTr = null;
+
+  function destroyCharts(){
+    chartVr?.destroy(); chartPerf?.destroy(); chartPie?.destroy(); chartItTr?.destroy();
+    chartVr = chartPerf = chartPie = chartItTr = null;
+  }
+
+  function buildCharts(matchesAsc) {
+    destroyCharts();
+
+    const currentVr = Number(PROFILE?.current_vr ?? 8500);
+
+    // --- Diagramm 1: VR Verlauf (chronologisch) ---
+    const deltas = matchesAsc.map(m => Number(m.vr_change || 0));
+    const totalDelta = deltas.reduce((a,b)=>a+b, 0);
+    const baseVr = currentVr - totalDelta;     // VR vor dem 1. gespeicherten Match
+    let running = baseVr;
+
+    const labels1 = [];
+    const vrSeries = [];
+    for (let i=0; i<matchesAsc.length; i++){
+      running += Number(matchesAsc[i].vr_change || 0);
+      labels1.push(String(i+1));
+      vrSeries.push(running);
+    }
+
+    // Trendlinie
+    const xs = vrSeries.map((_,i)=> i+1);
+    const { a, b } = linearRegression(xs, vrSeries);
+    const trend = xs.map(x => a + b*x);
+
+    // --- Auto-Zoom Y-Achse ---
+// Default (wenn keine/zu wenige Werte): 3000–11000
+const DEFAULT_MIN = 3000;
+const DEFAULT_MAX = 11000;
+
+const vrNums = vrSeries.map(Number).filter(Number.isFinite);
+
+let autoMin = DEFAULT_MIN;
+let autoMax = DEFAULT_MAX;
+
+if (vrNums.length >= 2) {
+  const yMin = Math.min(...vrNums);
+  const yMax = Math.max(...vrNums);
+
+  // falls alle Werte identisch -> kleine Range geben
+  const range = Math.max(50, yMax - yMin);
+
+  // 10% Padding oben/unten
+  const pad = Math.ceil(range * 0.10);
+
+  autoMin = yMin - pad;
+  autoMax = yMax + pad;
+
+  // niemals völlig absurd rauszoomen
+  // (bleibt innerhalb der "globale" Range, aber zoomt für dich stark rein)
+  autoMin = Math.max(DEFAULT_MIN, autoMin);
+  autoMax = Math.min(DEFAULT_MAX, autoMax);
+
+  // falls clamp zu eng wäre: minimalen Abstand erzwingen
+  if (autoMax - autoMin < 50) {
+    const mid = (autoMin + autoMax) / 2;
+    autoMin = Math.max(DEFAULT_MIN, mid - 25);
+    autoMax = Math.min(DEFAULT_MAX, mid + 25);
+  }
+}
+// Ø VR der letzten 100 Matches (aus VR-Verlauf berechnet)
+const last100 = vrNums.slice(-100);
+const avg100 = last100.length
+  ? (last100.reduce((a, v) => a + v, 0) / last100.length)
+  : null;
+const avgEl = $("avgVr100");
+if (avgEl) avgEl.textContent = (avg100 == null ? "–" : avg100.toFixed(1));
+
+
+    chartVr = new Chart($("chartVr"), {
+      type: "line",
+      data: {
+        labels: labels1,
+        datasets: [
+          { label: "VR", data: vrSeries, tension: 0.15, pointRadius: 0, pointHitRadius: 12 },
+          { label: "Trend", data: trend, tension: 0, pointRadius: 0, pointHitRadius: 12, borderDash: [6,6] }
+        ]
+      },
+      options: {
+
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false },
+        scales: {
+          y: {
+            min: autoMin,
+            max: autoMax
+        }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                // X = Match Nummer
+                const i = items?.[0];
+                return i ? ("Match " + i.label) : "";
+              },
+              label: (ctx) => {
+                if (ctx.dataset.label === "Trend") {
+                  // nur Slope anzeigen
+                  return "Slope: " + b.toFixed(2) + " VR/Match";
+                }
+                return "VR: " + Number(ctx.parsed.y).toFixed(0);
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // --- Diagramm 2: Ø VR Δ pro Track (nur 3 Laps => intermission leer) ---
+    const only3Laps = matchesAsc.filter(m => (m.intermission == null || String(m.intermission).trim() === ""));
+    const groups = new Map(); // track -> {sum, n}
+
+    for (const m of only3Laps){
+      const track = String(m.track ?? "").trim();
+      const delta = Number(m.vr_change || 0);
+      if (!track) continue;
+      const perf = delta;
+      const g = groups.get(track) || { sum: 0, n: 0 };
+      g.sum += perf; g.n += 1;
+      groups.set(track, g);
+    }
+
+    // Alle Tracks die vorkommen, nach Name sortiert
+    const trackNames = Array.from(groups.keys()).sort((a,b)=>a.localeCompare(b, "de"));
+    const perfAvg = trackNames.map(t => groups.get(t).sum / groups.get(t).n);
+    const trackCount = trackNames.map(t => groups.get(t).n);
+
+    chartPerf = new Chart($("chartPerf"), {
+      type: "bar",
+      data: {
+        labels: trackNames,
+        datasets: [{
+          label: "Ø VR Δ (nur 3 Laps)",
+          data: perfAvg,
+
+          backgroundColor: perfAvg.map(v =>
+            v < 0 ? "rgba(255, 80, 80, 0.85)" : "rgba(80, 160, 255, 0.85)"
+          ),
+          borderColor: perfAvg.map(v =>
+            v < 0 ? "rgb(255, 80, 80)" : "rgb(80, 160, 255)"
+          ),
+          borderWidth: 1
+        }]
+      },
+      options: {
+
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { ticks: { callback: (v)=> Number(v).toFixed(0) } },
+          x: { ticks: { maxRotation: 60, minRotation: 60 } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => items?.[0]?.label ? ("Track: " + items[0].label) : "",
+              label: (ctx) => {
+                const i = ctx.dataIndex;
+                const perf = Number(ctx.parsed.y);
+                const n = trackCount[i] ?? 0;
+                return `VR Δ: ${perf.toFixed(2)} (Matches: ${n})`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // --- Diagramm 3: Pie Intermission vs 3 Laps ---
+    const intermissionCount = matchesAsc.filter(m => (m.intermission != null && String(m.intermission).trim() !== "")).length;
+    const threeLapsCount = matchesAsc.length - intermissionCount;
+
+    chartPie = new Chart($("chartPie"), {
+      type: "pie",
+      data: {
+        labels: ["Intermission", "3 Laps"],
+        datasets: [
+          { data: [intermissionCount, threeLapsCount] }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // --- Diagramm 4: VR Δ Verlauf (Intermission vs 3 Laps) ---
+    // Wert = VR Δ
+    const interPts = []; // {x,y, meta}
+    const trackPts = []; // {x,y, meta}
+    let interIdx = 0;
+    let trackIdx = 0;
+
+    for (const m of matchesAsc){
+      const delta = Number(m.vr_change || 0);
+      // Keep `opp` for tooltip text (some older code references it)
+      const opp = Number((m.opponents ?? 0));
+      const hasInter = (m.intermission != null && String(m.intermission).trim() !== "");
+
+      if (hasInter){
+        interIdx += 1;
+        interPts.push({
+          x: interIdx,
+          y: delta,
+          intermission: String(m.intermission || "").trim(),
+          track: String(m.track || "").trim(),
+          delta,
+          opp
+        });
+      } else {
+        trackIdx += 1;
+        trackPts.push({
+          x: trackIdx,
+          y: delta,
+          track: String(m.track || "").trim(),
+          delta,
+          opp
+        });
+      }
+    }
+
+    
+    // Durchschnittswerte (Ø VR Δ) unter dem Chart anzeigen
+    const interAvg = interPts.length ? (interPts.reduce((s,p)=>s + Number(p.y||0), 0) / interPts.length) : null;
+    const trackAvg = trackPts.length ? (trackPts.reduce((s,p)=>s + Number(p.y||0), 0) / trackPts.length) : null;
+    const $avgInter = document.getElementById("avgDeltaInter");
+    const $avgTrack = document.getElementById("avgDelta3");
+    if ($avgInter) $avgInter.textContent = (interAvg == null || Number.isNaN(interAvg)) ? "–" : interAvg.toFixed(1);
+    if ($avgTrack) $avgTrack.textContent = (trackAvg == null || Number.isNaN(trackAvg)) ? "–" : trackAvg.toFixed(1);
+
+function regressionLine(points){
+      if (!points || points.length < 2) return { xs: [], ys: [], slope: 0 };
+      const xs = points.map(p=>p.x);
+      const ys = points.map(p=>p.y);
+      const { a, b } = linearRegression(xs, ys);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const lineXs = [minX, maxX];
+      const lineYs = lineXs.map(x => a + b*x);
+      return { xs: lineXs, ys: lineYs, slope: b };
+    }
+
+    const interReg = regressionLine(interPts);
+    const trackReg = regressionLine(trackPts);
+
+    chartItTr = new Chart($("chartItTr"), {
+      type: "scatter",
+      data: {
+        datasets: [
+          {
+            label: "Intermission (VR Δ)",
+            data: interPts,
+            showLine: true,
+            tension: 0.15,
+            pointRadius: 2,
+            pointHoverRadius: 4
+          },
+          {
+            label: "Intermission Trend",
+            data: interReg.xs.map((x,i)=>({ x, y: interReg.ys[i] })),
+            showLine: true,
+            pointRadius: 0,
+            borderDash: [6,6]
+          },
+          {
+            label: "3 Laps / Track (VR Δ)",
+            data: trackPts,
+            showLine: true,
+            tension: 0.15,
+            pointRadius: 2,
+            pointHoverRadius: 4
+          },
+          {
+            label: "3 Laps Trend",
+            data: trackReg.xs.map((x,i)=>({ x, y: trackReg.ys[i] })),
+            showLine: true,
+            pointRadius: 0,
+            borderDash: [6,6]
+          }
+        ]
+      },
+      options: {
+
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false },
+        scales: {
+          x: {
+            title: { display: true, text: "Match # innerhalb der Kategorie" },
+            ticks: { precision: 0 }
+        },
+          y: {
+            title: { display: true, text: "VR Δ" },
+            ticks: { callback: (v)=> Number(v).toFixed(0) }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const it = items?.[0];
+                if (!it) return "";
+                const lbl = it.dataset.label || "";
+                const x = it.parsed.x;
+                if (lbl.startsWith("Intermission")) return "Intermission match #" + x;
+                if (lbl.startsWith("3 Laps")) return "3 Laps match #" + x;
+                return "";
+              },
+              label: (ctx) => {
+                const lbl = ctx.dataset.label || "";
+                if (lbl === "Intermission Trend") return "Slope: " + interReg.slope.toFixed(2) + " VRΔ/Match";
+                if (lbl === "3 Laps Trend") return "Slope: " + trackReg.slope.toFixed(2) + " VRΔ/Match";
+
+                const raw = ctx.raw || {};
+                const y = Number(ctx.parsed.y);
+                if (lbl === "Intermission (VR Δ)") {
+                  const name = raw.intermission ? ("Intermission: " + raw.intermission) : "Intermission";
+                  const tr = raw.track ? (" • Track: " + raw.track) : "";
+                  return name + tr + " • VR Δ: " + y.toFixed(0) + " (Δ " + raw.delta + ")";
+                }
+                if (lbl === "3 Laps / Track (VR Δ)") {
+                  const tr = raw.track ? ("Track: " + raw.track + " • ") : "";
+                  return tr + "VR Δ: " + y.toFixed(0) + " (Δ " + raw.delta + ")";
+                }
+                return lbl + ": " + y.toFixed(0);
+              }
+            }
+          },
+          legend: { position: "bottom" }
+        }
+      }
+    });
+
+  }
+
+  async function refreshAll(){
+    try {
+      setStatus("Loading data…", true);
+      await loadProfile();
+
+      const matchesAsc = await getAllMatchesAsc();
+      $("matchCount").textContent = String(matchesAsc.length);
+
+      if (matchesAsc.length === 0) {
+  $("matchCount").textContent = "0";
+  buildCharts([]); // zeigt leeres Chart mit Default-Range 3000–11000
+  setStatus("No matches yet.", false);
+  return;
+}
+
+      buildCharts(matchesAsc);
+      setStatus("✅ Done.", true);
+    } catch (e) {
+      setStatus("Error: " + (e?.message || e), false);
+      setDebug(e?.stack || "");
+    }
+  }
+
+  // Buttons
+  $("btnExport")?.addEventListener("click", exportBackupJSON);
+  $("fileImport")?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    await importBackupJSON(file);
+  });
+  $("btnLogout")?.addEventListener("click", logout);
+
+  // Start
+  (async () => {
+    const s = await requireAuth();
+    if (!s) return;
+    await refreshAll();
+  })();
+</script>
+
+
+
+
+
+<script>
+  (function(){
+    const p = (location.pathname.split("/").pop() || "").toLowerCase();
+    document.querySelectorAll(".navLink").forEach(a=>{
+      const href = (a.getAttribute("href")||"").toLowerCase();
+      if (href && href === p) a.classList.add("active");
+    });
+  })();
+</script>
+
+</body>
+</html>
