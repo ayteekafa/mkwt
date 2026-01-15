@@ -1349,5 +1349,28 @@ async function deleteMatch(id){
   })();
 </script>
 
+
+<script>
+(function(){
+  function wireSelectAll(input){
+    if (!input) return;
+    input.addEventListener("focus", () => {
+      input.dataset.prev = input.value || "";
+      // select all after iOS finishes focusing
+      setTimeout(() => { try { input.select(); } catch(e){} }, 0);
+    });
+    input.addEventListener("blur", () => {
+      if ((input.value || "").trim() === "") {
+        input.value = input.dataset.prev || "";
+      }
+    });
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    wireSelectAll(document.getElementById("vrDelta"));
+    wireSelectAll(document.getElementById("newTotalVr"));
+  });
+})();
+</script>
+
 </body>
 </html>
