@@ -158,11 +158,11 @@
       <div class="row">
         <div class="field">
           <label class="muted">VR Δ</label>
-          <input id="vrChange" type="number" inputmode="numeric" placeholder="+ / -" />
+          <input id="vrChange" placeholder="+ / -" / type="text" inputmode="numeric" pattern="[0-9+\-]*">
         </div>
         <div class="field">
           <label class="muted">new total VR</label>
-          <input id="vrAfterInput" type="number" inputmode="numeric" placeholder="z.B. 7980" />
+          <input id="vrAfterInput" placeholder="z.B. 7980" / type="text" inputmode="numeric" pattern="[0-9]*">
           <div class="muted"></div>
         </div>
 
@@ -1339,15 +1339,7 @@ async function deleteMatch(id){
 
 
 
-<script>
-  (function(){
-    const p = (location.pathname.split("/").pop() || "").toLowerCase();
-    document.querySelectorAll(".navLink").forEach(a=>{
-      const href = (a.getAttribute("href")||"").toLowerCase();
-      if (href && href === p) a.classList.add("active");
-    });
-  })();
-</script>
+
 
 
 <script>
@@ -1356,7 +1348,7 @@ async function deleteMatch(id){
     if (!input) return;
     input.addEventListener("focus", () => {
       input.dataset.prev = input.value || "";
-      // select all after iOS finishes focusing
+      // iOS: select needs a tick after focus
       setTimeout(() => { try { input.select(); } catch(e){} }, 0);
     });
     input.addEventListener("blur", () => {
@@ -1366,8 +1358,8 @@ async function deleteMatch(id){
     });
   }
   document.addEventListener("DOMContentLoaded", () => {
-    wireSelectAll(document.getElementById("vrDelta"));
-    wireSelectAll(document.getElementById("newTotalVr"));
+    wireSelectAll(document.getElementById("vrChange"));
+    wireSelectAll(document.getElementById("vrAfterInput"));
   });
 })();
 </script>
