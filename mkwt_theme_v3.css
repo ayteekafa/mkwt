@@ -431,3 +431,27 @@ input, select, textarea, button{
   font-size: 16px; /* prevents iOS input zoom */
 }
 html{ -webkit-text-size-adjust: 100%; }
+
+/* ===== VR Delta negative toggle button ===== */
+.vr-delta-wrap{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.vr-delta-wrap .vr-sign{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  font-size:22px;
+  line-height:1;
+  background:#1e2533;
+  color:#ffffff;
+  border:1px solid rgba(255,255,255,0.08);
+}
+.vr-delta-wrap .vr-sign.is-negative{
+  background:#3a1f28;
+  border-color: rgba(255, 90, 120, 0.35);
+}
+.vr-delta-wrap input{
+  flex:1;
+}

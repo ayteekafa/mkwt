@@ -158,7 +158,10 @@
       <div class="row">
         <div class="field">
           <label class="muted">VR Δ</label>
-          <input id="vrChange" placeholder="+ / -" / type="text" inputmode="numeric" pattern="[0-9+\-]*">
+          <div class="vr-delta-wrap">
+            <button type="button" id="vrSignToggle" class="vr-sign" aria-label="Toggle negative">−</button>
+            <input id="vrChange" placeholder="0" type="text" inputmode="numeric" pattern="[0-9]*">
+          </div>
         </div>
         <div class="field">
           <label class="muted">new total VR</label>
@@ -1357,9 +1360,39 @@ async function deleteMatch(id){
       }
     });
   }
+
+  function setNegButtonState(btn, input){
+    if (!btn || !input) return;
+    const isNeg = (input.value || "").startsWith("-");
+    btn.classList.toggle("is-negative", isNeg);
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
-    wireSelectAll(document.getElementById("vrChange"));
-    wireSelectAll(document.getElementById("vrAfterInput"));
+    const vr = document.getElementById("vrChange");
+    const vrAfter = document.getElementById("vrAfterInput");
+    const negBtn = document.getElementById("vrSignToggle");
+
+    wireSelectAll(vr);
+    wireSelectAll(vrAfter);
+
+    if (negBtn && vr) {
+      setNegButtonState(negBtn, vr);
+      negBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (!vr.value) {
+          vr.focus();
+          return;
+        }
+        vr.value = vr.value.startsWith("-") ? vr.value.slice(1) : ("-" + vr.value);
+        setNegButtonState(negBtn, vr);
+        vr.dispatchEvent(new Event("input", { bubbles: true }));
+        vr.focus();
+        setTimeout(() => { try { vr.select(); } catch(e){} }, 0);
+      });
+
+      // If user manually clears/changes value, keep button state in sync
+      vr.addEventListener("input", () => setNegButtonState(negBtn, vr));
+    }
   });
 })();
 </script>
