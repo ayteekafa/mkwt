@@ -79,9 +79,15 @@
     <div class="card hidden" id="matchCard">
       <h3 style="margin-top:0;">Add new match</h3>
 
+      <!-- Mode toggle: Intermission vs 3-Lap -->
+      <div class="modeToggle" role="tablist" aria-label="Match mode">
+        <button type="button" class="modeBtn isActive" data-mode="intermission" aria-selected="true">Intermission</button>
+        <button type="button" class="modeBtn" data-mode="3lap" aria-selected="false">3-Lap track</button>
+      </div>
+
       <div class="row">
-        <div class="field">
-          <label class="muted"></label>
+        <div class="field" id="fieldIntermissionStart">
+          <label class="muted" id="labelIntermissionStart">Intermission start</label>
           <select id="intermission">
             <option value="">Intermission start</option>
             <option>Acorn Heights</option>
@@ -117,10 +123,10 @@
           </select>
         </div>
 
-        <div class="field">
-          <label class="muted"></label>
+        <div class="field" id="fieldTrack">
+          <label class="muted" id="labelTrack">Intermission end</label>
           <select id="track">
-            <option value="">Intermission end  /  3-Lap track</option>
+            <option value="" id="trackPlaceholder">Intermission end</option>
             <option>Acorn Heights</option>
             <option>Airship Fortress</option>
             <option>Boo Cinema</option>
@@ -165,7 +171,7 @@
         </div>
         <div class="field">
           <label class="muted">new total VR</label>
-          <input id="vrAfterInput" placeholder="z.B. 7980" / type="text" inputmode="numeric" pattern="[0-9]*">
+          <input id="vrAfterInput" placeholder="z.B. 7980" type="text" inputmode="numeric" pattern="[0-9]*">
           <div class="muted"></div>
         </div>
 
@@ -250,13 +256,17 @@
     </div>
 
     <div style="padding:16px;">
+        <div class="modeToggleRow">
+          <button type="button" class="modeBtnSmall isActive" id="editModeIntermission" data-mode="intermission">Intermission</button>
+          <button type="button" class="modeBtnSmall" id="editMode3lap" data-mode="3lap">3-Lap track</button>
+        </div>
         <div class="row">
-        <div class="field">
-            <label class="muted">Intermission start</label>
+        <div class="field" id="editIntermissionField">
+            <label class="muted" id="editIntermissionLabel">Intermission start</label>
             <select id="editIntermission"></select>
         </div>
         <div class="field">
-            <label class="muted">Intermission end  /  3-Lap Track</label>
+            <label class="muted" id="editTrackLabel">Intermission end</label>
             <select id="editTrack"></select>
         </div>
         </div>
@@ -264,7 +274,10 @@
         <div class="row">
         <div class="field">
             <label class="muted">VR Δ</label>
-            <input id="editVrChange" type="number" inputmode="numeric" placeholder="+ / -" />
+            <div class="vr-delta-wrap">
+              <button type="button" id="editVrSignToggle" class="vr-sign" aria-label="Toggle negative">−</button>
+              <input id="editVrChange" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" />
+            </div>
         </div>
         <div class="field">
             <label class="muted">new total VR</label>
@@ -687,12 +700,12 @@ function fillTrackSelect(selectEl, placeholder){
 
 function initSelects(){
   // Intermission: optional (gleiche Liste)
-  fillTrackSelect($("intermission"), "Intermission start");
-  fillTrackSelect($("track"), "Intermission end  /  3-Lap track");
+  fillTrackSelect($("intermission"), " ");
+  fillTrackSelect($("track"), " ");
 
   // Edit-Dialog
-  fillTrackSelect($("editIntermission"), "Intermission start");
-  fillTrackSelect($("editTrack"), "Intermission end  /  3-Lap track");
+  fillTrackSelect($("editIntermission"), " ");
+  fillTrackSelect($("editTrack"), " ");
 }
   // ========= Supabase (FIX: localStorage + sessionStorage unterstützen) =========
   const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
@@ -874,6 +887,13 @@ async function loadMatches() {
       const created = r.created_at ? new Date(r.created_at).toLocaleString("de-DE") : "";
       const intermission = (r.intermission ?? "") ? String(r.intermission) : "";
       const track = (r.track ?? "") ? String(r.track) : "";
+      const isIntermission = !!intermission;
+      const intermissionCellHtml = isIntermission
+        ? `<div class="intermission-stack"><div class="label">Start</div><div class="value">${escapeHtml(intermission)}</div><div class="label">End</div><div class="value">${escapeHtml(track)}</div></div>`
+        : `<span class="intermission-placeholder">—</span>`;
+      const trackCellHtml = isIntermission
+        ? `<span class="track-placeholder">—</span>`
+        : escapeHtml(track || '—');
       const delta = Number(r.vr_change || 0);
       const vrAfter = (r.vr_after ?? null);
       const vrNow = (vrAfter == null ? "" : Number(vrAfter));
@@ -881,19 +901,20 @@ async function loadMatches() {
       const place = Number(r.placement || 0);
       const perf = (opp ? (delta / opp) : 0);
       const perfStr = opp ? perf.toFixed(2) : "";
+      const canDelete = (currentPage === 1 && idx === 0); // only newest match can be deleted
       return `
         <tr>
           <td>${matchNo}</td>
           <td>${created}</td>
-          <td>${escapeHtml(intermission)}</td>
-          <td>${escapeHtml(track)}</td>
+          <td>${intermissionCellHtml}</td>
+          <td>${trackCellHtml}</td>
           <td class="${delta>=0?'ok':'bad'}">${delta}</td>
           <td>${vrNow}</td>
           <td>${opp||""}</td>
           <td>${place||""}</td>
-                    <td>
+          <td>
             <button class="iconBtn" title="Bearbeiten" data-action="edit" data-id="${r.id}">✏️</button>
-            <button class="iconBtn danger" title="Löschen" data-action="del" data-id="${r.id}">🗑️</button>
+            ${canDelete ? `<button class="iconBtn danger" title="Löschen" data-action="del" data-id="${r.id}">🗑️</button>` : ""}
           </td>
         </tr>`;
     }).join("");
@@ -914,7 +935,9 @@ async function loadMatches() {
     btn.disabled = true;
 
     try {
-      const intermission = $("intermission").value || null;
+      const mode = document.querySelector(".modeBtn.isActive")?.dataset.mode || "intermission";
+      const intermissionSel = $("intermission");
+      const intermission = (mode === "intermission") ? (intermissionSel?.value || null) : null;
       const track = $("track").value;
       const vr_change_raw = $("vrChange").value;
       const vr_after_raw = $("vrAfterInput")?.value;
@@ -923,7 +946,8 @@ async function loadMatches() {
 const opponentsRaw = $("opponents").value;
       const placementRaw = $("placement").value;
 
-      if (!track) { setStatus("Please select a track.", false); return; }
+        if (!track) { setStatus("Please select a track.", false); return; }
+    if (mode === "intermission" && !intermission) { setStatus("Please select an intermission start.", false); return; }
       if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR Δ or VR after match.", false); return; }
 
       let opponents = null;
@@ -1072,7 +1096,17 @@ async function openEditDialog(id) {
 
     $("editIntermission").value = EDIT_ROW.intermission ?? "";
     $("editTrack").value = EDIT_ROW.track ?? "";
+
+    // Mode UI (Intermission vs 3-Lap)
+    try { setEditMode((EDIT_ROW.intermission ?? "") ? "intermission" : "3lap"); } catch(e) {}
+
     $("editVrChange").value = (EDIT_ROW.vr_change ?? "");
+    // keep edit negative-toggle button state in sync
+    try {
+      const b = document.getElementById("editVrSignToggle");
+      const i = document.getElementById("editVrChange");
+      if (b && i) setNegButtonState(b, i);
+    } catch(e) {}
     if ($("editVrAfter")) $("editVrAfter").value = (EDIT_ROW.vr_after ?? "");
     // bind live sync (same behavior as add match)
     $("editVrChange")?.removeEventListener("input", editSyncFromDelta);
@@ -1102,7 +1136,8 @@ async function saveEditDialog(){
   btn.disabled = true;
 
   try {
-    const intermission = $("editIntermission").value || null;
+    const mode = document.getElementById("editDlg")?.dataset.mode || ((EDIT_ROW?.intermission ?? "") ? "intermission" : "3lap");
+    const intermission = (mode === "intermission") ? ($("editIntermission").value || null) : null;
     const track = $("editTrack").value;
     const vrChangeRaw = $("editVrChange").value;
     const vrAfterRaw  = $("editVrAfter") ? $("editVrAfter").value : "";
@@ -1112,6 +1147,7 @@ async function saveEditDialog(){
     const placementRaw = $("editPlacement").value;
 
     if (!track) { setStatus("Please select a track.", false); return; }
+    if (mode === "intermission" && !intermission) { setStatus("Please select an intermission start.", false); return; }
     if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR Δ or new total VR.", false); return; }
 
     let opponents = null;
@@ -1368,6 +1404,33 @@ async function deleteMatch(id){
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    // --- Match mode toggle (Intermission vs 3-Lap) ---
+    const modeBtns = Array.from(document.querySelectorAll(".modeBtn"));
+    const fieldIntermission = document.getElementById("fieldIntermissionStart");
+    const labelIntermission = document.getElementById("labelIntermissionStart");
+    const labelTrack = document.getElementById("labelTrack");
+    const trackPlaceholder = document.getElementById("trackPlaceholder");
+    const intermissionSel = document.getElementById("intermission");
+
+    function setMode(mode){
+      modeBtns.forEach(b => {
+        const active = b.dataset.mode === mode;
+        b.classList.toggle("isActive", active);
+        b.setAttribute("aria-selected", active ? "true" : "false");
+      });
+
+      const isIntermission = (mode === "intermission");
+      if (fieldIntermission) fieldIntermission.style.display = isIntermission ? "" : "none";
+      if (!isIntermission && intermissionSel) intermissionSel.value = "";
+      if (labelIntermission) labelIntermission.textContent = "Intermission start";
+      if (labelTrack) labelTrack.textContent = isIntermission ? "Intermission end" : "Track";
+      if (trackPlaceholder) trackPlaceholder.textContent = isIntermission ? "Intermission end" : "Track";
+    }
+
+    modeBtns.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode || "intermission")));
+    // Default: Intermission (current behavior)
+    setMode("intermission");
+
     const vr = document.getElementById("vrChange");
     const vrAfter = document.getElementById("vrAfterInput");
     const negBtn = document.getElementById("vrSignToggle");
@@ -1393,8 +1456,52 @@ async function deleteMatch(id){
       // If user manually clears/changes value, keep button state in sync
       vr.addEventListener("input", () => setNegButtonState(negBtn, vr));
     }
+
+    // Edit dialog: same negative toggle for VR Δ
+    const editVr = document.getElementById("editVrChange");
+    const editNegBtn = document.getElementById("editVrSignToggle");
+    if (editNegBtn && editVr) {
+      setNegButtonState(editNegBtn, editVr);
+      editNegBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (!editVr.value) {
+          editVr.focus();
+          return;
+        }
+        editVr.value = editVr.value.startsWith("-") ? editVr.value.slice(1) : ("-" + editVr.value);
+        setNegButtonState(editNegBtn, editVr);
+        editVr.dispatchEvent(new Event("input", { bubbles: true }));
+        editVr.focus();
+        setTimeout(() => { try { editVr.select(); } catch(e){} }, 0);
+      });
+      editVr.addEventListener("input", () => setNegButtonState(editNegBtn, editVr));
+    }
   });
 })();
+</script>
+
+
+<script>
+function setEditMode(mode){
+  const bI = document.getElementById('editModeIntermission');
+  const b3 = document.getElementById('editMode3lap');
+  const fieldStart = document.getElementById('editIntermissionField');
+  const lblTrack = document.getElementById('editTrackLabel');
+  const isInter = (mode === 'intermission');
+  if (bI) bI.classList.toggle('isActive', isInter);
+  if (b3) b3.classList.toggle('isActive', !isInter);
+  if (fieldStart) fieldStart.style.display = isInter ? '' : 'none';
+  if (lblTrack) lblTrack.textContent = isInter ? 'Intermission end' : 'Track';
+  // store on dialog for save
+  const dlg = document.getElementById('editDlg');
+  if (dlg) dlg.dataset.mode = isInter ? 'intermission' : '3lap';
+}
+
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('#editModeIntermission, #editMode3lap');
+  if (!btn) return;
+  setEditMode(btn.dataset.mode);
+});
 </script>
 
 </body>

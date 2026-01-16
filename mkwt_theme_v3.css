@@ -455,3 +455,44 @@ html{ -webkit-text-size-adjust: 100%; }
 .vr-delta-wrap input{
   flex:1;
 }
+
+/* ===== Match mode toggle (Intermission / 3-Lap) ===== */
+.modeToggle{
+  display:flex;
+  gap:10px;
+  margin: 0 0 12px 0;
+}
+.modeToggle .modeBtn{
+  padding:10px 14px;
+  border-radius:12px;
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.9);
+}
+.modeToggle .modeBtn.isActive{
+  background: rgba(0,180,255,0.18);
+  border-color: rgba(0,180,255,0.35);
+}
+
+/* Actions cell: keep buttons aligned even when delete is hidden */
+td:last-child{
+  white-space: nowrap;
+}
+
+
+/* ===== Table UX: Intermission stacked start/end ===== */
+.intermission-stack{display:flex;flex-direction:column;gap:4px;}
+.intermission-stack .label{font-size:11px;opacity:.7;}
+.intermission-stack .value{font-weight:500;}
+.track-placeholder{opacity:.4;}
+
+/* Hide placeholder dashes in mobile / PWA card view, keep them on desktop table */
+@media (max-width: 700px){
+  .track-placeholder,
+  .intermission-placeholder{ display:none !important; }
+}
+
+/* ===== Edit dialog mode toggle ===== */
+.modeToggleRow{display:flex;gap:10px;margin:10px 0 14px;}
+.modeBtnSmall{padding:8px 10px;border-radius:999px;border:1px solid #2d3442;background:#161b26;color:#e7eefc;font-weight:700;cursor:pointer;}
+.modeBtnSmall.isActive{background:#2b3857;border-color:#3b4b6f;}
