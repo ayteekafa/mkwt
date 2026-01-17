@@ -143,7 +143,7 @@
         const to = from + chunk - 1;
         const { data, error } = await supabaseClient
           .from("matches")
-          .select("id, created_at, intermission, track, vr_change, opponents, placement")
+          .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
           .eq("user_id", SESSION.user.id)
           .order("created_at", { ascending: true })
           .range(from, to);
@@ -358,7 +358,7 @@
     while (true) {
       const { data, error } = await supabaseClient
         .from("matches")
-        .select("id, created_at, intermission, track, vr_change, opponents, placement")
+        .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
         .eq("user_id", SESSION.user.id)
         .order("created_at", { ascending: true })
         .range(from, from + pageSize - 1);
@@ -404,20 +404,43 @@
   function buildCharts(matchesAsc) {
     destroyCharts();
 
-    const currentVr = Number(PROFILE?.current_vr ?? 8500);
-
     // --- Diagramm 1: VR Verlauf (chronologisch) ---
-    const deltas = matchesAsc.map(m => Number(m.vr_change || 0));
-    const totalDelta = deltas.reduce((a,b)=>a+b, 0);
-    const baseVr = currentVr - totalDelta;     // VR vor dem 1. gespeicherten Match
-    let running = baseVr;
+    // Prefer stored vr_after snapshots if available. This guarantees a 1:1 match with the tracker table.
+    // Fallback: reconstruct from profile current_vr + deltas (older rows might have null vr_after).
+    const currentVr = Number(PROFILE?.current_vr ?? 8500);
 
     const labels1 = [];
     const vrSeries = [];
-    for (let i=0; i<matchesAsc.length; i++){
-      running += Number(matchesAsc[i].vr_change || 0);
-      labels1.push(String(i+1));
-      vrSeries.push(running);
+
+    const hasAnyAfter = matchesAsc.some(m => Number.isFinite(Number(m.vr_after)));
+
+    if (hasAnyAfter) {
+      for (let i = 0; i < matchesAsc.length; i++) {
+        labels1.push(String(i + 1));
+        const v = Number(matchesAsc[i].vr_after);
+        // If a single row has no vr_after (legacy), we fall back to reconstruction for that row.
+        if (Number.isFinite(v)) {
+          vrSeries.push(v);
+        } else {
+          // reconstruct up to i using deltas
+          const deltasUpToI = matchesAsc.slice(0, i + 1).map(m => Number(m.vr_change || 0));
+          const totalDeltaUpToI = deltasUpToI.reduce((a, b) => a + b, 0);
+          const deltasAll = matchesAsc.map(m => Number(m.vr_change || 0));
+          const totalDeltaAll = deltasAll.reduce((a, b) => a + b, 0);
+          const baseVr = currentVr - totalDeltaAll;
+          vrSeries.push(baseVr + totalDeltaUpToI);
+        }
+      }
+    } else {
+      const deltas = matchesAsc.map(m => Number(m.vr_change || 0));
+      const totalDelta = deltas.reduce((a, b) => a + b, 0);
+      const baseVr = currentVr - totalDelta; // VR before the 1st stored match
+      let running = baseVr;
+      for (let i = 0; i < matchesAsc.length; i++) {
+        running += Number(matchesAsc[i].vr_change || 0);
+        labels1.push(String(i + 1));
+        vrSeries.push(running);
+      }
     }
 
     // Trendlinie
@@ -493,16 +516,25 @@ if (avgEl) avgEl.textContent = (avg100 == null ? "–" : avg100.toFixed(1));
           tooltip: {
             callbacks: {
               title: (items) => {
-                // X = Match Nummer
-                const i = items?.[0];
-                return i ? ("Match " + i.label) : "";
+                // X = chronological match number (oldest = 1)
+                const it = items?.[0];
+                if (!it) return "";
+                const idx = Math.max(0, Number(it.label) - 1);
+                const m = matchesAsc[idx];
+                const dt = m?.created_at ? new Date(m.created_at) : null;
+                const when = dt && !isNaN(dt) ? dt.toLocaleString() : "";
+                return "Match " + it.label + (when ? (" • " + when) : "");
               },
               label: (ctx) => {
                 if (ctx.dataset.label === "Trend") {
                   // nur Slope anzeigen
                   return "Slope: " + b.toFixed(2) + " VR/Match";
                 }
-                return "VR: " + Number(ctx.parsed.y).toFixed(0);
+                const idx = Math.max(0, Number(ctx.label) - 1);
+                const m = matchesAsc[idx];
+                const t = (m?.intermission ? (String(m.intermission) + " → " + String(m.track || "")) : String(m?.track || ""));
+                const afterTxt = Number.isFinite(Number(m?.vr_after)) ? (" (vr_after)") : "";
+                return "VR: " + Number(ctx.parsed.y).toFixed(0) + afterTxt + (t ? (" • " + t) : "");
               }
             }
           }
