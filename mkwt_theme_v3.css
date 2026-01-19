@@ -273,6 +273,40 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   margin-top: 2px;
 }
 
+/* ===== Strategy popup (tracker.html) ===== */
+.field.hasStratIcon{ position: relative; }
+.stratBtn{
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.25);
+  color: inherit;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  padding: 0;
+  cursor: pointer;
+}
+.stratBtn:active{ transform: scale(0.98); }
+
+.stratPopup{
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  max-width: min(320px, calc(100vw - 24px));
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 12px;
+  background: rgba(16,18,22,0.98);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  padding: 10px 12px;
+}
+.stratPopup.isOpen{ display: block; }
+.stratPopup__body{ font-size: 13px; line-height: 1.35; white-space: pre-line;}
+
 
 /* ===== iPhone / Narrow screens: Match list as cards ===== */
 @media (max-width: 480px) and (pointer: coarse){

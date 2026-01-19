@@ -86,7 +86,7 @@
       </div>
 
       <div class="row">
-  <div class="field" id="fieldIntermissionStart">
+	  <div class="field" id="fieldIntermissionStart">
     <label class="muted" id="labelIntermissionStart">Intermission start</label>
     <select id="intermission">
       <option value="">Intermission start</option>
@@ -123,8 +123,9 @@
     </select>
   </div>
 
-  <div class="field" id="fieldTrack">
+	  <div class="field hasStratIcon" id="fieldTrack">
     <label class="muted" id="labelTrack">Intermission end</label>
+	    <button type="button" class="stratBtn" id="stratBtnTrack" data-strat-target="track" aria-label="Strategy">?</button>
     <select id="track">
       <option value="" id="trackPlaceholder">Intermission end</option>
       <option>Acorn Heights</option>
@@ -353,6 +354,12 @@
         <button class="btn" id="btnSaveDlg">Save</button>
     </div>
     </dialog>
+
+	<!-- Single strategy popup (content set dynamically) -->
+	<div id="stratPopup" class="stratPopup" role="dialog" aria-hidden="true">
+	  <div class="stratPopup__body" id="stratPopupBody">coming soon</div>
+	</div>
+
 <script>
 
 // ===== Suggestion (next Intermission start) =====
@@ -1791,11 +1798,194 @@ async function deleteMatch(id){
       if (labelIntermission) labelIntermission.textContent = "Intermission start";
       if (labelTrack) labelTrack.textContent = isIntermission ? "Intermission end" : "Track";
       if (trackPlaceholder) trackPlaceholder.textContent = isIntermission ? "Intermission end" : "Track";
+
+      // Strategy ? icon should only appear when the current selection is valid.
+      try { updateStratAvailability(); } catch(e) {}
     }
 
     modeBtns.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode || "intermission")));
     // Default: Intermission (current behavior)
     setMode("intermission");
+
+	    // --- Strategy popup (single element; content from strats.json) ---
+	    let STRATS = null;
+	    const stratPopup = document.getElementById('stratPopup');
+	    const stratPopupBody = document.getElementById('stratPopupBody');
+	    const stratBtnTrack = document.getElementById('stratBtnTrack');
+	    const trackSel = document.getElementById('track');
+	    const mm = (q) => (window.matchMedia ? window.matchMedia(q).matches : false);
+	    const isCoarse = mm('(pointer: coarse)');
+	    const canHover = mm('(hover: hover)');
+
+	    async function loadStrats(){
+	      try {
+	        const r = await fetch('strats.json', { cache: 'no-store' });
+	        if (!r.ok) throw new Error('HTTP ' + r.status);
+	        STRATS = await r.json();
+	      } catch (e) {
+	        STRATS = null;
+	      }
+	    }
+
+	    function firstChar(s){
+	      const v = String(s || '').trim();
+	      return v ? v.charAt(0) : '';
+	    }
+
+	    function getStrategyText(){
+	      const start = (intermissionSel && intermissionSel.value) ? intermissionSel.value : '';
+	      const end = (trackSel && trackSel.value) ? trackSel.value : '';
+	      // Intermission needs BOTH start + end.
+	      if (start && end){
+	        const key = `${start}→${end}`;
+	        const t = STRATS && STRATS.INTERMISSIONS && STRATS.INTERMISSIONS[key];
+	        return t || `coming soon [${firstChar(start)}:${firstChar(end)}]`;
+	      }
+	      // 3-Lap track: only when no start selected.
+	      if (!start && end){
+	        const t = STRATS && STRATS.TRACKS && STRATS.TRACKS[end];
+	        return t || `coming soon [3:${firstChar(end)}]`;
+	      }
+	      return 'coming soon';
+	    }
+
+	    function positionPopup(anchor){
+	      if (!stratPopup || !anchor) return;
+	      const r = anchor.getBoundingClientRect();
+	      const pad = 8;
+	      // default: below-right
+	      let left = Math.min(window.innerWidth - pad, r.right + pad);
+	      let top  = Math.min(window.innerHeight - pad, r.bottom + pad);
+	      stratPopup.style.left = '0px';
+	      stratPopup.style.top = '0px';
+	      // measure
+	      const w = stratPopup.offsetWidth || 220;
+	      const h = stratPopup.offsetHeight || 60;
+	      left = Math.min(left, window.innerWidth - w - pad);
+	      top  = Math.min(top, window.innerHeight - h - pad);
+	      // if not enough room below, try above
+	      if (top < pad || (r.bottom + h + pad > window.innerHeight)){
+	        const altTop = r.top - h - pad;
+	        if (altTop >= pad) top = altTop;
+	      }
+	      stratPopup.style.left = Math.max(pad, left) + 'px';
+	      stratPopup.style.top  = Math.max(pad, top) + 'px';
+	    }
+
+	    function openPopup(anchor){
+	      if (!stratPopup || !stratPopupBody) return;
+	      stratPopupBody.textContent = getStrategyText();
+	      stratPopup.classList.add('isOpen');
+	      stratPopup.setAttribute('aria-hidden', 'false');
+	      positionPopup(anchor);
+	      stratPopup.dataset.anchor = (anchor && anchor.id) ? anchor.id : '';
+	    }
+	    function closePopup(){
+	      if (!stratPopup) return;
+	      stratPopup.classList.remove('isOpen');
+	      stratPopup.setAttribute('aria-hidden', 'true');
+	      stratPopup.dataset.anchor = '';
+	    }
+	    function togglePopup(anchor){
+	      if (!stratPopup) return;
+	      const open = stratPopup.classList.contains('isOpen');
+	      if (open) closePopup();
+	      else openPopup(anchor);
+	    }
+
+	    function updateStratAvailability(){
+	      if (!stratBtnTrack) return;
+	      const start = (intermissionSel && intermissionSel.value) ? intermissionSel.value : '';
+	      const end = (trackSel && trackSel.value) ? trackSel.value : '';
+	      const isIntermissionMode = fieldIntermission && fieldIntermission.style.display !== 'none';
+	      // In Intermission mode we only want the ? when BOTH start+end are set.
+	      // In 3-Lap mode we want the ? when a track is set.
+	      const shouldShow = isIntermissionMode ? !!(start && end) : !!end;
+	      stratBtnTrack.style.display = shouldShow ? '' : 'none';
+	      stratBtnTrack.disabled = !shouldShow;
+	      if (!shouldShow && stratPopup && stratPopup.classList.contains('isOpen')) closePopup();
+	    }
+
+	    let lastPointerDown = 0;
+	    function bindStratBtn(btn){
+	      if (!btn) return;
+	      // Touch / mobile emulation: use pointerdown so the first tap opens (avoids "tap-to-hover" behavior).
+	      btn.addEventListener('pointerdown', (e)=>{
+	        // Ignore mouse pointerdown on desktop; click/hover handles that.
+	        if (e.pointerType === 'mouse' && canHover) return;
+	        lastPointerDown = Date.now();
+	        e.preventDefault();
+	        e.stopPropagation();
+	        togglePopup(btn);
+	      }, { passive: false });
+
+	      // Click works on desktop (and as a fallback everywhere)
+	      btn.addEventListener('click', (e)=>{
+	        // If pointerdown already handled this, don't immediately toggle again.
+	        // BUT still stop the event so the document click-handler doesn't instantly close the popup.
+	        if (Date.now() - lastPointerDown < 500) {
+	          e.preventDefault();
+	          e.stopPropagation();
+	          return;
+	        }
+	        e.preventDefault();
+	        e.stopPropagation();
+	        togglePopup(btn);
+	      });
+
+	      // Hover only on real hover-capable, non-coarse pointer devices.
+	      // This prevents "auto-open" when the ? button appears under the cursor
+	      // in device emulation or touch-capable setups.
+	      if (canHover && !isCoarse){
+	        btn.addEventListener('mouseenter', ()=> openPopup(btn));
+	        btn.addEventListener('mouseleave', ()=>{
+	          // allow moving into popup without instantly closing
+	          setTimeout(()=>{
+	            if (!stratPopup) return;
+	            const stillHover = stratPopup.matches(':hover') || btn.matches(':hover');
+	            if (!stillHover) closePopup();
+	          }, 80);
+	        });
+	      }
+	    }
+	    bindStratBtn(stratBtnTrack);
+
+	    if (stratPopup && !isCoarse){
+	      stratPopup.addEventListener('mouseleave', ()=>{
+	        setTimeout(()=>{
+	          const stillHover = stratPopup.matches(':hover') || (stratBtnTrack && stratBtnTrack.matches(':hover'));
+	          if (!stillHover) closePopup();
+	        }, 80);
+	      });
+	    }
+
+	    function handleGlobalClose(e){
+	      if (!stratPopup || !stratPopup.classList.contains('isOpen')) return;
+	      // Keep open only when interacting with the ? button itself.
+	      // Clicking anywhere else (including the popup body) closes it.
+	      if (stratBtnTrack && stratBtnTrack.contains(e.target)) return;
+	      closePopup();
+	    }
+	    // pointerdown ensures mobile closes reliably (some environments delay/skip click).
+	    document.addEventListener('pointerdown', handleGlobalClose, { passive: true });
+	    document.addEventListener('click', handleGlobalClose);
+	    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closePopup(); });
+	    window.addEventListener('resize', ()=>{
+	      if (!stratPopup || !stratPopup.classList.contains('isOpen')) return;
+	      const anchorId = stratPopup.dataset.anchor;
+	      const anchor = anchorId ? document.getElementById(anchorId) : null;
+	      if (anchor) positionPopup(anchor);
+	    });
+	    intermissionSel && intermissionSel.addEventListener('change', ()=>{
+	      try { updateStratAvailability(); } catch(e) {}
+	      if (stratPopup && stratPopup.classList.contains('isOpen')) openPopup(document.getElementById(stratPopup.dataset.anchor) || stratBtnTrack );
+	    });
+	    trackSel && trackSel.addEventListener('change', ()=>{
+	      try { updateStratAvailability(); } catch(e) {}
+	      if (stratPopup && stratPopup.classList.contains('isOpen')) openPopup(document.getElementById(stratPopup.dataset.anchor) || stratBtnTrack );
+	    });
+
+	    loadStrats().finally(()=>{ try { updateStratAvailability(); } catch(e) {} });
 
     const vr = document.getElementById("vrChange");
     const vrAfter = document.getElementById("vrAfterInput");
