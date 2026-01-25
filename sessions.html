@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MKWT – Stats</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  
+  
+
+  <link rel="stylesheet" href="mkwt_theme_v3.css">
+
+  <style>
+    /* ===== Mobile Chart Fix ===== */
+    .chartWrap { position: relative; width: 100%; height: 360px; }
+    @media (max-width: 520px){ .chartWrap { height: 320px; } }
+  </style>
+
+
+  <style>
+    /* ===== Sessions UI polish ===== */
+    .sessCard { padding:14px; margin:0; }
+    .sessHeader { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
+    .sessTitle { font-weight:900; font-size:16px; letter-spacing:.2px; }
+    .sessBadge { padding:2px 8px; border-radius:999px; font-weight:800; font-size:12px; }
+    .sessMeta { margin-top:8px; display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+    .sessVR { font-size:13px; }
+    .sessGrid { margin-top:10px; display:grid; grid-template-columns: 1fr auto; gap:8px 14px; max-width:420px; }
+    .sessGrid .label { opacity:.85; }
+    .sessGrid .val { text-align:right; font-variant-numeric: tabular-nums; }
+    .sessNum { font-variant-numeric: tabular-nums; }
+    .sessAvg { font-weight:800; }
+    @media (max-width: 520px){
+      .sessTitle{ font-size:15px; }
+      .sessGrid{ max-width: 100%; }
+    }
+  </style>
+
+</head>
+
+<body>
+
+<nav class="nav">
+  <div class="navInner">
+    <div class="brand">MKWT</div>
+
+    <a class="navLink" href="tracker.html">Tracker</a>
+    <a class="navLink" href="stats.html">VR improvement</a>
+    <a class="navLink" href="sessions.html">Sessions</a>
+    <a class="navLink" href="settings.html">Settings</a>
+
+    <div class="navSpacer"></div>
+
+    <div class="navRight">
+      <button class="navAction" id="btnExport" type="button">Export</button>
+      <label class="navAction">
+        Import
+        <input id="fileImport" type="file" accept="application/json" />
+      </label>
+      <button class="navAction danger" id="btnLogout" type="button">Logout</button>
+    </div>
+  </div>
+</nav>
+
+  <div class="wrap">
+
+    <div class="card">
+      <div class="topbar">
+        <div>
+          <h2 style="margin:0 0 6px 0;">MKWT – Sessions</h2>
+          <div class="muted" id="userInfo">Loading session…</div>
+          <div class="muted">Sessions: <b id="sessionCount">–</b></div>
+        </div>
+      </div>
+      <div class="muted" id="status"></div>
+      <div class="muted" id="debug"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; gap:10px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
+        <div>
+          <h3 style="margin:0 0 6px 0;">Session Performance</h3>
+          <div class="muted">
+            Auto-grouped by time gap &gt; <b>45 min</b>. Shows the most recent sessions with VR start/end, gain/loss, and IM/TR averages.
+          </div>
+        </div>
+        <div class="muted" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span>Page</span>
+          <button id="btnPrev" type="button" class="navAction" style="padding:6px 10px;">◀</button>
+          <span><b id="pageInfo">–</b></span>
+          <button id="btnNext" type="button" class="navAction" style="padding:6px 10px;">▶</button>
+        </div>
+      </div>
+<div id="sessionList" style="margin-top:12px;"></div>
+    </div>
+
+  </div>
+
+<script>
+  // ========= UI Helpers =========
+  const $ = (id) => document.getElementById(id);
+  const $status = $("status");
+  const $debug = $("debug");
+
+  function setStatus(msg, ok=false){
+    if (!$status) return;
+    $status.className = "muted " + (ok ? "ok" : "bad");
+    $status.textContent = msg || "";
+  }
+
+  function dbg(msg){
+    if (!$debug) return;
+    $debug.textContent = msg || "";
+  }
+
+    // ========= Supabase (localStorage + sessionStorage) =========
+  const SUPABASE_URL = "https://imxlssgtzzdfgdscubdx.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
+
+  function makeClient(storage){
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      auth:{ storage, persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+    });
+  }
+
+  const clientLocal = makeClient(localStorage);
+  const clientSess  = makeClient(sessionStorage);
+
+  // active client for this page (set by requireAuth)
+  let supabaseClient = null;
+  let SESSION = null;
+  window.supabaseClient = null;
+  window.SESSION = null;
+
+  async function requireAuth(){
+    try{
+      let { data:{ session } , error } = await clientLocal.auth.getSession();
+      if(error) console.warn("[sessions] getSession(local)", error);
+      if(session){
+        supabaseClient = clientLocal;
+        SESSION = session;
+        window.supabaseClient = supabaseClient;
+        window.SESSION = SESSION;
+        return SESSION;
+      }
+      ({ data:{ session }, error } = await clientSess.auth.getSession());
+      if(error) console.warn("[sessions] getSession(session)", error);
+      if(session){
+        supabaseClient = clientSess;
+        SESSION = session;
+        window.supabaseClient = supabaseClient;
+        window.SESSION = SESSION;
+        return SESSION;
+      }
+      return null;
+    }catch(e){
+      console.warn("[sessions] requireAuth failed", e);
+      return null;
+    }
+  }
+async function requireSession(){
+    const sess = await requireAuth();
+    if (!sess) {
+      setStatus("Not logged in. Please sign in.", false);
+      const ui = document.getElementById("userInfo");
+      if (ui) ui.textContent = "Not signed in";
+      const list = document.getElementById("sessionList");
+      if (list) {
+        list.innerHTML = '<div class="muted">Please <a href="login.html?next=sessions.html">sign in</a> to view sessions.</div>';
+      }
+      return null;
+    }
+    const email = sess.user?.email || "Logged in";
+    if ($("userInfo")) $("userInfo").textContent = email;
+    return sess;
+  }
+
+  async function getAllMatchesAsc(){
+    // same approach as stats: paginated fetch, chronological
+    const all = [];
+    try {
+      let page = 0;
+      const pageSize = 1000;
+      while (page < 50) { // safety cap
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const { data, error } = await supabaseClient.from("matches").select("*").order("created_at", { ascending: true }).range(from, to);
+        if (error) throw error;
+        if (Array.isArray(data) && data.length) all.push(...data);
+        if (!Array.isArray(data) || data.length < pageSize) break;
+        page++;
+      }
+    } catch (e) {
+      console.warn("[sessions] load matches failed", e);
+      setStatus("Could not load matches.", false);
+    }
+    return all;
+  }
+
+  function safeDate(d){
+    const dt = (d ? new Date(d) : null);
+    return (dt && !isNaN(dt)) ? dt : null;
+  }
+
+  function fmtDT(dt){
+    try {
+      return dt.toLocaleString();
+    } catch {
+      return "";
+    }
+  }
+
+  function groupSessions(matchesAsc, gapMinutes=45){
+    const gapMs = gapMinutes * 60 * 1000;
+    const sessions = [];
+    let cur = null;
+
+    for (const m of (matchesAsc || [])) {
+      const dt = safeDate(m?.created_at);
+      if (!dt) continue;
+
+      if (!cur) {
+        cur = { matches: [m], start: dt, end: dt };
+        sessions.push(cur);
+        continue;
+      }
+
+      const prevEnd = cur.end;
+      if (!prevEnd || (dt.getTime() - prevEnd.getTime()) > gapMs) {
+        cur = { matches: [m], start: dt, end: dt };
+        sessions.push(cur);
+      } else {
+        cur.matches.push(m);
+        cur.end = dt;
+      }
+    }
+
+    return sessions;
+  }
+
+  function computeSessionStats(sess){
+    const ms = sess?.matches || [];
+    const inter = [];
+    const track = [];
+    let interCount = 0, trackCount = 0;
+
+    // start/end VR: use vr_after/vr_before if present, otherwise derive from vr_after sequence
+    let startVr = null;
+    let endVr = null;
+
+    for (let i = 0; i < ms.length; i++) {
+      const m = ms[i];
+      const hasInter = (m?.intermission != null && String(m.intermission).trim() !== "");
+      const delta = Number(m?.vr_change);
+      if (Number.isFinite(delta)) {
+        if (hasInter) { inter.push(delta); interCount++; }
+        else { track.push(delta); trackCount++; }
+      } else {
+        // still count type even if delta missing
+        if (hasInter) interCount++; else trackCount++;
+      }
+
+      const after = Number(m?.vr_after);
+      const before = Number(m?.vr_before);
+      if (i === 0) {
+        if (Number.isFinite(before)) startVr = before;
+        else if (Number.isFinite(after)) startVr = after; // fallback
+      }
+      if (i === ms.length - 1) {
+        if (Number.isFinite(after)) endVr = after;
+        else if (Number.isFinite(before)) endVr = before; // fallback
+      }
+    }
+
+    // If we have only after values, we can improve startVr by using (end of first) - delta if possible
+    if (startVr != null && endVr == null) endVr = startVr;
+    const gain = (startVr != null && endVr != null) ? (endVr - startVr) : null;
+
+    const avg = (arr) => arr.length ? (arr.reduce((a,v)=>a+v,0)/arr.length) : null;
+    return {
+      interAvg: avg(inter),
+      trackAvg: avg(track),
+      interCount,
+      trackCount,
+      startVr,
+      endVr,
+      gain
+    };
+  }
+  let sessionsDesc = [];
+  let page = 1;
+  const pageSize = 10;
+
+  function renderPage(){
+    const total = sessionsDesc.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    page = Math.min(Math.max(1, page), totalPages);
+
+    const start = (page - 1) * pageSize;
+    const end = Math.min(total, start + pageSize);
+    const slice = sessionsDesc.slice(start, end);
+
+    if ($("pageInfo")) $("pageInfo").textContent = page + " / " + totalPages;
+    if ($("sessionCount")) $("sessionCount").textContent = String(total);
+
+    const list = $("sessionList");
+    if (!list) return;
+
+    if (!slice.length) {
+      list.innerHTML = '<div class="muted">No sessions yet.</div>';
+      return;
+    }
+
+    // Render compact, clean cards
+    
+      const classForVal = (v) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return "muted";
+        if (n > 0) return "ok";
+        if (n < 0) return "bad";
+        return "muted";
+      };
+
+    let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+    for (let i = 0; i < slice.length; i++) {
+      const s = slice[i];
+      const st = computeSessionStats(s);
+      const gain = st.gain;
+      const gainTxt = (gain == null) ? "–" : ((gain >= 0 ? "+" : "") + gain);
+      const gainClass = (gain == null) ? "muted" : (gain >= 0 ? "ok" : "bad");
+
+      // One bold time range line
+      let rangeLine = "Session";
+      try {
+        const d = s.start;
+        const date = d ? d.toLocaleDateString() : "";
+        const t1 = d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+        const t2 = s.end ? s.end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+        rangeLine = (date ? (date + " ") : "") + (t1 && t2 ? (t1 + "–" + t2) : "");
+        if (!rangeLine.trim()) rangeLine = "Session";
+      } catch {}
+
+      const startVr = st.startVr == null ? "–" : st.startVr;
+      const endVr = st.endVr == null ? "–" : st.endVr;
+
+      const imAvg = st.interAvg == null ? "–" : st.interAvg.toFixed(2);
+      const trAvg = st.trackAvg == null ? "–" : st.trackAvg.toFixed(2);
+      const imAvgClass = classForVal(imAvg);
+      const trAvgClass = classForVal(trAvg);
+
+      html += `
+        <div class="card sessCard">
+          <div class="sessHeader">
+            <div class="sessTitle">${rangeLine}</div>
+            <div class="sessBadge ${gainClass}">Gain ${gainTxt}</div>
+          </div>
+
+          <div class="sessMeta">
+            <div class="muted sessVR">VR <b class="sessNum">${startVr}</b> → <b class="sessNum">${endVr}</b></div>
+          </div>
+
+          <div class="muted sessGrid">
+            <div class="label">Intermission</div>
+            <div class="val"><b class="sessNum">${st.interCount}</b> · Ø <span class="sessAvg ${imAvgClass} sessNum">${imAvg}</span></div>
+
+            <div class="label">Tracks (3 Laps)</div>
+            <div class="val"><b class="sessNum">${st.trackCount}</b> · Ø <span class="sessAvg ${trAvgClass} sessNum">${trAvg}</span></div>
+          </div>
+        </div>
+      `;
+    }
+    html += "</div>";
+    list.innerHTML = html;
+  }
+
+  function wirePager(){
+    $("btnPrev")?.addEventListener("click", () => { page--; renderPage(); });
+    $("btnNext")?.addEventListener("click", () => { page++; renderPage(); });
+  }
+
+  async function main(){
+    if (!window.supabase?.createClient) { setStatus("Supabase could not load (CDN blocked).", false); return; }
+    wirePager();
+    const sess = await requireSession();
+    if (!sess) return;
+
+    setStatus("Loading matches…", true);
+    const matchesAsc = await getAllMatchesAsc();
+
+    if (!Array.isArray(matchesAsc) || matchesAsc.length === 0) {
+      setStatus("No matches yet.", true);
+      sessionsDesc = [];
+      renderPage();
+      return;
+    }
+
+    // group and reverse (newest first)
+    const sessions = groupSessions(matchesAsc, 45);
+    sessionsDesc = sessions.map(s => ({ ...s })).reverse();
+
+    setStatus("Ready.", true);
+    renderPage();
+  }
+
+  main();
+</script>
+
+
+<!-- MKWT Shared Nav Actions -->
+<script>
+(function(){
+  const $id = (id)=>document.getElementById(id);
+
+  async function ensureSession(){
+    try{
+      if (window.SESSION && window.SESSION.user) return;
+      if (!window.supabaseClient?.auth?.getSession) return;
+      const { data } = await supabaseClient.auth.getSession();
+      window.SESSION = data?.session || null;
+    }catch(e){ console.warn(e); }
+  }
+
+  async function ensureProfile(){
+    try{
+      if (typeof window.loadProfile === "function") { await window.loadProfile(); return; }
+      if (!window.supabaseClient || !window.SESSION?.user) return;
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("nickname,current_vr")
+        .eq("user_id", SESSION.user.id)
+        .maybeSingle();
+      if (!error) window.PROFILE = data || null;
+    }catch(e){ console.warn(e); }
+  }
+
+  if (typeof window.downloadTextFile !== "function") {
+    window.downloadTextFile = function(filename, text){
+      const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch{} a.remove(); }, 0);
+    };
+  }
+
+  if (typeof window.exportBackupJSON !== "function") {
+    window.exportBackupJSON = async function(){
+      try{
+        if (typeof window.setStatus === "function") window.setStatus("Creating backup…", true);
+        await ensureSession();
+        await ensureProfile();
+        if (!window.SESSION?.user) throw new Error("Not signed in.");
+
+        const allMatches = [];
+        const chunk = 1000;
+        let from = 0;
+
+        while (true) {
+          const to = from + chunk - 1;
+          const { data, error } = await supabaseClient
+            .from("matches")
+            .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+            .eq("user_id", SESSION.user.id)
+            .order("created_at", { ascending: true })
+            .range(from, to);
+
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+
+          allMatches.push(...data);
+          if (data.length < chunk) break;
+          from += chunk;
+        }
+
+        const backup = {
+          app: "MKWT",
+          version: 1,
+          exported_at: new Date().toISOString(),
+          user: { id: SESSION.user.id, email: SESSION.user.email || null },
+          profile: {
+            nickname: window.PROFILE?.nickname ?? null,
+            current_vr: window.PROFILE?.current_vr ?? null
+          },
+          matches: allMatches
+        };
+
+        const filename =
+          `mkwt_backup_${String(window.PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
+
+        window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
+        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} matches).`, true);
+      } catch(e){
+        if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
+        if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
+        console.error(e);
+      }
+    };
+  }
+
+  
+  // --- Shared backup fingerprint (used to avoid duplicates + enable full restore) ---
+  function fingerprintMatch(r) {
+    const created = r && r.created_at ? String(r.created_at) : "";
+    return [
+      created,
+      String(r?.intermission ?? ""),
+      String(r?.track ?? ""),
+      String(r?.vr_change ?? ""),
+      String(r?.opponents ?? ""),
+      String(r?.placement ?? "")
+    ].join("|");
+  }
+
+  async function syncProfileVrFromLatestMatch(){
+    try{
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("vr_after, created_at")
+        .eq("user_id", SESSION.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      const latest = (data && data[0]) ? data[0] : null;
+      const latestVr = Number(latest?.vr_after);
+      if (!Number.isFinite(latestVr)) return false;
+
+      const { error: upErr } = await supabaseClient
+        .from("profiles")
+        .update({ current_vr: latestVr, updated_at: new Date().toISOString() })
+        .eq("id", SESSION.user.id);
+
+      if (upErr) throw upErr;
+      if (window.PROFILE) window.PROFILE.current_vr = latestVr;
+      return true;
+    } catch(e){
+      if (typeof window.setDebug === "function") window.setDebug("syncProfileVrFromLatestMatch error: " + (e?.message || e));
+      return false;
+    }
+  }
+
+  // IMPORTANT: Import is a TRUE RESTORE.
+  // - Deletes everything not in the backup
+  // - Removes duplicates (keeps 1 per fingerprint)
+  // - Inserts what's missing
+  window.importBackupJSON = async function(file){
+    try{
+      if (!file) return;
+
+      await ensureSession();
+      if (!window.SESSION?.user) throw new Error("Not logged in.");
+
+      const text = await file.text();
+      const backup = JSON.parse(text);
+
+      if (!backup || backup.app !== "MKWT" || !Array.isArray(backup.matches)) {
+        if (typeof window.setStatus === "function") window.setStatus("❌ This file isn't a valid MKWT backup.", false);
+        return;
+      }
+
+      // Deduplicate backup by fingerprint (keep first occurrence in chronological order)
+      const sortedBackup = [...backup.matches].sort((a,b)=> String(a?.created_at||"").localeCompare(String(b?.created_at||"")));
+      const uniqueBackup = [];
+      const backupFp = new Set();
+      for (const r of sortedBackup) {
+        const fp = fingerprintMatch(r);
+        if (!backupFp.has(fp)) { backupFp.add(fp); uniqueBackup.push(r); }
+      }
+
+      const ok = confirm(
+        `Restore from backup?
+
+` +
+        `Matches in file: ${uniqueBackup.length}
+
+` +
+        `This will make your match history EXACTLY match the backup.
+` +
+        `All matches NOT in the backup will be deleted.`
+      );
+      if (!ok) return;
+
+      if (typeof window.setStatus === "function") window.setStatus("Restoring… (delete + dedupe + insert)", true);
+
+      // --- Load all existing matches (IDs for deletes). Also mark duplicates for delete ---
+      const existingKeepFp = new Set();
+      const toDeleteIds = [];
+      const chunk = 1000;
+      let from = 0;
+
+      while (true) {
+        const to = from + chunk - 1;
+        const { data, error } = await supabaseClient
+          .from("matches")
+          .select("id, created_at, intermission, track, vr_change, opponents, placement")
+          .eq("user_id", SESSION.user.id)
+          .range(from, to);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        for (const row of data) {
+          const fp = fingerprintMatch(row);
+
+          // delete if not in backup
+          if (!backupFp.has(fp)) {
+            toDeleteIds.push(row.id);
+            continue;
+          }
+
+          // if duplicate (same fingerprint already kept), delete
+          if (existingKeepFp.has(fp)) {
+            toDeleteIds.push(row.id);
+            continue;
+          }
+
+          existingKeepFp.add(fp);
+        }
+
+        if (data.length < chunk) break;
+        from += chunk;
+      }
+
+      // --- Delete extras + rows not in backup ---
+      let deleted = 0;
+      const delBatchSize = 500;
+      for (let i = 0; i < toDeleteIds.length; i += delBatchSize) {
+        const batchIds = toDeleteIds.slice(i, i + delBatchSize);
+        const { error } = await supabaseClient.from("matches").delete().in("id", batchIds);
+        if (error) throw error;
+        deleted += batchIds.length;
+      }
+
+      // --- Insert missing rows (only fingerprints not already kept) ---
+      const toInsert = [];
+      for (const r of uniqueBackup) {
+        const fp = fingerprintMatch(r);
+        if (!existingKeepFp.has(fp)) {
+          toInsert.push({
+            user_id: SESSION.user.id,
+            created_at: r.created_at,
+            intermission: r.intermission ?? null,
+            track: r.track ?? null,
+            vr_change: r.vr_change ?? 0,
+            vr_after: r.vr_after ?? null,
+            opponents: r.opponents ?? null,
+            placement: r.placement ?? null,
+          });
+          existingKeepFp.add(fp);
+        }
+      }
+
+      let inserted = 0;
+      const insBatchSize = 500;
+      for (let i = 0; i < toInsert.length; i += insBatchSize) {
+        const batch = toInsert.slice(i, i + insBatchSize);
+        const { error } = await supabaseClient.from("matches").insert(batch);
+        if (error) throw error;
+        inserted += batch.length;
+      }
+
+      await syncProfileVrFromLatestMatch();
+
+      if (typeof window.setStatus === "function") window.setStatus(
+        `✅ Restore complete. Backup: ${uniqueBackup.length} | Deleted: ${deleted} | Inserted: ${inserted}. Reloading…`,
+        true
+      );
+      setTimeout(()=>location.reload(), 350);
+    } catch(e){
+      if (typeof window.setStatus === "function") window.setStatus("Import failed: " + (e?.message || e), false);
+      if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
+      console.error(e);
+    }
+  };
+function wireNav(){
+    const btnExport = $id("btnExport");
+    const btnLogout = $id("btnLogout");
+    const fileImport = $id("fileImport");
+
+    function clearSupabaseTokens(storage){
+      try{
+        const keys = [];
+        for(let i=0;i<storage.length;i++){
+          const k = storage.key(i);
+          if(!k) continue;
+          if(k.startsWith("sb-") && k.includes("auth-token")) keys.push(k);
+          if(k === "mkwt_post_login_redirect") keys.push(k);
+        }
+        keys.forEach(k=>{ try{ storage.removeItem(k); }catch{} });
+      }catch{}
+    }
+
+    async function hardLogout(){
+      // Sign out of BOTH storage-backed clients (local + session), otherwise login.html may auto-redirect.
+      try{ await clientLocal?.auth?.signOut?.(); }catch(e){ console.warn(e); }
+      try{ await clientSess?.auth?.signOut?.(); }catch(e){ console.warn(e); }
+      try{ await window.supabaseClient?.auth?.signOut?.(); }catch(e){ console.warn(e); }
+      clearSupabaseTokens(localStorage);
+      clearSupabaseTokens(sessionStorage);
+      location.replace("login.html");
+    }
+
+    // Remove any legacy inline handlers so we don't double-fire alerts/old logic.
+    if (btnExport) btnExport.onclick = null;
+    if (btnLogout) btnLogout.onclick = null;
+    if (fileImport) fileImport.onchange = null;
+
+    btnExport?.addEventListener("click", () => window.exportBackupJSON());
+    fileImport?.addEventListener("change", (ev) => {
+      const file = ev.target.files?.[0];
+      if (file) window.importBackupJSON(file);
+      ev.target.value = "";
+    });
+    btnLogout?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      hardLogout();
+    }, { capture: true });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wireNav);
+  else wireNav();
+})();
+</script>
+
+</body>
+</html>

@@ -305,7 +305,7 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   padding: 10px 12px;
 }
 .stratPopup.isOpen{ display: block; }
-.stratPopup__body{ font-size: 13px; line-height: 1.35; white-space: pre-line;}
+.stratPopup__body{ font-size: 13px; line-height: 1.35; }
 
 
 /* ===== iPhone / Narrow screens: Match list as cards ===== */

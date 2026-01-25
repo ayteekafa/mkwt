@@ -142,23 +142,49 @@ const status = $("status");
 
 // ✅ SET THIS to your real tracker file (b.html, tracker.html, etc.)
 const TRACKER_PAGE = "tracker.html";
+const REDIRECT_KEY = "mkwt_post_login_redirect";
+
+function getPostLoginTarget(){
+  try{
+    const url = new URL(location.href);
+    const qp = url.searchParams.get("next");
+    if(qp && /^[a-z0-9_\-]+\.html$/i.test(qp)) return qp;
+  }catch{}
+  try{
+    const stored = localStorage.getItem(REDIRECT_KEY);
+    if(stored && /^[a-z0-9_\-]+\.html$/i.test(stored)) return stored;
+  }catch{}
+  return TRACKER_PAGE;
+}
+
+function clearPostLoginTarget(){
+  try{ localStorage.removeItem(REDIRECT_KEY); }catch{}
+}
 
 /* ===== AUTO-REDIRECT if already signed in ===== */
 async function autoRedirectIfSignedIn(){
   try{
     status.textContent = "Checking session…";
 
+    let hasNext = false;
+    try { const u = new URL(location.href); hasNext = u.searchParams.has("next"); } catch {}
+    if (hasNext) { status.textContent = ""; return; }
+
     const { data: a, error: ea } = await clientLocal.auth.getSession();
     if(ea) console.warn("local session check:", ea.message);
     if(a?.session){
-      location.replace(TRACKER_PAGE);
+      const dest = getPostLoginTarget();
+      clearPostLoginTarget();
+      location.replace(dest);
       return;
     }
 
     const { data: b, error: eb } = await clientSess.auth.getSession();
     if(eb) console.warn("session session check:", eb.message);
     if(b?.session){
-      location.replace(TRACKER_PAGE);
+      const dest = getPostLoginTarget();
+      clearPostLoginTarget();
+      location.replace(dest);
       return;
     }
 
@@ -191,7 +217,9 @@ $("btnLogin").onclick = async () => {
     return;
   }
 
-  location.replace(TRACKER_PAGE);
+  const dest = getPostLoginTarget();
+  clearPostLoginTarget();
+  location.replace(dest);
 };
 
 // run on load

@@ -16,5 +16,172 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
+
+<!-- MKWT Shared Nav Actions -->
+<script>
+(function(){
+  const $id = (id)=>document.getElementById(id);
+
+  async function ensureSession(){
+    try{
+      if (window.SESSION && window.SESSION.user) return;
+      if (!window.supabaseClient?.auth?.getSession) return;
+      const { data } = await supabaseClient.auth.getSession();
+      window.SESSION = data?.session || null;
+    }catch(e){ console.warn(e); }
+  }
+
+  async function ensureProfile(){
+    try{
+      if (typeof window.loadProfile === "function") { await window.loadProfile(); return; }
+      if (!window.supabaseClient || !window.SESSION?.user) return;
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("nickname,current_vr")
+        .eq("user_id", SESSION.user.id)
+        .maybeSingle();
+      if (!error) window.PROFILE = data || null;
+    }catch(e){ console.warn(e); }
+  }
+
+  if (typeof window.downloadTextFile !== "function") {
+    window.downloadTextFile = function(filename, text){
+      const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch{} a.remove(); }, 0);
+    };
+  }
+
+  if (typeof window.exportBackupJSON !== "function") {
+    window.exportBackupJSON = async function(){
+      try{
+        if (typeof window.setStatus === "function") window.setStatus("Creating backup…", true);
+        await ensureSession();
+        await ensureProfile();
+        if (!window.SESSION?.user) throw new Error("Not signed in.");
+
+        const allMatches = [];
+        const chunk = 1000;
+        let from = 0;
+
+        while (true) {
+          const to = from + chunk - 1;
+          const { data, error } = await supabaseClient
+            .from("matches")
+            .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+            .eq("user_id", SESSION.user.id)
+            .order("created_at", { ascending: true })
+            .range(from, to);
+
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+
+          allMatches.push(...data);
+          if (data.length < chunk) break;
+          from += chunk;
+        }
+
+        const backup = {
+          app: "MKWT",
+          version: 1,
+          exported_at: new Date().toISOString(),
+          user: { id: SESSION.user.id, email: SESSION.user.email || null },
+          profile: {
+            nickname: window.PROFILE?.nickname ?? null,
+            current_vr: window.PROFILE?.current_vr ?? null
+          },
+          matches: allMatches
+        };
+
+        const filename =
+          `mkwt_backup_${String(window.PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
+
+        window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
+        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} matches).`, true);
+      } catch(e){
+        if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
+        if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
+        console.error(e);
+      }
+    };
+  }
+
+  if (typeof window.importBackupJSON !== "function") {
+    window.importBackupJSON = async function(file){
+      try{
+        if (!file) return;
+        if (typeof window.setStatus === "function") window.setStatus("Importing backup…", true);
+
+        await ensureSession();
+        if (!window.SESSION?.user) throw new Error("Not signed in.");
+
+        const text = await file.text();
+        const backup = JSON.parse(text);
+
+        const incomingProfile = backup?.profile || null;
+        const incomingMatches = Array.isArray(backup?.matches) ? backup.matches : [];
+
+        if (incomingProfile) {
+          await supabaseClient
+            .from("profiles")
+            .upsert({
+              user_id: SESSION.user.id,
+              nickname: incomingProfile.nickname ?? null,
+              current_vr: incomingProfile.current_vr ?? null
+            });
+        }
+
+        const cleaned = incomingMatches.map(m => {
+          const row = { ...m, user_id: SESSION.user.id };
+          delete row.id; // avoid PK collisions
+          return row;
+        });
+
+        const batchSize = 500;
+        for (let i=0;i<cleaned.length;i+=batchSize){
+          const batch = cleaned.slice(i, i+batchSize);
+          const { error } = await supabaseClient.from("matches").insert(batch);
+          if (error) {
+            // We keep going — DB constraints may reject dupes depending on your setup
+            console.warn("Import batch error", error);
+          }
+        }
+
+        if (typeof window.setStatus === "function") window.setStatus(`✅ Import finished (${cleaned.length} matches). Refreshing…`, true);
+        setTimeout(()=>location.reload(), 350);
+      } catch(e){
+        if (typeof window.setStatus === "function") window.setStatus("Import failed: " + (e?.message || e), false);
+        if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
+        console.error(e);
+      }
+    };
+  }
+
+  function wireNav(){
+    const btnExport = $id("btnExport");
+    const btnLogout = $id("btnLogout");
+    const fileImport = $id("fileImport");
+
+    btnExport?.addEventListener("click", () => window.exportBackupJSON());
+    fileImport?.addEventListener("change", (ev) => {
+      const file = ev.target.files?.[0];
+      if (file) window.importBackupJSON(file);
+      ev.target.value = "";
+    });
+    btnLogout?.addEventListener("click", async () => {
+      try { await window.supabaseClient?.auth?.signOut?.(); } catch(e){ console.warn(e); }
+      location.href = "login.html";
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wireNav);
+  else wireNav();
+})();
+</script>
+
 </body>
 </html>
