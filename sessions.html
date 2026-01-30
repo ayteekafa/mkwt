@@ -267,6 +267,7 @@ async function requireSession(){
       const before = Number(m?.vr_before);
       if (i === 0) {
         if (Number.isFinite(before)) startVr = before;
+        else if (Number.isFinite(after) && Number.isFinite(delta)) startVr = after - delta;
         else if (Number.isFinite(after)) startVr = after; // fallback
       }
       if (i === ms.length - 1) {

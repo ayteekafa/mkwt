@@ -55,7 +55,7 @@
     "Bowser's Castle→Wario Stadium": "Special lap: Wario Stadium reverse\n\nStrategy: Bagger into Frontrunner (practice rail shortcuts)\n\nShock Spot:After first item set in last lap",
     "Cheep Cheep Falls→Choco Mountain": "coming soon [C:C]",
     "Cheep Cheep Falls→Dandelion Depths": "coming soon [C:D]",
-    "Cheep Cheep Falls→DK Pass": "Special lap: DK Pass reverse\n\nStrategy: (optional Bagger until DK Pass lap starts into) Frontrunner\n\nShock Spot:Shortcuts through the snow-offroad before DK Pass lap begins OR before the shroomless shortcut starting with the wooden ramp",
+    "Cheep Cheep Falls→DK Pass": "[coming soon [C:D]",
     "Cheep Cheep Falls→Faraway Oasis": "coming soon [C:F]",
     "Cheep Cheep Falls→Moo Moo Meadows": "Special lap: Moo Moo Meadows reverse\n\nStrategy: Bagger\n\nShock Spot:After item set next to the blue windmill",
     "Cheep Cheep Falls→Peach Stadium": "Special lap: Peach Stadium short (reverse) Metro round\n\nStrategy: Frontrunner\n\nShock Spot:somewhere before reaching Peach Stadium",
@@ -181,7 +181,7 @@
     "Rainbow Road→Peach Stadium": "coming soon [R:P]",
     "Salty Salty Speedway→Cheep Cheep Falls": "coming soon [S:C]",
     "Salty Salty Speedway→Dino Dino Jungle": "coming soon [S:D]",
-    "Salty Salty Speedway→DK Pass": "coming soon [S:D]",
+    "Salty Salty Speedway→DK Pass": "Special lap: DK Pass reverse\n\nStrategy: (optional Bagger until DK Pass lap starts into) Frontrunner\n\nShock Spot:Shortcuts through the snow-offroad before DK Pass lap begins OR before the shroomless shortcut starting with the wooden ramp",
     "Salty Salty Speedway→Faraway Oasis": "coming soon [S:F]",
     "Salty Salty Speedway→Great ? Block Ruins": "coming soon [S:G]",
     "Salty Salty Speedway→Peach Beach": "coming soon [S:P]",
@@ -235,5 +235,1430 @@
     "Whistlestop Summit→DK Spaceport": "coming soon [W:D]",
     "Whistlestop Summit→Mario Bros. Circuit": "Special lap: Mario Bros. Circuit reverse\n\nStrategy: Bagger\n\nShock Spot:After first item set when you reach Mario Bros. Circuit",
     "Whistlestop Summit→Koopa Troopa Beach": "Special lap: Koopa Troopa Beach reverse\n\nStrategy: Bagger\n\nShock Spot:After first item set on last lap"
+  },
+  "META": {
+    "INTERMISSIONS": {
+      "Acorn Heights→Boo Cinema": {
+        "start": "Acorn Heights",
+        "destiny": "Boo Cinema",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Boo Cinema"
+      },
+      "Acorn Heights→Dandelion Depths": {
+        "start": "Acorn Heights",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Acorn Heights→Dry Bones Burnout": {
+        "start": "Acorn Heights",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Acorn Heights→Mario Circuit": {
+        "start": "Acorn Heights",
+        "destiny": "Mario Circuit",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Mario Circuit"
+      },
+      "Acorn Heights→Toad's Factory": {
+        "start": "Acorn Heights",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Airship Fortress→Bowser's Castle": {
+        "start": "Airship Fortress",
+        "destiny": "Bowser's Castle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Bowser's Castle"
+      },
+      "Airship Fortress→Dry Bones Burnout": {
+        "start": "Airship Fortress",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Airship Fortress→Shy Guy Bazaar": {
+        "start": "Airship Fortress",
+        "destiny": "Shy Guy Bazaar",
+        "is_special": true,
+        "special_tag": "Palace route",
+        "destiny_group": "Shy Guy Bazaar — Palace route"
+      },
+      "Airship Fortress→Toad's Factory": {
+        "start": "Airship Fortress",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Airship Fortress→Wario Stadium": {
+        "start": "Airship Fortress",
+        "destiny": "Wario Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Stadium"
+      },
+      "Boo Cinema→Acorn Heights": {
+        "start": "Boo Cinema",
+        "destiny": "Acorn Heights",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Acorn Heights"
+      },
+      "Boo Cinema→Dandelion Depths": {
+        "start": "Boo Cinema",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Boo Cinema→Dry Bones Burnout": {
+        "start": "Boo Cinema",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Boo Cinema→Mario Circuit": {
+        "start": "Boo Cinema",
+        "destiny": "Mario Circuit",
+        "is_special": true,
+        "special_tag": "Mario Circuit lap 1 ",
+        "destiny_group": "Mario Circuit lap 1"
+      },
+      "Boo Cinema→Starview Peak": {
+        "start": "Boo Cinema",
+        "destiny": "Starview Peak",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Starview Peak"
+      },
+      "Bowser's Castle→Airship Fortress": {
+        "start": "Bowser's Castle",
+        "destiny": "Airship Fortress",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Airship Fortress"
+      },
+      "Bowser's Castle→Choco Mountain": {
+        "start": "Bowser's Castle",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Bowser's Castle→Dry Bones Burnout": {
+        "start": "Bowser's Castle",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Bowser's Castle→Mario Circuit": {
+        "start": "Bowser's Castle",
+        "destiny": "Mario Circuit",
+        "is_special": true,
+        "special_tag": "Mario Circuit Flagpole",
+        "destiny_group": "Mario Circuit Flagpole"
+      },
+      "Bowser's Castle→Toad's Factory": {
+        "start": "Bowser's Castle",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Bowser's Castle→Wario Stadium": {
+        "start": "Bowser's Castle",
+        "destiny": "Wario Stadium",
+        "is_special": true,
+        "special_tag": "Wario Stadium reverse",
+        "destiny_group": "Wario Stadium reverse"
+      },
+      "Cheep Cheep Falls→Choco Mountain": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Cheep Cheep Falls→Dandelion Depths": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Cheep Cheep Falls→DK Pass": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "DK Pass",
+        "is_special": true,
+        "special_tag": null,
+        "destiny_group": "DK Pass"
+      },
+      "Cheep Cheep Falls→Faraway Oasis": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Cheep Cheep Falls→Moo Moo Meadows": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Moo Moo Meadows",
+        "is_special": true,
+        "special_tag": "Moo Moo Meadows reverse",
+        "destiny_group": "Moo Moo Meadows reverse"
+      },
+      "Cheep Cheep Falls→Peach Stadium": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Peach Stadium",
+        "is_special": true,
+        "special_tag": "Peach Stadium short (reverse) Metro round",
+        "destiny_group": "Peach Stadium Metro reverse"
+      },
+      "Cheep Cheep Falls→Salty Salty Speedway": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "Cheep Cheep Falls→Starview Peak": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Starview Peak",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Starview Peak"
+      },
+      "Cheep Cheep Falls→Wario Shipyard": {
+        "start": "Cheep Cheep Falls",
+        "destiny": "Wario Shipyard",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Shipyard"
+      },
+      "Choco Mountain→Bowser's Castle": {
+        "start": "Choco Mountain",
+        "destiny": "Bowser's Castle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Bowser's Castle"
+      },
+      "Choco Mountain→Cheep Cheep Falls": {
+        "start": "Choco Mountain",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Choco Mountain→Crown City": {
+        "start": "Choco Mountain",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City with water section",
+        "destiny_group": "Crown City water section"
+      },
+      "Choco Mountain→Mario Bros. Circuit": {
+        "start": "Choco Mountain",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": true,
+        "special_tag": "Mario Bros. Circuit reverse",
+        "destiny_group": "Mario Bros. Circuit reverse"
+      },
+      "Choco Mountain→Moo Moo Meadows": {
+        "start": "Choco Mountain",
+        "destiny": "Moo Moo Meadows",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Moo Moo Meadows"
+      },
+      "Choco Mountain→Peach Stadium": {
+        "start": "Choco Mountain",
+        "destiny": "Peach Stadium",
+        "is_special": true,
+        "special_tag": "Peach Stadium short Metro round",
+        "destiny_group": "Peach Stadium Metro"
+      },
+      "Choco Mountain→Shy Guy Bazaar": {
+        "start": "Choco Mountain",
+        "destiny": "Shy Guy Bazaar",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Shy Guy Bazaar"
+      },
+      "Choco Mountain→Toad's Factory": {
+        "start": "Choco Mountain",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Choco Mountain→Wario Stadium": {
+        "start": "Choco Mountain",
+        "destiny": "Wario Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Stadium"
+      },
+      "Choco Mountain→Whistlestop Summit": {
+        "start": "Choco Mountain",
+        "destiny": "Whistlestop Summit",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Whistlestop Summit"
+      },
+      "Crown City→Choco Mountain": {
+        "start": "Crown City",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Crown City→Desert Hills": {
+        "start": "Crown City",
+        "destiny": "Desert Hills",
+        "is_special": true,
+        "special_tag": "Desert Hills reverse",
+        "destiny_group": "Desert Hills reverse"
+      },
+      "Crown City→DK Spaceport": {
+        "start": "Crown City",
+        "destiny": "DK Spaceport",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "DK Spaceport"
+      },
+      "Crown City→Faraway Oasis": {
+        "start": "Crown City",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Crown City→Koopa Troopa Beach": {
+        "start": "Crown City",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": true,
+        "special_tag": "Koopa Troopa Beach reverse",
+        "destiny_group": "Koopa Troopa Beach reverse"
+      },
+      "Crown City→Mario Bros. Circuit": {
+        "start": "Crown City",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": true,
+        "special_tag": "Mario Bros. Circuit reverse",
+        "destiny_group": "Mario Bros. Circuit reverse"
+      },
+      "Crown City→Moo Moo Meadows": {
+        "start": "Crown City",
+        "destiny": "Moo Moo Meadows",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Moo Moo Meadows"
+      },
+      "Crown City→Peach Stadium": {
+        "start": "Crown City",
+        "destiny": "Peach Stadium",
+        "is_special": true,
+        "special_tag": "Peach Stadium short Metro round",
+        "destiny_group": "Peach Stadium Metro"
+      },
+      "Crown City→Wario Stadium": {
+        "start": "Crown City",
+        "destiny": "Wario Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Stadium"
+      },
+      "Crown City→Whistlestop Summit": {
+        "start": "Crown City",
+        "destiny": "Whistlestop Summit",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Whistlestop Summit"
+      },
+      "Dandelion Depths→Acorn Heights": {
+        "start": "Dandelion Depths",
+        "destiny": "Acorn Heights",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Acorn Heights"
+      },
+      "Dandelion Depths→Boo Cinema": {
+        "start": "Dandelion Depths",
+        "destiny": "Boo Cinema",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Boo Cinema"
+      },
+      "Dandelion Depths→Cheep Cheep Falls": {
+        "start": "Dandelion Depths",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Dandelion Depths→DK Pass": {
+        "start": "Dandelion Depths",
+        "destiny": "DK Pass",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "DK Pass"
+      },
+      "Dandelion Depths→Mario Circuit": {
+        "start": "Dandelion Depths",
+        "destiny": "Mario Circuit",
+        "is_special": true,
+        "special_tag": "regular Mario Circuit lap 3",
+        "destiny_group": "Mario Circuit lap 3"
+      },
+      "Dandelion Depths→Moo Moo Meadows": {
+        "start": "Dandelion Depths",
+        "destiny": "Moo Moo Meadows",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Moo Moo Meadows"
+      },
+      "Dandelion Depths→Sky-High Sundae": {
+        "start": "Dandelion Depths",
+        "destiny": "Sky-High Sundae",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Sky-High Sundae"
+      },
+      "Dandelion Depths→Starview Peak": {
+        "start": "Dandelion Depths",
+        "destiny": "Starview Peak",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Starview Peak"
+      },
+      "Dandelion Depths→Toad's Factory": {
+        "start": "Dandelion Depths",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Desert Hills→Crown City": {
+        "start": "Desert Hills",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City lap 2",
+        "destiny_group": "Crown City lap 2"
+      },
+      "Desert Hills→Mario Bros. Circuit": {
+        "start": "Desert Hills",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": true,
+        "special_tag": "Mario Bros. Circuit reverse",
+        "destiny_group": "Mario Bros. Circuit reverse"
+      },
+      "Desert Hills→Shy Guy Bazaar": {
+        "start": "Desert Hills",
+        "destiny": "Shy Guy Bazaar",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Shy Guy Bazaar"
+      },
+      "Desert Hills→Whistlestop Summit": {
+        "start": "Desert Hills",
+        "destiny": "Whistlestop Summit",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Whistlestop Summit"
+      },
+      "Desert Hills→Koopa Troopa Beach": {
+        "start": "Desert Hills",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": true,
+        "special_tag": "Koopa Troopa Beach reverse",
+        "destiny_group": "Koopa Troopa Beach reverse"
+      },
+      "Dino Dino Jungle→Faraway Oasis": {
+        "start": "Dino Dino Jungle",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Dino Dino Jungle→Great ? Block Ruins": {
+        "start": "Dino Dino Jungle",
+        "destiny": "Great ? Block Ruins",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Great ? Block Ruins"
+      },
+      "Dino Dino Jungle→Koopa Troopa Beach": {
+        "start": "Dino Dino Jungle",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Koopa Troopa Beach"
+      },
+      "Dino Dino Jungle→Peach Beach": {
+        "start": "Dino Dino Jungle",
+        "destiny": "Peach Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Beach"
+      },
+      "Dino Dino Jungle→Salty Salty Speedway": {
+        "start": "Dino Dino Jungle",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "DK Pass→Dandelion Depths": {
+        "start": "DK Pass",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "DK Pass→Moo Moo Meadows": {
+        "start": "DK Pass",
+        "destiny": "Moo Moo Meadows",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Moo Moo Meadows"
+      },
+      "DK Pass→Salty Salty Speedway": {
+        "start": "DK Pass",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "DK Pass→Sky-High Sundae": {
+        "start": "DK Pass",
+        "destiny": "Sky-High Sundae",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Sky-High Sundae"
+      },
+      "DK Pass→Starview Peak": {
+        "start": "DK Pass",
+        "destiny": "Starview Peak",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Starview Peak"
+      },
+      "DK Pass→Wario Shipyard": {
+        "start": "DK Pass",
+        "destiny": "Wario Shipyard",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Shipyard"
+      },
+      "DK Pass→Cheep Cheep Falls": {
+        "start": "DK Pass",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "DK Spaceport→Crown City": {
+        "start": "DK Spaceport",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City reverse with Goomba-shortcut",
+        "destiny_group": "Crown City reverse"
+      },
+      "DK Spaceport→Koopa Troopa Beach": {
+        "start": "DK Spaceport",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": true,
+        "special_tag": "Koopa Troopa Beach reverse",
+        "destiny_group": "Koopa Troopa Beach reverse"
+      },
+      "DK Spaceport→Whistlestop Summit": {
+        "start": "DK Spaceport",
+        "destiny": "Whistlestop Summit",
+        "is_special": true,
+        "special_tag": "Mario Bros. Circuit reverse",
+        "destiny_group": "Mario Bros. Circuit reverse"
+      },
+      "DK Spaceport→Peach Stadium": {
+        "start": "DK Spaceport",
+        "destiny": "Peach Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Stadium"
+      },
+      "DK Spaceport→Desert Hills": {
+        "start": "DK Spaceport",
+        "destiny": "Desert Hills",
+        "is_special": true,
+        "special_tag": "Desert Hills reverse",
+        "destiny_group": "Desert Hills reverse"
+      },
+      "DK Spaceport→Mario Bros. Circuit": {
+        "start": "DK Spaceport",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Mario Bros. Circuit"
+      },
+      "Dry Bones Burnout→Acorn Heights": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Acorn Heights",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Acorn Heights"
+      },
+      "Dry Bones Burnout→Airship Fortress": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Airship Fortress",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Airship Fortress"
+      },
+      "Dry Bones Burnout→Boo Cinema": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Boo Cinema",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Boo Cinema"
+      },
+      "Dry Bones Burnout→Bowser's Castle": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Bowser's Castle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Bowser's Castle"
+      },
+      "Dry Bones Burnout→Mario Circuit": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Mario Circuit",
+        "is_special": true,
+        "special_tag": "Mario Circuit Flagpole",
+        "destiny_group": "Mario Circuit Flagpole"
+      },
+      "Dry Bones Burnout→Moo Moo Meadows": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Moo Moo Meadows",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Moo Moo Meadows"
+      },
+      "Dry Bones Burnout→Toad's Factory": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Dry Bones Burnout→Wario Stadium": {
+        "start": "Dry Bones Burnout",
+        "destiny": "Wario Stadium",
+        "is_special": true,
+        "special_tag": "Wario Stadium reverse",
+        "destiny_group": "Wario Stadium reverse"
+      },
+      "Faraway Oasis→Cheep Cheep Falls": {
+        "start": "Faraway Oasis",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Faraway Oasis→Crown City": {
+        "start": "Faraway Oasis",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City reverse with Goomba-shortcut",
+        "destiny_group": "Crown City reverse"
+      },
+      "Faraway Oasis→Dino Dino Jungle": {
+        "start": "Faraway Oasis",
+        "destiny": "Dino Dino Jungle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dino Dino Jungle"
+      },
+      "Faraway Oasis→Great ? Block Ruins": {
+        "start": "Faraway Oasis",
+        "destiny": "Great ? Block Ruins",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Great ? Block Ruins"
+      },
+      "Faraway Oasis→Koopa Troopa Beach": {
+        "start": "Faraway Oasis",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Koopa Troopa Beach"
+      },
+      "Faraway Oasis→Peach Beach": {
+        "start": "Faraway Oasis",
+        "destiny": "Peach Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Beach"
+      },
+      "Faraway Oasis→Peach Stadium": {
+        "start": "Faraway Oasis",
+        "destiny": "Peach Stadium",
+        "is_special": true,
+        "special_tag": "Peach Stadium short (reverse) Metro round",
+        "destiny_group": "Peach Stadium Metro reverse"
+      },
+      "Faraway Oasis→Salty Salty Speedway": {
+        "start": "Faraway Oasis",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "Great ? Block Ruins→Dino Dino Jungle": {
+        "start": "Great ? Block Ruins",
+        "destiny": "Dino Dino Jungle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dino Dino Jungle"
+      },
+      "Great ? Block Ruins→Faraway Oasis": {
+        "start": "Great ? Block Ruins",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Great ? Block Ruins→Peach Beach": {
+        "start": "Great ? Block Ruins",
+        "destiny": "Peach Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Beach"
+      },
+      "Great ? Block Ruins→Salty Salty Speedway": {
+        "start": "Great ? Block Ruins",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "Great ? Block Ruins→Koopa Troopa Beach": {
+        "start": "Great ? Block Ruins",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Koopa Troopa Beach"
+      },
+      "Koopa Troopa Beach→Crown City": {
+        "start": "Koopa Troopa Beach",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City reverse with Goomba-shortcut",
+        "destiny_group": "Crown City reverse"
+      },
+      "Koopa Troopa Beach→Faraway Oasis": {
+        "start": "Koopa Troopa Beach",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Koopa Troopa Beach→DK Spaceport": {
+        "start": "Koopa Troopa Beach",
+        "destiny": "DK Spaceport",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "DK Spaceport"
+      },
+      "Koopa Troopa Beach→Dino Dino Jungle": {
+        "start": "Koopa Troopa Beach",
+        "destiny": "Dino Dino Jungle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dino Dino Jungle"
+      },
+      "Koopa Troopa Beach→Peach Stadium": {
+        "start": "Koopa Troopa Beach",
+        "destiny": "Peach Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Stadium"
+      },
+      "Mario Bros. Circuit→Choco Mountain": {
+        "start": "Mario Bros. Circuit",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Mario Bros. Circuit→Crown City": {
+        "start": "Mario Bros. Circuit",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City lap 2",
+        "destiny_group": "Crown City lap 2"
+      },
+      "Mario Bros. Circuit→Desert Hills": {
+        "start": "Mario Bros. Circuit",
+        "destiny": "Desert Hills",
+        "is_special": true,
+        "special_tag": "Desert Hills reverse",
+        "destiny_group": "Desert Hills reverse"
+      },
+      "Mario Bros. Circuit→Shy Guy Bazaar": {
+        "start": "Mario Bros. Circuit",
+        "destiny": "Shy Guy Bazaar",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Shy Guy Bazaar"
+      },
+      "Mario Bros. Circuit→Toad's Factory": {
+        "start": "Mario Bros. Circuit",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Mario Bros. Circuit→Wario Stadium": {
+        "start": "Mario Bros. Circuit",
+        "destiny": "Wario Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Stadium"
+      },
+      "Mario Bros. Circuit→Whistlestop Summit": {
+        "start": "Mario Bros. Circuit",
+        "destiny": "Whistlestop Summit",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Whistlestop Summit"
+      },
+      "Mario Circuit→Acorn Heights": {
+        "start": "Mario Circuit",
+        "destiny": "Acorn Heights",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Acorn Heights"
+      },
+      "Mario Circuit→Boo Cinema": {
+        "start": "Mario Circuit",
+        "destiny": "Boo Cinema",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Boo Cinema"
+      },
+      "Mario Circuit→Bowser's Castle": {
+        "start": "Mario Circuit",
+        "destiny": "Bowser's Castle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Bowser's Castle"
+      },
+      "Mario Circuit→Dandelion Depths": {
+        "start": "Mario Circuit",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Mario Circuit→Dry Bones Burnout": {
+        "start": "Mario Circuit",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Mario Circuit→Moo Moo Meadows": {
+        "start": "Mario Circuit",
+        "destiny": "Moo Moo Meadows",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Moo Moo Meadows"
+      },
+      "Mario Circuit→Starview Peak": {
+        "start": "Mario Circuit",
+        "destiny": "Starview Peak",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Starview Peak"
+      },
+      "Mario Circuit→Toad's Factory": {
+        "start": "Mario Circuit",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Mario Circuit→Peach Stadium": {
+        "start": "Mario Circuit",
+        "destiny": "Peach Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Stadium"
+      },
+      "Moo Moo Meadows→Cheep Cheep Falls": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Moo Moo Meadows→Choco Mountain": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Moo Moo Meadows→Crown City": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City with water section",
+        "destiny_group": "Crown City water section"
+      },
+      "Moo Moo Meadows→Dandelion Depths": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Moo Moo Meadows→DK Pass": {
+        "start": "Moo Moo Meadows",
+        "destiny": "DK Pass",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "DK Pass"
+      },
+      "Moo Moo Meadows→Dry Bones Burnout": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Moo Moo Meadows→Mario Circuit": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Mario Circuit",
+        "is_special": true,
+        "special_tag": "regular Mario Circuit lap 3",
+        "destiny_group": "Mario Circuit lap 3"
+      },
+      "Moo Moo Meadows→Peach Stadium": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Peach Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Stadium"
+      },
+      "Moo Moo Meadows→Toad's Factory": {
+        "start": "Moo Moo Meadows",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Peach Beach→Dino Dino Jungle": {
+        "start": "Peach Beach",
+        "destiny": "Dino Dino Jungle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dino Dino Jungle"
+      },
+      "Peach Beach→Faraway Oasis": {
+        "start": "Peach Beach",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Peach Beach→Great ? Block Ruins": {
+        "start": "Peach Beach",
+        "destiny": "Great ? Block Ruins",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Great ? Block Ruins"
+      },
+      "Peach Beach→Salty Salty Speedway": {
+        "start": "Peach Beach",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "Peach Beach→Wario Shipyard": {
+        "start": "Peach Beach",
+        "destiny": "Wario Shipyard",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Shipyard"
+      },
+      "Peach Stadium→Cheep Cheep Falls": {
+        "start": "Peach Stadium",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Peach Stadium→Choco Mountain": {
+        "start": "Peach Stadium",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Peach Stadium→Crown City": {
+        "start": "Peach Stadium",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City with water section",
+        "destiny_group": "Crown City water section"
+      },
+      "Peach Stadium→Faraway Oasis": {
+        "start": "Peach Stadium",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Peach Stadium→Koopa Troopa Beach": {
+        "start": "Peach Stadium",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Koopa Troopa Beach"
+      },
+      "Peach Stadium→Moo Moo Meadows": {
+        "start": "Peach Stadium",
+        "destiny": "Moo Moo Meadows",
+        "is_special": true,
+        "special_tag": "Moo Moo Meadows reverse",
+        "destiny_group": "Moo Moo Meadows reverse"
+      },
+      "Peach Stadium→Toad's Factory": {
+        "start": "Peach Stadium",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Peach Stadium→Rainbow Road": {
+        "start": "Peach Stadium",
+        "destiny": "Rainbow Road",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Rainbow Road"
+      },
+      "Rainbow Road→Peach Stadium": {
+        "start": "Rainbow Road",
+        "destiny": "Peach Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Stadium"
+      },
+      "Salty Salty Speedway→Cheep Cheep Falls": {
+        "start": "Salty Salty Speedway",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Salty Salty Speedway→Dino Dino Jungle": {
+        "start": "Salty Salty Speedway",
+        "destiny": "Dino Dino Jungle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dino Dino Jungle"
+      },
+      "Salty Salty Speedway→DK Pass": {
+        "start": "Salty Salty Speedway",
+        "destiny": "DK Pass",
+        "is_special": true,
+        "special_tag": "DK Pass reverse",
+        "destiny_group": "DK Pass reverse"
+      },
+      "Salty Salty Speedway→Faraway Oasis": {
+        "start": "Salty Salty Speedway",
+        "destiny": "Faraway Oasis",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Faraway Oasis"
+      },
+      "Salty Salty Speedway→Great ? Block Ruins": {
+        "start": "Salty Salty Speedway",
+        "destiny": "Great ? Block Ruins",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Great ? Block Ruins"
+      },
+      "Salty Salty Speedway→Peach Beach": {
+        "start": "Salty Salty Speedway",
+        "destiny": "Peach Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Beach"
+      },
+      "Salty Salty Speedway→Wario Shipyard": {
+        "start": "Salty Salty Speedway",
+        "destiny": "Wario Shipyard",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Shipyard"
+      },
+      "Shy Guy Bazaar→Airship Fortress": {
+        "start": "Shy Guy Bazaar",
+        "destiny": "Airship Fortress",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Airship Fortress"
+      },
+      "Shy Guy Bazaar→Choco Mountain": {
+        "start": "Shy Guy Bazaar",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Shy Guy Bazaar→Desert Hills": {
+        "start": "Shy Guy Bazaar",
+        "destiny": "Desert Hills",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Desert Hills"
+      },
+      "Shy Guy Bazaar→Mario Bros. Circuit": {
+        "start": "Shy Guy Bazaar",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Mario Bros. Circuit"
+      },
+      "Shy Guy Bazaar→Wario Stadium": {
+        "start": "Shy Guy Bazaar",
+        "destiny": "Wario Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Stadium"
+      },
+      "Sky-High Sundae→Dandelion Depths": {
+        "start": "Sky-High Sundae",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Sky-High Sundae→DK Pass": {
+        "start": "Sky-High Sundae",
+        "destiny": "DK Pass",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "DK Pass"
+      },
+      "Sky-High Sundae→Starview Peak": {
+        "start": "Sky-High Sundae",
+        "destiny": "Starview Peak",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Starview Peak"
+      },
+      "Sky-High Sundae→Wario Shipyard": {
+        "start": "Sky-High Sundae",
+        "destiny": "Wario Shipyard",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Shipyard"
+      },
+      "Sky-High Sundae→Cheep Cheep Falls": {
+        "start": "Sky-High Sundae",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Sky-High Sundae→Salty Salty Speedway": {
+        "start": "Sky-High Sundae",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "Starview Peak→Boo Cinema": {
+        "start": "Starview Peak",
+        "destiny": "Boo Cinema",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Boo Cinema"
+      },
+      "Starview Peak→Cheep Cheep Falls": {
+        "start": "Starview Peak",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Starview Peak→Dandelion Depths": {
+        "start": "Starview Peak",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Starview Peak→DK Pass": {
+        "start": "Starview Peak",
+        "destiny": "DK Pass",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "DK Pass"
+      },
+      "Starview Peak→Mario Circuit": {
+        "start": "Starview Peak",
+        "destiny": "Mario Circuit",
+        "is_special": true,
+        "special_tag": "regular Mario Circuit lap 3",
+        "destiny_group": "Mario Circuit lap 3"
+      },
+      "Starview Peak→Sky-High Sundae": {
+        "start": "Starview Peak",
+        "destiny": "Sky-High Sundae",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Sky-High Sundae"
+      },
+      "Starview Peak→Wario Shipyard": {
+        "start": "Starview Peak",
+        "destiny": "Wario Shipyard",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Shipyard"
+      },
+      "Toad's Factory→Acorn Heights": {
+        "start": "Toad's Factory",
+        "destiny": "Acorn Heights",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Acorn Heights"
+      },
+      "Toad's Factory→Airship Fortress": {
+        "start": "Toad's Factory",
+        "destiny": "Airship Fortress",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Airship Fortress"
+      },
+      "Toad's Factory→Bowser's Castle": {
+        "start": "Toad's Factory",
+        "destiny": "Bowser's Castle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Bowser's Castle"
+      },
+      "Toad's Factory→Choco Mountain": {
+        "start": "Toad's Factory",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Toad's Factory→Dandelion Depths": {
+        "start": "Toad's Factory",
+        "destiny": "Dandelion Depths",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dandelion Depths"
+      },
+      "Toad's Factory→Dry Bones Burnout": {
+        "start": "Toad's Factory",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Toad's Factory→Mario Bros. Circuit": {
+        "start": "Toad's Factory",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": true,
+        "special_tag": "Mario Bros. Circuit reverse",
+        "destiny_group": "Mario Bros. Circuit reverse"
+      },
+      "Toad's Factory→Mario Circuit": {
+        "start": "Toad's Factory",
+        "destiny": "Mario Circuit",
+        "is_special": true,
+        "special_tag": "Mario Circuit Flagpole",
+        "destiny_group": "Mario Circuit Flagpole"
+      },
+      "Toad's Factory→Moo Moo Meadows": {
+        "start": "Toad's Factory",
+        "destiny": "Moo Moo Meadows",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Moo Moo Meadows"
+      },
+      "Toad's Factory→Peach Stadium": {
+        "start": "Toad's Factory",
+        "destiny": "Peach Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Stadium"
+      },
+      "Toad's Factory→Wario Stadium": {
+        "start": "Toad's Factory",
+        "destiny": "Wario Stadium",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Wario Stadium"
+      },
+      "Wario Shipyard→Cheep Cheep Falls": {
+        "start": "Wario Shipyard",
+        "destiny": "Cheep Cheep Falls",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Cheep Cheep Falls"
+      },
+      "Wario Shipyard→DK Pass": {
+        "start": "Wario Shipyard",
+        "destiny": "DK Pass",
+        "is_special": true,
+        "special_tag": "DK Pass reverse",
+        "destiny_group": "DK Pass reverse"
+      },
+      "Wario Shipyard→Peach Beach": {
+        "start": "Wario Shipyard",
+        "destiny": "Peach Beach",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Peach Beach"
+      },
+      "Wario Shipyard→Salty Salty Speedway": {
+        "start": "Wario Shipyard",
+        "destiny": "Salty Salty Speedway",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Salty Salty Speedway"
+      },
+      "Wario Shipyard→Sky-High Sundae": {
+        "start": "Wario Shipyard",
+        "destiny": "Sky-High Sundae",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Sky-High Sundae"
+      },
+      "Wario Shipyard→Starview Peak": {
+        "start": "Wario Shipyard",
+        "destiny": "Starview Peak",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Starview Peak"
+      },
+      "Wario Stadium→Airship Fortress": {
+        "start": "Wario Stadium",
+        "destiny": "Airship Fortress",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Airship Fortress"
+      },
+      "Wario Stadium→Bowser's Castle": {
+        "start": "Wario Stadium",
+        "destiny": "Bowser's Castle",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Bowser's Castle"
+      },
+      "Wario Stadium→Choco Mountain": {
+        "start": "Wario Stadium",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Wario Stadium→Crown City": {
+        "start": "Wario Stadium",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City lap 2",
+        "destiny_group": "Crown City lap 2"
+      },
+      "Wario Stadium→Dry Bones Burnout": {
+        "start": "Wario Stadium",
+        "destiny": "Dry Bones Burnout",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Dry Bones Burnout"
+      },
+      "Wario Stadium→Mario Bros. Circuit": {
+        "start": "Wario Stadium",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": true,
+        "special_tag": "Mario Bros. Circuit reverse",
+        "destiny_group": "Mario Bros. Circuit reverse"
+      },
+      "Wario Stadium→Shy Guy Bazaar": {
+        "start": "Wario Stadium",
+        "destiny": "Shy Guy Bazaar",
+        "is_special": true,
+        "special_tag": "Palace route",
+        "destiny_group": "Shy Guy Bazaar — Palace route"
+      },
+      "Wario Stadium→Toad's Factory": {
+        "start": "Wario Stadium",
+        "destiny": "Toad's Factory",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Toad's Factory"
+      },
+      "Whistlestop Summit→Choco Mountain": {
+        "start": "Whistlestop Summit",
+        "destiny": "Choco Mountain",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "Choco Mountain"
+      },
+      "Whistlestop Summit→Crown City": {
+        "start": "Whistlestop Summit",
+        "destiny": "Crown City",
+        "is_special": true,
+        "special_tag": "Crown City lap 2",
+        "destiny_group": "Crown City lap 2"
+      },
+      "Whistlestop Summit→Desert Hills": {
+        "start": "Whistlestop Summit",
+        "destiny": "Desert Hills",
+        "is_special": true,
+        "special_tag": "Desert Hills reverse",
+        "destiny_group": "Desert Hills reverse"
+      },
+      "Whistlestop Summit→DK Spaceport": {
+        "start": "Whistlestop Summit",
+        "destiny": "DK Spaceport",
+        "is_special": false,
+        "special_tag": null,
+        "destiny_group": "DK Spaceport"
+      },
+      "Whistlestop Summit→Mario Bros. Circuit": {
+        "start": "Whistlestop Summit",
+        "destiny": "Mario Bros. Circuit",
+        "is_special": true,
+        "special_tag": "Mario Bros. Circuit reverse",
+        "destiny_group": "Mario Bros. Circuit reverse"
+      },
+      "Whistlestop Summit→Koopa Troopa Beach": {
+        "start": "Whistlestop Summit",
+        "destiny": "Koopa Troopa Beach",
+        "is_special": true,
+        "special_tag": "Koopa Troopa Beach reverse",
+        "destiny_group": "Koopa Troopa Beach reverse"
+      }
+    }
   }
 }
