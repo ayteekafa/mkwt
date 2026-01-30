@@ -27,38 +27,31 @@
   <link rel="stylesheet" href="mkwt_theme_v3.css">
 
   <style>
-    /* ===== Chart sizing (mobile-first) =====
-       NOTE: mkwt_theme_v3.css sets `canvas{ height:260px !important; }` on phones.
-       We override that here so each chart can use its container height.
-    */
-    .chartWrap,
-    .chartWrapC2,
-    .chartWrapIm{
-      position: relative;
-      width: 100%;
-      height: 380px;
-    }
-    /* VR History: doesn't need to be huge, just readable */
-    .chartWrap{ height: 340px; }
+    /* ===== Mobile Chart Fix ===== */
+    .chartWrap { position: relative; width: 100%; height: 560px; }
 
-    /* Track Performance + Intermission Performance need more room on mobile */
-    .chartWrapC2{ height: 820px; }
-    .chartWrapIm{ height: 1040px; }
+    /* Keep VR History readable on mobile but not huge */
+    @media (max-width: 520px){ .chartWrap { height: 380px; } }
 
-    /* Ensure the canvas actually fills the wrap (override global phone rule) */
-    .chartWrap > canvas,
-    .chartWrapC2 > canvas,
-    .chartWrapIm > canvas{
+    /* Chart 2: Track performance (horizontal bars) */
+    .chartWrapC2 { height: 560px; }
+    @media (max-width: 520px){ .chartWrapC2 { height: 640px; } }
+
+    /* Chart 3: Intermission performance (horizontal bars) */
+    .chartWrapIm { height: 600px; }
+    @media (max-width: 520px){ .chartWrapIm { height: 700px; } }
+
+    /* Make canvases actually fill their wrappers (prevents tiny charts) */
+    .chartWrap canvas,
+    .chartWrapC2 canvas,
+    .chartWrapIm canvas {
       width: 100% !important;
       height: 100% !important;
+      display: block;
     }
 
-    @media (max-width: 520px){
-      .chartWrap{ height: 360px; }
-      .chartWrapC2{ height: 1320px; }
-      .chartWrapIm{ height: 1540px; }
-    }
-  </style>
+    /* Prevent label cut-off */
+    .chartWrap, .chartWrapC2, .chartWrapIm { overflow: visible; }</style>
 
 
 <style>
@@ -141,7 +134,7 @@
       <div class="muted" style="margin-bottom:10px;">
         Y = VR Δ. Only rows where <b>intermission is empty</b> are used.
       </div>
-      <div class="chartWrap chartWrapC2"><canvas id="chartPerf" height="140"></canvas></div>
+      <div class="chartWrap chartWrapC2"><canvas id="chartPerf"></canvas></div>
 
       <div class="muted chartBtns" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button id="btnC2SortAvg" type="button" class="navAction" style="padding:6px 10px;">Average VR gain</button>
@@ -159,7 +152,7 @@
       <div class="muted" style="margin-bottom:10px;">
         Horizontal bars show <b>Average VR Δ</b>. Use filters to sort (click again to reverse). Showing max 40 entries.
       </div>
-      <div class="chartWrap chartWrapIm"><canvas id="chartItTr" height="180"></canvas></div>
+      <div class="chartWrap chartWrapIm"><canvas id="chartItTr"></canvas></div>
 
       <div class="muted chartBtns" style="margin-top:10px; display:flex; flex-direction:column; gap:10px; align-items:flex-start;">
         <div data-btn-group="c4Tabs" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -212,6 +205,27 @@
         </div>
       </div>
     </div>
+
+
+
+<div class="card">
+  <h3 style="margin:0 0 10px 0;">VR History (Weekly)</h3>
+  <div class="muted" style="margin-bottom:10px;">
+    Toggle between weekly VR Average and weekly average VR gain (Tracks vs Intermission).
+  </div>
+
+  <div class="muted chartBtns" data-btn-group="c6" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <button id="btnWkVrAvg" type="button" class="navAction" style="padding:6px 10px;">VR Average</button>
+    <button id="btnWkGains" type="button" class="navAction" style="padding:6px 10px;">VR Gain Avg</button>
+  </div>
+
+  <div class="muted" id="c6Hint" style="margin:0 0 10px 0; opacity:.85;">Tap a bar to pin details (mobile-friendly).</div>
+
+  <div class="bar-wrap" style="max-width:100%; height:260px;">
+    <canvas id="chartWeekly"></canvas>
+  </div>
+</div>
+
 
 
 </div>
@@ -660,7 +674,7 @@ async function exportBackupJSON() {
   };
 
 // ========= Charts =========
-  let chartVr = null, chartPerf = null, chartPie5 = null, chartItTr = null;
+  let chartVr = null, chartPerf = null, chartPie5 = null, chartItTr = null, chartWeekly = null;
   // Chart 1 window state
   let vrWindowMode = "all";
   let vrButtonsWired = false;
@@ -674,8 +688,8 @@ async function exportBackupJSON() {
   let pie5ButtonsWired = false;
 
 function destroyCharts(){
-    chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy();
-    chartVr = chartPerf = chartPie5 = chartItTr = null;
+    chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy(); chartWeekly?.destroy();
+    chartVr = chartPerf = chartPie5 = chartItTr = chartWeekly = null;
   }
 
   function buildCharts(matchesAsc) {
@@ -1495,7 +1509,247 @@ function destroyCharts(){
       }
     }catch(err){
       console.warn("[stats] Chart 5 failed", err);
-    }}
+    }
+    // --- Chart 6: VR History (Weekly) ---
+    try{
+      const c6 = $("chartWeekly");
+      if (c6) {
+        let weeklyMode = "vravg"; // "vravg" | "gains"
+        let c6Pinned = null;
+
+        function isoWeekKeyUTC(d){
+          // ISO week based on UTC date
+          const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+          // Thursday in current week decides the year.
+          const day = date.getUTCDay() || 7; // 1..7
+          date.setUTCDate(date.getUTCDate() + 4 - day);
+          const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+          const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+          const year = date.getUTCFullYear();
+          return year + "-W" + String(weekNo).padStart(2,"0");
+        }
+        function isoWeekStartEndUTC(weekKey){
+          // weekKey: YYYY-Www
+          const m = /^(\d{4})-W(\d{2})$/.exec(weekKey);
+          if(!m) return { start:null, end:null };
+          const year = Number(m[1]);
+          const week = Number(m[2]);
+          // ISO week 1 is the week with Jan 4th in it.
+          const jan4 = new Date(Date.UTC(year,0,4));
+          const day = jan4.getUTCDay() || 7;
+          const monday = new Date(jan4);
+          monday.setUTCDate(jan4.getUTCDate() - (day-1) + (week-1)*7);
+          const sunday = new Date(monday);
+          sunday.setUTCDate(monday.getUTCDate()+6);
+          return { start: monday, end: sunday };
+        }
+        function fmtDateUTC(d){
+          if(!d) return "";
+          const dd = String(d.getUTCDate()).padStart(2,"0");
+          const mm = String(d.getUTCMonth()+1).padStart(2,"0");
+          const yy = d.getUTCFullYear();
+          return dd + "." + mm + "." + yy;
+        }
+
+        function buildWeekly(matchesAsc){
+          const buckets = new Map(); // weekKey -> {matches:[]}
+          // reconstruct VR if vr_after missing
+          let prevVr = Number.isFinite(Number(PROFILE?.current_vr)) ? Number(PROFILE.current_vr) : null;
+
+          for (let i=0;i<matchesAsc.length;i++){
+            const m = matchesAsc[i];
+            const t = new Date(m.created_at);
+            if (Number.isNaN(t.getTime())) continue;
+            const wk = isoWeekKeyUTC(t);
+            if(!buckets.has(wk)) buckets.set(wk, { weekKey: wk, matches: [] });
+            // compute before/after VR snapshots robustly
+            const delta = Number(m.vr_change || 0);
+            let after = Number.isFinite(Number(m.vr_after)) ? Number(m.vr_after) : null;
+            let before = null;
+
+            if (after != null) {
+              before = after - delta;
+              prevVr = after;
+            } else if (prevVr != null) {
+              before = prevVr;
+              after = prevVr + delta;
+              prevVr = after;
+            }
+
+            buckets.get(wk).matches.push({
+              created_at: m.created_at,
+              intermission: m.intermission,
+              track: m.track,
+              vr_change: delta,
+              vr_before: before,
+              vr_after: after
+            });
+          }
+
+          const weekKeys = Array.from(buckets.keys()).sort();
+          const labels = [];
+          const vrAvgArr = [];
+          const trackAvgArr = [];
+          const imAvgArr = [];
+          const meta = []; // per index
+
+          for (let idx=0; idx<weekKeys.length; idx++){
+            const wk = weekKeys[idx];
+            const b = buckets.get(wk);
+            const ms = b.matches.sort((a,b)=> new Date(a.created_at) - new Date(b.created_at));
+            if(ms.length === 0) continue;
+
+            // sessions in this week (gap >45min)
+            let sessions = 1;
+            for (let j=1;j<ms.length;j++){
+              const t0 = new Date(ms[j-1].created_at).getTime();
+              const t1 = new Date(ms[j].created_at).getTime();
+              if (Number.isFinite(t0) && Number.isFinite(t1) && (t1 - t0) > 45*60*1000) sessions++;
+            }
+            const matchesCount = ms.length;
+            const avgPerSession = sessions ? (matchesCount / sessions) : matchesCount;
+
+            // VR Average (weekly): avg of [startVR(before first match), vr_after each match]
+            const startVr = ms[0].vr_before;
+            const afterList = ms.map(x => x.vr_after).filter(v => Number.isFinite(Number(v))).map(Number);
+            let vrAvg = null;
+            if (Number.isFinite(Number(startVr)) && afterList.length === ms.length) {
+              const sum = afterList.reduce((a,b)=>a+b,0) + Number(startVr);
+              vrAvg = sum / (ms.length + 1);
+            } else if (afterList.length) {
+              // fallback: average of available afterList
+              vrAvg = afterList.reduce((a,b)=>a+b,0) / afterList.length;
+            }
+
+            // Track vs Intermission weekly avg delta
+            const deltasTrack = [];
+            const deltasIm = [];
+            for (const x of ms){
+              const d = Number(x.vr_change || 0);
+              const isIm = !!(x.intermission && String(x.intermission).trim() !== "");
+              if (isIm) deltasIm.push(d);
+              else deltasTrack.push(d);
+            }
+            const trackAvg = deltasTrack.length ? (deltasTrack.reduce((a,b)=>a+b,0) / deltasTrack.length) : null;
+            const imAvg = deltasIm.length ? (deltasIm.reduce((a,b)=>a+b,0) / deltasIm.length) : null;
+
+            const { start, end } = isoWeekStartEndUTC(wk);
+            const weekLabel = "Week " + (labels.length + 1);
+            labels.push(weekLabel);
+            vrAvgArr.push(vrAvg);
+            trackAvgArr.push(trackAvg);
+            imAvgArr.push(imAvg);
+            meta.push({
+              weekKey: wk,
+              weekLabel,
+              range: (start && end) ? (fmtDateUTC(start) + "–" + fmtDateUTC(end)) : wk,
+              matches: matchesCount,
+              sessions,
+              avgPerSession
+            });
+          }
+
+          return { labels, vrAvgArr, trackAvgArr, imAvgArr, meta };
+        }
+
+        const weeklyData = buildWeekly(matchesAsc);
+
+        function setC6Hint(index){
+          const hint = $("c6Hint");
+          if(!hint) return;
+          if(index == null || !weeklyData.meta[index]) {
+            hint.textContent = "Tap a bar to pin details (mobile-friendly).";
+            return;
+          }
+          const m = weeklyData.meta[index];
+          hint.textContent = `${m.weekLabel} (${m.range}) • Played ${m.matches} matches • Sessions ${m.sessions} (${m.avgPerSession.toFixed(1)} / session)`;
+        }
+
+        function c6Datasets(){
+          if(weeklyMode === "vravg"){
+            return [{
+              label: "VR Average",
+              data: weeklyData.vrAvgArr,
+              borderWidth: 0
+            }];
+          }
+          return [
+            { label: "Track avg Δ", data: weeklyData.trackAvgArr, borderWidth: 0 },
+            { label: "Intermission avg Δ", data: weeklyData.imAvgArr, borderWidth: 0 }
+          ];
+        }
+
+        function c6YTitle(){
+          return (weeklyMode === "vravg") ? "VR (weekly average)" : "Avg VR change (per match)";
+        }
+
+        function buildChart(){
+          chartWeekly?.destroy();
+          chartWeekly = new Chart(c6.getContext("2d"), {
+            type: "bar",
+            data: { labels: weeklyData.labels, datasets: c6Datasets() },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              scales: {
+                x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+                y: { beginAtZero: false, title: { display: true, text: c6YTitle() } }
+              },
+              plugins: {
+                legend: { display: true },
+                tooltip: {
+                  callbacks: {
+                    title: (items) => {
+                      const i = items?.[0]?.dataIndex;
+                      const m = weeklyData.meta[i];
+                      return m ? (m.weekLabel + " • " + m.range) : "";
+                    },
+                    afterBody: (items) => {
+                      const i = items?.[0]?.dataIndex;
+                      const m = weeklyData.meta[i];
+                      if(!m) return "";
+                      return [
+                        "Played " + m.matches + " times this week",
+                        "Sessions: " + m.sessions + " • " + m.avgPerSession.toFixed(1) + " matches / session"
+                      ];
+                    }
+                  }
+                }
+              },
+              onClick: (evt, elements) => {
+                if (!elements || !elements.length) {
+                  c6Pinned = null;
+                  setC6Hint(null);
+                  return;
+                }
+                const i = elements[0].index;
+                c6Pinned = (c6Pinned === i) ? null : i;
+                setC6Hint(c6Pinned);
+              }
+            }
+          });
+          setC6Hint(c6Pinned);
+        }
+
+        function setWeeklyMode(mode, btn){
+          weeklyMode = mode;
+          if(btn) setActiveButton(btn);
+          buildChart();
+        }
+
+        // wire buttons once
+        $("btnWkVrAvg")?.addEventListener("click", (e)=> setWeeklyMode("vravg", e.target));
+        $("btnWkGains")?.addEventListener("click", (e)=> setWeeklyMode("gains", e.target));
+
+        // default
+        setActiveById("btnWkVrAvg");
+        buildChart();
+      }
+    }catch(err){
+      console.warn("[stats] Chart 6 failed", err);
+    }
+}
   async function refreshAll(){
     try {
       setStatus("Loading data…", true);
