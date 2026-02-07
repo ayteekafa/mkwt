@@ -91,9 +91,16 @@
       .bestTrackValue{ max-width: 65%; }
     }
     @media (max-width: 480px){
-      .statGrid{ grid-template-columns: 1fr; }
-      .bestTrackLine{ flex-direction:column; align-items:flex-start; }
-      .bestTrackValue{ max-width: 100%; text-align:left; }
+      /* Mobile: more compact overview */
+      .statGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+      /* Keep Best Track as a long card (like desktop), but allow wrapping */
+      .bestTrackLine{ flex-direction:row; align-items:center; justify-content:space-between; }
+      .bestTrackValue{ max-width: 70%; text-align:right; white-space:normal; overflow:visible; }
+
+      /* Match input: 2 columns for the small fields */
+      .compactRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+      .compactRow .field{ min-width:0; }
     }
   </style>
 </head>
@@ -144,7 +151,7 @@
           <div class="statValue" id="statHighestVr">–</div>
         </div>
         <div class="statBox">
-          <div class="statLabel">Last 50 avg VR</div>
+          <div class="statLabel">Last month avg VR</div>
           <div class="statValue" id="statAvg50Vr">–</div>
         </div>
         <div class="statBox">
@@ -273,7 +280,7 @@
   </div>
 </div>
 
-      <div class="row">
+      <div class="row compactRow">
         <div class="field">
           <label class="muted">VR Δ</label>
           <div class="vr-delta-wrap">
@@ -384,7 +391,7 @@
         </div>
         </div>
 
-        <div class="row">
+        <div class="row compactRow">
         <div class="field">
             <label class="muted">VR Δ</label>
             <div class="vr-delta-wrap">
@@ -478,11 +485,30 @@
 function getLastSuggestedTrack() {
   try { return localStorage.getItem('mkwt_last_next_start') || ''; } catch(e) { return ''; }
 }
-function setLastSuggestedTrack(name) {
-  try { if (!name) return; localStorage.setItem('mkwt_last_next_start', String(name)); } catch(e) {}
+
+// Only special-case requested by user:
+// - Rainbow Road is never suggested as next Intermission start
+// - If Rainbow Road was the last selected/played target track, suggest Peach Stadium instead
+function normalizeSuggestedStart(name){
+  const n = (name || "").trim();
+  if (!n) return "";
+  const lower = n.toLowerCase();
+  if (lower.startsWith("rainbow road")) return "Peach Stadium";
+  if (lower === "rainbow road") return "Peach Stadium";
+  return n;
 }
+
+function setLastSuggestedTrack(name) {
+  try {
+    const normalized = normalizeSuggestedStart(name);
+    if (!normalized) { localStorage.removeItem('mkwt_last_next_start'); return; }
+    localStorage.setItem('mkwt_last_next_start', String(normalized));
+  } catch(e) {}
+}
+
 function getSuggestedNextStart() {
-  return getLastSuggestedTrack();
+  // Always return the normalized suggestion (never Rainbow Road)
+  return normalizeSuggestedStart(getLastSuggestedTrack());
 }
 
 // If a "suggested next start" exists AND it is currently allowed,
@@ -585,6 +611,28 @@ function getTopMatchTargetTrackFromTable(){
   }
   function setDebug(msg){ $debug.textContent = msg || ""; }
   function show(el, on){ el.classList.toggle("hidden", !on); }
+
+  function ensureOption(selectEl, value, label){
+    try{
+      if(!selectEl || value == null) return;
+      const v = String(value);
+      if(!v) return;
+      const existing = selectEl.querySelector(`option[value="${CSS.escape(v)}"]`);
+      if(existing) return;
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = label || v;
+      const placeholder = selectEl.querySelector('option[value=""]');
+      if (placeholder && placeholder.nextSibling){
+        selectEl.insertBefore(opt, placeholder.nextSibling);
+      } else if (placeholder){
+        selectEl.appendChild(opt);
+      } else {
+        selectEl.insertBefore(opt, selectEl.firstChild);
+      }
+    }catch(e){}
+  }
+
 
   // ========= VR Δ <-> VR nach Match Sync =========
   // ========= Edit VR Δ <-> new total VR Sync =========
@@ -1241,15 +1289,17 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
       .order("vr_after", { ascending: false })
       .limit(1);
 
-    const qLast50 = supabaseClient
+    const cutoffIso = new Date(Date.now() - 30*24*60*60*1000).toISOString();
+    const qLastMonth = supabaseClient
       .from("matches")
       .select("vr_after")
       .eq("user_id", SESSION.user.id)
       .not("vr_after", "is", null)
+      .gte("created_at", cutoffIso)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(2000);
 
-    const [resCount, resHighest, resLast50] = await Promise.all([qCount, qHighest, qLast50]);
+    const [resCount, resHighest, resLastMonth] = await Promise.all([qCount, qHighest, qLastMonth]);
 
     if (resCount.error) throw resCount.error;
     $("statMatchCount").textContent = (typeof resCount.count === "number") ? String(resCount.count) : "–";
@@ -1258,8 +1308,8 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     const highest = Number(resHighest.data?.[0]?.vr_after);
     $("statHighestVr").textContent = fmtNum(highest);
 
-    if (resLast50.error) throw resLast50.error;
-    const vals = (resLast50.data || []).map(r => Number(r.vr_after)).filter(Number.isFinite);
+    if (resLastMonth.error) throw resLastMonth.error;
+    const vals = (resLastMonth.data || []).map(r => Number(r.vr_after)).filter(Number.isFinite);
     const avg = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length) : NaN;
     $("statAvg50Vr").textContent = fmtNum(avg);
 
@@ -1670,6 +1720,30 @@ async function openEditDialog(id) {
 
     // Mode UI (Intermission vs 3-Lap)
     try { setEditMode((EDIT_ROW.intermission ?? "") ? "intermission" : "3lap"); } catch(e) {}
+
+    // Pre-fill selects with existing values so the edit form is never blank.
+    try {
+      const mode = (EDIT_ROW.intermission ?? "") ? "intermission" : "3lap";
+      const startVal = (EDIT_ROW.intermission ?? "") ? String(EDIT_ROW.intermission) : "";
+      const endVal   = (EDIT_ROW.track ?? "") ? String(EDIT_ROW.track) : "";
+
+      // Ensure the values exist as options even if the current filter excludes them.
+      if (startVal) ensureOption($("editIntermission"), startVal, startVal);
+      if (endVal)   ensureOption($("editTrack"), endVal, endVal);
+
+      if (mode === "intermission") {
+        if (startVal) $("editIntermission").value = startVal;
+        // Trigger existing bidirectional filtering to refresh allowed end options
+        try { $("editIntermission").dispatchEvent(new Event("change", { bubbles: true })); } catch(e){}
+      }
+
+      // After filtering, ensure endVal is still selectable and then set it
+      if (endVal) ensureOption($("editTrack"), endVal, endVal);
+      if (endVal) $("editTrack").value = endVal;
+
+      // Also refresh the star-suggestion label/order on the edit start select (if allowed)
+      try { refreshSuggestionOptionInStartSelect($("editIntermission")); } catch(e){}
+    } catch(e) {}
 
     $("editVrChange").value = (EDIT_ROW.vr_change ?? "");
     // keep edit negative-toggle button state in sync

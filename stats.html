@@ -41,17 +41,24 @@
     .chartWrapIm { height: 600px; }
     @media (max-width: 520px){ .chartWrapIm { height: 700px; } }
 
+
+    /* Chart 7: VR Performance Buckets (bars) */
+    .chartWrapBuckets { height: 320px; }
+    @media (max-width: 520px){ .chartWrapBuckets { height: 340px; } }
+
+
     /* Make canvases actually fill their wrappers (prevents tiny charts) */
     .chartWrap canvas,
     .chartWrapC2 canvas,
-    .chartWrapIm canvas {
+    .chartWrapIm canvas,
+    .chartWrapBuckets canvas {
       width: 100% !important;
       height: 100% !important;
       display: block;
     }
 
     /* Prevent label cut-off */
-    .chartWrap, .chartWrapC2, .chartWrapIm { overflow: visible; }</style>
+    .chartWrap, .chartWrapC2, .chartWrapIm, .chartWrapBuckets { overflow: visible; }</style>
 
 
 <style>
@@ -122,8 +129,8 @@
       <div class="chartWrap"><canvas id="chartVr" height="120"></canvas></div>
       <div class="muted chartBtns" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button id="btnVrAll" type="button" class="navAction" style="padding:6px 10px;">Overall</button>
-        <button id="btnVr100" type="button" class="navAction" style="padding:6px 10px;">Last 100</button>
-        <button id="btnVr50" type="button" class="navAction" style="padding:6px 10px;">Last 50</button>
+        <button id="btnVr100" type="button" class="navAction" style="padding:6px 10px;">Last month</button>
+        <button id="btnVr50" type="button" class="navAction" style="padding:6px 10px;">Last week</button>
       </div>
 
     <div class="muted" style="margin-top:10px;">Avg VR (selected window): <b id="avgVrWindow" class="avgBig" style="font-size:1.35em;font-weight:700" style="font-size:1.1em">–</b></div>
@@ -178,8 +185,8 @@
 
       <div class="muted chartBtns" data-btn-group="c5" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button id="btnPie5All" type="button" class="navAction" style="padding:6px 10px;">Overall</button>
-        <button id="btnPie5100" type="button" class="navAction" style="padding:6px 10px;">Last 100</button>
-        <button id="btnPie550" type="button" class="navAction" style="padding:6px 10px;">Last 50</button>
+        <button id="btnPie5100" type="button" class="navAction" style="padding:6px 10px;">Last month</button>
+        <button id="btnPie550" type="button" class="navAction" style="padding:6px 10px;">Last week</button>
       </div>
 
       <div class="pie-wrap" style="max-width:100%; height:220px;">
@@ -187,6 +194,15 @@
       </div>
 
       <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
+          <div class="muted">Avg VR gain (Overall)</div>
+          <div id="c5AvgAll" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
+        </div>
+        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
+          <div class="muted">Winrate (Overall)</div>
+          <div id="c5WinAll" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
+        </div>
+
         <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
           <div class="muted">Avg VR gain (Tracks)</div>
           <div id="c5AvgTrack" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
@@ -206,6 +222,24 @@
       </div>
     </div>
 
+
+
+
+<div class="card">
+  <h3 style="margin:0 0 10px 0;">VR Performance Buckets</h3>
+  <div class="muted" style="margin-bottom:10px;">
+    Bars show <b>Avg Net VR gain</b> by VR-before bucket (centered around your match-average VR). 0 counts as loss.
+  </div>
+
+  <div class="muted chartBtns" data-btn-group="bucketMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <button id="btnBucketOverall" type="button" class="navAction active" style="padding:6px 10px;">Overall</button>
+    <button id="btnBucketTrack" type="button" class="navAction" style="padding:6px 10px;">Track only</button>
+    <button id="btnBucketIm" type="button" class="navAction" style="padding:6px 10px;">Intermission only</button>
+  </div>
+
+  <div class="chartWrapBuckets"><canvas id="chartBuckets"></canvas></div>
+  <div class="muted" style="margin-top:8px;" id="bucketSelected">Tap a bar for details.</div>
+</div>
 
 
 <div class="card">
@@ -674,7 +708,7 @@ async function exportBackupJSON() {
   };
 
 // ========= Charts =========
-  let chartVr = null, chartPerf = null, chartPie5 = null, chartItTr = null, chartWeekly = null;
+  let chartVr = null, chartPerf = null, chartPie5 = null, chartItTr = null, chartWeekly = null, chartBuckets = null;
   // Chart 1 window state
   let vrWindowMode = "all";
   let vrButtonsWired = false;
@@ -688,8 +722,8 @@ async function exportBackupJSON() {
   let pie5ButtonsWired = false;
 
 function destroyCharts(){
-    chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy(); chartWeekly?.destroy();
-    chartVr = chartPerf = chartPie5 = chartItTr = chartWeekly = null;
+    chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy(); chartWeekly?.destroy(); chartBuckets?.destroy();
+    chartVr = chartPerf = chartPie5 = chartItTr = chartWeekly = chartBuckets = null;
   }
 
   function buildCharts(matchesAsc) {
@@ -739,18 +773,85 @@ function destroyCharts(){
     // Ø VR für aktuell ausgewähltes Fenster (aus VR-Verlauf berechnet)
     const vrNumsFull = vrSeriesFull.map(Number).filter(Number.isFinite);
 
+    
+    // === Time-based windows (Overall / Last month / Last week) for VR History (Chart 1) ===
+    function getMatchTsMs(m){
+      // Supports Supabase created_at, numeric timestamps, or ISO strings.
+      const raw = (m?.created_at ?? m?.timestamp ?? m?.time ?? m?.date ?? null);
+      if (raw == null) return null;
+      if (typeof raw === "number" && Number.isFinite(raw)) {
+        // assume ms if large, else seconds
+        return raw > 1e12 ? raw : raw * 1000;
+      }
+      const t = Date.parse(String(raw));
+      return Number.isFinite(t) ? t : null;
+    }
+
+    function getWindowCutoff(days){
+      const now = Date.now();
+      return now - (days * 24 * 60 * 60 * 1000);
+    }
+
+    // Filter matches by time window (used by multiple charts).
+    // NOTE: Matches without a valid timestamp are excluded for month/week to avoid mixing
+    // legacy rows into the window. If that yields 0 results but there ARE matches and none
+    // have timestamps, we gracefully fall back to the most recent rows so charts still render.
+    function filterMatchesByDays(days, src){
+      const arr = Array.isArray(src) ? src : matchesAsc;
+      if(!Array.isArray(arr) || !arr.length) return [];
+      const cutoff = getWindowCutoff(days);
+      const out = [];
+      let anyTs = false;
+      for(const m of arr){
+        const t = getMatchTsMs(m);
+        if(t != null){
+          anyTs = true;
+          if(t >= cutoff) out.push(m);
+        }
+      }
+      if(out.length) return out;
+
+      // Fallback: if nothing has a timestamp, keep charts usable by taking a recent slice.
+      if(!anyTs){
+        const fallbackN = Math.min(arr.length, days >= 30 ? 100 : 50);
+        return arr.slice(-fallbackN);
+      }
+      return [];
+    }
+
+    function getVrWindow(mode){
+      // Returns arrays filtered by timestamp + an index map back into matchesAsc
+      const n = matchesAsc.length;
+      if (!n) return { indices: [], labels: [], vr: [], matches: [] };
+
+      if (mode === "month" || mode === "week") {
+        const days = (mode === "month") ? 30 : 7;
+        const cutoff = getWindowCutoff(days);
+
+        const indices = [];
+        for (let i = 0; i < n; i++) {
+          const t = getMatchTsMs(matchesAsc[i]);
+          // For time filters we EXCLUDE items without valid timestamps (prevents wrong windows)
+          if (t != null && t >= cutoff) indices.push(i);
+        }
+
+        const labels = indices.map(i => labels1Full[i]);
+        const vr = indices.map(i => vrSeriesFull[i]);
+        const matches = indices.map(i => matchesAsc[i]);
+
+        return { indices, labels, vr, matches };
+      }
+
+      // overall
+      const indices = Array.from({length:n}, (_,i)=>i);
+      return { indices, labels: labels1Full, vr: vrSeriesFull, matches: matchesAsc };
+    }
+
     function computeAvgForWindow(mode){
-      const n = vrNumsFull.length;
-      if (!n) return null;
-      if (mode === "100") {
-        const arr = vrNumsFull.slice(-100);
-        return arr.length ? (arr.reduce((a,v)=>a+v,0)/arr.length) : null;
-      }
-      if (mode === "50") {
-        const arr = vrNumsFull.slice(-50);
-        return arr.length ? (arr.reduce((a,v)=>a+v,0)/arr.length) : null;
-      }
-      return n ? (vrNumsFull.reduce((a,v)=>a+v,0)/n) : null;
+      const w = getVrWindow(mode);
+      const arr = (w?.vr || []).map(Number).filter(Number.isFinite);
+      if (!arr.length) return null;
+      return arr.reduce((a,v)=>a+v,0) / arr.length;
     }
 
     function updateAvgVrUI(mode){
@@ -759,25 +860,7 @@ function destroyCharts(){
       const avg = computeAvgForWindow(mode);
       el.textContent = (avg == null || !Number.isFinite(Number(avg))) ? "–" : Number(avg).toFixed(1);
     }
-
-    function getVrWindow(mode){
-      const n = vrSeriesFull.length;
-      if (!n) return { start: 0, labels: [], vr: [], matches: [] };
-
-      if (mode === "100") {
-        const take = Math.min(100, n);
-        const start = n - take;
-        return { start, labels: labels1Full.slice(start), vr: vrSeriesFull.slice(start), matches: matchesAsc.slice(start) };
-      }
-      if (mode === "50") {
-        const take = Math.min(50, n);
-        const start = n - take;
-        return { start, labels: labels1Full.slice(start), vr: vrSeriesFull.slice(start), matches: matchesAsc.slice(start) };
-      }
-      return { start: 0, labels: labels1Full, vr: vrSeriesFull, matches: matchesAsc };
-    }
-
-    function computeStepAverage10(vrArr, forcedBucketSize){
+function computeStepAverage10(vrArr, forcedBucketSize){
       const steps = 10;
       const n = vrArr.length;
       const out = new Array(n).fill(null);
@@ -849,11 +932,11 @@ function destroyCharts(){
       const w = getVrWindow(mode);
       if (!w.vr.length) { console.warn("[stats] no VR data – skip Chart 1"); return; }
 
-      const forcedSize = (mode === "100" ? 10 : (mode === "50" ? 5 : null));
-      const stepLine = computeStepAverage10(w.vr, forcedSize);
+      // Step/treppe line: always 10 segments over the *filtered* window (10% buckets), same logic as before.
+      const stepLine = computeStepAverage10(w.vr);
 
       const { autoMin, autoMax } = computeAutoY(w.vr);
-      const matchOffset = w.start;
+      const idxMap = w.indices || [];
 
       if (!chartVr){
         chartVr = new Chart(canvas, {
@@ -877,7 +960,7 @@ function destroyCharts(){
                     const it = items?.[0];
                     if (!it) return "";
                     const localIdx = Math.max(0, Number(it.dataIndex));
-                    const globalIdx = matchOffset + localIdx;
+                    const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
                     const m = matchesAsc[globalIdx];
                     const dt = m?.created_at ? new Date(m.created_at) : null;
                     const when = dt && !isNaN(dt) ? dt.toLocaleString() : "";
@@ -890,7 +973,7 @@ function destroyCharts(){
                       return "Step Avg: " + (Number.isFinite(y) ? y.toFixed(1) : "–");
                     }
                     const localIdx = Math.max(0, Number(ctx.dataIndex));
-                    const globalIdx = matchOffset + localIdx;
+                    const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
                     const m = matchesAsc[globalIdx];
                     const t = (m?.intermission ? (String(m.intermission) + " → " + String(m.track || "")) : String(m?.track || ""));
                     const afterTxt = Number.isFinite(Number(m?.vr_after)) ? (" (vr_after)") : "";
@@ -913,7 +996,7 @@ function destroyCharts(){
           const it = items?.[0];
           if (!it) return "";
           const localIdx = Math.max(0, Number(it.dataIndex));
-          const globalIdx = matchOffset + localIdx;
+          const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
           const m = matchesAsc[globalIdx];
           const dt = m?.created_at ? new Date(m.created_at) : null;
           const when = dt && !isNaN(dt) ? dt.toLocaleString() : "";
@@ -926,7 +1009,7 @@ function destroyCharts(){
             return "Step Avg: " + (Number.isFinite(y) ? y.toFixed(1) : "–");
           }
           const localIdx = Math.max(0, Number(ctx.dataIndex));
-          const globalIdx = matchOffset + localIdx;
+          const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
           const m = matchesAsc[globalIdx];
           const t = (m?.intermission ? (String(m.intermission) + " → " + String(m.track || "")) : String(m?.track || ""));
           const afterTxt = Number.isFinite(Number(m?.vr_after)) ? (" (vr_after)") : "";
@@ -938,14 +1021,14 @@ function destroyCharts(){
 
     renderVrChart(vrWindowMode || "all");
     updateAvgVrUI(vrWindowMode || "all");
-    setTimeout(function(){ setActiveById((vrWindowMode==="100")?"btnVr100":(vrWindowMode==="50")?"btnVr50":"btnVrAll"); }, 0);
-    setActiveById((vrWindowMode==="100")?"btnVr100":(vrWindowMode==="50")?"btnVr50":"btnVrAll");
+    setTimeout(function(){ setActiveById((vrWindowMode==="month")?"btnVr100":(vrWindowMode==="week")?"btnVr50":"btnVrAll"); }, 0);
+    setActiveById((vrWindowMode==="month")?"btnVr100":(vrWindowMode==="week")?"btnVr50":"btnVrAll");
 
     if (!vrButtonsWired) {
       const setMode = (mode) => { vrWindowMode = mode; renderVrChart(mode); updateAvgVrUI(mode); };
       $("btnVrAll")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("all"); });
-      $("btnVr100")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("100"); });
-      $("btnVr50")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("50"); });
+      $("btnVr100")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("month"); });
+      $("btnVr50")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("week"); });
       vrButtonsWired = true;
     }
 
@@ -1384,8 +1467,8 @@ function destroyCharts(){
         console.warn("[stats] chartPie5 canvas missing – skip Chart 5");
       } else {
         const pickPie5Window = () => {
-          if(pie5WindowMode === "100") return matchesAsc.slice(-100);
-          if(pie5WindowMode === "50") return matchesAsc.slice(-50);
+          if(pie5WindowMode === "month") return filterMatchesByDays(30);
+          if(pie5WindowMode === "week") return filterMatchesByDays(7);
           return matchesAsc;
         };
 
@@ -1394,9 +1477,7 @@ function destroyCharts(){
           for(const m of arr){
             const v = Number(m?.vr_change);
             if(!Number.isFinite(v)) continue;
-            if(v > 0) w++;
-            else if(v < 0) l++;
-            // v === 0 ignored
+            if(v > 0) w++; else l++; // 0 counts as loss
           }
           const denom = w + l;
           return denom ? (w / denom * 100) : null;
@@ -1426,10 +1507,15 @@ function destroyCharts(){
           const total = imCount + trCount;
 
           // KPI text
+          const avgAll = calcAvg(windowMatches);
+          const wrAll = calcWinratePct(windowMatches);
           const avgTr = calcAvg(trMatches);
           const avgIm = calcAvg(imMatches);
           const wrTr = calcWinratePct(trMatches);
           const wrIm = calcWinratePct(imMatches);
+
+          $("c5AvgAll").textContent = (avgAll == null) ? "–" : (avgAll >= 0 ? "+" : "") + avgAll.toFixed(1);
+          $("c5WinAll").textContent = (wrAll == null) ? "–" : wrAll.toFixed(1) + "%";
 
           $("c5AvgTrack").textContent = (avgTr == null) ? "–" : (avgTr >= 0 ? "+" : "") + avgTr.toFixed(1);
           $("c5AvgIm").textContent = (avgIm == null) ? "–" : (avgIm >= 0 ? "+" : "") + avgIm.toFixed(1);
@@ -1498,8 +1584,8 @@ function destroyCharts(){
 
         if(!pie5ButtonsWired){
           $("btnPie5All")?.addEventListener("click", (e)=> setPie5Window("all", e.target));
-          $("btnPie5100")?.addEventListener("click", (e)=> setPie5Window("100", e.target));
-          $("btnPie550")?.addEventListener("click", (e)=> setPie5Window("50", e.target));
+          $("btnPie5100")?.addEventListener("click", (e)=> setPie5Window("month", e.target));
+          $("btnPie550")?.addEventListener("click", (e)=> setPie5Window("week", e.target));
           pie5ButtonsWired = true;
         }
 
@@ -1693,7 +1779,7 @@ function destroyCharts(){
               maintainAspectRatio: false,
               interaction: { mode: "index", intersect: false },
               scales: {
-                x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+                x: { ticks: { autoSkip: true, maxTicksLimit: 6, maxRotation: 0, minRotation: 0, callback: (v, i)=> (weeklyData.labels[i] ?? "") } },
                 y: { beginAtZero: false, title: { display: true, text: c6YTitle() } }
               },
               plugins: {
@@ -1749,6 +1835,546 @@ function destroyCharts(){
     }catch(err){
       console.warn("[stats] Chart 6 failed", err);
     }
+    // --- Chart 7: VR Performance Buckets ---
+    try{
+      const bucketCanvas = $("chartBuckets");
+      const $bucketSel = $("bucketSelected");
+
+      // state lives across rebuilds
+      window.__bucketMode = window.__bucketMode || "overall"; // overall | track | im
+
+      function computeMatchSnapshots(matchesAsc){
+        const currentVr = Number(PROFILE?.current_vr ?? 8500);
+
+        const deltas = (matchesAsc || []).map(m => Number(m?.vr_change || 0));
+        const totalDeltaAll = deltas.reduce((a,b)=>a+b,0);
+        const baseVr = currentVr - totalDeltaAll;
+
+        let running = baseVr;      // vr_before of first (if no vr_after exists)
+        let lastAfter = null;      // last known vr_after snapshot
+
+        const out = [];
+        for (let i=0;i<(matchesAsc||[]).length;i++){
+          const m = matchesAsc[i];
+          const delta = Number(m?.vr_change || 0);
+          const after = Number.isFinite(Number(m?.vr_after)) ? Number(m.vr_after) : null;
+
+          let before = null;
+          let useAfter = null;
+
+          if (after != null){
+            before = after - delta;
+            useAfter = after;
+            lastAfter = after;
+            // keep running roughly consistent for next fallback
+            running = after;
+          } else if (lastAfter != null){
+            before = lastAfter;
+            useAfter = lastAfter + delta;
+            lastAfter = useAfter;
+            running = useAfter;
+          } else {
+            before = running;
+            useAfter = running + delta;
+            running = useAfter;
+          }
+
+          const isIm = (m?.intermission != null && String(m.intermission).trim() !== "");
+          out.push({
+            vr_before: before,
+            vr_after: useAfter,
+            vr_change: Number.isFinite(delta) ? delta : 0,
+            isIntermission: !!isIm
+          });
+        }
+        return out;
+      }
+
+      
+function buildBuckets(center){
+  // 10 buckets, 35 VR width each, split around center (avg VR)
+  // Bucket 5 covers [center-35, center] and Bucket 6 covers [center+1, center+35]
+  const c = Number(center);
+  const step = 35;
+  const buckets = [
+    { key:"L5", min:c-5*step, max:c-4*step-1 },
+    { key:"L4", min:c-4*step, max:c-3*step-1 },
+    { key:"L3", min:c-3*step, max:c-2*step-1 },
+    { key:"L2", min:c-2*step, max:c-1*step-1 },
+    { key:"L1", min:c-1*step, max:c },
+    { key:"R1", min:c+1,      max:c+1*step },
+    { key:"R2", min:c+1*step+1, max:c+2*step },
+    { key:"R3", min:c+2*step+1, max:c+3*step },
+    { key:"R4", min:c+3*step+1, max:c+4*step },
+    { key:"R5", min:c+4*step+1, max:c+5*step }
+  ];
+  buckets.forEach(b=>{
+    b.label = `${b.min}–${b.max}`;
+  });
+  return buckets;
+}
+
+      function calcBucketStats(){
+        const snaps = computeMatchSnapshots(matchesAsc);
+        const befores = snaps.map(s=>Number(s.vr_before)).filter(Number.isFinite);
+        const vrAvg = befores.length ? (befores.reduce((a,b)=>a+b,0)/befores.length) : Number(PROFILE?.current_vr ?? 8500);
+        const center = Math.round(vrAvg);
+
+        const buckets = buildBuckets(center);
+        const stats = buckets.map(b=>({
+          ...b,
+          // totals
+          count: 0, sum: 0, wins: 0,
+          // tracks
+          countTr: 0, sumTr: 0, winsTr: 0,
+          // intermission
+          countIm: 0, sumIm: 0, winsIm: 0
+        }));
+
+        function idxForBefore(v){
+          for(let i=0;i<stats.length;i++){
+            const b = stats[i];
+            if (v >= b.min && v <= b.max) return i;
+          }
+          return -1;
+        }
+
+        for (const s of snaps){
+          const vb = Number(s.vr_before);
+          if(!Number.isFinite(vb)) continue;
+          const i = idxForBefore(vb);
+          if(i < 0) continue;
+
+          const d = Number(s.vr_change);
+          const win = d > 0; // 0 counts as loss
+          const row = stats[i];
+
+          row.count += 1;
+          row.sum += d;
+          if(win) row.wins += 1;
+
+          if(s.isIntermission){
+            row.countIm += 1;
+            row.sumIm += d;
+            if(win) row.winsIm += 1;
+          } else {
+            row.countTr += 1;
+            row.sumTr += d;
+            if(win) row.winsTr += 1;
+          }
+        }
+
+        // finalize derived metrics
+        stats.forEach(r=>{
+          r.avgNetTotal = r.count ? (r.sum / r.count) : 0;
+          r.avgNetTracks = r.countTr ? (r.sumTr / r.countTr) : 0;
+          r.avgNetIm = r.countIm ? (r.sumIm / r.countIm) : 0;
+
+          r.winrateOverall = r.count ? (r.wins / r.count * 100) : null;
+          r.winrateTracks = r.countTr ? (r.winsTr / r.countTr * 100) : null;
+          r.winrateIm = r.countIm ? (r.winsIm / r.countIm * 100) : null;
+        });
+
+        
+// baseline = combined of the two buckets closest to average (L1 and R1)
+const midA = stats[4];
+const midB = stats[5];
+function combineAvg(sumA, nA, sumB, nB){
+  const n = (nA||0) + (nB||0);
+  return n ? ((sumA||0) + (sumB||0)) / n : 0;
+}
+const baseline = {
+  avgNetTotal: combineAvg(midA?.sum, midA?.count, midB?.sum, midB?.count),
+  avgNetTracks: combineAvg(midA?.sumTr, midA?.countTr, midB?.sumTr, midB?.countTr),
+  avgNetIm: combineAvg(midA?.sumIm, midA?.countIm, midB?.sumIm, midB?.countIm)
+};
+
+return { center, vrAvg, stats, baseline };
+      }
+
+      const zeroLinePlugin = {
+        id: "zeroLineBuckets",
+        afterDraw(chart){
+          try{
+            const y = chart.scales?.y;
+            const ca = chart.chartArea;
+            if(!y || !ca) return;
+            const y0 = y.getPixelForValue(0);
+            // only draw if 0 is within visible area
+            if(y0 < ca.top || y0 > ca.bottom) return;
+
+            const ctx = chart.ctx;
+            ctx.save();
+
+            // main zero line
+            ctx.beginPath();
+            ctx.moveTo(ca.left, y0);
+            ctx.lineTo(ca.right, y0);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "rgba(255,255,255,0.85)";
+            ctx.setLineDash([7,6]);
+            ctx.stroke();
+
+            ctx.restore();
+          }catch(e){}
+        }
+      };
+
+      
+const centerDividerPlugin = {
+  id: "centerDividerBuckets",
+  afterDraw(chart){
+    try{
+      const x = chart.scales?.x;
+      const ca = chart.chartArea;
+      if(!x || !ca) return;
+
+      // split is between bucket index 4 (L1) and 5 (R1)
+      const iLeft = 4;
+      const iRight = 5;
+
+      const pL = x.getPixelForTick(iLeft);
+      const pR = x.getPixelForTick(iRight);
+      if(![pL,pR].every(Number.isFinite)) return;
+
+      const boundary = (pL + pR) / 2;
+
+      // also compute the wider "avg zone" span (two middle buckets) for subtle shading
+      const pLPrev = x.getPixelForTick(iLeft-1);
+      const pRNext = x.getPixelForTick(iRight+1);
+      const leftEdge = Number.isFinite(pLPrev) ? (pLPrev + pL)/2 : ca.left;
+      const rightEdge = Number.isFinite(pRNext) ? (pR + pRNext)/2 : ca.right;
+
+      const ctx = chart.ctx;
+      ctx.save();
+
+      // subtle shading for the two middle buckets
+      ctx.fillStyle = "rgba(43,108,255,0.12)";
+      ctx.fillRect(leftEdge, ca.top, rightEdge - leftEdge, ca.bottom - ca.top);
+
+      // main divider line
+      ctx.beginPath();
+      ctx.moveTo(boundary, ca.top);
+      ctx.lineTo(boundary, ca.bottom);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(43,108,255,0.85)";
+      ctx.setLineDash([6,6]);
+      ctx.stroke();
+
+      // small labels
+      ctx.setLineDash([]);
+      ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+      ctx.fillText("VR < Avg", ca.left + 4, ca.top + 4);
+      ctx.textAlign = "right";
+      ctx.fillText("VR > Avg", ca.right - 4, ca.top + 4);
+
+      ctx.restore();
+    }catch(e){}
+  }
+};
+
+      
+
+// Draw a vertical "break-even" line where Avg Net Gain crosses y=0 (progress gets blocked).
+const breakEvenXPlugin = {
+  id: "breakEvenX",
+  afterDraw(chart){
+    try{
+      const mode = (window.__bucketMode || "overall");
+      // This line is meant to answer: "Where would I stabilize if I only played Tracks?"
+      // So we only show it in Track-only mode.
+      if(mode !== "track") return;
+      const x = chart.scales?.x;
+      const y = chart.scales?.y;
+      const ca = chart.chartArea;
+      const ds = chart.data?.datasets?.[0]?.data || [];
+      if(!x || !y || !ca || ds.length < 2) return;
+
+      // Find first adjacent pair that crosses 0
+      let cross = null;
+      for(let i=0;i<ds.length-1;i++){
+        const a = Number(ds[i]);
+        const b = Number(ds[i+1]);
+        if(!Number.isFinite(a) || !Number.isFinite(b)) continue;
+        if((a === 0) || (a < 0 && b > 0) || (a > 0 && b < 0)){
+          cross = { i, a, b };
+          break;
+        }
+      }
+      if(!cross) return;
+
+      const pA = x.getPixelForTick(cross.i);
+      const pB = x.getPixelForTick(cross.i+1);
+      if(!Number.isFinite(pA) || !Number.isFinite(pB) || pA === pB) return;
+
+      // Linear interpolate x-position where value hits 0
+      const t = (cross.a === 0) ? 0 : ((0 - cross.a) / (cross.b - cross.a));
+      const px = pA + t * (pB - pA);
+
+      const y0 = y.getPixelForValue(0);
+
+      const ctx = chart.ctx;
+      ctx.save();
+
+      ctx.beginPath();
+      ctx.moveTo(px, ca.top);
+      ctx.lineTo(px, ca.bottom);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255,180,0,0.85)";
+      ctx.setLineDash([8,6]);
+      ctx.stroke();
+
+      // Label near the y=0 intersection (if visible), else near bottom
+      const labelY = (y0 >= ca.top && y0 <= ca.bottom) ? (y0 - 6) : (ca.bottom - 6);
+      ctx.setLineDash([]);
+      ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillStyle = "rgba(255,180,0,0.90)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("Track-only expected VR", px, Math.max(ca.top + 14, labelY));
+
+      ctx.restore();
+    }catch(e){}
+  }
+};
+
+const bucketSeparatorsPlugin = {
+        id: "bucketSeparators",
+        afterDraw(chart){
+          try{
+            const x = chart.scales?.x;
+            const ca = chart.chartArea;
+            if(!x || !ca) return;
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "rgba(43,108,255,0.45)";
+            ctx.setLineDash([2,4]);
+            // draw boundaries between every adjacent tick
+            const nTicks = chart.data.labels?.length || 0;
+            for(let i=0;i<nTicks-1;i++){
+              const pA = x.getPixelForTick(i);
+              const pB = x.getPixelForTick(i+1);
+              if(!Number.isFinite(pA) || !Number.isFinite(pB)) continue;
+              const boundary = (pA + pB) / 2;
+              ctx.beginPath();
+              ctx.moveTo(boundary, ca.top);
+              ctx.lineTo(boundary, ca.bottom);
+              ctx.stroke();
+            }
+            ctx.restore();
+          }catch(e){}
+        }
+      };
+
+
+      const bucketAgg = calcBucketStats();
+
+      function modeValue(r){
+        const m = window.__bucketMode || "overall";
+        if(m === "track") return r.avgNetTracks;
+        if(m === "im") return r.avgNetIm;
+        return r.avgNetTotal;
+      }
+
+      
+      function shortenRangeLabel(lbl){
+        try{
+          if(typeof lbl !== "string") return lbl;
+          const parts = lbl.split("–");
+          if(parts.length !== 2) return lbl;
+          const a = parts[0].trim();
+          const b = parts[1].trim();
+          // if same leading digits, shorten right side to last 2-3 digits
+          let k = 0;
+          while(k < a.length && k < b.length && a[k] === b[k]) k++;
+          const shared = a.slice(0, k);
+          const bShort = (shared.length >= 2 && b.length - shared.length >= 2) ? b.slice(shared.length) : b;
+          // keep readability: if bShort is too short, keep last 3 digits
+          const bFinal = bShort.length < 2 ? b.slice(-3) : bShort;
+          return `${a}–${bFinal}`;
+        }catch(e){ return lbl; }
+      }
+function renderBuckets(){
+        if(!bucketCanvas){
+          console.warn("[stats] chartBuckets canvas missing – skip VR Performance Buckets");
+          return;
+        }
+
+        const rows = bucketAgg.stats;
+        const labels = rows.map(r=>r.label);
+        const data = rows.map(r=>modeValue(r));
+
+        // simple color coding by sign
+        const bg = data.map(v => (Number(v) < 0 ? "rgba(255,80,80,0.85)" : "rgba(60,190,120,0.85)"));
+        const br = data.map(v => (Number(v) < 0 ? "rgb(255,80,80)" : "rgb(60,190,120)"));
+
+        try{ chartBuckets?.destroy(); }catch{}
+        chartBuckets = new Chart(bucketCanvas, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                type: "bar",
+                label: "Avg Net VR gain",
+                data,
+                backgroundColor: bg,
+                borderColor: br,
+                borderWidth: 1,
+                order: 1
+              },
+              {
+                type: "line",
+                label: "Trend",
+                data: data.slice(),
+                borderColor: "rgba(255,255,255,0.90)",
+                backgroundColor: "rgba(255,255,255,0.15)",
+                pointRadius: 2,
+                pointHoverRadius: 3,
+                tension: 0.25,
+                fill: false,
+                borderWidth: 2,
+                order: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "nearest", intersect: true },
+            scales: {
+              x: { ticks: { autoSkip: true, maxTicksLimit: 6, maxRotation: 0, minRotation: 0, callback: (v, i)=> shortenRangeLabel(labels[i] ?? "") } },
+              y: { beginAtZero: false, ticks: { callback: (v)=> Number(v).toFixed(0) } }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (items) => {
+                    const i = items?.[0]?.dataIndex;
+                    if(i == null) return "";
+                    const r = bucketAgg.stats[i];
+                    return `VR_before ${r.label}`;
+                  },
+                  label: (ctx) => {
+                    const r = bucketAgg.stats[ctx.dataIndex];
+                    const mode = (window.__bucketMode || "overall");
+                    const base = bucketAgg.baseline;
+                    const val = (mode === "track") ? r.avgNetTracks : (mode === "im" ? r.avgNetIm : r.avgNetTotal);
+                    const cVal = (mode === "track") ? base.avgNetTracks : (mode === "im" ? base.avgNetIm : base.avgNetTotal);
+                    const delta = (Number.isFinite(val) && Number.isFinite(cVal)) ? (val - cVal) : 0;
+                    const deltaStr = (delta >= 0 ? "+" : "") + delta.toFixed(2);
+                    const pctStr = (cVal > 0) ? (delta / cVal * 100).toFixed(1) + "%" : "–";
+                    const modeLabel = (mode === "track") ? "Tracks" : (mode === "im" ? "Intermission" : "Overall");
+                    const avgT = (r.avgNetTotal >= 0 ? "+" : "") + r.avgNetTotal.toFixed(2);
+                    const avgTr = (r.avgNetTracks >= 0 ? "+" : "") + r.avgNetTracks.toFixed(2);
+                    const avgIm = (r.avgNetIm >= 0 ? "+" : "") + r.avgNetIm.toFixed(2);
+
+                    const wrO = (r.winrateOverall == null) ? "–" : r.winrateOverall.toFixed(1) + "%";
+                    const wrTr = (r.winrateTracks == null) ? "–" : r.winrateTracks.toFixed(1) + "%";
+                    const wrIm = (r.winrateIm == null) ? "–" : r.winrateIm.toFixed(1) + "%";
+
+                    if(mode === "track"){
+                      const c = r.countTr ?? 0;
+                      const wr = (r.winrateTracks == null) ? "–" : r.winrateTracks.toFixed(1) + "%";
+                      const a = (r.avgNetTracks >= 0 ? "+" : "") + r.avgNetTracks.toFixed(2);
+                      return [
+                        `Matches (Tracks): ${c}`,
+                        `Δ vs Avg-zone (Tracks): ${deltaStr} (${pctStr})`,
+                        `Avg Net Gain (Tracks): ${a}`,
+                        `Winrate (Tracks): ${wr}`
+                      ];
+                    }
+                    if(mode === "im"){
+                      const c = r.countIm ?? 0;
+                      const wr = (r.winrateIm == null) ? "–" : r.winrateIm.toFixed(1) + "%";
+                      const a = (r.avgNetIm >= 0 ? "+" : "") + r.avgNetIm.toFixed(2);
+                      return [
+                        `Matches (Intermission): ${c}`,
+                        `Δ vs Avg-zone (Intermission): ${deltaStr} (${pctStr})`,
+                        `Avg Net Gain (Intermission): ${a}`,
+                        `Winrate (Intermission): ${wr}`
+                      ];
+                    }
+                    return [
+                      `Matches: ${r.count}`,
+                      `Δ vs Avg-zone (Overall): ${deltaStr} (${pctStr})`,
+                      `Avg Net Gain Total: ${avgT}`,
+                      `Winrate Overall: ${wrO}`,
+                      `Winrate Tracks: ${wrTr}`,
+                      `Winrate Intermission: ${wrIm}`,
+                      `Avg Net Gain Tracks: ${avgTr}`,
+                      `Avg Net Gain Intermission: ${avgIm}`
+                    ];
+                  }
+                }
+              }
+            }
+          },
+          // Keep the visualization focused: zero-line + (Track-only) expected VR line + counts
+          plugins: [zeroLinePlugin]
+        });
+
+        // mobile-friendly pinned text
+        function setBucketSelected(i){
+          if(!$bucketSel) return;
+          if(i == null || !bucketAgg.stats[i]){
+            $bucketSel.textContent = "Tap a bar for details.";
+            return;
+          }
+          const r = bucketAgg.stats[i];
+          const avgT = (r.avgNetTotal >= 0 ? "+" : "") + r.avgNetTotal.toFixed(2);
+          const avgTr = (r.avgNetTracks >= 0 ? "+" : "") + r.avgNetTracks.toFixed(2);
+          const avgIm = (r.avgNetIm >= 0 ? "+" : "") + r.avgNetIm.toFixed(2);
+          const wrO = (r.winrateOverall == null) ? "–" : r.winrateOverall.toFixed(1) + "%";
+          const wrTr = (r.winrateTracks == null) ? "–" : r.winrateTracks.toFixed(1) + "%";
+          const wrIm = (r.winrateIm == null) ? "–" : r.winrateIm.toFixed(1) + "%";
+          const mode = (window.__bucketMode || "overall");
+          if(mode === "track"){
+            $bucketSel.textContent = `VR_before ${r.label} • Tracks ${r.countTr||0} matches • AvgNet ${avgTr} • WR ${wrTr}`;
+            return;
+          }
+          if(mode === "im"){
+            $bucketSel.textContent = `VR_before ${r.label} • Intermission ${r.countIm||0} matches • AvgNet ${avgIm} • WR ${wrIm}`;
+            return;
+          }
+          $bucketSel.textContent =
+            `VR_before ${r.label} • Matches ${r.count} • AvgNet ${avgT} • WR ${wrO} • TrackAvg ${avgTr} (WR ${wrTr}) • IMAvg ${avgIm} (WR ${wrIm})`;
+        }
+
+        chartBuckets.options.onClick = (evt, els) => {
+          const first = els?.[0];
+          if(!first){ setBucketSelected(null); return; }
+          setBucketSelected(first.index);
+        };
+
+        setBucketSelected(null);
+        chartBuckets.update();
+      }
+
+      function setBucketMode(mode, btn){
+        window.__bucketMode = mode;
+        if(btn) setActiveButton(btn);
+        renderBuckets();
+      }
+
+      // wire buttons once (but safe even if re-run)
+      $("btnBucketOverall")?.addEventListener("click", (e)=> setBucketMode("overall", e.target));
+      $("btnBucketTrack")?.addEventListener("click", (e)=> setBucketMode("track", e.target));
+      $("btnBucketIm")?.addEventListener("click", (e)=> setBucketMode("im", e.target));
+
+      // default active state based on persisted mode
+      const m = window.__bucketMode || "overall";
+      setActiveById(m==="track" ? "btnBucketTrack" : m==="im" ? "btnBucketIm" : "btnBucketOverall");
+      renderBuckets();
+    }catch(err){
+      console.warn("[stats] VR Performance Buckets failed", err);
+    }
+
 }
   async function refreshAll(){
     try {
