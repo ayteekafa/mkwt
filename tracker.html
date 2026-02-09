@@ -125,7 +125,211 @@
       .compactRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
       .compactRow .field{ min-width:0; }
     }
-  </style>
+  
+
+    /* ===== Mobile Match Cards (clean, centered) ===== */
+    .matchListScroll{ overflow:auto; max-height:520px; }
+
+    /* Desktop: show table, hide cards */
+    .matchTableWrap{ display:block; }
+    .matchCards{ display:none; }
+
+    /* Match card */
+    .mcard{
+      position:relative;
+      border-radius:16px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid var(--border);
+      backdrop-filter: blur(8px);
+      padding:14px 50px 14px 50px; /* reserve for meta + actions */
+      min-height:74px;
+      min-width:0;
+    }
+.mcard--im{ min-height:92px; }
+
+    .matchCards{
+      flex-direction:column;
+      gap:10px;
+      padding:2px;
+    }
+    .mcard__meta{
+      position:absolute;
+      top:8px;
+      font-size:10px;
+      letter-spacing:0.10em;
+      opacity:0.55;
+      text-transform:uppercase;
+      white-space:nowrap;
+      max-width:45%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .mcard__meta--tl{ left:10px; text-align:left; display:flex; align-items:center; gap:6px; }
+    .mcard__meta--tr{ right:10px; text-align:right; }
+
+        .mcard__meta--bl{ left:10px; bottom:10px; top:auto; text-align:left; }
+/* Tiny info button (only when placement/opponents exist) */
+    .mcard__infoBtn{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.18);
+      color:rgba(255,255,255,0.85);
+      font-size:11px;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      opacity:0.75;
+    }
+    .mcard__infoBtn:active{ transform: translateY(1px); }
+
+    .mcard__infoPop{
+      position:absolute;
+      left:10px;
+      top:28px;
+      max-width:72%;
+      padding:8px 10px;
+      border-radius:12px;
+      background:rgba(0,0,0,0.72);
+      border:1px solid rgba(255,255,255,0.10);
+      font-size:12px;
+      letter-spacing:0.02em;
+      text-transform:none;
+      opacity:0.95;
+      z-index:3;
+      backdrop-filter: blur(10px);
+    }
+    .mcard__infoPop strong{ opacity:0.8; font-weight:700; }
+    .mcard__infoPop .row{ display:flex; gap:8px; flex-wrap:nowrap; }
+    .mcard__infoPop .row span{ white-space:nowrap; }
+
+    .mcard__main{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      gap:6px;
+      min-width:0;
+    }
+
+    .mcard__track{
+      font-weight:950;
+      line-height:1.05;
+      font-size: clamp(14px, 4.2vw, 18px);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      padding:0 6px;
+      max-width:100%;
+    }
+
+
+/* Intermission: show start/end stacked with arrow */
+.mcard__track--im{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  align-items:center;
+  padding:0 6px;
+  max-width:100%;
+}
+.mcard__track--im .imLine{
+  font-weight:950;
+  line-height:1.05;
+  font-size: clamp(13px, 4.0vw, 17px);
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.mcard__track--im .imArrow{
+  font-size:12px;
+  opacity:0.55;
+  line-height:1;
+  margin:1px 0;
+}
+
+/* Optional extra info under VR */
+.mcard__extra{
+  margin-top:6px;
+  display:flex;
+  gap:6px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.mcard__pill{
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.08);
+  opacity:0.85;
+  white-space:nowrap;
+}
+
+    .mcard__vr{
+      font-size:13px;
+      font-weight:850;
+      color: rgba(255,255,255,0.90);
+      display:flex;
+      gap:6px;
+      align-items:baseline;
+      justify-content:center;
+      white-space:nowrap;
+    }
+    .mcard__vrTotal{
+      font-size:14px;
+      font-weight:950;
+    }
+    .mcard__vrDelta{
+      font-size:13px;
+      font-weight:900;
+      opacity:0.95;
+    }
+    .mcard__vrDelta--pos{ color: rgba(124,255,178,0.95); }
+    .mcard__vrDelta--neg{ color: rgba(255,124,124,0.95); }
+
+    .mcard__actions{
+      position:absolute;
+      right:10px;
+      bottom:10px;
+      display:flex;
+      gap:6px;
+    }
+    .mcard__btn{
+      width:26px;
+      height:26px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.10);
+      background:rgba(0,0,0,0.20);
+      color:rgba(255,255,255,0.85);
+      font-size:12px;
+      line-height:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      opacity:0.70;
+    }
+    .mcard__btn:active{ transform:translateY(1px); opacity:0.95; }
+    .mcard:focus-within .mcard__btn{ opacity:0.95; }
+
+    /* Mobile: show cards, hide table */
+    @media (max-width: 480px){
+      .matchTableWrap{ display:none; }
+      .matchCards{ display:flex; }
+      .matchListScroll{ max-height:none; overflow:visible; }
+      .mcard{ padding:14px 48px 14px 48px; }
+      .mcard__meta{ font-size:9px; }
+    }
+</style>
 </head>
 
 <body>
@@ -379,8 +583,9 @@
     
   </div>
 
-  <div style="overflow:auto; max-height: 520px;">
-  <table>
+  <div class="matchListScroll">
+  <div class="matchTableWrap">
+    <table>
     <thead>
         <tr>
           <th>Match #</th>
@@ -398,6 +603,10 @@
         <tr><td colspan="10" class="muted">Loading…</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="matchCards" id="matchCards"></div>
+
     <div class="row" style="align-items:center; margin-top:10px;">
   <div class="muted" id="pageInfo">Page 1</div>
   <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -1522,6 +1731,8 @@ async function getMatchesCount() {
 
 async function loadMatches() {
   $rows.innerHTML = `<tr><td colspan="10" class="muted">Loading…</td></tr>`;
+  const $cards = $("matchCards");
+  if ($cards) $cards.innerHTML = `<div class="muted">Loading…</div>`;
 
   // Count nur holen wenn noch nicht da
   if (totalMatches == null) {
@@ -1544,6 +1755,7 @@ async function loadMatches() {
     setStatus("Failed to load matches: " + error.message, false);
     setDebug(JSON.stringify(error, null, 2));
     $rows.innerHTML = `<tr><td colspan="10" class="muted">Error loading.</td></tr>`;
+    if ($cards) $cards.innerHTML = `<div class="muted">Error loading.</div>`;
     return;
   }
 
@@ -1570,6 +1782,7 @@ async function loadMatches() {
 
   if (!data || data.length === 0) {
     $rows.innerHTML = `<tr><td colspan="10" class="muted">No matches yet.</td></tr>`;
+    if ($cards) $cards.innerHTML = `<div class="muted">No matches yet.</div>`;
     $("pageInfo").textContent = "Page 1";
     $("btnPrev").disabled = true;
     $("btnNext").disabled = true;
@@ -1616,9 +1829,79 @@ async function loadMatches() {
             ${canDelete ? `<button class="iconBtn danger" title="Delete" data-action="del" data-id="${r.id}">🗑️</button>` : ""}
           </td>
         </tr>`;
-    }).join("");
+    
+}).join("");
 
-  // Klick-Handler für Edit & Delete
+  // Mobile cards (same data, cleaner layout)
+  if ($cards) {
+    $cards.innerHTML = data.map((r, idx) => {
+      const matchNo = totalMatches - (from + idx);
+      const d = r.created_at ? new Date(r.created_at) : null;
+      const createdShort = d ? d.toLocaleString("en-US", { year:"numeric", month:"2-digit", day:"2-digit", hour:"numeric", minute:"2-digit", hour12:true }) : "";
+      const intermission = (r.intermission ?? "") ? String(r.intermission) : "";
+      const track = (r.track ?? "") ? String(r.track) : "";
+      const isIntermission = !!intermission;
+
+const startName = intermission || "—";
+const endName = track || "—";
+
+const trackHtml = isIntermission
+  ? `<div class="mcard__track--im" title="${escapeHtml(startName)} → ${escapeHtml(endName)}">
+       <div class="imLine" title="${escapeHtml(startName)}">${escapeHtml(startName)}</div>
+       <div class="imArrow">→</div>
+       <div class="imLine" title="${escapeHtml(endName)}">${escapeHtml(endName)}</div>
+     </div>`
+  : `<div class="mcard__track" title="${escapeHtml(endName)}">${escapeHtml(endName)}</div>`;
+      const delta = Number(r.vr_change || 0);
+      const vrAfter = (r.vr_after ?? null);
+      const vrNow = (vrAfter == null ? "—" : String(Number(vrAfter)));
+      const deltaStr = (delta > 0 ? `+${delta}` : `${delta}`);
+      const deltaCls = delta >= 0 ? "mcard__vrDelta--pos" : "mcard__vrDelta--neg";
+      const canDelete = (currentPage === 1 && idx === 0);
+
+      const hasPlace = (r.placement != null && r.placement !== "" && Number(r.placement) > 0);
+      const hasOpp = (r.opponents != null && r.opponents !== "" && Number(r.opponents) > 0);
+
+      // Every match shows an info button. Popover always contains Date/Time,
+      // and additionally Placement/Opponents only if provided.
+      const infoBtnHtml = `<button class="mcard__infoBtn" title="Info" data-action="info">i</button>`;
+
+      const infoLine = (hasPlace && hasOpp)
+        ? `<span class="infoLine"><strong>Place</strong>: ${escapeHtml(String(r.placement))} <span class="sep">•</span> <strong>Opp</strong>: ${escapeHtml(String(r.opponents))}</span>`
+        : (hasPlace
+            ? `<span class="infoLine"><strong>Place</strong>: ${escapeHtml(String(r.placement))}</span>`
+            : `<span class="infoLine"><strong>Opp</strong>: ${escapeHtml(String(r.opponents))}</span>`
+          );
+
+      const infoPopHtml = `
+        <div class="mcard__infoPop" hidden>
+          <div class="row"><span class="infoLine"><strong>Date</strong>: ${escapeHtml(createdShort || "—")}</span></div>
+          ${ (hasPlace || hasOpp) ? `<div class="row">${infoLine}</div>` : `` }
+        </div>`;
+
+      return `
+        <div class="mcard ${isIntermission ? "mcard--im" : ""}" data-match-id="${r.id}">
+          <div class="mcard__meta mcard__meta--tl"><span>#${matchNo}</span>${infoBtnHtml}</div>
+          ${infoPopHtml}
+
+          <div class="mcard__main">
+            ${trackHtml}
+            <div class="mcard__vr">
+              <span class="mcard__vrTotal">${escapeHtml(vrNow)}</span>
+              <span class="mcard__vrDelta ${deltaCls}">(${escapeHtml(deltaStr)})</span>
+            </div>
+          </div>
+
+          <div class="mcard__actions">
+            <button class="mcard__btn" title="Edit" data-action="edit" data-id="${r.id}">✎</button>
+            ${canDelete ? `<button class="mcard__btn" title="Delete" data-action="del" data-id="${r.id}">🗑</button>` : ``}
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+
+  // Klick-Handler für Edit & Delete (Table)
   $rows.querySelectorAll("button[data-action]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-id");
@@ -1627,6 +1910,36 @@ async function loadMatches() {
       if (action === "del") await deleteMatch(id);
     });
   });
+
+  // Same handlers for mobile cards
+  if ($cards) {
+    $cards.querySelectorAll("button[data-action]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        const action = btn.getAttribute("data-action");
+        if (action === "edit") await openEditDialog(id);
+        if (action === "del") await deleteMatch(id);
+        if (action === "info") {
+          const card = btn.closest('.mcard');
+          if (!card) return;
+          const pop = card.querySelector('.mcard__infoPop');
+          if (!pop) return;
+          // close other open pops
+          $cards.querySelectorAll('.mcard__infoPop:not([hidden])').forEach(el => { if (el !== pop) el.hidden = true; });
+          pop.hidden = !pop.hidden;
+          return;
+        }
+      });
+    });
+    // close info popovers on outside tap
+    $cards.addEventListener("click", (e) => {
+      const isInfo = e.target && (e.target.closest && e.target.closest(".mcard__infoBtn"));
+      const isAction = e.target && (e.target.closest && e.target.closest(".mcard__actions"));
+      if (isInfo || isAction) return;
+      $cards.querySelectorAll(".mcard__infoPop:not([hidden])").forEach(el => el.hidden = true);
+    });
+
+  }
 }
 
   async function saveMatch() {
