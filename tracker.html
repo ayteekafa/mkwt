@@ -36,7 +36,7 @@
     }
     .statBox{
       border:1px solid var(--border);
-      background: rgba(255,255,255,.03);
+      background: var(--card-2);
       border-radius: 14px;
       padding: 8px 9px;
       min-width: 0;
@@ -71,7 +71,7 @@
       padding: 12px 12px;
       border-radius: 14px;
       border: 1px solid var(--border);
-      background: rgba(255,255,255,.02);
+      background: var(--card-2);
       text-align:center;
     }
     .bestTrackLabel{
@@ -100,6 +100,18 @@
       text-overflow:ellipsis;
       max-width: 100%;
     }
+
+    /* Match form actions: Clear far left, Save far right */
+    .matchFormActions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      width:100%;
+      margin-top:12px;
+    }
+    .matchFormActions #btnClear{ margin-right:auto; }
+    .matchFormActions #btnSaveMatch{ margin-left:auto; }
     @media (max-width: 920px){
       /* Keep 4 cards per row, just tighten spacing a bit */
       .statGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px; }
@@ -115,6 +127,10 @@
       .statBox{ padding:7px 8px; border-radius: 13px; }
       .statLabel{ font-size: 9px; }
       .statValue{ font-size: 17px; }
+
+      /* Darker cards on mobile (match top nav) */
+      .card{ background: var(--navBg); }
+      .statBox{ background: var(--card-2); border-color: var(--border); }
 
       /* Best Track: centered, 2 lines (name + meta) */
       .bestTrackLine{ gap:6px; }
@@ -138,7 +154,7 @@
     .mcard{
       position:relative;
       border-radius:16px;
-      background:rgba(255,255,255,0.04);
+      background: var(--card);
       border:1px solid var(--border);
       backdrop-filter: blur(8px);
       padding:14px 50px 14px 50px; /* reserve for meta + actions */
@@ -174,7 +190,7 @@
       height:18px;
       border-radius:999px;
       border:1px solid rgba(255,255,255,0.12);
-      background:rgba(0,0,0,0.18);
+      background: var(--card-2);
       color:rgba(255,255,255,0.85);
       font-size:11px;
       line-height:1;
@@ -193,7 +209,7 @@
       max-width:72%;
       padding:8px 10px;
       border-radius:12px;
-      background:rgba(0,0,0,0.72);
+      background: rgba(0,0,0,0.88);
       border:1px solid rgba(255,255,255,0.10);
       font-size:12px;
       letter-spacing:0.02em;
@@ -327,6 +343,25 @@
       .matchCards{ display:flex; }
       .matchListScroll{ max-height:none; overflow:visible; }
       .mcard{ padding:14px 48px 14px 48px; }
+
+      /* Mobile card color: match top nav */
+      .mcard{
+        background: var(--navBg);
+        border: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(10px);
+      }
+      .mcard__btn{
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.10);
+      }
+      .mcard__infoBtn{
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.10);
+      }
+      .mcard__infoPop{
+        background: rgba(15,17,21,0.92);
+        border: 1px solid rgba(255,255,255,0.10);
+      }
       .mcard__meta{ font-size:9px; }
     }
 </style>
@@ -339,25 +374,13 @@
     <div class="brand">MKWT</div>
 
     <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">VR improvement</a>
+    <a class="navLink" href="stats.html">Stats</a>
     <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink" href="settings.html">Settings</a>
-
-    <div class="navSpacer"></div>
-
-    <div class="navRight">
-      <button class="navAction" id="btnExport" type="button">Export</button>
-      <label class="navAction">
-        Import
-        <input id="fileImport" type="file" accept="application/json" />
-      </label>
-      <button class="navAction danger" id="btnLogout" type="button">Logout</button>
-    </div>
+    <a class="navLink navIcon" href="settings.html" aria-label="Settings" title="Settings">⚙</a>
   </div>
 </nav>
 
-
-  <div class="wrap">
+<div class="wrap">
 
     <div class="card profileCard">
       <div class="profileTop">
@@ -570,9 +593,9 @@
         </div>
       </div>
 
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button class="btn" id="btnSaveMatch">Save</button>
+      <div class="matchFormActions">
         <button class="btn2" id="btnClear">Clear</button>
+        <button class="btn" id="btnSaveMatch">Save</button>
       </div>
     </div>
 
@@ -2372,15 +2395,15 @@ async function deleteMatch(id){
   }
 }
   // Buttons
-  $("btnLogout").addEventListener("click", logout);
-  $("btnCreateProfile").addEventListener("click", createProfile);
-  $("btnSaveMatch").addEventListener("click", saveMatch);
+  $("btnLogout")?.addEventListener("click", logout);
+  $("btnCreateProfile")?.addEventListener("click", createProfile);
+  $("btnSaveMatch")?.addEventListener("click", saveMatch);
 
   // Live-Sync der Eingabefelder
   $("vrChange")?.addEventListener("input", syncFromDelta);
   $("vrAfterInput")?.addEventListener("input", syncFromAfter);
 
-  $("btnClear").addEventListener("click", () => {
+  $("btnClear")?.addEventListener("click", () => {
     const a = $("intermission");
     const b = $("track");
     a.value = "";
@@ -2405,14 +2428,14 @@ async function deleteMatch(id){
     e.target.value = "";
     await importBackupJSON(file);
     });
-    $("btnPrev").addEventListener("click", async () => {
+    $("btnPrev")?.addEventListener("click", async () => {
   if (currentPage <= 1) return;
   currentPage--;
   await loadMatches();
     
   });
 
-    $("btnNext").addEventListener("click", async () => {
+    $("btnNext")?.addEventListener("click", async () => {
   // wenn wir totalMatches kennen, nicht über maxPage hinaus
   if (totalMatches != null) {
     const maxPage = Math.max(1, Math.ceil(totalMatches / PAGE_SIZE));
@@ -2448,7 +2471,8 @@ async function deleteMatch(id){
 
   // Start
   (async () => {
-    setDebug("App starting…");
+    try {
+      setDebug("App starting…");
 
     // Selects (Intermission/Track + Edit-Dialog) befüllen
     initSelects();
@@ -2458,6 +2482,12 @@ async function deleteMatch(id){
 
     await refreshAll();
     setDebug("");
+    } catch (e) {
+      try { $("userInfo").textContent = "Init error"; } catch(_){ }
+      try { setStatus("Init error: " + (e?.message || e), false); } catch(_) {}
+      try { setDebug(e?.stack || String(e)); } catch(_) {}
+      console.error(e);
+    }
 })();
 </script>
 
@@ -2922,6 +2952,7 @@ document.addEventListener('click', (e)=>{
   }
 
   function wireNav(){
+    if (typeof  !== "function") return;
     const btnExport = $id("btnExport");
     const btnLogout = $id("btnLogout");
     const fileImport = $id("fileImport");

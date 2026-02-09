@@ -1,4 +1,4 @@
-const CACHE = "mkwt-v107";
+const CACHE = "mkwt-v108";
 const ASSETS = [
   "/",
   "/tracker.html",

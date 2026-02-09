@@ -22,23 +22,11 @@
     <div class="brand">MKWT</div>
 
     <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">VR improvement</a>
+    <a class="navLink" href="stats.html">Stats</a>
     <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink" href="settings.html">Settings</a>
-
-    <div class="navSpacer"></div>
-
-    <div class="navRight">
-      <button class="navAction" id="btnExport" type="button">Export</button>
-      <label class="navAction">
-        Import
-        <input id="fileImport" type="file" accept="application/json" />
-      </label>
-      <button class="navAction danger" id="btnLogout" type="button">Logout</button>
-    </div>
+    <a class="navLink navIcon" href="settings.html" aria-label="Settings" title="Settings">⚙</a>
   </div>
 </nav>
-
 
 <!-- ===== CONTENT ===== -->
 <div class="wrap">
@@ -61,7 +49,22 @@
       <button class="btn" id="btnSaveSettings">Save</button>
     </div>
 
-    <div class="muted" id="status"></div>
+    
+    <hr style="margin:16px 0; border:none; border-top:1px solid rgba(255,255,255,0.08);" />
+
+    <h3 style="margin:0 0 10px 0;">Data</h3>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn2" id="btnExport" type="button">Export</button>
+
+      <label class="btn2" style="cursor:pointer;">
+        Import
+        <input id="fileImport" type="file" accept="application/json" style="display:none;" />
+      </label>
+
+      <button class="danger" id="btnLogout" type="button">Logout</button>
+    </div>
+
+<div class="muted" id="status"></div>
   </div>
 </div>
 

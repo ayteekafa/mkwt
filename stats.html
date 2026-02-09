@@ -58,7 +58,41 @@
     }
 
     /* Prevent label cut-off */
-    .chartWrap, .chartWrapC2, .chartWrapIm, .chartWrapBuckets { overflow: visible; }</style>
+    .chartWrap, .chartWrapC2, .chartWrapIm, .chartWrapBuckets { overflow: visible; }
+
+    /* ===== Track Distribution summary (3 cards) ===== */
+    .avgBig { font-size: 1.35em; font-weight: 800; }
+
+    .td3Wrap{
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 520px){
+      .td3Wrap{ grid-template-columns: 1fr; }
+    }
+    .td3Card{
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.18);
+    }
+    .td3Title{
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      opacity: .75;
+      margin-bottom: 8px;
+    }
+    .td3Grid{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+    }
+    .td3Metric{ min-width: 0; }
+</style>
 
 
 <style>
@@ -88,25 +122,13 @@
     <div class="brand">MKWT</div>
 
     <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">VR improvement</a>
+    <a class="navLink" href="stats.html">Stats</a>
     <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink" href="settings.html">Settings</a>
-
-    <div class="navSpacer"></div>
-
-    <div class="navRight">
-      <button class="navAction" id="btnExport" type="button">Export</button>
-      <label class="navAction">
-        Import
-        <input id="fileImport" type="file" accept="application/json" />
-      </label>
-      <button class="navAction danger" id="btnLogout" type="button">Logout</button>
-    </div>
+    <a class="navLink navIcon" href="settings.html" aria-label="Settings" title="Settings">⚙</a>
   </div>
 </nav>
 
-
-  <div class="wrap">
+<div class="wrap">
 
     <div class="card">
       <div class="topbar">
@@ -193,31 +215,47 @@
         <canvas id="chartPie5"></canvas>
       </div>
 
-      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
-          <div class="muted">Avg VR gain (Overall)</div>
-          <div id="c5AvgAll" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
-        </div>
-        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
-          <div class="muted">Winrate (Overall)</div>
-          <div id="c5WinAll" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
+      <div class="td3Wrap">
+        <div class="td3Card">
+          <div class="td3Title">Matches</div>
+          <div class="td3Grid">
+            <div class="td3Metric">
+              <div class="muted">Avg VR</div>
+              <div id="c5AvgAll" class="avgBig">–</div>
+            </div>
+            <div class="td3Metric">
+              <div class="muted">Win rate</div>
+              <div id="c5WinAll" class="avgBig">–</div>
+            </div>
+          </div>
         </div>
 
-        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
-          <div class="muted">Avg VR gain (Tracks)</div>
-          <div id="c5AvgTrack" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
+        <div class="td3Card">
+          <div class="td3Title">Tracks</div>
+          <div class="td3Grid">
+            <div class="td3Metric">
+              <div class="muted">Avg VR</div>
+              <div id="c5AvgTrack" class="avgBig">–</div>
+            </div>
+            <div class="td3Metric">
+              <div class="muted">Win rate</div>
+              <div id="c5WinTrack" class="avgBig">–</div>
+            </div>
+          </div>
         </div>
-        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
-          <div class="muted">Winrate (Tracks)</div>
-          <div id="c5WinTrack" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
-        </div>
-        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
-          <div class="muted">Avg VR gain (Intermission)</div>
-          <div id="c5AvgIm" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
-        </div>
-        <div style="flex:1; min-width:170px; padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
-          <div class="muted">Winrate (Intermission)</div>
-          <div id="c5WinIm" class="avgBig" style="font-size:1.35em;font-weight:800;">–</div>
+
+        <div class="td3Card">
+          <div class="td3Title">Intermission</div>
+          <div class="td3Grid">
+            <div class="td3Metric">
+              <div class="muted">Avg VR</div>
+              <div id="c5AvgIm" class="avgBig">–</div>
+            </div>
+            <div class="td3Metric">
+              <div class="muted">Win rate</div>
+              <div id="c5WinIm" class="avgBig">–</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
