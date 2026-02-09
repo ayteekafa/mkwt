@@ -38,36 +38,41 @@
       border:1px solid var(--border);
       background: rgba(255,255,255,.03);
       border-radius: 14px;
-      padding: 12px 12px;
+      padding: 8px 9px;
       min-width: 0;
+      text-align:center;
     }
     .statLabel{
       color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 10px;
+      font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: .6px;
+      letter-spacing: .10em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .statValue{
-      margin-top:6px;
-      font-size: 22px;
+      margin-top:5px;
+      font-size: 18px;
       font-weight: 950;
-      line-height: 1.1;
+      line-height: 1.05;
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
     }
     .bestTrackLine{
       display:flex;
+      flex-direction:column;
       align-items:center;
       justify-content:center;
-      flex-wrap:wrap;
-      gap:12px;
+      gap:8px;
       margin-top:12px;
-      padding: 10px 12px;
+      padding: 12px 12px;
       border-radius: 14px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,.02);
+      text-align:center;
     }
     .bestTrackLabel{
       color: var(--muted);
@@ -77,26 +82,44 @@
       letter-spacing: .6px;
       white-space:nowrap;
     }
-    .bestTrackValue{
-      font-size: 14px;
-      font-weight: 900;
-      text-align:center;
+    .bestTrackName{
+      font-size: 16px;
+      font-weight: 950;
+      line-height: 1.15;
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
       max-width: 100%;
     }
+    .bestTrackMeta{
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 100%;
+    }
     @media (max-width: 920px){
-      .statGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .bestTrackValue{ max-width: 65%; }
+      /* Keep 4 cards per row, just tighten spacing a bit */
+      .statGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px; }
+      .statBox{ padding:8px 9px; }
+      .statLabel{ font-size: 10px; }
+      .statValue{ font-size: 18px; }
+      .bestTrackName{ max-width: 100%; }
+      .bestTrackMeta{ max-width: 100%; }
     }
     @media (max-width: 480px){
-      /* Mobile: more compact overview */
-      .statGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      /* Mobile: still 4 per row (very compact) */
+      .statGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); gap:7px; }
+      .statBox{ padding:7px 8px; border-radius: 13px; }
+      .statLabel{ font-size: 9px; }
+      .statValue{ font-size: 17px; }
 
-      /* Keep Best Track as a long card (like desktop), but allow wrapping */
-      .bestTrackLine{ flex-direction:row; align-items:center; justify-content:space-between; }
-      .bestTrackValue{ max-width: 70%; text-align:right; white-space:normal; overflow:visible; }
+      /* Best Track: centered, 2 lines (name + meta) */
+      .bestTrackLine{ gap:6px; }
+      .bestTrackName{ font-size: 15px; }
+      .bestTrackMeta{ font-size: 12px; }
 
       /* Match input: 2 columns for the small fields */
       .compactRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
@@ -143,26 +166,44 @@
 
       <div class="statGrid" aria-label="Profile quick stats">
         <div class="statBox">
-          <div class="statLabel">Current VR</div>
+          <div class="statLabel">Current</div>
           <div class="statValue" id="statCurrentVr">–</div>
         </div>
         <div class="statBox">
-          <div class="statLabel">Highest VR</div>
+          <div class="statLabel">Peak</div>
           <div class="statValue" id="statHighestVr">–</div>
         </div>
         <div class="statBox">
-          <div class="statLabel">Last month avg VR</div>
+          <div class="statLabel">Average</div>
           <div class="statValue" id="statAvg50Vr">–</div>
         </div>
         <div class="statBox">
-          <div class="statLabel">Matches tracked</div>
+          <div class="statLabel">Matches</div>
           <div class="statValue" id="statMatchCount">–</div>
+        </div>
+
+        <div class="statBox">
+          <div class="statLabel">W-Streak</div>
+          <div class="statValue" id="statWinStreak">–</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">L-Streak</div>
+          <div class="statValue" id="statLoseStreak">–</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">Max Gain</div>
+          <div class="statValue" id="statMaxGain">–</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">MAX Loss</div>
+          <div class="statValue" id="statMaxLoss">–</div>
         </div>
       </div>
 
       <div class="bestTrackLine">
-        <span class="bestTrackLabel">Best Track</span>
-        <span class="bestTrackValue" id="statBestTrack">–</span>
+        <div class="bestTrackLabel">Best Track</div>
+        <div class="bestTrackName" id="bestTrackName">–</div>
+        <div class="bestTrackMeta" id="bestTrackMeta">–</div>
       </div>
 
       <div class="muted hidden" id="status"></div>
@@ -203,7 +244,9 @@
         <button type="button" class="modeBtn" data-mode="3lap" aria-selected="false">3-Lap track</button>
       </div>
 
-      <div class="row">
+
+      <!-- Intermission selects: keep both dropdowns in ONE row on mobile -->
+      <div class="row inlineSelects" id="intermissionSelectRow">
 	  <div class="field" id="fieldIntermissionStart">
     <label class="muted" id="labelIntermissionStart">Intermission start</label>
     <select id="intermission">
@@ -1270,6 +1313,41 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     return sign + v;
   }
 
+  function fmtSignedInt(n){
+    if (!Number.isFinite(n)) return "–";
+    const sign = (n > 0) ? "+" : (n < 0) ? "−" : "";
+    return sign + String(Math.abs(Math.round(n)));
+  }
+
+  function calcStreaksAndExtremes(matchesAsc){
+    let maxWin = 0, maxLose = 0;
+    let win = 0, lose = 0;
+    let maxGain = Number.NEGATIVE_INFINITY;
+    let maxLoss = Number.POSITIVE_INFINITY;
+
+    for (const r of (matchesAsc || [])){
+      const d = Number(r.vr_change);
+      if (!Number.isFinite(d)) continue;
+
+      if (d > maxGain) maxGain = d;
+      if (d < maxLoss) maxLoss = d;
+
+      if (d > 0){
+        win += 1;
+        lose = 0;
+        if (win > maxWin) maxWin = win;
+      } else {
+        lose += 1;
+        win = 0;
+        if (lose > maxLose) maxLose = lose;
+      }
+    }
+    if (maxGain === Number.NEGATIVE_INFINITY) maxGain = 0;
+    if (maxLoss === Number.POSITIVE_INFINITY) maxLoss = 0;
+
+    return { maxWin, maxLose, maxGain, maxLoss };
+  }
+
   async function updateProfileQuickStats() {
   try{
     // Current VR (from profile)
@@ -1344,12 +1422,37 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     }
 
     if (!best){
-      $("statBestTrack").textContent = "–";
+      $("bestTrackName").textContent = "–";
+      $("bestTrackMeta").textContent = "–";
+      try { $("statWinStreak").textContent = "–"; } catch(_){ }
+      try { $("statLoseStreak").textContent = "–"; } catch(_){ }
+      try { $("statMaxGain").textContent = "–"; } catch(_){ }
+      try { $("statMaxLoss").textContent = "–"; } catch(_){ }
     } else {
       const avgTxt = fmtSigned(best.avg, 1) + " VR avg";
       const runsTxt = best.count === 1 ? "1 run" : `${best.count} runs`;
-      $("statBestTrack").textContent = `${best.track} • ${avgTxt} • ${runsTxt}`;
+      $("bestTrackName").textContent = best.track;
+      $("bestTrackMeta").textContent = `${avgTxt} • ${runsTxt}`;
     }
+
+    // Win/Lose streak + Max gain/loss (all matches)
+    const { data: streakData, error: streakErr } = await supabaseClient
+      .from("matches")
+      .select("created_at, vr_change")
+      .eq("user_id", SESSION.user.id)
+      .not("vr_change", "is", null)
+      .order("created_at", { ascending: true })
+      .limit(5000);
+
+    if (streakErr) throw streakErr;
+
+    const { maxWin, maxLose, maxGain, maxLoss } = calcStreaksAndExtremes(streakData || []);
+
+    $("statWinStreak").textContent  = String(maxWin);
+    $("statLoseStreak").textContent = String(maxLose);
+    $("statMaxGain").textContent = fmtSignedInt(maxGain);
+    $("statMaxLoss").textContent = fmtSignedInt(maxLoss);
+
 
   } catch(e){
     // keep UI stable if stats query fails
@@ -1357,7 +1460,8 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
       $("statHighestVr").textContent = "–";
       $("statAvg50Vr").textContent = "–";
       $("statMatchCount").textContent = "–";
-      $("statBestTrack").textContent = "–";
+      $("bestTrackName").textContent = "–";
+      $("bestTrackMeta").textContent = "–";
     } catch(_){}
     setDebug("Header stats error: " + (e?.message || e));
   }

@@ -65,6 +65,20 @@ a{ color:#7dd3fc; text-decoration:none; }
 /* Rows/Fields */
 .row{ display:flex; gap:14px; flex-wrap:wrap; }
 .row > *{ flex:1; min-width:220px; }
+
+/* Keep specific select rows on a single line (even on small screens) */
+.row.inlineSelects{ flex-wrap:nowrap; gap:12px; }
+.row.inlineSelects > *{ min-width:0; }
+.row.inlineSelects select{
+  width:100%;
+  /* responsive font-size so long track names fit better */
+  font-size:clamp(11px, 2.9vw, 14px);
+}
+
+@media (max-width: 420px){
+  .row.inlineSelects{ gap:10px; }
+  .row.inlineSelects select{ font-size:clamp(10px, 3.1vw, 13px); }
+}
 .field{ display:flex; flex-direction:column; gap:6px; }
 label.muted{ display:block; margin:0; }
 
