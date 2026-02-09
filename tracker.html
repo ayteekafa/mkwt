@@ -35,8 +35,9 @@
       margin-top:12px;
     }
     .statBox{
-      border:1px solid var(--border);
-      background: var(--card-2);
+      /* keep profile stat cards in the same light-grey glass tone as Stats/Sessions */
+      border:1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.04);
       border-radius: 14px;
       padding: 8px 9px;
       min-width: 0;
@@ -128,9 +129,18 @@
       .statLabel{ font-size: 9px; }
       .statValue{ font-size: 17px; }
 
-      /* Darker cards on mobile (match top nav) */
-      .card{ background: var(--navBg); }
-      .statBox{ background: var(--card-2); border-color: var(--border); }
+      /* Keep LARGE cards (profile/stats containers) in the same light-grey glass style as Stats/Sessions */
+      .card{ background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+      .statBox{ background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+
+      /* Only match entries cards: true black */
+      .mcard{ background: rgba(0,0,0,0.85); border-color: rgba(255,255,255,0.08); backdrop-filter:none; }
+      .mcard__infoPop{ background: rgba(0,0,0,0.92); border-color: rgba(255,255,255,0.10); }
+      .mcard__infoBtn{ background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+
+
+
+
 
       /* Best Track: centered, 2 lines (name + meta) */
       .bestTrackLine{ gap:6px; }
@@ -2952,7 +2962,7 @@ document.addEventListener('click', (e)=>{
   }
 
   function wireNav(){
-    if (typeof  !== "function") return;
+    if (typeof $id !== "function") return;
     const btnExport = $id("btnExport");
     const btnLogout = $id("btnLogout");
     const fileImport = $id("fileImport");
