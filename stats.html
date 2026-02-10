@@ -159,13 +159,20 @@
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">Track Performance</h3>
+      <h3 style="margin:0 0 10px 0;">Performance</h3>
       <div class="muted" style="margin-bottom:10px;">
-        Y = VR Δ. Only rows where <b>intermission is empty</b> are used.
+        One chart for Tracks and Intermission. Choose mode above, then sort below (click same sort again to reverse).
       </div>
+
+      <div class="muted chartBtns" data-btn-group="perfMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <button id="btnPerfTracks" type="button" class="navAction active" style="padding:6px 10px;">Tracks</button>
+        <button id="btnPerfImDestiny" type="button" class="navAction" style="padding:6px 10px;">Intermission Destiny</button>
+        <button id="btnPerfImRoutes" type="button" class="navAction" style="padding:6px 10px;">Intermission Separated</button>
+      </div>
+
       <div class="chartWrap chartWrapC2"><canvas id="chartPerf"></canvas></div>
 
-      <div class="muted chartBtns" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <div class="muted chartBtns" data-btn-group="perfSort" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button id="btnC2SortAvg" type="button" class="navAction" style="padding:6px 10px;">Average VR gain</button>
         <button id="btnC2SortWin" type="button" class="navAction" style="padding:6px 10px;">Win rate</button>
         <button id="btnC2SortCount" type="button" class="navAction" style="padding:6px 10px;">Times played</button>
@@ -173,30 +180,7 @@
         <span class="muted" style="opacity:.85;">Click same filter again to reverse.</span>
       </div>
 
-      <div class="muted" style="margin-top:8px;" id="c2Selected">Hover or click a bar to see details.</div>
-    </div>
-
-<div class="card">
-      <h3 style="margin:0 0 10px 0;">Intermission Performance</h3>
-      <div class="muted" style="margin-bottom:10px;">
-        Horizontal bars show <b>Average VR Δ</b>. Use filters to sort (click again to reverse). Showing max 40 entries.
-      </div>
-      <div class="chartWrap chartWrapIm"><canvas id="chartItTr"></canvas></div>
-
-      <div class="muted chartBtns" style="margin-top:10px; display:flex; flex-direction:column; gap:10px; align-items:flex-start;">
-        <div data-btn-group="c4Tabs" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <button id="btnC4Destiny" type="button" class="navAction active">Avg VR gain (same destiny)</button>
-          <button id="btnC4Routes" type="button" class="navAction">Avg VR gain (every intermission)</button>
-        </div>
-        <div data-btn-group="c4Sort" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <button id="btnC4SortAvg" type="button" class="navAction">Average VR gain</button>
-          <button id="btnC4SortWin" type="button" class="navAction">Win rate</button>
-          <button id="btnC4SortCount" type="button" class="navAction">Times played</button>
-          <button id="btnC4SortAlpha" type="button" class="navAction">A–Z</button>
-          <span class="muted" style="opacity:.85;">Click same filter again to reverse.</span>
-        </div>
-      </div>
-      <div class="muted" style="margin-top:8px;" id="c4Selected">Tap a bar for details.</div>
+      <div class="muted" style="margin-top:8px;" id="perfSelected">Tap a bar for details.</div>
     </div>
 
 <div class="card">
@@ -1072,192 +1056,32 @@ function computeStepAverage10(vrArr, forcedBucketSize){
 
     
     
-    // --- Diagramm 2: Track Performance (3 Laps only) ---
-    // Always shows Avg VR Δ per track (bars). Filters only change sorting.
-    // Sort keys: avg (default), win, count, alpha. Clicking same filter toggles ASC/DESC.
-    const only3Laps = matchesAsc.filter(m => (m.intermission == null || String(m.intermission).trim() === ""));
-    const groups = new Map(); // track -> {sum, n, wins, losses}
+    
+    // --- Performance (Unified): Tracks + Intermission (Destiny / Separated) ---
+    // One chart, three mode buttons. Sort controls remain: avg | win | count | alpha.
+    // Clicking the same sort again reverses (desc <-> asc).
 
+    // --- Build data sets (overall, not window-filtered) ---
+    const only3Laps = matchesAsc.filter(m => (m.intermission == null || String(m.intermission).trim() === ""));
+    const onlyIM = matchesAsc.filter(m => (m.intermission != null && String(m.intermission).trim() !== ""));
+
+    // Tracks (3 laps) groups
+    const trackGroups = new Map(); // track -> {sum,n,wins,losses}
     for (const m of only3Laps){
       const track = String(m.track ?? "").trim();
       const delta = Number(m.vr_change);
       if (!track) continue;
-
-      const g = groups.get(track) || { sum: 0, n: 0, wins: 0, losses: 0 };
+      const g = trackGroups.get(track) || { sum: 0, n: 0, wins: 0, losses: 0 };
       if (Number.isFinite(delta)) {
         g.sum += delta; g.n += 1;
         if (delta > 0) g.wins += 1;
         else if (delta < 0) g.losses += 1; // 0 ignored for winrate denom
       }
-      groups.set(track, g);
+      trackGroups.set(track, g);
     }
 
-    function trackRow(track){
-      const g = groups.get(track) || {sum:0,n:0,wins:0,losses:0};
-      const avg = g.n ? (g.sum / g.n) : 0;
-      const denom = (g.wins || 0) + (g.losses || 0);
-      const win = denom ? ((g.wins / denom) * 100) : null;
-      return { track, avg, win, count: g.n || 0, wins: g.wins || 0, losses: g.losses || 0 };
-    }
-
-    const perfCanvas = $("chartPerf");
-    const $c2Sel = $("c2Selected");
-    let chartPerf = null;
-
-    let c2SortKey = "avg";         // avg | win | count | alpha
-    let c2SortDir = "desc";        // desc | asc
-    let c2Wired = false;
-    let c2LastRows = [];
-
-    function sortRows(rows, key, dir){
-      const mul = (dir === "asc") ? 1 : -1;
-      const safeNum = (v) => (v == null || !Number.isFinite(Number(v))) ? -Infinity : Number(v);
-      rows.sort((a,b)=>{
-        if(key === "alpha"){
-          return mul * a.track.localeCompare(b.track, "de");
-        }
-        if(key === "count"){
-          const d = (a.count - b.count);
-          if(d !== 0) return mul * d;
-          // tie-breaker by avg then alpha
-          const d2 = (a.avg - b.avg);
-          if(d2 !== 0) return mul * d2;
-          return a.track.localeCompare(b.track, "de");
-        }
-        if(key === "win"){
-          const da = safeNum(a.win), db = safeNum(b.win);
-          const d = (da - db);
-          if(d !== 0) return mul * d;
-          const d2 = (a.avg - b.avg);
-          if(d2 !== 0) return mul * d2;
-          return a.track.localeCompare(b.track, "de");
-        }
-        // avg
-        const d = (a.avg - b.avg);
-        if(d !== 0) return mul * d;
-        const da = safeNum(a.win), db = safeNum(b.win);
-        const d2 = (da - db);
-        if(d2 !== 0) return mul * d2;
-        return a.track.localeCompare(b.track, "de");
-      });
-      return rows;
-    }
-
-    function setC2Sort(key, btn){
-      if (c2SortKey === key) {
-        c2SortDir = (c2SortDir === "desc") ? "asc" : "desc";
-      } else {
-        c2SortKey = key;
-        c2SortDir = (key === "alpha") ? "asc" : "desc";
-      }
-      if (btn) setActiveButton(btn);
-      renderChart2();
-    }
-
-    function updateC2SelectedByIndex(i){
-      if (!$c2Sel) return;
-      if (i == null || i < 0 || i >= c2LastRows.length) {
-        $c2Sel.textContent = "Hover or click a bar to see details.";
-        return;
-      }
-      const r = c2LastRows[i];
-      const wrTxt = (r.win == null) ? "–" : (Number(r.win).toFixed(1) + "%");
-      $c2Sel.textContent = `${r.track}  •  Avg VR Δ: ${Number(r.avg).toFixed(2)} (matches: ${r.count})  •  Win rate: ${wrTxt}`;
-    }
-
-    function renderChart2(){
-      if (!perfCanvas) {
-        console.warn("[stats] chartPerf canvas missing – skip Chart 2");
-        return;
-      }
-      const rows = Array.from(groups.keys()).map(trackRow);
-      if (!rows.length) {
-        console.warn("[stats] no 3-lap track data – skip Chart 2");
-        return;
-      }
-
-      c2LastRows = sortRows(rows, c2SortKey, c2SortDir);
-
-      const labels = c2LastRows.map(r => r.track);
-      const dataArr = c2LastRows.map(r => r.avg);
-
-      const bg = dataArr.map(v => {
-        const n = Number(v);
-        if (!Number.isFinite(n)) return "rgba(140,140,140,0.25)";
-        return n < 0 ? "rgba(255,80,80,0.85)" : "rgba(60,190,120,0.85)";
-      });
-      const br = dataArr.map(v => {
-        const n = Number(v);
-        if (!Number.isFinite(n)) return "rgba(140,140,140,0.5)";
-        return n < 0 ? "rgb(255,80,80)" : "rgb(60,190,120)";
-      });
-
-      try { chartPerf?.destroy(); } catch {}
-      chartPerf = new Chart(perfCanvas, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Ø VR Δ (nur 3 Laps)",
-            data: dataArr,
-            backgroundColor: bg,
-            borderColor: br,
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          indexAxis: "y",
-          onClick: (evt, els) => {
-            const first = els?.[0];
-            if (!first) return;
-            updateC2SelectedByIndex(first.index);
-          },
-          scales: {
-            x: { beginAtZero: true, ticks: { callback: (v)=> Number(v).toFixed(0) } },
-            y: { ticks: { autoSkip: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                title: (items) => items?.[0]?.label ? ("Track: " + items[0].label) : "",
-                label: (ctx) => {
-                  const r = c2LastRows[ctx.dataIndex];
-                  const wrTxt = (r.win == null) ? "–" : (Number(r.win).toFixed(1) + "%");
-                  return [
-                    `Avg VR Δ: ${Number(r.avg).toFixed(2)} (matches: ${r.count})`,
-                    `Win rate: ${wrTxt}`
-                  ];
-                }
-              }
-            }
-          }
-        }
-      });
-
-      updateC2SelectedByIndex(null);
-
-      if (!c2Wired) {
-        $("btnC2SortAvg")?.addEventListener("click", (e) => setC2Sort("avg", e.target));
-        $("btnC2SortWin")?.addEventListener("click", (e) => setC2Sort("win", e.target));
-        $("btnC2SortCount")?.addEventListener("click", (e) => setC2Sort("count", e.target));
-        $("btnC2SortAlpha")?.addEventListener("click", (e) => setC2Sort("alpha", e.target));
-        c2Wired = true;
-      }
-    }
-
-    // Default: sort by avg VR gain (desc)
-    renderChart2();
-    setActiveById("btnC2SortAvg");
-
-
-    
-    // --- Diagramm 3: Intermission Routes Ranking (Sorted) ---
-    // Only Intermission matches (intermission field set)
-    const onlyIM = matchesAsc.filter(m => (m.intermission != null && String(m.intermission).trim() !== ""));
+    // Intermission (Routes) groups
     const imGroups = new Map(); // route -> {sum,n,wins,losses}
-
     for (const m of onlyIM){
       const start = String(m.intermission ?? "").trim();
       const end = String(m.track ?? "").trim();
@@ -1274,9 +1098,9 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       imGroups.set(route, g);
     }
 
-    // Build Destiny groups using strats.json META tags.
+    // Intermission Destiny groups (from STRATS_META_INTERMISSIONS destiny_group)
     const metaIM = STRATS_META_INTERMISSIONS || {};
-    const destinyGroups = new Map(); // destiny_group -> {sum,n,wins,losses, sampleRoute}
+    const destinyGroups = new Map(); // destiny_group -> {sum,n,wins,losses}
 
     function normalizeRouteKey(start, end){
       const s = String(start||"").trim();
@@ -1288,7 +1112,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       const k = normalizeRouteKey(start, end);
       const meta = metaIM[k];
       if (meta && meta.destiny_group) return meta.destiny_group;
-      return String(end||"").trim();
+      return String(end||"").trim(); // fallback
     }
 
     for (const m of onlyIM){
@@ -1296,8 +1120,9 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       const end = String(m.track ?? "").trim();
       const dg = getDestinyGroup(start, end);
       if(!dg) continue;
+
       const delta = Number(m.vr_change);
-      const g = destinyGroups.get(dg) || { sum: 0, n: 0, wins: 0, losses: 0, sampleRoute: (start && end) ? (start + " → " + end) : "" };
+      const g = destinyGroups.get(dg) || { sum: 0, n: 0, wins: 0, losses: 0 };
       if (Number.isFinite(delta)){
         g.sum += delta; g.n += 1;
         if (delta > 0) g.wins += 1;
@@ -1305,32 +1130,45 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       }
       destinyGroups.set(dg, g);
     }
-    function computeWin(wins, losses){
+
+    function computeWinPct(wins, losses){
       const denom = (wins || 0) + (losses || 0);
       return denom ? ((wins / denom) * 100) : null;
     }
 
-    function imRowsFromMap(map, kind){
+    function rowsFromTrackGroups(){
       const rows = [];
-      for (const [k,g] of map.entries()){
+      for (const [track,g] of trackGroups.entries()){
         const avg = g.n ? (g.sum / g.n) : 0;
-        const win = computeWin(g.wins, g.losses);
         rows.push({
-          key: k,
-          label: k,
+          label: track,
           avg,
-          win,
+          win: computeWinPct(g.wins, g.losses),
           count: g.n || 0,
           wins: g.wins || 0,
-          losses: g.losses || 0,
-          sample: g.sampleRoute || "",
-          kind
+          losses: g.losses || 0
         });
       }
       return rows;
     }
 
-    function sortGenericRows(rows, key, dir){
+    function rowsFromImMap(map){
+      const rows = [];
+      for (const [label,g] of map.entries()){
+        const avg = g.n ? (g.sum / g.n) : 0;
+        rows.push({
+          label,
+          avg,
+          win: computeWinPct(g.wins, g.losses),
+          count: g.n || 0,
+          wins: g.wins || 0,
+          losses: g.losses || 0
+        });
+      }
+      return rows;
+    }
+
+    function sortPerfRows(rows, key, dir){
       const mul = (dir === "asc") ? 1 : -1;
       const safeNum = (v) => (v == null || !Number.isFinite(Number(v))) ? -Infinity : Number(v);
       rows.sort((a,b)=>{
@@ -1363,66 +1201,80 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       return rows;
     }
 
-    // --- Diagramm 4: Intermission Performance (Sorted) ---
-    // Same data as Diagramm 3, but always uses a cap of 40 and has its own tab + sort controls.
-    const c4Canvas = $("chartItTr");
-    const $c4Sel = $("c4Selected");
-    let chartC4 = null;
+    // --- Unified chart state ---
+    const perfCanvas = $("chartPerf");
+    const $perfSel = $("perfSelected");
+    let chartPerf = null;
 
-    let c4Tab = "destiny";   // destiny | routes
-    let c4SortKey = "avg";   // avg | win | count | alpha
-    let c4SortDir = "desc";  // desc | asc
-    let c4RowsLast = [];
-    let c4Wired = false;
+    let perfMode = "tracks";     // tracks | im_destiny | im_routes
+    let perfSortKey = "avg";     // avg | win | count | alpha
+    let perfSortDir = "desc";    // desc | asc
+    let perfRowsLast = [];
+    let perfWired = false;
 
-    function setC4Tab(tab, btn){
-      c4Tab = tab;
+    function setPerfMode(mode, btn){
+      perfMode = mode;
       if(btn) setActiveButton(btn);
-      renderChart4();
+      renderPerfChart();
     }
-    function setC4Sort(key, btn){
-      if (c4SortKey === key) {
-        c4SortDir = (c4SortDir === "desc") ? "asc" : "desc";
+
+    function setPerfSort(key, btn){
+      if (perfSortKey === key) {
+        perfSortDir = (perfSortDir === "desc") ? "asc" : "desc";
       } else {
-        c4SortKey = key;
-        c4SortDir = (key === "alpha") ? "asc" : "desc";
+        perfSortKey = key;
+        perfSortDir = (key === "alpha") ? "asc" : "desc";
       }
       if(btn) setActiveButton(btn);
-      renderChart4();
+      renderPerfChart();
     }
 
-    function updateC4SelectedByIndex(i){
-      if(!$c4Sel) return;
-      if(i == null || i < 0 || i >= c4RowsLast.length){
-        $c4Sel.textContent = "Tap a bar for details.";
+    function updatePerfSelectedByIndex(i){
+      if(!$perfSel) return;
+      if(i == null || i < 0 || i >= perfRowsLast.length){
+        $perfSel.textContent = "Tap a bar for details.";
         return;
       }
-      const r = c4RowsLast[i];
+      const r = perfRowsLast[i];
       const wrTxt = (r.win == null) ? "–" : (Number(r.win).toFixed(1) + "%");
-      const prefix = (c4Tab === "destiny") ? "Destiny: " : "";
-      $c4Sel.textContent = `${prefix}${r.label}  •  Avg VR Δ: ${Number(r.avg).toFixed(2)} (matches: ${r.count})  •  Win rate: ${wrTxt}`;
+      $perfSel.textContent = `${r.label}  •  Avg VR Δ: ${Number(r.avg).toFixed(2)} (matches: ${r.count})  •  Win rate: ${wrTxt}`;
     }
 
-    function renderChart4(){
-      if(!c4Canvas){
-        console.warn("[stats] chartItTr canvas missing – skip Chart 4");
+    function renderPerfChart(){
+      if(!perfCanvas){
+        console.warn("[stats] chartPerf canvas missing – skip Performance chart");
         return;
       }
 
-      const baseRows = (c4Tab === "destiny")
-        ? imRowsFromMap(destinyGroups, "destiny")
-        : imRowsFromMap(imGroups, "route");
+      let baseRows = [];
+      let title = "";
+      let cap = null;
+
+      if(perfMode === "tracks"){
+        baseRows = rowsFromTrackGroups();
+        title = "Ø VR Δ (Tracks)";
+        cap = null; // show all
+      } else if(perfMode === "im_destiny"){
+        baseRows = rowsFromImMap(destinyGroups);
+        title = "Ø VR Δ (Intermission Destiny)";
+        cap = 40;
+      } else {
+        baseRows = rowsFromImMap(imGroups);
+        title = "Ø VR Δ (Intermission Separated)";
+        cap = 40;
+      }
 
       if(!baseRows.length){
-        if($c4Sel) $c4Sel.textContent = "No Intermission data yet.";
+        if($perfSel) $perfSel.textContent = "No data for this mode yet.";
+        try { chartPerf?.destroy(); } catch {}
         return;
       }
 
-      const rows = sortGenericRows(baseRows, c4SortKey, c4SortDir);
-      c4RowsLast = rows.slice(0, 40);
+      const rows = sortPerfRows(baseRows, perfSortKey, perfSortDir);
+      perfRowsLast = cap ? rows.slice(0, cap) : rows;
 
-      const labels = c4RowsLast.map(r => r.label);
-      const dataArr = c4RowsLast.map(r => r.avg);
+      const labels = perfRowsLast.map(r => r.label);
+      const dataArr = perfRowsLast.map(r => r.avg);
 
       const bg = dataArr.map(v => {
         const n = Number(v);
@@ -1435,13 +1287,13 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         return n < 0 ? "rgb(255,80,80)" : "rgb(60,190,120)";
       });
 
-      try { chartC4?.destroy(); } catch {}
-      chartC4 = new Chart(c4Canvas, {
+      try { chartPerf?.destroy(); } catch {}
+      chartPerf = new Chart(perfCanvas, {
         type: "bar",
         data: {
           labels,
           datasets: [{
-            label: "Average VR Δ (Intermission)",
+            label: title,
             data: dataArr,
             backgroundColor: bg,
             borderColor: br,
@@ -1455,7 +1307,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           onClick: (evt, els) => {
             const first = els?.[0];
             if(!first) return;
-            updateC4SelectedByIndex(first.index);
+            updatePerfSelectedByIndex(first.index);
           },
           scales: {
             x: { beginAtZero: true, ticks: { callback: (v)=> Number(v).toFixed(0) } },
@@ -1466,7 +1318,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
               callbacks: {
                 title: (items) => items?.[0]?.label ? items[0].label : "",
                 label: (ctx) => {
-                  const r = c4RowsLast[ctx.dataIndex];
+                  const r = perfRowsLast[ctx.dataIndex];
                   const wrTxt = (r.win == null) ? "–" : (Number(r.win).toFixed(1) + "%");
                   return [
                     `Avg VR Δ: ${Number(r.avg).toFixed(2)} (matches: ${r.count})`,
@@ -1479,26 +1331,31 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         }
       });
 
-      updateC4SelectedByIndex(null);
+      updatePerfSelectedByIndex(null);
 
-      if(!c4Wired){
-        $("btnC4Destiny")?.addEventListener("click", (e)=> setC4Tab("destiny", e.target));
-        $("btnC4Routes")?.addEventListener("click", (e)=> setC4Tab("routes", e.target));
+      if(!perfWired){
+        // Mode buttons
+        $("btnPerfTracks")?.addEventListener("click", (e)=> setPerfMode("tracks", e.target));
+        $("btnPerfImDestiny")?.addEventListener("click", (e)=> setPerfMode("im_destiny", e.target));
+        $("btnPerfImRoutes")?.addEventListener("click", (e)=> setPerfMode("im_routes", e.target));
 
-        $("btnC4SortAvg")?.addEventListener("click", (e)=> setC4Sort("avg", e.target));
-        $("btnC4SortWin")?.addEventListener("click", (e)=> setC4Sort("win", e.target));
-        $("btnC4SortCount")?.addEventListener("click", (e)=> setC4Sort("count", e.target));
-        $("btnC4SortAlpha")?.addEventListener("click", (e)=> setC4Sort("alpha", e.target));
-        c4Wired = true;
+        // Sort buttons (re-use existing IDs)
+        $("btnC2SortAvg")?.addEventListener("click", (e) => setPerfSort("avg", e.target));
+        $("btnC2SortWin")?.addEventListener("click", (e) => setPerfSort("win", e.target));
+        $("btnC2SortCount")?.addEventListener("click", (e) => setPerfSort("count", e.target));
+        $("btnC2SortAlpha")?.addEventListener("click", (e) => setPerfSort("alpha", e.target));
+
+        perfWired = true;
       }
     }
 
     // Defaults
-    setActiveById("btnC4Destiny");
-    setActiveById("btnC4SortAvg");
-    renderChart4();
+    setActiveById("btnPerfTracks");
+    setActiveById("btnC2SortAvg");
+    renderPerfChart();
 
-        // --- Diagramm 5: Track Distribution (Pie) + Avg gain / Winrate --- 
+
+// --- Diagramm 5: Track Distribution (Pie) + Avg gain / Winrate --- 
     try{
       const pieCanvas = $("chartPie5");
       if(!pieCanvas){
@@ -2457,6 +2314,20 @@ function renderBuckets(){
     document.querySelectorAll(".navLink").forEach(a=>{
       const href = (a.getAttribute("href")||"").toLowerCase();
       if (href && href === p) a.classList.add("active");
+    });
+  })();
+</script>
+
+<script>
+  // Make filter/sort buttons visually consistent: one active per button row
+  (function(){
+    document.querySelectorAll('.chartBtns').forEach(group=>{
+      group.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button');
+        if (!btn || !group.contains(btn)) return;
+        group.querySelectorAll('button.active').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
     });
   })();
 </script>

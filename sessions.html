@@ -398,6 +398,16 @@ async function requireSession(){
   main();
 </script>
 
+<script>
+  (function(){
+    const p = (location.pathname.split("/").pop() || "").toLowerCase();
+    document.querySelectorAll(".navLink").forEach(a=>{
+      const href = (a.getAttribute("href")||"").toLowerCase();
+      if (href && href === p) a.classList.add("active");
+    });
+  })();
+</script>
+
 
 <!-- MKWT Shared Nav Actions -->
 <script>

@@ -72,7 +72,8 @@
       padding: 12px 12px;
       border-radius: 14px;
       border: 1px solid var(--border);
-      background: var(--card-2);
+      /* keep consistent with Stats/Sessions "glass" cards */
+      background: rgba(255,255,255,0.04);
       text-align:center;
     }
     .bestTrackLabel{
@@ -2814,6 +2815,16 @@ document.addEventListener('click', (e)=>{
   if (!btn) return;
   setEditMode(btn.dataset.mode);
 });
+</script>
+
+<script>
+  (function(){
+    const p = (location.pathname.split("/").pop() || "").toLowerCase();
+    document.querySelectorAll(".navLink").forEach(a=>{
+      const href = (a.getAttribute("href")||"").toLowerCase();
+      if (href && href === p) a.classList.add("active");
+    });
+  })();
 </script>
 
 

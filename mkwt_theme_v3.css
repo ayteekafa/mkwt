@@ -123,10 +123,14 @@ button{ border:none; background:transparent; color:inherit; font:inherit; }
 }
 .btn{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
 .btn2{ background: rgba(255,255,255,0.06); color: var(--text); border-color: rgba(56,110,207,.25); }
+.navAction{ background: rgba(255,255,255,0.06); color: var(--text); border-color: rgba(56,110,207,.25); }
 .danger{ background: var(--danger); color: var(--danger-text); border-color: var(--danger); }
 .btn:hover{ filter: brightness(1.05); }
 .btn2:hover{ border-color: rgba(56,110,207,.45); background: rgba(255,255,255,0.08); }
-.btn:disabled, .btn2:disabled, .danger:disabled{ opacity:.6; cursor:not-allowed; }
+.navAction:hover{ border-color: rgba(56,110,207,.45); background: rgba(255,255,255,0.08); }
+.navAction.active{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+.btn:active, .btn2:active, .navAction:active, .danger:active{ transform: translateY(1px); }
+.btn:disabled, .btn2:disabled, .danger:disabled, .navAction:disabled{ opacity:.6; cursor:not-allowed; }
 
 /* Small text + status colors */
 .muted{ color: var(--muted); font-size:12px; white-space:pre-wrap; }
