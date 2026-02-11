@@ -2053,9 +2053,11 @@ const { error: insErr } = await supabaseClient.from("matches").insert({
           a.dispatchEvent(new Event('change', { bubbles: true }));
           b.dispatchEvent(new Event('change', { bubbles: true }));
           // Ensure placeholder/suggestion text reflects the new suggestion instantly
+          if ((document.querySelector(".modeBtn.isActive")?.dataset.mode || "intermission") === "intermission") {
           refreshSuggestionOptionInStartSelect(a);
           // Auto-fill Start if the newest match is recent enough (<=10 minutes)
           autoPrefillIntermissionStartIfFresh();
+        }
         }
       } catch(e) {}
       try { $('vrChange').value = ''; } catch(e) {}
