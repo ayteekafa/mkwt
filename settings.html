@@ -1,73 +1,162 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MKWT – Settings</title>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="theme-color" content="#07080a"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;
 
+  // Update browser UI color (mobile address/status bar)
+  try{
+    var c=(t==="light")?"#f3f4f6":(t==="green")?"#05060a":(t==="red")?"#05060a":(t==="dendo")?"#05060a":"#07080a";
+    var m=document.querySelector("meta[name=\"theme-color\"]");
+    if(m) m.setAttribute("content", c);
+  }catch(e){}
+var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<title>MKWT – Settings</title>
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="mkwt_theme_v3.css" rel="stylesheet"/>
+<style>
+    /* Reuse the exact Info button look from tracker/stats */
+    .mcard__infoBtn{
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--infoBtn-border);
+      background: var(--infoBtn-bg);
+      color: var(--infoBtn-text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .08s ease, opacity .12s ease, background .12s ease;
+      position: relative;
+      touch-action: manipulation;
+    }
+    .mcard__infoBtn:hover{ opacity:0.95; }
+    .mcard__infoBtn:active{ transform: translateY(1px); }
 
-
-  
-
-  <link rel="stylesheet" href="mkwt_theme_v3.css">
+    /* Small modal used for settings info */
+    .infoOverlay{
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: var(--backdrop);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+    }
+    .infoOverlay[hidden]{ display:none !important; }
+    .infoPanel{
+      width: min(560px, 100%);
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .infoHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 12px 12px 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .infoTitle{ font-weight:900; letter-spacing:.2px; }
+    .infoBody{ padding: 12px 14px 14px 14px; color: var(--text); line-height: 1.4; }
+  </style>
 </head>
-
 <body>
-
 <!-- ===== NAV ===== -->
 <nav class="nav">
-  <div class="navInner">
-    <div class="brand">MKWT</div>
-
-    <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">Stats</a>
-    <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink navIcon" href="settings.html" aria-label="Settings" title="Settings">⚙</a>
-  </div>
+<div class="navInner">
+<div class="brand">MKWT</div>
+<a class="navLink" href="tracker.html">Tracker</a>
+<a class="navLink" href="stats.html">Stats</a>
+<a class="navLink" href="sessions.html">Sessions</a>
+<a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">⚙</a>
+</div>
 </nav>
-
 <!-- ===== CONTENT ===== -->
 <div class="wrap">
-  <div class="card">
-    <h2>Settings</h2>
-
-    <div class="row">
-      <div class="field">
-        <label class="muted">Nickname</label>
-        <input id="settingsNickname">
-      </div>
-
-      <div class="field">
-        <label class="muted">Current VR</label>
-        <input id="settingsVr" type="number">
-      </div>
+<div class="card">
+<h2>Settings</h2>
+<div class="row">
+<div class="field">
+<label class="muted">Nickname</label>
+<input id="settingsNickname"/>
+</div>
+<div class="field">
+<label class="muted">Current VR</label>
+<input id="settingsVr" type="number"/>
+</div>
+</div>
+<div class="row" style="margin-top:10px;">
+  <div class="field" style="flex:1;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <label for="settingsTheme" class="muted" style="margin:0;">Theme</label>
+      <button aria-label="Info" class="mcard__infoBtn" data-info="theme" title="Info" type="button">i</button>
     </div>
-
-    <div style="margin-top:12px">
-      <button class="btn" id="btnSaveSettings">Save</button>
-    </div>
-
-    
-    <hr style="margin:16px 0; border:none; border-top:1px solid rgba(255,255,255,0.08);" />
-
-    <h3 style="margin:0 0 10px 0;">Data</h3>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn2" id="btnExport" type="button">Export</button>
-
-      <label class="btn2" style="cursor:pointer;">
-        Import
-        <input id="fileImport" type="file" accept="application/json" style="display:none;" />
-      </label>
-
-      <button class="danger" id="btnLogout" type="button">Logout</button>
-    </div>
-
-<div class="muted" id="status"></div>
+    <select id="settingsTheme">
+      <option value="dark">Midnight Matte</option>
+      <option value="light">Soft Snow</option>
+      <option value="dendo">Dendo Denim</option>
+      <option value="green">Green Gleam</option>
+      <option value="red">Red Ruby</option>
+      <option value="purple">Purple Pop</option>
+      <option value="rose">Rose Rime</option>
+    </select>
+    <div class="muted" style="margin-top:6px; font-size:12px; opacity:.85;">Applies after you press Save (stored locally on this device).</div>
   </div>
 </div>
 
+<div class="row" style="margin-top:10px;">
+<div class="field" style="flex:1;">
+  <div style="display:flex; align-items:center; gap:8px;">
+    <label for="settingsMinVr" class="muted" style="margin:0;">Min VR filter (exclude low-VR matches from stats)</label>
+    <button aria-label="Info" class="mcard__infoBtn" data-info="minVrFilter" title="Info" type="button">i</button>
+  </div>
+<div style="display:flex; align-items:center; gap:10px;">
+<span class="muted" style="opacity:.85;">&lt;</span>
+<input id="settingsMinVr" inputmode="numeric" placeholder="0" style="flex:1;" type="number"/>
+</div>
+</div>
+</div>
+<div style="margin-top:12px">
+<button class="btn" id="btnSaveSettings">Save</button>
+</div>
+<hr style="margin:16px 0; border:none; border-top:1px solid var(--border);"/>
+<h3 style="margin:0 0 10px 0;">Data</h3>
+<div style="display:flex; gap:10px; flex-wrap:wrap;">
+<button class="btn2" id="btnExport" type="button">Export</button>
+<label class="btn2" style="cursor:pointer;">
+        Import
+        <input accept="application/json" id="fileImport" style="display:none;" type="file"/>
+</label>
+<button class="danger" id="btnLogout" type="button">Logout</button>
+</div>
+<div class="muted" id="status"></div>
+</div>
+</div>
+<!-- Reusable Info Modal -->
+<div class="infoOverlay" hidden="" id="infoOverlay">
+<div aria-labelledby="infoTitle" aria-modal="true" class="infoPanel" role="dialog">
+<div class="infoHeader">
+<div class="infoTitle" id="infoTitle">Info</div>
+<button aria-label="Close" class="mcard__infoBtn" id="infoClose" title="Close" type="button">×</button>
+</div>
+<div class="infoBody" id="infoBody"></div>
+</div>
+</div>
 <script>
 /* ========= IDENTISCH ZU b.html ========= */
 
@@ -88,6 +177,107 @@ let SESSION = null;
 const $ = id => document.getElementById(id);
 const status = $("status");
 function setStatus(t){ status.textContent = t }
+
+
+// ========= Theme (local setting, affects the whole UI) =========
+function applyThemeValue(t){
+  try{
+    document.documentElement.dataset.theme = (t && String(t).trim()) ? String(t).trim() : "dark";
+  }catch(e){}
+}
+function loadThemeSetting(){
+  try{
+    const t = localStorage.getItem("mkwt_theme") || "dark";
+    const sel = $("settingsTheme");
+    if (sel) sel.value = t;
+    applyThemeValue(t);
+  }catch(e){
+    applyThemeValue("dark");
+  }
+}
+function saveThemeSetting(){
+  try{
+    const sel = $("settingsTheme");
+    const t = (sel && sel.value) ? sel.value : "dark";
+    localStorage.setItem("mkwt_theme", t);
+    applyThemeValue(t);
+  }catch(e){}
+}
+
+// ========= Min-VR Filter (local setting, affects stats/sessions) =========
+function loadMinVrSetting(){
+  try{
+    const v = parseInt(localStorage.getItem("mkwt_min_vr_filter") || "0", 10);
+    $("settingsMinVr").value = (Number.isFinite(v) && v > 0) ? String(v) : "";
+  }catch(e){
+    try{ $("settingsMinVr").value = ""; }catch{}
+  }
+}
+
+function saveMinVrSetting(){
+  try{
+    const raw = String($("settingsMinVr").value || "").trim();
+    const v = raw === "" ? 0 : parseInt(raw, 10);
+    const ok = Number.isFinite(v) && v > 0 ? v : 0;
+    localStorage.setItem("mkwt_min_vr_filter", String(ok));
+    return ok;
+  }catch(e){
+    return 0;
+  }
+}
+
+// ========= Small reusable Info Modal (no external libs) =========
+const INFO_TEXT = {
+  minVrFilter:
+    "This filter removes low-VR outliers from your stats. Any match where your VR total before OR after the game is below the threshold will be excluded from charts and averages. Use this to ignore early games (e.g. Nintendo starting VR) where gains can be extremely high and skew the data. Set it to 0 (or empty) to disable the filter."
+  ,
+  theme:
+    "Choose a visual style for the whole app. Dark matches the current black look, Light uses a soft off-white background, Dendo (Blue) highlights the blue accent, Green adds a subtle green primary, and Red switches the primary accent to red. Changes apply after you press Save. Your choice is stored locally and used across tracker, stats, sessions, and settings."
+};
+
+function openInfo(id){
+  const overlay = $("infoOverlay");
+  const body = $("infoBody");
+  const title = $("infoTitle");
+  if (!overlay || !body) return;
+  title.textContent = "Info";
+  body.textContent = INFO_TEXT[id] || "";
+  overlay.hidden = false;
+  overlay.style.display = "flex";
+}
+
+function closeInfo(){
+  const overlay = $("infoOverlay");
+  if (!overlay) return;
+  overlay.hidden = true;
+  overlay.style.display = "none";
+}
+
+// Close: X button + outside tap
+document.addEventListener("DOMContentLoaded", ()=>{
+  const overlay = $("infoOverlay");
+  const closeBtn = $("infoClose");
+  closeBtn?.addEventListener("click", closeInfo);
+
+  // Open only when the actual info icon is clicked/tapped.
+  // (Prevents mobile Safari label/tap forwarding to the button.)
+  document.querySelectorAll('.mcard__infoBtn[data-info]').forEach((btn)=>{
+    btn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      openInfo(btn.dataset.info);
+    });
+    // Safety: ignore touchend bubbling from surrounding elements
+    btn.addEventListener('touchend', (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+    }, {passive:false});
+  });
+
+  overlay?.addEventListener("click", (e)=>{
+    if (e.target === overlay) closeInfo();
+  });
+});
 
 /* ========= AUTH ========= */
 async function requireAuth(){
@@ -130,11 +320,16 @@ async function loadProfile(){
 
 
 async function saveSettings(){
+  // Apply + save local UI settings only when Save is pressed
+  saveThemeSetting();
+  const minVr = saveMinVrSetting();
+
   const nickname = $("settingsNickname").value.trim();
   const vr = parseInt($("settingsVr").value,10);
 
+  // Allow saving the filter even if nickname/VR are not filled.
   if(!nickname || !Number.isFinite(vr)){
-    setStatus("Invalid input");
+    setStatus(`✅ Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : " (Min VR: disabled)"}.`);
     return;
   }
 
@@ -159,7 +354,7 @@ async function saveSettings(){
 
   if(error){ setStatus(error.message); return }
 
-  setStatus("✅ Saved");
+  setStatus(`✅ Saved${minVr>0 ? ` (Min VR: ${minVr})` : ""}`);
 }
 
 
@@ -172,10 +367,10 @@ $("btnSaveSettings").onclick = saveSettings;
 (async()=>{
   await requireAuth();
   await loadProfile();
+  loadMinVrSetting();
+  loadThemeSetting();
 })();
 </script>
-
-
 <script>
   (function(){
     const p = (location.pathname.split("/").pop() || "").toLowerCase();
@@ -185,8 +380,6 @@ $("btnSaveSettings").onclick = saveSettings;
     });
   })();
 </script>
-
-
 <!-- MKWT Shared Nav Actions -->
 <script>
 (function(){
@@ -516,6 +709,5 @@ function wireNav(){
   else wireNav();
 })();
 </script>
-
 </body>
 </html>

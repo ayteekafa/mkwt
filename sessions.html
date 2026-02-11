@@ -1,26 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MKWT – Stats</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-  
-  
-
-  <link rel="stylesheet" href="mkwt_theme_v3.css">
-
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta name="theme-color" content="#07080a"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<title>MKWT – Stats</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="mkwt_theme_v3.css" rel="stylesheet"/>
+<style>
     /* ===== Mobile Chart Fix ===== */
     .chartWrap { position: relative; width: 100%; height: 360px; }
     @media (max-width: 520px){ .chartWrap { height: 320px; } }
   </style>
-
-
-  <style>
+<style>
     /* ===== Sessions UI polish ===== */
     .sessCard { padding:14px; margin:0; }
     .sessHeader { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
@@ -38,56 +32,47 @@
       .sessGrid{ max-width: 100%; }
     }
   </style>
-
 </head>
-
 <body>
-
 <nav class="nav">
-  <div class="navInner">
-    <div class="brand">MKWT</div>
-
-    <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">Stats</a>
-    <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink navIcon" href="settings.html" aria-label="Settings" title="Settings">⚙</a>
-  </div>
+<div class="navInner">
+<div class="brand">MKWT</div>
+<a class="navLink" href="tracker.html">Tracker</a>
+<a class="navLink" href="stats.html">Stats</a>
+<a class="navLink" href="sessions.html">Sessions</a>
+<a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">⚙</a>
+</div>
 </nav>
-
 <div class="wrap">
-
-    <div class="card">
-      <div class="topbar">
-        <div>
-          <h2 style="margin:0 0 6px 0;">MKWT – Sessions</h2>
-          <div class="muted" id="userInfo">Loading session…</div>
-          <div class="muted">Sessions: <b id="sessionCount">–</b></div>
-        </div>
-      </div>
-      <div class="muted" id="status"></div>
-      <div class="muted" id="debug"></div>
-    </div>
-
-    <div class="card">
-      <div style="display:flex; gap:10px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
-        <div>
-          <h3 style="margin:0 0 6px 0;">Session Performance</h3>
-          <div class="muted">
+<div class="card">
+<div class="topbar">
+<div>
+<h2 style="margin:0 0 6px 0;">MKWT – Sessions</h2>
+<div class="muted" id="userInfo">Loading session…</div>
+<div class="muted">Sessions: <b id="sessionCount">–</b></div>
+</div>
+</div>
+<div class="muted" id="status"></div>
+<div class="muted" id="debug"></div>
+</div>
+<div class="card">
+<div style="display:flex; gap:10px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
+<div>
+<h3 style="margin:0 0 6px 0;">Session Performance</h3>
+<div class="muted">
             Auto-grouped by time gap &gt; <b>45 min</b>. Shows the most recent sessions with VR start/end, gain/loss, and IM/TR averages.
           </div>
-        </div>
-        <div class="muted" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <span>Page</span>
-          <button id="btnPrev" type="button" class="navAction" style="padding:6px 10px;">◀</button>
-          <span><b id="pageInfo">–</b></span>
-          <button id="btnNext" type="button" class="navAction" style="padding:6px 10px;">▶</button>
-        </div>
-      </div>
+</div>
+<div class="muted" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+<span>Page</span>
+<button class="navAction" id="btnPrev" style="padding:6px 10px;" type="button">◀</button>
+<span><b id="pageInfo">–</b></span>
+<button class="navAction" id="btnNext" style="padding:6px 10px;" type="button">▶</button>
+</div>
+</div>
 <div id="sessionList" style="margin-top:12px;"></div>
-    </div>
-
-  </div>
-
+</div>
+</div>
 <script>
   // ========= UI Helpers =========
   const $ = (id) => document.getElementById(id);
@@ -103,6 +88,34 @@
   function dbg(msg){
     if (!$debug) return;
     $debug.textContent = msg || "";
+  }
+
+  // ========= Global Settings =========
+  // Filters out "early" low-VR matches from ALL session calculations.
+  // Stored locally (no DB changes): localStorage key "mkwt_min_vr_filter".
+  function getMinVrFilter(){
+    try{
+      const v = parseInt(localStorage.getItem("mkwt_min_vr_filter") || "0", 10);
+      return Number.isFinite(v) && v > 0 ? v : 0;
+    }catch(e){
+      return 0;
+    }
+  }
+
+  function passesMinVrFilter(match, minVr){
+    try{
+      const min = Number(minVr || 0);
+      if (!min || min <= 0) return true;
+      const after = Number(match?.vr_after);
+      const delta = Number(match?.vr_change || 0);
+      if (!Number.isFinite(after)) return true; // keep if unknown
+      const before = after - (Number.isFinite(delta) ? delta : 0);
+      if (Number.isFinite(before) && before < min) return false;
+      if (after < min) return false;
+      return true;
+    }catch(e){
+      return true;
+    }
   }
 
     // ========= Supabase (localStorage + sessionStorage) =========
@@ -185,6 +198,10 @@ async function requireSession(){
     } catch (e) {
       console.warn("[sessions] load matches failed", e);
       setStatus("Could not load matches.", false);
+    }
+    const minVr = getMinVrFilter();
+    if (minVr > 0) {
+      return all.filter(m => passesMinVrFilter(m, minVr));
     }
     return all;
   }
@@ -397,7 +414,6 @@ async function requireSession(){
 
   main();
 </script>
-
 <script>
   (function(){
     const p = (location.pathname.split("/").pop() || "").toLowerCase();
@@ -407,8 +423,6 @@ async function requireSession(){
     });
   })();
 </script>
-
-
 <!-- MKWT Shared Nav Actions -->
 <script>
 (function(){
@@ -728,6 +742,5 @@ function wireNav(){
   else wireNav();
 })();
 </script>
-
 </body>
 </html>

@@ -1,33 +1,23 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MKWT – App</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  
-  
-
-  <link rel="stylesheet" href="mkwt_theme_v3.css">
-
-  <style>
-    .profileTop{ display:flex; align-items:flex-start; justify-content:center;
-      flex-wrap:wrap; gap:12px; }
-    .readyPill{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background: rgba(124,255,124,.12);
-      color:#caffca;
-      font-weight:900;
-      letter-spacing:.3px;
-      user-select:none;
-      white-space:nowrap;
-      margin-top:2px;
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta name="theme-color" content="#07080a"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<title>MKWT – App</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="mkwt_theme_v3.css" rel="stylesheet"/>
+<style>
+    .profileTop{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:12px;
+      text-align:center;
     }
+    .profileTop > div{ text-align:center; }
     .statGrid{
       display:grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -35,9 +25,8 @@
       margin-top:12px;
     }
     .statBox{
-      /* keep profile stat cards in the same light-grey glass tone as Stats/Sessions */
-      border:1px solid rgba(255,255,255,0.06);
-      background: rgba(255,255,255,0.04);
+      border:1px solid var(--border);
+      background: var(--card-2);
       border-radius: 14px;
       padding: 8px 9px;
       min-width: 0;
@@ -72,8 +61,7 @@
       padding: 12px 12px;
       border-radius: 14px;
       border: 1px solid var(--border);
-      /* keep consistent with Stats/Sessions "glass" cards */
-      background: rgba(255,255,255,0.04);
+      background: var(--card-2);
       text-align:center;
     }
     .bestTrackLabel{
@@ -130,14 +118,14 @@
       .statLabel{ font-size: 9px; }
       .statValue{ font-size: 17px; }
 
-      /* Keep LARGE cards (profile/stats containers) in the same light-grey glass style as Stats/Sessions */
-      .card{ background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
-      .statBox{ background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+      /* Mobile: keep everything theme-driven (important for Light mode) */
+      .card{ background: var(--card); border-color: var(--border); }
+      .statBox{ background: var(--card); border-color: var(--border); }
 
-      /* Only match entries cards: true black */
-      .mcard{ background: rgba(0,0,0,0.85); border-color: rgba(255,255,255,0.08); backdrop-filter:none; }
-      .mcard__infoPop{ background: rgba(0,0,0,0.92); border-color: rgba(255,255,255,0.10); }
-      .mcard__infoBtn{ background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+      /* Match entries cards follow theme, too */
+      .mcard{ background: var(--card); border-color: var(--border); backdrop-filter:none; }
+      .mcard__infoPop{ background: var(--card-2); border-color: var(--border); }
+      .mcard__infoBtn{ background: var(--infoBtn-bg); border-color: var(--infoBtn-border); }
 
 
 
@@ -200,9 +188,9 @@
       width:18px;
       height:18px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: var(--card-2);
-      color:rgba(255,255,255,0.85);
+      border:1px solid var(--infoBtn-border);
+      background: var(--infoBtn-bg);
+      color: var(--infoBtn-text);
       font-size:11px;
       line-height:1;
       display:inline-flex;
@@ -220,8 +208,8 @@
       max-width:72%;
       padding:8px 10px;
       border-radius:12px;
-      background: rgba(0,0,0,0.88);
-      border:1px solid rgba(255,255,255,0.10);
+      background: var(--card-2);
+      border:1px solid var(--border);
       font-size:12px;
       letter-spacing:0.02em;
       text-transform:none;
@@ -295,8 +283,8 @@
   font-size:11px;
   padding:4px 8px;
   border-radius:999px;
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.08);
+  background: var(--hover);
+  border:1px solid var(--border);
   opacity:0.85;
   white-space:nowrap;
 }
@@ -304,7 +292,7 @@
     .mcard__vr{
       font-size:13px;
       font-weight:850;
-      color: rgba(255,255,255,0.90);
+      color: var(--text);
       display:flex;
       gap:6px;
       align-items:baseline;
@@ -334,9 +322,9 @@
       width:26px;
       height:26px;
       border-radius:10px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(0,0,0,0.20);
-      color:rgba(255,255,255,0.85);
+      border:1px solid var(--border);
+      background: var(--hover);
+      color: var(--text);
       font-size:12px;
       line-height:1;
       display:flex;
@@ -357,414 +345,366 @@
 
       /* Mobile card color: match top nav */
       .mcard{
-        background: var(--navBg);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: var(--card);
+        border: 1px solid var(--border);
         backdrop-filter: blur(10px);
       }
       .mcard__btn{
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.10);
+        background: var(--infoBtn-bg);
+        border: 1px solid var(--border);
       }
       .mcard__infoBtn{
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.10);
+        background: var(--infoBtn-bg);
+        border: 1px solid var(--border);
       }
       .mcard__infoPop{
-        background: rgba(15,17,21,0.92);
-        border: 1px solid rgba(255,255,255,0.10);
+        background: var(--card-2);
+        border: 1px solid var(--border);
       }
       .mcard__meta{ font-size:9px; }
     }
 </style>
 </head>
-
 <body>
-
-  <nav class="nav">
-  <div class="navInner">
-    <div class="brand">MKWT</div>
-
-    <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">Stats</a>
-    <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink navIcon" href="settings.html" aria-label="Settings" title="Settings">⚙</a>
-  </div>
+<nav class="nav">
+<div class="navInner">
+<div class="brand">MKWT</div>
+<a class="navLink" href="tracker.html">Tracker</a>
+<a class="navLink" href="stats.html">Stats</a>
+<a class="navLink" href="sessions.html">Sessions</a>
+<a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">⚙</a>
+</div>
 </nav>
-
 <div class="wrap">
-
-    <div class="card profileCard">
-      <div class="profileTop">
-        <div>
-          <h2 style="margin:0 0 6px 0;">MKWT</h2>
-          <div class="muted" id="userInfo">Loading session…</div>
-        </div>
-        <div class="readyPill" id="readyPill">Ready</div>
-      </div>
-
-      <div class="statGrid" aria-label="Profile quick stats">
-        <div class="statBox">
-          <div class="statLabel">Current</div>
-          <div class="statValue" id="statCurrentVr">–</div>
-        </div>
-        <div class="statBox">
-          <div class="statLabel">Peak</div>
-          <div class="statValue" id="statHighestVr">–</div>
-        </div>
-        <div class="statBox">
-          <div class="statLabel">Average</div>
-          <div class="statValue" id="statAvg50Vr">–</div>
-        </div>
-        <div class="statBox">
-          <div class="statLabel">Matches</div>
-          <div class="statValue" id="statMatchCount">–</div>
-        </div>
-
-        <div class="statBox">
-          <div class="statLabel">W-Streak</div>
-          <div class="statValue" id="statWinStreak">–</div>
-        </div>
-        <div class="statBox">
-          <div class="statLabel">L-Streak</div>
-          <div class="statValue" id="statLoseStreak">–</div>
-        </div>
-        <div class="statBox">
-          <div class="statLabel">Max Gain</div>
-          <div class="statValue" id="statMaxGain">–</div>
-        </div>
-        <div class="statBox">
-          <div class="statLabel">MAX Loss</div>
-          <div class="statValue" id="statMaxLoss">–</div>
-        </div>
-      </div>
-
-      <div class="bestTrackLine">
-        <div class="bestTrackLabel">Best Track</div>
-        <div class="bestTrackName" id="bestTrackName">–</div>
-        <div class="bestTrackMeta" id="bestTrackMeta">–</div>
-      </div>
-
-      <div class="muted hidden" id="status"></div>
-      <div class="muted hidden" id="debug"></div>
-    </div>
-
-    <!-- SETUP (nur beim ersten Login, wenn kein Profil existiert) -->
-    <div class="card hidden" id="setupCard">
-      <h3 style="margin-top:0;">Create profile (one time)</h3>
-      <div class="row">
-        <div class="field">
-          <label class="muted">Nickname</label>
-          <input id="setupNickname" placeholder="z.B. Nickname" />
-        </div>
-        <div class="field">
-          <label class="muted">Aktuelle VR</label>
-          <input id="setupVr" type="number" inputmode="numeric" placeholder="z.B. 8500" />
-          <div class="muted">Wenn leer: Default ist 8500.</div>
-        </div>
-      </div>
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button class="btn" id="btnCreateProfile">Create profile</button>
-      </div>
-    </div>
-
-    <!-- SETTINGS (immer verfügbar, wenn Profil existiert) -->
-    
+<div class="card profileCard">
+<div class="profileTop">
+<div>
+<h2 style="margin:0 0 6px 0;">MKWT</h2>
+<div class="muted" id="userInfo">Loading session…</div>
+</div>
+</div>
+<div aria-label="Profile quick stats" class="statGrid">
+<div class="statBox">
+<div class="statLabel">Current</div>
+<div class="statValue" id="statCurrentVr">–</div>
+</div>
+<div class="statBox">
+<div class="statLabel">Peak</div>
+<div class="statValue" id="statHighestVr">–</div>
+</div>
+<div class="statBox">
+<div class="statLabel">Average</div>
+<div class="statValue" id="statAvg50Vr">–</div>
+</div>
+<div class="statBox">
+<div class="statLabel">Matches</div>
+<div class="statValue" id="statMatchCount">–</div>
+</div>
+<div class="statBox">
+<div class="statLabel">W-Streak</div>
+<div class="statValue" id="statWinStreak">–</div>
+</div>
+<div class="statBox">
+<div class="statLabel">L-Streak</div>
+<div class="statValue" id="statLoseStreak">–</div>
+</div>
+<div class="statBox">
+<div class="statLabel">Max Gain</div>
+<div class="statValue" id="statMaxGain">–</div>
+</div>
+<div class="statBox">
+<div class="statLabel">MAX Loss</div>
+<div class="statValue" id="statMaxLoss">–</div>
+</div>
+</div>
+<div class="bestTrackLine">
+<div class="bestTrackLabel">Best Track</div>
+<div class="bestTrackName" id="bestTrackName">–</div>
+<div class="bestTrackMeta" id="bestTrackMeta">–</div>
+</div>
+<div class="muted hidden" id="status"></div>
+<div class="muted hidden" id="debug"></div>
+</div>
+<!-- SETUP (nur beim ersten Login, wenn kein Profil existiert) -->
+<div class="card hidden" id="setupCard">
+<h3 style="margin-top:0;">Create profile (one time)</h3>
+<div class="row">
+<div class="field">
+<label class="muted">Nickname</label>
+<input id="setupNickname" placeholder="z.B. Nickname"/>
+</div>
+<div class="field">
+<label class="muted">Aktuelle VR</label>
+<input id="setupVr" inputmode="numeric" placeholder="z.B. 8500" type="number"/>
+<div class="muted">Wenn leer: Default ist 8500.</div>
+</div>
+</div>
+<div style="display:flex; gap:10px; margin-top:12px;">
+<button class="btn" id="btnCreateProfile">Create profile</button>
+</div>
+</div>
+<!-- SETTINGS (immer verfügbar, wenn Profil existiert) -->
 <!-- settingsCard removed (moved to settings.html) -->
-
-
-    <!-- MATCH INPUT -->
-    <div class="card hidden" id="matchCard">
-      <h3 style="margin-top:0;">Match Tracker</h3>
-
-      <!-- Mode toggle: Intermission vs 3-Lap -->
-      <div class="modeToggle" role="tablist" aria-label="Match mode">
-        <button type="button" class="modeBtn isActive" data-mode="intermission" aria-selected="true">Intermission</button>
-        <button type="button" class="modeBtn" data-mode="3lap" aria-selected="false">3-Lap track</button>
-      </div>
-
-
-      <!-- Intermission selects: keep both dropdowns in ONE row on mobile -->
-      <div class="row inlineSelects" id="intermissionSelectRow">
-	  <div class="field" id="fieldIntermissionStart">
-    <label class="muted" id="labelIntermissionStart">Intermission start</label>
-    <select id="intermission">
-      <option value="">Intermission start</option>
-      <option>Acorn Heights</option>
-      <option>Airship Fortress</option>
-      <option>Boo Cinema</option>
-      <option>Bowser's Castle</option>
-      <option>Cheep Cheep Falls</option>
-      <option>Choco Mountain</option>
-      <option>Crown City</option>
-      <option>Dandelion Depths</option>
-      <option>Desert Hills</option>
-      <option>Dino Dino Jungle</option>
-      <option>DK Pass</option>
-      <option>DK Spaceport</option>
-      <option>Dry Bones Burnout</option>
-      <option>Faraway Oasis</option>
-      <option>Great ? Block Ruins</option>
-      <option>Koopa Troopa Beach</option>
-      <option>Mario Bros. Circuit</option>
-      <option>Mario Circuit</option>
-      <option>Moo Moo Meadows</option>
-      <option>Peach Beach</option>
-      <option>Peach Stadium</option>
-      <option>Rainbow Road</option>
-      <option>Salty Salty Speedway</option>
-      <option>Shy Guy Bazaar</option>
-      <option>Sky-High Sundae</option>
-      <option>Starview Peak</option>
-      <option>Toad's Factory</option>
-      <option>Wario Shipyard</option>
-      <option>Wario Stadium</option>
-      <option>Whistlestop Summit</option>
-    </select>
-  </div>
-
-	  <div class="field hasStratIcon" id="fieldTrack">
-    <label class="muted" id="labelTrack">Intermission end</label>
-	    <button type="button" class="stratBtn" id="stratBtnTrack" data-strat-target="track" aria-label="Strategy">?</button>
-    <select id="track">
-      <option value="" id="trackPlaceholder">Intermission end</option>
-      <option>Acorn Heights</option>
-      <option>Airship Fortress</option>
-      <option>Boo Cinema</option>
-      <option>Bowser's Castle</option>
-      <option>Cheep Cheep Falls</option>
-      <option>Choco Mountain</option>
-      <option>Crown City</option>
-      <option>Dandelion Depths</option>
-      <option>Desert Hills</option>
-      <option>Dino Dino Jungle</option>
-      <option>DK Pass</option>
-      <option>DK Spaceport</option>
-      <option>Dry Bones Burnout</option>
-      <option>Faraway Oasis</option>
-      <option>Great ? Block Ruins</option>
-      <option>Koopa Troopa Beach</option>
-      <option>Mario Bros. Circuit</option>
-      <option>Mario Circuit</option>
-      <option>Moo Moo Meadows</option>
-      <option>Peach Beach</option>
-      <option>Peach Stadium</option>
-      <option>Rainbow Road</option>
-      <option>Salty Salty Speedway</option>
-      <option>Shy Guy Bazaar</option>
-      <option>Sky-High Sundae</option>
-      <option>Starview Peak</option>
-      <option>Toad's Factory</option>
-      <option>Wario Shipyard</option>
-      <option>Wario Stadium</option>
-      <option>Whistlestop Summit</option>
-    </select>
-  </div>
+<!-- MATCH INPUT -->
+<div class="card hidden" id="matchCard">
+<h3 style="margin-top:0;">Match Tracker</h3>
+<!-- Mode toggle: Intermission vs 3-Lap -->
+<div aria-label="Match mode" class="modeToggle" role="tablist">
+<button aria-selected="true" class="modeBtn isActive" data-mode="intermission" type="button">Intermission</button>
+<button aria-selected="false" class="modeBtn" data-mode="3lap" type="button">3-Lap track</button>
 </div>
-
-      <div class="row compactRow">
-        <div class="field">
-          <label class="muted">VR Δ</label>
-          <div class="vr-delta-wrap">
-            <button type="button" id="vrSignToggle" class="vr-sign" aria-label="Toggle negative">−</button>
-            <input id="vrChange" placeholder="0" type="text" inputmode="numeric" pattern="[0-9]*">
-          </div>
-        </div>
-        <div class="field">
-          <label class="muted">new total VR</label>
-          <input id="vrAfterInput" placeholder="z.B. 7980" type="text" inputmode="numeric" pattern="[0-9]*">
-          <div class="muted"></div>
-        </div>
-
-        <div class="field">
-          <label class="muted">Opponents</label>
-          <select id="opponents">
-            <option value="">—</option>
-            <optgroup label="Popular (15–23)">
-              <option>15</option><option>16</option><option>17</option><option>18</option><option>19</option>
-              <option>20</option><option>21</option><option>22</option><option>23</option>
-            </optgroup>
-            <optgroup label="Alle (1–23)">
-              <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
-              <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
-              <option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
-              <option>19</option><option>20</option><option>21</option><option>22</option><option>23</option>
-            </optgroup>
-          </select>
-        </div>
-
-        <div class="field">
-          <label class="muted">Placement</label>
-          <select id="placement">
-            <option value="">—</option>
-            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
-            <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
-            <option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
-            <option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="matchFormActions">
-        <button class="btn2" id="btnClear">Clear</button>
-        <button class="btn" id="btnSaveMatch">Save</button>
-      </div>
-    </div>
-
-    <!-- MATCH LIST -->
-    <div class="card hidden" id="listCard">
-  <h3 style="margin-top:0;">Recent matches</h3>
-  <div class="muted" style="margin-bottom:10px;">
-    
-  </div>
-
-  <div class="matchListScroll">
-  <div class="matchTableWrap">
-    <table>
-    <thead>
-        <tr>
-          <th>Match #</th>
-          <th>Created</th>
-          <th>Intermission</th>
-          <th>Track</th>
-          <th>VR Δ</th>
-          <th>VR after</th>
-          <th>Opp</th>
-          <th>Place</th>
-                    <th style="text-align:center;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="rows">
-        <tr><td colspan="10" class="muted">Loading…</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="matchCards" id="matchCards"></div>
-
-    <div class="row" style="align-items:center; margin-top:10px;">
-  <div class="muted" id="pageInfo">Page 1</div>
-  <div style="display:flex; gap:10px; justify-content:flex-end;">
-    <button class="btn2" id="btnPrev">← Prev</button>
-    <button class="btn2" id="btnNext">Next →</button>
-  </div>
+<!-- Intermission selects: keep both dropdowns in ONE row on mobile -->
+<div class="row inlineSelects" id="intermissionSelectRow">
+<div class="field" id="fieldIntermissionStart">
+<label class="muted" id="labelIntermissionStart">Intermission start</label>
+<select id="intermission">
+<option value="">Intermission start</option>
+<option>Acorn Heights</option>
+<option>Airship Fortress</option>
+<option>Boo Cinema</option>
+<option>Bowser's Castle</option>
+<option>Cheep Cheep Falls</option>
+<option>Choco Mountain</option>
+<option>Crown City</option>
+<option>Dandelion Depths</option>
+<option>Desert Hills</option>
+<option>Dino Dino Jungle</option>
+<option>DK Pass</option>
+<option>DK Spaceport</option>
+<option>Dry Bones Burnout</option>
+<option>Faraway Oasis</option>
+<option>Great ? Block Ruins</option>
+<option>Koopa Troopa Beach</option>
+<option>Mario Bros. Circuit</option>
+<option>Mario Circuit</option>
+<option>Moo Moo Meadows</option>
+<option>Peach Beach</option>
+<option>Peach Stadium</option>
+<option>Rainbow Road</option>
+<option>Salty Salty Speedway</option>
+<option>Shy Guy Bazaar</option>
+<option>Sky-High Sundae</option>
+<option>Starview Peak</option>
+<option>Toad's Factory</option>
+<option>Wario Shipyard</option>
+<option>Wario Stadium</option>
+<option>Whistlestop Summit</option>
+</select>
 </div>
-  </div>
+<div class="field hasStratIcon" id="fieldTrack">
+<label class="muted" id="labelTrack">Intermission end</label>
+<button aria-label="Strategy" class="stratBtn" data-strat-target="track" id="stratBtnTrack" type="button">?</button>
+<select id="track">
+<option id="trackPlaceholder" value="">Intermission end</option>
+<option>Acorn Heights</option>
+<option>Airship Fortress</option>
+<option>Boo Cinema</option>
+<option>Bowser's Castle</option>
+<option>Cheep Cheep Falls</option>
+<option>Choco Mountain</option>
+<option>Crown City</option>
+<option>Dandelion Depths</option>
+<option>Desert Hills</option>
+<option>Dino Dino Jungle</option>
+<option>DK Pass</option>
+<option>DK Spaceport</option>
+<option>Dry Bones Burnout</option>
+<option>Faraway Oasis</option>
+<option>Great ? Block Ruins</option>
+<option>Koopa Troopa Beach</option>
+<option>Mario Bros. Circuit</option>
+<option>Mario Circuit</option>
+<option>Moo Moo Meadows</option>
+<option>Peach Beach</option>
+<option>Peach Stadium</option>
+<option>Rainbow Road</option>
+<option>Salty Salty Speedway</option>
+<option>Shy Guy Bazaar</option>
+<option>Sky-High Sundae</option>
+<option>Starview Peak</option>
+<option>Toad's Factory</option>
+<option>Wario Shipyard</option>
+<option>Wario Stadium</option>
+<option>Whistlestop Summit</option>
+</select>
 </div>
-    <!-- EDIT DIALOG -->
-    <dialog id="editDlg">
-    <div style="padding:16px; border-bottom:1px solid #2d3442; display:flex; justify-content:center;
+</div>
+<div class="row compactRow">
+<div class="field">
+<label class="muted">VR Δ</label>
+<div class="vr-delta-wrap">
+<button aria-label="Toggle negative" class="vr-sign" id="vrSignToggle" type="button">−</button>
+<input id="vrChange" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="text"/>
+</div>
+</div>
+<div class="field">
+<label class="muted">new total VR</label>
+<input id="vrAfterInput" inputmode="numeric" pattern="[0-9]*" placeholder="z.B. 7980" type="text"/>
+<div class="muted"></div>
+</div>
+<div class="field">
+<label class="muted">Opponents</label>
+<select id="opponents">
+<option value="">—</option>
+<optgroup label="Popular (15–23)">
+<option>15</option><option>16</option><option>17</option><option>18</option><option>19</option>
+<option>20</option><option>21</option><option>22</option><option>23</option>
+</optgroup>
+<optgroup label="Alle (1–23)">
+<option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+<option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+<option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
+<option>19</option><option>20</option><option>21</option><option>22</option><option>23</option>
+</optgroup>
+</select>
+</div>
+<div class="field">
+<label class="muted">Placement</label>
+<select id="placement">
+<option value="">—</option>
+<option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+<option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+<option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
+<option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option>
+</select>
+</div>
+</div>
+<div class="matchFormActions">
+<button class="btn2" id="btnClear">Clear</button>
+<button class="btn" id="btnSaveMatch">Save</button>
+</div>
+</div>
+<!-- MATCH LIST -->
+<div class="card hidden" id="listCard">
+<h3 style="margin-top:0;">Recent matches</h3>
+<div class="muted" style="margin-bottom:10px;">
+</div>
+<div class="matchListScroll">
+<div class="matchTableWrap">
+<table>
+<thead>
+<tr>
+<th>Match #</th>
+<th>Created</th>
+<th>Intermission</th>
+<th>Track</th>
+<th>VR Δ</th>
+<th>VR after</th>
+<th>Opp</th>
+<th>Place</th>
+<th style="text-align:center;">Actions</th>
+</tr>
+</thead>
+<tbody id="rows">
+<tr><td class="muted" colspan="10">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+<div class="matchCards" id="matchCards"></div>
+<div class="row" style="align-items:center; margin-top:10px;">
+<div class="muted" id="pageInfo">Page 1</div>
+<div style="display:flex; gap:10px; justify-content:flex-end;">
+<button class="btn2" id="btnPrev">← Prev</button>
+<button class="btn2" id="btnNext">Next →</button>
+</div>
+</div>
+</div>
+</div>
+<!-- EDIT DIALOG -->
+<dialog id="editDlg">
+<div style="padding:16px; border-bottom:1px solid #2d3442; display:flex; justify-content:center;
       flex-wrap:wrap; align-items:center;">
-        <div>
-        <div style="font-weight:800;">Edit match</div>
-        <div class="muted" id="editMeta">—</div>
-        </div>
-        <button class="btn2" id="btnCloseDlg">✕</button>
-    </div>
-
-    <div style="padding:16px;">
-        <div class="modeToggleRow">
-          <button type="button" class="modeBtnSmall isActive" id="editModeIntermission" data-mode="intermission">Intermission</button>
-          <button type="button" class="modeBtnSmall" id="editMode3lap" data-mode="3lap">3-Lap track</button>
-        </div>
-        <div class="row">
-        <div class="field" id="editIntermissionField">
-            <label class="muted" id="editIntermissionLabel">Intermission start</label>
-            <select id="editIntermission"></select>
-        </div>
-        <div class="field">
-            <label class="muted" id="editTrackLabel">Intermission end</label>
-            <select id="editTrack"></select>
-        </div>
-        </div>
-
-        <div class="row compactRow">
-        <div class="field">
-            <label class="muted">VR Δ</label>
-            <div class="vr-delta-wrap">
-              <button type="button" id="editVrSignToggle" class="vr-sign" aria-label="Toggle negative">−</button>
-              <input id="editVrChange" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" />
-            </div>
-        </div>
-        <div class="field">
-            <label class="muted">new total VR</label>
-            <input id="editVrAfter" type="number" inputmode="numeric" placeholder="e.g. 9000" />
-        </div>
-        <div class="field">
-            <label class="muted">total opponents</label>
-            <input id="editOpponents"
-       type="number"
-       min="1"
-       max="23"
-       inputmode="numeric"
-       list="editOppList"
-       placeholder="1–23" />
-
+<div>
+<div style="font-weight:800;">Edit match</div>
+<div class="muted" id="editMeta">—</div>
+</div>
+<button class="btn2" id="btnCloseDlg">✕</button>
+</div>
+<div style="padding:16px;">
+<div class="modeToggleRow">
+<button class="modeBtnSmall isActive" data-mode="intermission" id="editModeIntermission" type="button">Intermission</button>
+<button class="modeBtnSmall" data-mode="3lap" id="editMode3lap" type="button">3-Lap track</button>
+</div>
+<div class="row">
+<div class="field" id="editIntermissionField">
+<label class="muted" id="editIntermissionLabel">Intermission start</label>
+<select id="editIntermission"></select>
+</div>
+<div class="field">
+<label class="muted" id="editTrackLabel">Intermission end</label>
+<select id="editTrack"></select>
+</div>
+</div>
+<div class="row compactRow">
+<div class="field">
+<label class="muted">VR Δ</label>
+<div class="vr-delta-wrap">
+<button aria-label="Toggle negative" class="vr-sign" id="editVrSignToggle" type="button">−</button>
+<input id="editVrChange" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" type="text">
+</input></div>
+</div>
+<div class="field">
+<label class="muted">new total VR</label>
+<input id="editVrAfter" inputmode="numeric" placeholder="e.g. 9000" type="number">
+</input></div>
+<div class="field">
+<label class="muted">total opponents</label>
+<input id="editOpponents" inputmode="numeric" list="editOppList" max="23" min="1" placeholder="1–23" type="number"/>
 <datalist id="editOppList">
-  <option value="8"></option>
-  <option value="12"></option>
-  <option value="16"></option>
-  <option value="18"></option>
-  <option value="20"></option>
-  <option value="21"></option>
-  <option value="22"></option>
-  <option value="23"></option>
+<option value="8"></option>
+<option value="12"></option>
+<option value="16"></option>
+<option value="18"></option>
+<option value="20"></option>
+<option value="21"></option>
+<option value="22"></option>
+<option value="23"></option>
 </datalist>
-        </div>
-        <div class="field">
-            <label class="muted">Placement (1–24)</label>
-           <input id="editPlacement"
-       type="number"
-       min="1"
-       max="24"
-       inputmode="numeric"
-       list="editPlaceList"
-       placeholder="1–24" />
-
+</div>
+<div class="field">
+<label class="muted">Placement (1–24)</label>
+<input id="editPlacement" inputmode="numeric" list="editPlaceList" max="24" min="1" placeholder="1–24" type="number"/>
 <datalist id="editPlaceList">
-  <option value="1"></option>
-  <option value="2"></option>
-  <option value="3"></option>
-  <option value="4"></option>
-  <option value="5"></option>
-  <option value="6"></option>
-  <option value="7"></option>
-  <option value="8"></option>
-  <option value="9"></option>
-  <option value="10"></option>
-  <option value="11"></option>
-  <option value="12"></option>
-  <option value="13"></option>
-  <option value="14"></option>
-  <option value="15"></option>
-  <option value="16"></option>
-  <option value="17"></option>
-  <option value="18"></option>
-  <option value="19"></option>
-  <option value="20"></option>
-  <option value="21"></option>
-  <option value="22"></option>
-  <option value="23"></option>
-  <option value="24"></option>
+<option value="1"></option>
+<option value="2"></option>
+<option value="3"></option>
+<option value="4"></option>
+<option value="5"></option>
+<option value="6"></option>
+<option value="7"></option>
+<option value="8"></option>
+<option value="9"></option>
+<option value="10"></option>
+<option value="11"></option>
+<option value="12"></option>
+<option value="13"></option>
+<option value="14"></option>
+<option value="15"></option>
+<option value="16"></option>
+<option value="17"></option>
+<option value="18"></option>
+<option value="19"></option>
+<option value="20"></option>
+<option value="21"></option>
+<option value="22"></option>
+<option value="23"></option>
+<option value="24"></option>
 </datalist>
-        </div>
-        </div>
-
-        <div class="muted" style="margin-top:10px;">
+</div>
+</div>
+<div class="muted" style="margin-top:10px;">
         Note: Enter VR Δ OR new total VR. Your current VR will be adjusted automatically.
         </div>
-    </div>
-
-    <div style="padding:16px; border-top:1px solid #2d3442; display:flex; gap:10px; justify-content:flex-end;">
-        <button class="btn2" id="btnCancelDlg">Cancel</button>
-        <button class="btn" id="btnSaveDlg">Save</button>
-    </div>
-    </dialog>
-
-	<!-- Single strategy popup (content set dynamically) -->
-	<div id="stratPopup" class="stratPopup" role="dialog" aria-hidden="true">
-	  <div class="stratPopup__body" id="stratPopupBody">coming soon</div>
-	</div>
-
+</div>
+<div style="padding:16px; border-top:1px solid #2d3442; display:flex; gap:10px; justify-content:flex-end;">
+<button class="btn2" id="btnCancelDlg">Cancel</button>
+<button class="btn" id="btnSaveDlg">Save</button>
+</div>
+</dialog>
+<!-- Single strategy popup (content set dynamically) -->
+<div aria-hidden="true" class="stratPopup" id="stratPopup" role="dialog">
+<div class="stratPopup__body" id="stratPopupBody">coming soon</div>
+</div>
 <script>
 
 // ===== Suggestion (next Intermission start) =====
@@ -2169,7 +2109,7 @@ const { error: insErr } = await supabaseClient.from("matches").insert({
       show($("setupCard"), true);
       show($("matchCard"), false);
       show($("listCard"), false);
-      try { $("readyPill").textContent = "Setup"; } catch(e) {}
+      // removed ready pill
       $("statCurrentVr").textContent = "–";
       return;
     }
@@ -2178,7 +2118,7 @@ const { error: insErr } = await supabaseClient.from("matches").insert({
     show($("matchCard"), true);
     show($("listCard"), true);
 
-    try { $("readyPill").textContent = "Ready"; } catch(e) {}
+    // removed ready pill
 
     $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     try { await updateProfileQuickStats(); } catch(e) {}
@@ -2556,14 +2496,6 @@ async function deleteMatch(id){
     }
 })();
 </script>
-
-
-
-
-
-
-
-
 <script>
 (function(){
   function wireSelectAll(input){
@@ -2869,8 +2801,6 @@ async function deleteMatch(id){
 })();
 
 </script>
-
-
 <script>
 function setEditMode(mode){
   const bI = document.getElementById('editModeIntermission');
@@ -2893,7 +2823,6 @@ document.addEventListener('click', (e)=>{
   setEditMode(btn.dataset.mode);
 });
 </script>
-
 <script>
   (function(){
     const p = (location.pathname.split("/").pop() || "").toLowerCase();
@@ -2903,8 +2832,6 @@ document.addEventListener('click', (e)=>{
     });
   })();
 </script>
-
-
 <!-- MKWT Shared Nav Actions -->
 <script>
 (function(){
@@ -3100,6 +3027,5 @@ document.addEventListener('click', (e)=>{
   else wireNav();
 })();
 </script>
-
-</body>
+</div></body>
 </html>

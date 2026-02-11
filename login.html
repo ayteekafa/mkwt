@@ -1,22 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta name="theme-color" content="#07080a"/>
+<meta charset="utf-8"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
 <title>MKWT – Login</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-:root{
-  --bg:#0f1115;
-  --card:#1b1f27;
-  --border:#2d3442;
-  --primary:#0af;
-  --text:#fff;
-  --muted:#9aa4b2;
-}
-
 *{box-sizing:border-box}
 html,body{height:100%}
 
@@ -95,34 +86,26 @@ button:hover{opacity:.9}
   color:var(--muted);
 }
 </style>
-</head>
-
+<link href="mkwt_theme_v3.css" rel="stylesheet"/></head>
 <body>
-
 <div class="card">
-  <div class="logo">MKWT</div>
-  <h2>Sign In</h2>
-
-  <div class="field">
-    <label>Email</label>
-    <input id="email" type="email" autocomplete="email">
-  </div>
-
-  <div class="field">
-    <label>Password</label>
-    <input id="password" type="password" autocomplete="current-password">
-  </div>
-
-  <div class="row">
-    <input type="checkbox" id="remember">
-    <label for="remember">Stay signed in</label>
-  </div>
-
-  <button id="btnLogin">Sign In</button>
-
-  <div class="status" id="status"></div>
+<div class="logo">MKWT</div>
+<h2>Sign In</h2>
+<div class="field">
+<label>Email</label>
+<input autocomplete="email" id="email" type="email"/>
 </div>
-
+<div class="field">
+<label>Password</label>
+<input autocomplete="current-password" id="password" type="password"/>
+</div>
+<div class="row">
+<input id="remember" type="checkbox"/>
+<label for="remember">Stay signed in</label>
+</div>
+<button id="btnLogin">Sign In</button>
+<div class="status" id="status"></div>
+</div>
 <script>
 /* ===== SUPABASE (IDENTICAL to tracker.html) ===== */
 const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
@@ -225,6 +208,5 @@ $("btnLogin").onclick = async () => {
 // run on load
 autoRedirectIfSignedIn();
 </script>
-
 </body>
 </html>

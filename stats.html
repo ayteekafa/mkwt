@@ -1,14 +1,15 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MKWT – Stats</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-  <script>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta name="theme-color" content="#07080a"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<title>MKWT – Stats</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<script>
     try {
       if (window.Chart && window.ChartDataLabels) {
         Chart.register(ChartDataLabels);
@@ -20,13 +21,8 @@
       }
     } catch (e) {}
   </script>
-
-  
-  
-
-  <link rel="stylesheet" href="mkwt_theme_v3.css">
-
-  <style>
+<link href="mkwt_theme_v3.css" rel="stylesheet"/>
+<style>
     /* ===== Mobile Chart Fix ===== */
     .chartWrap { position: relative; width: 100%; height: 560px; }
 
@@ -74,9 +70,9 @@
     }
     .td3Card{
       padding: 10px 12px;
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid var(--border);
       border-radius: 12px;
-      background: rgba(0,0,0,0.18);
+      background: var(--card-2);
     }
     .td3Title{
       font-size: 11px;
@@ -108,9 +104,9 @@
       width:18px;
       height:18px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: var(--card-2);
-      color:rgba(255,255,255,0.85);
+      border:1px solid var(--infoBtn-border);
+      background: var(--infoBtn-bg);
+      color: var(--infoBtn-text);
       font-size:11px;
       line-height:1;
       display:inline-flex;
@@ -135,7 +131,7 @@
     .infoOverlay{
       position:fixed;
       inset:0;
-      background: rgba(0,0,0,0.55);
+      background: var(--backdrop);
       z-index: 9999;
       display:flex;
       align-items:flex-start;
@@ -153,10 +149,10 @@
       width:min(560px, 100%);
       margin-top: 10px;
       border-radius: 14px;
-      background: rgba(0,0,0,0.88);
-      border:1px solid rgba(255,255,255,0.10);
+      background: var(--card);
+      border:1px solid var(--border);
       backdrop-filter: blur(10px);
-      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+      box-shadow: var(--shadow);
       padding: 12px 12px 14px;
       position:relative;
     }
@@ -180,212 +176,174 @@
 
     /* Keep icon visually identical to tracker.html (size unchanged). */
 </style>
-
-
 <style>
 .chartBtns button.navAction{
   padding:7px 12px !important;
   border-radius:10px !important;
-  border:1px solid rgba(43,108,255,.75) !important;
-  background:rgba(15,23,42,.85) !important;
-  color:#c7d2fe !important;
+  border:1px solid var(--border) !important;
+  background: var(--card-2) !important;
+  color: var(--text) !important;
   cursor:pointer;
 }
 .chartBtns button.navAction.active{
-  background:#2b6cff !important;
-  color:#fff !important;
+  background: var(--primary) !important;
+  color: var(--primary-text) !important;
 }
 </style>
-
-  <style>
+<style>
     .avgBig{ font-size:1.35em !important; font-weight:900; }
   </style>
 </head>
-
 <body>
-
-  <nav class="nav">
-  <div class="navInner">
-    <div class="brand">MKWT</div>
-
-    <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">Stats</a>
-    <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink navIcon" href="settings.html" aria-label="Settings" title="Settings">⚙</a>
-  </div>
+<nav class="nav">
+<div class="navInner">
+<div class="brand">MKWT</div>
+<a class="navLink" href="tracker.html">Tracker</a>
+<a class="navLink" href="stats.html">Stats</a>
+<a class="navLink" href="sessions.html">Sessions</a>
+<a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">⚙</a>
+</div>
 </nav>
-
 <div class="wrap">
-
-    <div class="card">
-      <div class="topbar">
-        <div>
-          <h2 style="margin:0 0 6px 0;">MKWT – Stats</h2>
-          <div class="muted" id="userInfo">Loading session…</div>
-          <div class="muted">Current VR (Profile): <b id="currentVr">–</b></div>
-          <div class="muted">Matches: <b id="matchCount">–</b></div>
-        </div>
-        </div>
-      <div class="muted" id="status"></div>
-      <div class="muted" id="debug"></div>
-    </div>
-
-    <div class="card">
-      <div class="chartHeader">
-        <h3>VR History</h3>
-        <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('vrHistory')">i</button>
-      </div>
-      <div class="chartWrap"><canvas id="chartVr" height="120"></canvas></div>
-      <div class="muted chartBtns" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <button id="btnVrAll" type="button" class="navAction" style="padding:6px 10px;">Overall</button>
-        <button id="btnVr100" type="button" class="navAction" style="padding:6px 10px;">Last month</button>
-        <button id="btnVr50" type="button" class="navAction" style="padding:6px 10px;">Last week</button>
-      </div>
-
-    <div class="muted" style="margin-top:10px;">Avg VR (selected window): <b id="avgVrWindow" class="avgBig" style="font-size:1.35em;font-weight:700" style="font-size:1.1em">–</b></div>
-    </div>
-
-    <div class="card">
-      <div class="chartHeader">
-        <h3>Performance</h3>
-        <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('performance')">i</button>
-      </div>
-
-      <div class="muted chartBtns" data-btn-group="perfMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <button id="btnPerfTracks" type="button" class="navAction active" style="padding:6px 10px;">Tracks</button>
-        <button id="btnPerfImDestiny" type="button" class="navAction" style="padding:6px 10px;">Intermission Destiny</button>
-        <button id="btnPerfImRoutes" type="button" class="navAction" style="padding:6px 10px;">Intermission Separated</button>
-      </div>
-
-      <div class="chartWrap chartWrapC2"><canvas id="chartPerf"></canvas></div>
-
-      <div class="muted chartBtns" data-btn-group="perfSort" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <button id="btnC2SortAvg" type="button" class="navAction" style="padding:6px 10px;">Average VR gain</button>
-        <button id="btnC2SortWin" type="button" class="navAction" style="padding:6px 10px;">Win rate</button>
-        <button id="btnC2SortCount" type="button" class="navAction" style="padding:6px 10px;">Times played</button>
-        <button id="btnC2SortAlpha" type="button" class="navAction" style="padding:6px 10px;">A–Z</button>
-        <span class="muted" style="opacity:.85;">Click same filter again to reverse.</span>
-      </div>
-
-      <div class="muted" style="margin-top:8px;" id="perfSelected">Tap a bar for details.</div>
-    </div>
-
 <div class="card">
-      <div class="chartHeader">
-        <h3>Track Distribution</h3>
-        <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('trackDistribution')">i</button>
-      </div>
-
-      <div class="muted chartBtns" data-btn-group="c5" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <button id="btnPie5All" type="button" class="navAction" style="padding:6px 10px;">Overall</button>
-        <button id="btnPie5100" type="button" class="navAction" style="padding:6px 10px;">Last month</button>
-        <button id="btnPie550" type="button" class="navAction" style="padding:6px 10px;">Last week</button>
-      </div>
-
-      <div class="pie-wrap" style="max-width:100%; height:220px;">
-        <canvas id="chartPie5"></canvas>
-      </div>
-
-      <div class="td3Wrap">
-        <div class="td3Card">
-          <div class="td3Title">Matches</div>
-          <div class="td3Grid">
-            <div class="td3Metric">
-              <div class="muted">Avg VR</div>
-              <div id="c5AvgAll" class="avgBig">–</div>
-            </div>
-            <div class="td3Metric">
-              <div class="muted">Win rate</div>
-              <div id="c5WinAll" class="avgBig">–</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="td3Card">
-          <div class="td3Title">Tracks</div>
-          <div class="td3Grid">
-            <div class="td3Metric">
-              <div class="muted">Avg VR</div>
-              <div id="c5AvgTrack" class="avgBig">–</div>
-            </div>
-            <div class="td3Metric">
-              <div class="muted">Win rate</div>
-              <div id="c5WinTrack" class="avgBig">–</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="td3Card">
-          <div class="td3Title">Intermission</div>
-          <div class="td3Grid">
-            <div class="td3Metric">
-              <div class="muted">Avg VR</div>
-              <div id="c5AvgIm" class="avgBig">–</div>
-            </div>
-            <div class="td3Metric">
-              <div class="muted">Win rate</div>
-              <div id="c5WinIm" class="avgBig">–</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-
-
+<div class="topbar">
+<div>
+<h2 style="margin:0 0 6px 0;">MKWT – Stats</h2>
+<div class="muted" id="userInfo">Loading session…</div>
+<div class="muted">Current VR (Profile): <b id="currentVr">–</b></div>
+<div class="muted">Matches: <b id="matchCount">–</b></div>
+</div>
+</div>
+<div class="muted" id="status"></div>
+<div class="muted" id="debug"></div>
+</div>
 <div class="card">
-  <div class="chartHeader">
-    <h3>VR Performance Buckets</h3>
-    <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('buckets')">i</button>
-  </div>
-
-  <div class="muted chartBtns" data-btn-group="bucketMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <button id="btnBucketOverall" type="button" class="navAction active" style="padding:6px 10px;">Overall</button>
-    <button id="btnBucketTrack" type="button" class="navAction" style="padding:6px 10px;">Track only</button>
-    <button id="btnBucketIm" type="button" class="navAction" style="padding:6px 10px;">Intermission only</button>
-  </div>
-
-  <div class="chartWrapBuckets"><canvas id="chartBuckets"></canvas></div>
-  <div class="muted" style="margin-top:8px;" id="bucketSelected">Tap a bar for details.</div>
+<div class="chartHeader">
+<h3>VR History</h3>
+<button aria-label="Info" class="mcard__infoBtn" onclick="openInfo('vrHistory')" title="Info" type="button">i</button>
+</div>
+<div class="chartWrap"><canvas height="120" id="chartVr"></canvas></div>
+<div class="muted chartBtns" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<button class="navAction" id="btnVrAll" style="padding:6px 10px;" type="button">Overall</button>
+<button class="navAction" id="btnVr100" style="padding:6px 10px;" type="button">Last month</button>
+<button class="navAction" id="btnVr50" style="padding:6px 10px;" type="button">Last week</button>
+</div>
+<div class="muted" style="margin-top:10px;">Avg VR (selected window): <b class="avgBig" id="avgVrWindow" style="font-size:1.1em">–</b></div>
+</div>
+<div class="card">
+<div class="chartHeader">
+<h3>Performance</h3>
+<button aria-label="Info" class="mcard__infoBtn" onclick="openInfo('performance')" title="Info" type="button">i</button>
+</div>
+<div class="muted chartBtns" data-btn-group="perfMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<button class="navAction active" id="btnPerfTracks" style="padding:6px 10px;" type="button">Tracks</button>
+<button class="navAction" id="btnPerfImDestiny" style="padding:6px 10px;" type="button">Intermission Destiny</button>
+<button class="navAction" id="btnPerfImRoutes" style="padding:6px 10px;" type="button">Intermission Separated</button>
+</div>
+<div class="chartWrap chartWrapC2"><canvas id="chartPerf"></canvas></div>
+<div class="muted chartBtns" data-btn-group="perfSort" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<button class="navAction" id="btnC2SortAvg" style="padding:6px 10px;" type="button">Average VR gain</button>
+<button class="navAction" id="btnC2SortWin" style="padding:6px 10px;" type="button">Win rate</button>
+<button class="navAction" id="btnC2SortCount" style="padding:6px 10px;" type="button">Times played</button>
+<button class="navAction" id="btnC2SortAlpha" style="padding:6px 10px;" type="button">A–Z</button>
+<span class="muted" style="opacity:.85;">Click same filter again to reverse.</span>
+</div>
+<div class="muted" id="perfSelected" style="margin-top:8px;">Tap a bar for details.</div>
+</div>
+<div class="card">
+<div class="chartHeader">
+<h3>Track Distribution</h3>
+<button aria-label="Info" class="mcard__infoBtn" onclick="openInfo('trackDistribution')" title="Info" type="button">i</button>
+</div>
+<div class="muted chartBtns" data-btn-group="c5" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<button class="navAction" id="btnPie5All" style="padding:6px 10px;" type="button">Overall</button>
+<button class="navAction" id="btnPie5100" style="padding:6px 10px;" type="button">Last month</button>
+<button class="navAction" id="btnPie550" style="padding:6px 10px;" type="button">Last week</button>
+</div>
+<div class="pie-wrap" style="max-width:100%; height:220px;">
+<canvas id="chartPie5"></canvas>
+</div>
+<div class="td3Wrap">
+<div class="td3Card">
+<div class="td3Title">Matches</div>
+<div class="td3Grid">
+<div class="td3Metric">
+<div class="muted">Avg VR</div>
+<div class="avgBig" id="c5AvgAll">–</div>
+</div>
+<div class="td3Metric">
+<div class="muted">Win rate</div>
+<div class="avgBig" id="c5WinAll">–</div>
+</div>
+</div>
+</div>
+<div class="td3Card">
+<div class="td3Title">Tracks</div>
+<div class="td3Grid">
+<div class="td3Metric">
+<div class="muted">Avg VR</div>
+<div class="avgBig" id="c5AvgTrack">–</div>
+</div>
+<div class="td3Metric">
+<div class="muted">Win rate</div>
+<div class="avgBig" id="c5WinTrack">–</div>
+</div>
+</div>
+</div>
+<div class="td3Card">
+<div class="td3Title">Intermission</div>
+<div class="td3Grid">
+<div class="td3Metric">
+<div class="muted">Avg VR</div>
+<div class="avgBig" id="c5AvgIm">–</div>
+</div>
+<div class="td3Metric">
+<div class="muted">Win rate</div>
+<div class="avgBig" id="c5WinIm">–</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="chartHeader">
+<h3>VR Performance Buckets</h3>
+<button aria-label="Info" class="mcard__infoBtn" onclick="openInfo('buckets')" title="Info" type="button">i</button>
+</div>
+<div class="muted chartBtns" data-btn-group="bucketMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<button class="navAction active" id="btnBucketOverall" style="padding:6px 10px;" type="button">Overall</button>
+<button class="navAction" id="btnBucketTrack" style="padding:6px 10px;" type="button">Track only</button>
+<button class="navAction" id="btnBucketIm" style="padding:6px 10px;" type="button">Intermission only</button>
+</div>
+<div class="chartWrapBuckets"><canvas id="chartBuckets"></canvas></div>
+<div class="muted" id="bucketSelected" style="margin-top:8px;">Tap a bar for details.</div>
+</div>
+<div class="card">
+<div class="chartHeader">
+<h3>VR History (Weekly)</h3>
+<button aria-label="Info" class="mcard__infoBtn" onclick="openInfo('weekly')" title="Info" type="button">i</button>
+</div>
+<div class="muted chartBtns" data-btn-group="c6" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<button class="navAction" id="btnWkVrAvg" style="padding:6px 10px;" type="button">VR Average</button>
+<button class="navAction" id="btnWkGains" style="padding:6px 10px;" type="button">VR Gain Avg</button>
+</div>
+<!-- Hint moved into the info popup to keep the UI clean -->
+<div class="bar-wrap" style="max-width:100%; height:260px;">
+<canvas id="chartWeekly"></canvas>
+</div>
+</div>
 </div>
 
-
-<div class="card">
-  <div class="chartHeader">
-    <h3>VR History (Weekly)</h3>
-    <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('weekly')">i</button>
-  </div>
-
-  <div class="muted chartBtns" data-btn-group="c6" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <button id="btnWkVrAvg" type="button" class="navAction" style="padding:6px 10px;">VR Average</button>
-    <button id="btnWkGains" type="button" class="navAction" style="padding:6px 10px;">VR Gain Avg</button>
-  </div>
-
-  <!-- Hint moved into the info popup to keep the UI clean -->
-
-  <div class="bar-wrap" style="max-width:100%; height:260px;">
-    <canvas id="chartWeekly"></canvas>
-  </div>
+<!-- Reusable Info Modal (opens via openInfo(chartId)) -->
+<div class="infoOverlay" hidden="" id="infoOverlay">
+<div aria-labelledby="infoTitle" aria-modal="true" class="infoDialog" role="dialog">
+<div class="hdr">
+<div class="title" id="infoTitle">Info</div>
+<button aria-label="Close" class="mcard__infoBtn" id="infoClose" title="Close" type="button">×</button>
 </div>
-
-
-
+<div class="body" id="infoBody"></div>
 </div>
-
-  </div>
-
-  <!-- Reusable Info Modal (opens via openInfo(chartId)) -->
-  <div id="infoOverlay" class="infoOverlay" hidden>
-    <div class="infoDialog" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
-      <div class="hdr">
-        <div id="infoTitle" class="title">Info</div>
-        <button id="infoClose" class="mcard__infoBtn" type="button" aria-label="Close" title="Close">×</button>
-      </div>
-      <div id="infoBody" class="body"></div>
-    </div>
-  </div>
-
+</div>
 <script>
   // ========= UI Helpers =========
   const $ = (id) => document.getElementById(id);
@@ -728,6 +686,35 @@ async function exportBackupJSON() {
 
   let STRATS_META_INTERMISSIONS = null;
 
+  // ========= Global Settings =========
+  // Filters out "early" low-VR matches from ALL stats calculations.
+  // Stored locally (no DB changes): localStorage key "mkwt_min_vr_filter".
+  function getMinVrFilter(){
+    try{
+      const v = parseInt(localStorage.getItem("mkwt_min_vr_filter") || "0", 10);
+      return Number.isFinite(v) && v > 0 ? v : 0;
+    }catch(e){
+      return 0;
+    }
+  }
+
+  function passesMinVrFilter(match, minVr){
+    try{
+      const min = Number(minVr || 0);
+      if (!min || min <= 0) return true;
+      const after = Number(match?.vr_after);
+      const delta = Number(match?.vr_change || 0);
+      // If vr_after is missing, we can't reliably evaluate -> keep it.
+      if (!Number.isFinite(after)) return true;
+      const before = after - (Number.isFinite(delta) ? delta : 0);
+      if (Number.isFinite(before) && before < min) return false;
+      if (after < min) return false;
+      return true;
+    }catch(e){
+      return true;
+    }
+  }
+
   async function loadStratsMeta(){
     if (STRATS_META_INTERMISSIONS) return STRATS_META_INTERMISSIONS;
     try{
@@ -811,6 +798,11 @@ async function exportBackupJSON() {
       from += pageSize;
     }
 
+    // Apply optional Min-VR filter (removes low-VR outliers from stats only)
+    const minVr = getMinVrFilter();
+    if (minVr > 0) {
+      all = all.filter(m => passesMinVrFilter(m, minVr));
+    }
     return all;
   }
 
@@ -877,11 +869,12 @@ async function exportBackupJSON() {
           const tx = x + Math.cos(angle) * r;
           const ty = y + Math.sin(angle) * r;
 
-          // small white stroke for readability
+          // Theme-aware text colors (important for Light mode)
+          const root = getComputedStyle(document.documentElement);
           ctx.lineWidth = 3;
-          ctx.strokeStyle = "rgba(0,0,0,0.35)";
+          ctx.strokeStyle = (root.getPropertyValue('--chart-label-stroke') || 'rgba(0,0,0,0.35)').trim();
           ctx.strokeText(txt, tx, ty);
-          ctx.fillStyle = "white";
+          ctx.fillStyle = (root.getPropertyValue('--chart-label-fill') || '#fff').trim();
           ctx.fillText(txt, tx, ty);
         }
         ctx.restore();
@@ -2068,7 +2061,8 @@ return { center, vrAvg, stats, baseline };
             ctx.moveTo(ca.left, y0);
             ctx.lineTo(ca.right, y0);
             ctx.lineWidth = 3;
-            ctx.strokeStyle = "rgba(255,255,255,0.85)";
+            const root = getComputedStyle(document.documentElement);
+            ctx.strokeStyle = (root.getPropertyValue('--chart-zero-line') || 'rgba(255,255,255,0.85)').trim();
             ctx.setLineDash([7,6]);
             ctx.stroke();
 
@@ -2106,7 +2100,8 @@ const centerDividerPlugin = {
       ctx.save();
 
       // subtle shading for the two middle buckets
-      ctx.fillStyle = "rgba(43,108,255,0.12)";
+      const root = getComputedStyle(document.documentElement);
+      ctx.fillStyle = (root.getPropertyValue('--primary-soft') || 'rgba(43,108,255,0.12)').trim();
       ctx.fillRect(leftEdge, ca.top, rightEdge - leftEdge, ca.bottom - ca.top);
 
       // main divider line
@@ -2114,14 +2109,14 @@ const centerDividerPlugin = {
       ctx.moveTo(boundary, ca.top);
       ctx.lineTo(boundary, ca.bottom);
       ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(43,108,255,0.85)";
+      ctx.strokeStyle = (root.getPropertyValue('--primary-strong') || 'rgba(43,108,255,0.85)').trim();
       ctx.setLineDash([6,6]);
       ctx.stroke();
 
       // small labels
       ctx.setLineDash([]);
       ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillStyle = (root.getPropertyValue('--chart-muted') || 'rgba(255,255,255,0.55)').trim();
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
       ctx.fillText("VR < Avg", ca.left + 4, ca.top + 4);
@@ -2465,11 +2460,6 @@ function renderBuckets(){
     await refreshAll();
   })();
 </script>
-
-
-
-
-
 <script>
   (function(){
     const p = (location.pathname.split("/").pop() || "").toLowerCase();
@@ -2479,7 +2469,6 @@ function renderBuckets(){
     });
   })();
 </script>
-
 <script>
   // Make filter/sort buttons visually consistent: one active per button row
   (function(){
@@ -2493,8 +2482,6 @@ function renderBuckets(){
     });
   })();
 </script>
-
-
 <!-- MKWT Shared Nav Actions -->
 <script>
 (function(){
@@ -2790,6 +2777,5 @@ function renderBuckets(){
   else wireNav();
 })();
 </script>
-
 </body>
 </html>

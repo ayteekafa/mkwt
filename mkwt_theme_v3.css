@@ -33,6 +33,217 @@
   --radius-sm: 10px;
 
   --shadow: 0 10px 30px rgba(0,0,0,.55);
+
+  /* Overlays / sticky UI */
+  --backdrop: rgba(0,0,0,.55);
+  --nav-bg: rgba(0,0,0,.86);
+  --nav-shadow: 0 10px 24px rgba(0,0,0,.35);
+  --nav-text: #cbd5e1;
+
+  /* Chart label colors (for custom canvas text) */
+  --chart-label-fill: #ffffff;
+  --chart-label-stroke: rgba(0,0,0,0.35);
+
+  /* Chart helper colors */
+  --primary-soft: rgba(56,110,207,0.12);
+  --primary-strong: rgba(56,110,207,0.85);
+  --chart-muted: rgba(255,255,255,0.55);
+  --chart-zero-line: rgba(255,255,255,0.85);
+
+  --link: #7dd3fc;
+  --infoBtn-bg: rgba(255,255,255,0.06);
+  --infoBtn-border: rgba(255,255,255,0.16);
+  --infoBtn-text: rgba(255,255,255,0.92);
+
+  /* Segmented mode buttons (Intermission / 3-Lap) */
+  --modeBtn-bg: rgba(255,255,255,0.06);
+  --modeBtn-border: rgba(255,255,255,0.22);
+  --modeBtn-text: rgba(255,255,255,0.92);
+  /* Active state = primary button style (matches Save + nav active) */
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
+
+
+:root[data-theme="light"]{
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --card-2: #f9fafb;
+  --hover: #eef2f7;
+
+  --text: #0b1220;
+  --muted: #475569;
+  --border: #d0d7e2;
+
+  --accent-blue: #2563eb;
+  --accent-red: #dc2626;
+  --accent-white: #0b1220;
+
+  --primary: var(--accent-blue);
+  --primary-text: #ffffff;
+
+  --danger: var(--accent-red);
+  --danger-text: #ffffff;
+
+  --ring: 0 0 0 3px rgba(37,99,235,.20);
+
+  --link: #0369a1;
+
+  --infoBtn-bg: rgba(0,0,0,0.04);
+  --infoBtn-border: rgba(0,0,0,0.16);
+  --infoBtn-text: rgba(0,0,0,0.75);
+
+  /* Segmented mode buttons (Intermission / 3-Lap) */
+  --modeBtn-bg: rgba(0,0,0,0.03);
+  --modeBtn-border: rgba(2,6,23,0.22);
+  --modeBtn-text: #0b1220;
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+
+  --shadow: 0 10px 25px rgba(2,6,23,.10);
+
+  /* Overlays / sticky UI */
+  --backdrop: rgba(15,23,42,.18);
+  --nav-bg: rgba(255,255,255,.88);
+  --nav-shadow: 0 10px 24px rgba(2,6,23,.10);
+  --nav-text: #0b1220;
+
+  /* Chart label colors (for custom canvas text) */
+  --chart-label-fill: #0b1220;
+  --chart-label-stroke: rgba(255,255,255,0.65);
+
+  /* Chart helper colors */
+  --primary-soft: rgba(37,99,235,0.10);
+  --primary-strong: rgba(37,99,235,0.70);
+  --chart-muted: rgba(15,23,42,0.60);
+  --chart-zero-line: rgba(15,23,42,0.35);
+}
+
+
+
+:root[data-theme="dendo"]{
+  /* Dendo = Blue (dezent, Toad-inspired) */
+  --bg: #05060a;
+  --card: #0b0f18;
+  --card-2: #0a0c12;
+  --hover: #0f1524;
+
+  --text: #ffffff;
+  --muted: #a7b3c6;
+  --border: rgba(239,68,68,.38);
+
+  --accent-blue: #2f6fff;
+  --accent-red: #ef4444; /* reserved for danger */
+  --accent-white: #ffffff;
+
+  --primary: #ef4444;
+  --primary-text: #ffffff;
+
+  --danger: #b91c1c;
+  --danger-text: #ffffff;
+
+  --ring: 0 0 0 3px rgba(47,111,255,.22);
+
+  --link: #93c5fd;
+
+  --infoBtn-bg: rgba(47,111,255,0.14);
+  --infoBtn-border: rgba(47,111,255,0.35);
+  --infoBtn-text: rgba(255,255,255,0.95);
+
+  /* Mode toggle (Intermission / 3-Lap) should match card styling */
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+
+  --shadow: 0 12px 34px rgba(0,0,0,.60);
+}
+
+
+:root[data-theme="green"]{
+  /* Green (subtle) */
+  /* slightly tinted backgrounds (not only borders) */
+  --bg: #04100b;
+  --card: #071711;
+  --card-2: #06130e;
+  --hover: #0a1c14;
+
+  --text: #ffffff;
+  --muted: #a7b3c6;
+  --border: rgba(250,204,21,.42);
+
+  --accent-blue: #facc15; /* links etc. */
+  --accent-red: #ff3b30;  /* danger only */
+  --accent-white: #ffffff;
+
+  --primary: #facc15;
+  --primary-text: #071018;
+
+  --danger: #ff3b30;
+  --danger-text: #ffffff;
+
+  --ring: 0 0 0 3px rgba(34,197,94,.22);
+
+  --link: #86efac;
+
+  --infoBtn-bg: rgba(34,197,94,0.14);
+  --infoBtn-border: rgba(34,197,94,0.35);
+  --infoBtn-text: rgba(255,255,255,0.95);
+
+  /* Mode toggle (Intermission / 3-Lap) should match card styling */
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+
+  --shadow: 0 12px 34px rgba(0,0,0,.60);
+}
+
+:root[data-theme="red"]{
+  /* Red (subtle) */
+  /* slightly tinted backgrounds (not only borders) */
+  --bg: #120607;
+  --card: #1a0a0b;
+  --card-2: #16090a;
+  --hover: #220c0e;
+
+  --text: #ffffff;
+  --muted: #a7b3c6;
+  --border: rgba(47,111,255,.35);
+
+  --accent-blue: #93c5fd; /* links etc. */
+  --accent-red: #ff3b30;
+  --accent-white: #ffffff;
+
+  --primary: #2f6fff;
+  --primary-text: #ffffff;
+
+  --danger: #b91c1c; /* deeper red for danger */
+  --danger-text: #ffffff;
+
+  --ring: 0 0 0 3px rgba(255,59,48,.20);
+
+  --link: #fecaca;
+
+  --infoBtn-bg: rgba(255,59,48,0.14);
+  --infoBtn-border: rgba(255,59,48,0.33);
+  --infoBtn-text: rgba(255,255,255,0.95);
+
+  /* Mode toggle (Intermission / 3-Lap) should match card styling */
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+
+  --shadow: 0 12px 34px rgba(0,0,0,.60);
 }
 
 /* Base */
@@ -42,7 +253,9 @@
 html {
   height: 100%;
   overflow-y: scroll;        /* Fix für Breiten-Verschiebung */
-  scrollbar-gutter: stable;  /* modern, falls unterstützt */
+  scrollbar-gutter: stable;    background: var(--bg);
+  color: var(--text);
+/* modern, falls unterstützt */
 }
 
 body {
@@ -50,9 +263,11 @@ body {
   font-family: Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+  min-height: 100%;
+  background-color: var(--bg);
 }
 
-a{ color:#7dd3fc; text-decoration:none; }
+a{ color: var(--link); text-decoration:none; }
 
 /* Layout container */
 .wrap{
@@ -122,12 +337,12 @@ button{ border:none; background:transparent; color:inherit; font:inherit; }
   line-height:1;
 }
 .btn{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
-.btn2{ background: rgba(255,255,255,0.06); color: var(--text); border-color: rgba(56,110,207,.25); }
-.navAction{ background: rgba(255,255,255,0.06); color: var(--text); border-color: rgba(56,110,207,.25); }
+.btn2{ background: var(--infoBtn-bg); color: var(--text); border-color: var(--border); }
+.navAction{ background: var(--infoBtn-bg); color: var(--text); border-color: var(--border); }
 .danger{ background: var(--danger); color: var(--danger-text); border-color: var(--danger); }
 .btn:hover{ filter: brightness(1.05); }
-.btn2:hover{ border-color: rgba(56,110,207,.45); background: rgba(255,255,255,0.08); }
-.navAction:hover{ border-color: rgba(56,110,207,.45); background: rgba(255,255,255,0.08); }
+.btn2:hover{ border-color: var(--primary); background: var(--hover); }
+.navAction:hover{ border-color: var(--primary); background: var(--hover); }
 .navAction.active{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
 .btn:active, .btn2:active, .navAction:active, .danger:active{ transform: translateY(1px); }
 .btn:disabled, .btn2:disabled, .danger:disabled, .navAction:disabled{ opacity:.6; cursor:not-allowed; }
@@ -177,7 +392,7 @@ dialog{
   color: var(--text);
   box-shadow:0 20px 60px rgba(0,0,0,.6);
 }
-dialog::backdrop{ background: rgba(0,0,0,.55); }
+dialog::backdrop{ background: var(--backdrop); }
 
 /* Charts */
 canvas{ background: var(--card-2); border-radius: var(--radius); }
@@ -202,9 +417,10 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   position:sticky;
   top:0;
   z-index:50;
-  background: rgba(0,0,0,.86);
+  background: var(--nav-bg);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--nav-shadow);
 }
 .navInner{
   max-width: var(--page-width);
@@ -225,7 +441,7 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   padding:8px 10px;
   border-radius: var(--radius-sm);
   border:1px solid transparent;
-  color:#cbd5e1;
+  color: var(--nav-text);
   text-decoration:none;
   font-weight:700;
 }
@@ -247,13 +463,13 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
 .navAction{
   padding:8px 10px;
   border-radius: var(--radius-sm);
-  border:1px solid transparent;
-  color:#cbd5e1;
+  border:1px solid var(--border);
+  color: var(--nav-text);
   font-weight:700;
-  background: transparent;
+  background: var(--infoBtn-bg);
   cursor:pointer;
 }
-.navAction:hover{ border-color: var(--border); background: var(--hover); }
+.navAction:hover{ border-color: var(--primary); background: var(--hover); }
 .navAction.danger{
   background: var(--danger);
   color: var(--danger-text);
@@ -267,6 +483,9 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   :root{ --page-pad: 12px; }
 
   .wrap{ margin: 16px auto; padding: 0 var(--page-pad); }
+
+  /* Mobile: give every card a themed outline */
+  .card{ border: 1px solid var(--border); }
 
   /* Nav: keep single line on mobile */
   .navInner{
@@ -320,7 +539,7 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.25);
+  border: 1px solid var(--border);
   background: rgba(0,0,0,0.25);
   color: inherit;
   font-weight: 700;
@@ -336,7 +555,7 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   z-index: 9999;
   display: none;
   max-width: min(320px, calc(100vw - 24px));
-  border: 1px solid rgba(255,255,255,0.18);
+  border: 1px solid var(--border);
   border-radius: 12px;
   background: rgba(16,18,22,0.98);
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
@@ -358,7 +577,7 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
     grid-template-columns: 1fr minmax(96px, 120px); /* left: text | right: VR */
     gap: 4px 8px;
     background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 10px;
     margin-bottom: 10px;
@@ -537,13 +756,22 @@ html{ -webkit-text-size-adjust: 100%; }
 .modeToggle .modeBtn{
   padding:10px 14px;
   border-radius:12px;
-  background: rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.9);
+  background: var(--modeBtn-bg);
+  border: 2px solid var(--modeBtn-border);
+  color: var(--modeBtn-text);
+  font-weight: 800;
+  cursor: pointer;
+  line-height: 1;
 }
 .modeToggle .modeBtn.isActive{
-  background: rgba(0,180,255,0.18);
-  border-color: rgba(0,180,255,0.35);
+  background: var(--modeBtn-active-bg);
+  border-color: var(--modeBtn-active-border);
+  color: var(--modeBtn-active-text);
+}
+
+.modeToggle .modeBtn:focus-visible{
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 /* Actions cell: keep buttons aligned even when delete is hidden */
@@ -566,5 +794,86 @@ td:last-child{
 
 /* ===== Edit dialog mode toggle ===== */
 .modeToggleRow{display:flex;gap:10px;margin:10px 0 14px;}
-.modeBtnSmall{padding:8px 10px;border-radius:999px;border:1px solid #2d3442;background:#161b26;color:#e7eefc;font-weight:700;cursor:pointer;}
-.modeBtnSmall.isActive{background:#2b3857;border-color:#3b4b6f;}
+.modeBtnSmall{padding:8px 10px;border-radius:999px;border:2px solid var(--modeBtn-border);background:var(--modeBtn-bg);color:var(--modeBtn-text);font-weight:700;cursor:pointer;line-height:1;}
+.modeBtnSmall.isActive{background:var(--modeBtn-active-bg);border-color:var(--modeBtn-active-border);color:var(--modeBtn-active-text);}
+
+
+:root[data-theme="purple"]{
+  /* Purpur Pop: dark purple base + pink accents */
+  --bg: #07060b;
+  --card: #0f0a16;
+  --card-2: #0c0812;
+  --hover: #140f1e;
+
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.72);
+
+  --border: rgba(255,105,180,0.55); /* hotpink tint */
+  --border-strong: rgba(255,105,180,0.75);
+
+  --primary: #ff5fb8;
+  --primary-2: #c84cff;
+
+  --danger: #ff3b3b;
+
+  --btn-bg: rgba(255,95,184,0.18);
+  --btn-bg-hover: rgba(255,95,184,0.26);
+  --btn-border: rgba(255,95,184,0.55);
+  --btn-text: #ffffff;
+
+  --toggle-bg: rgba(255,255,255,0.08);
+  --toggle-border: rgba(255,105,180,0.55);
+  --toggle-text: rgba(255,255,255,0.88);
+  --toggle-active-bg: rgba(255,95,184,0.24);
+  --toggle-active-text: #ffffff;
+
+  --backdrop: rgba(10,6,18,0.60);
+
+  /* Segmented mode buttons (Intermission / 3-Lap) */
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
+
+:root[data-theme="rose"]{
+  /* Rosa Reinweiß: soft white with rose tint */
+  --bg: #f7f0f4;
+  --card: #ffffff;
+  --card-2: #fff6fb;
+  --hover: #f2e7ef;
+
+  --text: #0b1220;
+  --muted: rgba(15,23,42,0.64);
+
+  --border: rgba(236,72,153,0.35); /* rose */
+  --border-strong: rgba(236,72,153,0.55);
+
+  --primary: #ec4899;
+  --primary-2: #be185d;
+
+  --danger: #dc2626;
+
+  --btn-bg: rgba(236,72,153,0.10);
+  --btn-bg-hover: rgba(236,72,153,0.16);
+  --btn-border: rgba(236,72,153,0.45);
+  --btn-text: #0b1220;
+
+  --toggle-bg: rgba(15,23,42,0.04);
+  --toggle-border: rgba(236,72,153,0.45);
+  --toggle-text: rgba(11,18,32,0.90);
+  --toggle-active-bg: rgba(236,72,153,0.14);
+  --toggle-active-text: #0b1220;
+
+  --backdrop: rgba(255,255,255,0.72);
+
+  /* Segmented mode buttons (Intermission / 3-Lap) */
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: rgba(236,72,153,0.45);
+  --modeBtn-text: #0b1220;
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
