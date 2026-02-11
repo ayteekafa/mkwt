@@ -92,6 +92,93 @@
       align-items: end;
     }
     .td3Metric{ min-width: 0; }
+
+    /* ===== Info button + modal (reuses tracker.html visual language) ===== */
+    .chartHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0 0 10px 0;
+    }
+    .chartHeader h3{ margin:0; }
+
+    /* Match tracker.html's info button look (same class name) */
+    .mcard__infoBtn{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: var(--card-2);
+      color:rgba(255,255,255,0.85);
+      font-size:11px;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      opacity:0.75;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mcard__infoBtn:hover{ opacity:0.95; }
+    .mcard__infoBtn:active{ transform: translateY(1px); }
+    /* Larger tap target without changing the visible icon size */
+    .mcard__infoBtn{ position:relative; touch-action: manipulation; }
+    .mcard__infoBtn::after{
+      content:"";
+      position:absolute;
+      inset:-10px;
+    }
+
+    .infoOverlay{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,0.55);
+      z-index: 9999;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding: 18px 14px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* IMPORTANT: ensure the native [hidden] attribute actually hides the overlay.
+       The class rule above sets display:flex which can override the UA stylesheet.
+       This prevents a "stuck" overlay on load.
+    */
+    .infoOverlay[hidden]{ display:none !important; }
+    .infoDialog{
+      width:min(560px, 100%);
+      margin-top: 10px;
+      border-radius: 14px;
+      background: rgba(0,0,0,0.88);
+      border:1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+      padding: 12px 12px 14px;
+      position:relative;
+    }
+    .infoDialog .hdr{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom: 8px;
+    }
+    .infoDialog .title{
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .infoDialog .body{
+      font-size: 13px;
+      line-height: 1.45;
+      opacity: 0.95;
+    }
+    .infoDialog .body strong{ opacity:0.85; }
+
+    /* Keep icon visually identical to tracker.html (size unchanged). */
 </style>
 
 
@@ -144,9 +231,9 @@
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">VR History</h3>
-      <div class="muted" style="margin-bottom:10px;">
-        X = Match number (chronological), Y = VR. Step line = 10-step average (windowed).
+      <div class="chartHeader">
+        <h3>VR History</h3>
+        <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('vrHistory')">i</button>
       </div>
       <div class="chartWrap"><canvas id="chartVr" height="120"></canvas></div>
       <div class="muted chartBtns" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -159,9 +246,9 @@
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">Performance</h3>
-      <div class="muted" style="margin-bottom:10px;">
-        One chart for Tracks and Intermission. Choose mode above, then sort below (click same sort again to reverse).
+      <div class="chartHeader">
+        <h3>Performance</h3>
+        <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('performance')">i</button>
       </div>
 
       <div class="muted chartBtns" data-btn-group="perfMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -184,9 +271,9 @@
     </div>
 
 <div class="card">
-      <h3 style="margin:0 0 10px 0;">Track Distribution</h3>
-      <div class="muted" style="margin-bottom:10px;">
-        Intermission = intermission set, 3 Laps = intermission empty.
+      <div class="chartHeader">
+        <h3>Track Distribution</h3>
+        <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('trackDistribution')">i</button>
       </div>
 
       <div class="muted chartBtns" data-btn-group="c5" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -248,9 +335,9 @@
 
 
 <div class="card">
-  <h3 style="margin:0 0 10px 0;">VR Performance Buckets</h3>
-  <div class="muted" style="margin-bottom:10px;">
-    Bars show <b>Avg Net VR gain</b> by VR-before bucket (centered around your match-average VR). 0 counts as loss.
+  <div class="chartHeader">
+    <h3>VR Performance Buckets</h3>
+    <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('buckets')">i</button>
   </div>
 
   <div class="muted chartBtns" data-btn-group="bucketMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -265,9 +352,9 @@
 
 
 <div class="card">
-  <h3 style="margin:0 0 10px 0;">VR History (Weekly)</h3>
-  <div class="muted" style="margin-bottom:10px;">
-    Toggle between weekly VR Average and weekly average VR gain (Tracks vs Intermission).
+  <div class="chartHeader">
+    <h3>VR History (Weekly)</h3>
+    <button class="mcard__infoBtn" type="button" aria-label="Info" title="Info" onclick="openInfo('weekly')">i</button>
   </div>
 
   <div class="muted chartBtns" data-btn-group="c6" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -275,7 +362,7 @@
     <button id="btnWkGains" type="button" class="navAction" style="padding:6px 10px;">VR Gain Avg</button>
   </div>
 
-  <div class="muted" id="c6Hint" style="margin:0 0 10px 0; opacity:.85;">Tap a bar to pin details (mobile-friendly).</div>
+  <!-- Hint moved into the info popup to keep the UI clean -->
 
   <div class="bar-wrap" style="max-width:100%; height:260px;">
     <canvas id="chartWeekly"></canvas>
@@ -288,9 +375,84 @@
 
   </div>
 
+  <!-- Reusable Info Modal (opens via openInfo(chartId)) -->
+  <div id="infoOverlay" class="infoOverlay" hidden>
+    <div class="infoDialog" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+      <div class="hdr">
+        <div id="infoTitle" class="title">Info</div>
+        <button id="infoClose" class="mcard__infoBtn" type="button" aria-label="Close" title="Close">×</button>
+      </div>
+      <div id="infoBody" class="body"></div>
+    </div>
+  </div>
+
 <script>
   // ========= UI Helpers =========
   const $ = (id) => document.getElementById(id);
+
+  // ===== Reusable Info Modal =====
+  const INFO_TEXTS = {
+    vrHistory: {
+      title: "VR History",
+      body: "This chart shows your VR over time, ordered by match number (X-axis), with VR on the Y-axis. Use it to spot trends, streaks, and turning points in your progression. The line reflects your raw VR after each match, so sharp steps usually mean big gains or losses. The window buttons (Overall / Last month / Last week) filter which matches are included, and the ‘Avg VR’ below updates to that selected window."
+    },
+    performance: {
+      title: "Performance",
+      body: "This is a per-track (or per-intermission) performance ranking. Each bar summarizes how well you perform on that item across your stored matches, combining average VR gain and win rate. First pick the mode at the top (Tracks vs Intermission Destiny vs Intermission Separated). Then apply a sort (Average gain, Win rate, Times played, A–Z); clicking the same sort again reverses the order. Tap a bar to see the details line for the selected item."
+    },
+    trackDistribution: {
+      title: "Track Distribution",
+      body: "This pie chart shows how your matches split between Tracks and Intermission. It helps you understand what you have actually been playing and how that affects your stats. Use the time-window buttons (Overall / Last month / Last week) to filter which matches are counted. The three summary cards below update with the selected window and show Avg VR and Win rate for Matches, Tracks, and Intermission separately."
+    },
+    buckets: {
+      title: "VR Performance Buckets",
+      body: "These bars show your average net VR gain for matches grouped into VR-before ‘buckets’ centered around your match-average VR. Read it left-to-right: negative buckets mean you played the match below your average VR, positive buckets mean above it. This can reveal whether you gain more when under your usual VR and lose more when over it. Use the mode buttons (Overall / Track only / Intermission only) to filter which matches are included; tapping a bar shows bucket details."
+    },
+    weekly: {
+      title: "VR History (Weekly)",
+      body: "This chart aggregates your data by week to smooth out daily noise. In ‘VR Average’ mode, each bar represents your average VR for that week. In ‘VR Gain Avg’ mode, it shows your weekly average VR gain split by Tracks vs Intermission so you can compare them at a glance. The toggle buttons switch the mode, and tapping a bar pins the details (especially on mobile)."
+    }
+  };
+
+  function openInfo(chartId){
+    try{
+      const overlay = $("infoOverlay");
+      const t = $("infoTitle");
+      const b = $("infoBody");
+      const def = INFO_TEXTS[chartId] || { title: "Info", body: "No description available." };
+      if(t) t.textContent = def.title;
+      if(b) b.textContent = def.body;
+      if(overlay){
+        overlay.hidden = false;
+        // Belt + suspenders: make sure visibility updates even if CSS is overridden.
+        overlay.style.display = 'flex';
+      }
+    }catch(e){ console.warn("[stats] openInfo failed", e); }
+  }
+
+  function closeInfo(){
+    const overlay = $("infoOverlay");
+    if(overlay){
+      overlay.hidden = true;
+      overlay.style.display = 'none';
+    }
+  }
+
+  // Close modal: X, outside tap, or ESC
+  document.addEventListener('click', (e) => {
+    const overlay = $("infoOverlay");
+    if(!overlay || overlay.hidden) return;
+    if(e.target === overlay) closeInfo();
+  }, true);
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closeInfo();
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = $("infoClose");
+    if(btn) btn.addEventListener('click', closeInfo);
+  });
 
   // ===== Button UI helpers (charts) =====
   function setActiveButton(btn){

@@ -792,6 +792,57 @@ function setLastSuggestedTrack(name) {
   } catch(e) {}
 }
 
+// Store the timestamp of the newest match so we can decide whether a suggestion is
+// fresh enough to auto-fill (default: 10 minutes).
+function getLastMatchTimestamp(){
+  try {
+    const raw = localStorage.getItem('mkwt_last_match_ts');
+    if (!raw) return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  } catch(e) { return 0; }
+}
+
+function setLastMatchTimestamp(ts){
+  try {
+    const n = Number(ts);
+    if (!Number.isFinite(n) || n <= 0) { localStorage.removeItem('mkwt_last_match_ts'); return; }
+    localStorage.setItem('mkwt_last_match_ts', String(Math.floor(n)));
+  } catch(e) {}
+}
+
+function isLastMatchFresh(maxAgeMs){
+  const ms = (typeof maxAgeMs === 'number' ? maxAgeMs : 10 * 60 * 1000);
+  const t = getLastMatchTimestamp();
+  if (!t) return false;
+  return (Date.now() - t) <= ms;
+}
+
+function getFreshSuggestedNextStart(){
+  // Only auto-fill if the newest match is recent enough (default: 10 minutes).
+  if (!isLastMatchFresh()) return '';
+  return (getSuggestedNextStart?.() || '');
+}
+
+function autoPrefillIntermissionStartIfFresh(){
+  try {
+    const startEl = document.getElementById('intermission');
+    const endEl   = document.getElementById('track');
+    if (!startEl || !endEl) return;
+    // Only prefill if the user hasn't already chosen something.
+    if ((startEl.value || '') !== '') return;
+    const suggested = getFreshSuggestedNextStart();
+    if (!suggested) return;
+    // Only if the option exists in the current allowed list.
+    const opt = startEl.querySelector(`option[value="${CSS.escape(suggested)}"]`);
+    if (!opt) return;
+    startEl.value = suggested;
+    // Trigger existing filtering so End adapts automatically.
+    startEl.dispatchEvent(new Event('change', { bubbles: true }));
+  } catch(e) {}
+}
+
+
 function getSuggestedNextStart() {
   // Always return the normalized suggestion (never Rainbow Road)
   return normalizeSuggestedStart(getLastSuggestedTrack());
@@ -1803,6 +1854,7 @@ async function loadMatches() {
       const latest = (data && data.length && data[0] && data[0].track) ? String(data[0].track) : "";
       if (latest) {
         setLastSuggestedTrack(latest);
+        try { setLastMatchTimestamp(Date.parse(data[0].created_at)); } catch(e) {}
       } else {
         // No matches left => remove suggestion
         try { localStorage.removeItem('mkwt_last_next_start'); } catch(e) {}
@@ -2049,6 +2101,7 @@ const { error: insErr } = await supabaseClient.from("matches").insert({
       // === Instant Placeholder Suggestion + Instant Clear (same behavior as Clear) ===
       // Do this immediately after the match insert succeeds, before any other network calls.
       try { setLastSuggestedTrack(track); } catch(e) {}
+      try { setLastMatchTimestamp(Date.now()); } catch(e) {}
       try {
         const a = $('intermission');
         const b = $('track');
@@ -2059,8 +2112,10 @@ const { error: insErr } = await supabaseClient.from("matches").insert({
           b.value = '';
           a.dispatchEvent(new Event('change', { bubbles: true }));
           b.dispatchEvent(new Event('change', { bubbles: true }));
-          // Ensure placeholder text reflects the new suggestion instantly
+          // Ensure placeholder/suggestion text reflects the new suggestion instantly
           refreshSuggestionOptionInStartSelect(a);
+          // Auto-fill Start if the newest match is recent enough (<=10 minutes)
+          autoPrefillIntermissionStartIfFresh();
         }
       } catch(e) {}
       try { $('vrChange').value = ''; } catch(e) {}
@@ -2548,9 +2603,31 @@ async function deleteMatch(id){
       });
 
       const isIntermission = (mode === "intermission");
-      if (isIntermission) { try { resetIntermissionSelects(); } catch(e) {} }
+      if (isIntermission) { try { resetIntermissionSelects(); } catch(e) {}
+      try { refreshSuggestionOptionInStartSelect(intermissionSel); } catch(e) {}
+      try { autoPrefillIntermissionStartIfFresh(); } catch(e) {} }
+
+      // IMPORTANT:
+      // The Track <select id="track"> is shared between Intermission-End and 3-Lap Track.
+      // If the user previously selected an Intermission Start, the existing filter logic
+      // can leave the Track dropdown in a filtered state unless we explicitly reset it.
+      // Requirement: when switching to Track mode, clear the Track selection and restore
+      // the full, unfiltered list.
+      if (!isIntermission) {
+        const trackSel = document.getElementById("track");
+        // Clear start + trigger the existing bidirectional filter reset.
+        if (intermissionSel) {
+          intermissionSel.value = "";
+          try { intermissionSel.dispatchEvent(new Event("change", { bubbles: true })); } catch(e) {}
+        }
+        // Clear track selection as requested.
+        if (trackSel) {
+          trackSel.value = "";
+          try { trackSel.dispatchEvent(new Event("change", { bubbles: true })); } catch(e) {}
+        }
+      }
       if (fieldIntermission) fieldIntermission.style.display = isIntermission ? "" : "none";
-      if (!isIntermission && intermissionSel) intermissionSel.value = "";
+      // intermissionSel is already cleared above (and change-dispatched) when leaving Intermission.
       if (labelIntermission) labelIntermission.textContent = "Intermission start";
       if (labelTrack) labelTrack.textContent = isIntermission ? "Intermission end" : "Track";
       if (trackPlaceholder) trackPlaceholder.textContent = isIntermission ? "Intermission end" : "Track";
