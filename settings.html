@@ -81,6 +81,9 @@ var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t
     .infoTitle{ font-weight:900; letter-spacing:.2px; }
     .infoBody{ padding: 12px 14px 14px 14px; color: var(--text); line-height: 1.4; }
   </style>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
 <!-- ===== NAV ===== -->
@@ -1054,5 +1057,12 @@ function wireNav(){
   else wireNav();
 })();
 </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

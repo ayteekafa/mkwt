@@ -193,6 +193,9 @@
 <style>
     .avgBig{ font-size:1.35em !important; font-weight:900; }
   </style>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
 <nav class="nav">
@@ -2847,5 +2850,12 @@ function renderBuckets(){
   else wireNav();
 })();
 </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

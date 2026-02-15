@@ -1,14 +1,17 @@
-const CACHE = "mkwt-v108";
+const CACHE = "mkwt-v109";
 const ASSETS = [
   "/",
   "/tracker.html",
   "/index.html",
   "/login.html",
+  "/reset.html",
+  "/sessions.html",
   "/settings.html",
   "/stats.html",
   "/mkwt_nav_snippet.html",
   "/mkwt_shared.css",
   "/mkwt_theme_v3.css",
+  "/strats.json",
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
