@@ -1,6 +1,6 @@
 // NOTE (iOS Safari): never serve a cached Response that was produced by a redirect
 // (Safari can error with: "Response served by service worker has redirections").
-const CACHE = "mkwt-v112";
+const CACHE = "mkwt-v113";
 const ASSETS = [  "/tracker.html",
   "/index.html",
   "/login.html",
