@@ -1,7 +1,5 @@
-const CACHE = "mkwt-v109";
-const ASSETS = [
-  "/",
-  "/tracker.html",
+const CACHE = "mkwt-v111";
+const ASSETS = [  "/tracker.html",
   "/index.html",
   "/login.html",
   "/reset.html",
