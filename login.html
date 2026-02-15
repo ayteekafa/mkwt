@@ -188,7 +188,7 @@ async function login(){
     if (error) throw error;
 
     // mode: account
-    try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
+    try{ localStorage.setItem('mkwt_mode','account'); localStorage.setItem('mkwt_last_mode','account'); }catch(e){}
 
     // Offer to import Guest data if the account currently has 0 matches
     try{
@@ -217,7 +217,15 @@ async function login(){
 
 document.addEventListener("DOMContentLoaded", ()=>{
   $("btnLogin").addEventListener("click", login);
-  $("btnGuest").addEventListener("click", ()=>{ try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){} window.location.href="tracker.html"; });
+  $("btnGuest").addEventListener("click", ()=>{
+  try{
+    localStorage.setItem("mkwt_last_mode","guest");
+    localStorage.setItem("mkwt_mode","guest");
+    const lp = localStorage.getItem("mkwt_last_page");
+    if (lp) localStorage.removeItem("mkwt_last_page");
+    window.location.href = lp || "tracker.html";
+  }catch(e){ window.location.href="tracker.html"; }
+});
   // Enter key
   $("password").addEventListener("keydown", (e)=>{ if(e.key==="Enter") login(); });
 });

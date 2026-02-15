@@ -1624,6 +1624,23 @@ function resetIntermissionSelects(){
     let totalMatches = null;
 
   // ========= Auth Guard (FIX: check localStorage ODER sessionStorage) =========
+
+  function setNavAuthButton(mode){
+    const b = document.getElementById("btnLogout");
+    if(!b) return;
+    b.style.display = "";
+    if(mode === "account"){
+      b.textContent = "Logout";
+      b.classList.remove("danger");
+      b.classList.add("active");
+      try{ localStorage.setItem("mkwt_last_mode","account"); }catch(e){}
+    }else{
+      b.textContent = "Login";
+      b.classList.remove("active");
+      b.classList.add("danger");
+    }
+  }
+
   async function requireAuth() {
     // 1) localStorage
     let { data: { session }, error } = await clientLocal.auth.getSession();
@@ -1637,6 +1654,7 @@ function resetIntermissionSelects(){
       window.supabaseClient = supabaseClient;
       window.SESSION = SESSION;
       $("userInfo").textContent = "Profile: –";
+      try{ setNavAuthButton("account"); }catch(e){}
       return session;
     }
 
@@ -1652,10 +1670,20 @@ function resetIntermissionSelects(){
       window.supabaseClient = supabaseClient;
       window.SESSION = SESSION;
       $("userInfo").textContent = "Profile: –";
+      try{ setNavAuthButton("account"); }catch(e){}
       return session;
     }
 
-    // 3) no session -> Guest mode
+    // 3) no session -> Guest ONLY if user chose it
+    const last = (()=>{
+      try{ return localStorage.getItem('mkwt_last_mode') || ''; }catch(e){ return ''; }
+    })();
+    if (last !== 'guest') {
+      try{ localStorage.setItem('mkwt_mode','unknown'); localStorage.setItem('mkwt_last_page', location.pathname || 'tracker.html'); }catch(e){}
+      window.location.replace('login.html');
+      return null;
+    }
+
     window.IS_GUEST = true;
     SESSION = null;
     supabaseClient = null;
@@ -1664,6 +1692,7 @@ function resetIntermissionSelects(){
     try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){}
     try{ applyThemeForMode('guest'); }catch(e){}
     try { $("userInfo").textContent = "Guest (local)"; } catch(e){}
+    try{ setNavAuthButton("guest"); }catch(e){}
     return null;
   }
 

@@ -797,6 +797,23 @@ async function exportBackupJSON() {
     return STRATS_META_INTERMISSIONS;
   }
 
+  function setNavAuthButton(mode){
+    const b = document.getElementById("btnLogout");
+    if(!b) return;
+    b.style.display = "";
+    if(mode === "account"){
+      b.textContent = "Logout";
+      b.classList.remove("danger");
+      b.classList.add("active");
+      try{ localStorage.setItem("mkwt_last_mode","account"); }catch(e){}
+    }else{
+      b.textContent = "Login";
+      b.classList.remove("active");
+      b.classList.add("danger");
+    }
+  }
+
+
 
 
   async function requireAuth() {
@@ -811,7 +828,8 @@ async function exportBackupJSON() {
       window.supabaseClient = supabaseClient;
       window.SESSION = SESSION;
       $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
-      return session;
+      try{ setNavAuthButton("account"); }catch(e){}
+    return session;
     }
 
     // sessionStorage
@@ -825,17 +843,23 @@ async function exportBackupJSON() {
       window.supabaseClient = supabaseClient;
       window.SESSION = SESSION;
       $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
-      return session;
+      try{ setNavAuthButton("account"); }catch(e){}
+    return session;
     }
 
-    // no session -> Guest mode (local)
+    // no session -> Guest ONLY if user chose it
+    const last = (()=>{ try{ return localStorage.getItem('mkwt_last_mode') || ''; }catch(e){ return ''; } })();
+    if (last !== 'guest') {
+      try{ localStorage.setItem('mkwt_mode','unknown'); localStorage.setItem('mkwt_last_page', location.pathname || 'stats.html'); }catch(e){}
+      window.location.replace('login.html');
+      return null;
+    }
     window.IS_GUEST = true;
-    SESSION = null;
-    supabaseClient = null;
     window.supabaseClient = null;
     window.SESSION = null;
     try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){}
     try { $("userInfo").textContent = "Guest (local)"; } catch(e){}
+    try{ setNavAuthButton("guest"); }catch(e){}
     return null;
   }
 

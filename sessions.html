@@ -191,6 +191,23 @@
 
   function isGuest(){ return !window.SESSION || !window.SESSION.user; }
 
+  function setNavAuthButton(mode){
+    const b = document.getElementById("btnLogout");
+    if(!b) return;
+    b.style.display = "";
+    if(mode === "account"){
+      b.textContent = "Logout";
+      b.classList.remove("danger");
+      b.classList.add("active");
+      try{ localStorage.setItem("mkwt_last_mode","account"); }catch(e){}
+    }else{
+      b.textContent = "Login";
+      b.classList.remove("active");
+      b.classList.add("danger");
+    }
+  }
+
+
 
   async function requireAuth(){
     try{
@@ -222,14 +239,21 @@
   }
 async function requireSession(){
     const sess = await requireAuth();
-    // Guest mode is allowed: if no session, continue with local matches.
+    // Guest mode is allowed ONLY if user chose it (mkwt_last_mode = 'guest')
     if (!sess) {
+      const last = (()=>{ try{ return localStorage.getItem('mkwt_last_mode') || ''; }catch(e){ return ''; } })();
+      if (last !== 'guest') {
+        try{ localStorage.setItem('mkwt_mode','unknown'); localStorage.setItem('mkwt_last_page', location.pathname || 'sessions.html'); }catch(e){}
+        window.location.replace('login.html');
+        return null;
+      }
       window.IS_GUEST = true;
       window.supabaseClient = null;
       window.SESSION = null;
       try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){}
       const ui = document.getElementById("userInfo");
       if (ui) ui.textContent = "Guest (local)";
+      try{ setNavAuthButton("guest"); }catch(e){}
       return null;
     }
     function maskEmail(email){
@@ -246,6 +270,7 @@ async function requireSession(){
     }
     const email = maskEmail(sess.user?.email) || "Logged in";
     if ($("userInfo")) $("userInfo").textContent = email;
+    try{ setNavAuthButton("account"); }catch(e){}
     return sess;
   }
 
