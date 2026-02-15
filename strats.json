@@ -110,10 +110,10 @@
     "DK Pass→Cheep Cheep Falls": "coming soon [D:C]",
     "DK Spaceport→Crown City": "Special lap: Crown City reverse with Goomba-shortcut\n\nStrategy: Bagger into Frontrunner (shroomless ending shortcut on rail into the Goomba-pyramid)\n\nShock Spot:After last item set before the huge grasss shortcut",
     "DK Spaceport→Koopa Troopa Beach": "Special lap: Koopa Troopa Beach reverse\n\nStrategy: Bagger\n\nShock Spot:After first item set on last lap",
-    "DK Spaceport→Whistlestop Summit": "Special lap: Mario Bros. Circuit reverse\n\nStrategy: Bagger\n\nShock Spot:After first item set when you reach Mario Bros. Circuit",
+    "DK Spaceport→Whistlestop Summit": "",
     "DK Spaceport→Peach Stadium": "coming soon [D:P]",
     "DK Spaceport→Desert Hills": "Special lap: Desert Hills reverse\n\nStrategy: Bagger\n\nShock Spot:After first item set when you reach Desert Hills",
-    "DK Spaceport→Mario Bros. Circuit": "coming soon [D:M]",
+    "DK Spaceport→Mario Bros. Circuit": "Special lap: Mario Bros. Circuit reverse\n\nStrategy: Bagger\n\nShock Spot:After first item set when you reach Mario Bros. Circuit",
     "Dry Bones Burnout→Acorn Heights": "coming soon [D:A]",
     "Dry Bones Burnout→Airship Fortress": "coming soon [D:A]",
     "Dry Bones Burnout→Boo Cinema": "coming soon [D:B]",
@@ -787,9 +787,9 @@
       "DK Spaceport→Whistlestop Summit": {
         "start": "DK Spaceport",
         "destiny": "Whistlestop Summit",
-        "is_special": true,
-        "special_tag": "Mario Bros. Circuit reverse",
-        "destiny_group": "Mario Bros. Circuit reverse"
+        "is_special": false,
+        "special_tag": "null",
+        "destiny_group": "Whistlestop Summit"
       },
       "DK Spaceport→Peach Stadium": {
         "start": "DK Spaceport",
@@ -808,9 +808,9 @@
       "DK Spaceport→Mario Bros. Circuit": {
         "start": "DK Spaceport",
         "destiny": "Mario Bros. Circuit",
-        "is_special": false,
-        "special_tag": null,
-        "destiny_group": "Mario Bros. Circuit"
+        "is_special": true,
+        "special_tag": Mario Bros. Circuit reverse,
+        "destiny_group": "Mario Bros. Circuit reverse"
       },
       "Dry Bones Burnout→Acorn Heights": {
         "start": "Dry Bones Burnout",
