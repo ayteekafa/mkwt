@@ -1,127 +1,51 @@
-// MKWT Service Worker (Safari-safe)
-// Goal: cache static assets for speed/offline Guest, but NEVER serve redirected responses.
-// Also: avoid precaching HTML during install to prevent Safari "redirected response" crash.
-const CACHE = "mkwt-v200"; // bump to force refresh
-
-const STATIC_ASSETS = [
+const CACHE = "mkwt-v109";
+const ASSETS = [
+  "/",
+  "/tracker.html",
+  "/index.html",
+  "/login.html",
+  "/reset.html",
+  "/sessions.html",
+  "/settings.html",
+  "/stats.html",
+  "/mkwt_nav_snippet.html",
   "/mkwt_shared.css",
   "/mkwt_theme_v3.css",
-  "/mkwt_nav_snippet.html",
   "/strats.json",
   "/manifest.webmanifest",
   "/icons/icon-192.png",
-  "/icons/icon-512.png",
+  "/icons/icon-512.png"
 ];
 
-const normalizeNavPath = (pathname) => {
-  let p = pathname || "/";
-  // strip trailing slash (except root)
-  if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
-  if (p === "/" || p === "") return "/index.html";
-  if (p.endsWith(".html")) return p;
-  // pretty routes
-  if (p === "/tracker") return "/tracker.html";
-  if (p === "/stats") return "/stats.html";
-  if (p === "/sessions") return "/sessions.html";
-  if (p === "/settings") return "/settings.html";
-  if (p === "/login") return "/login.html";
-  if (p === "/reset") return "/reset.html";
-  return p;
-};
-
-async function safeFetchNoRedirect(input) {
-  // Always bypass HTTP cache; we manage our own.
-  let res = await fetch(input, { cache: "no-store" });
-  // If server redirected, fetch the final URL directly and return that response.
-  if (res && res.redirected && res.url) {
-    res = await fetch(res.url, { cache: "no-store" });
-  }
-  return res;
-}
-
-async function cachePutIfSafe(cache, key, res) {
-  if (!res) return;
-  // Only cache successful, same-origin, non-redirected basic responses.
-  if (!res.ok) return;
-  if (res.redirected) return;
-  if (res.type !== "basic") return;
-  await cache.put(key, res.clone());
-}
-
-self.addEventListener("install", (e) => {
-  // Do NOT precache navigations here (Safari can cache redirect responses during install).
-  // We only precache static assets with safe fetches, and even that is optional.
-  e.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
-    for (const path of STATIC_ASSETS) {
-      try {
-        const url = new URL(path, self.location.origin).toString();
-        const res = await safeFetchNoRedirect(url);
-        await cachePutIfSafe(cache, path, res);
-      } catch (_) {}
-    }
-    self.skipWaiting();
-  })());
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil((async () => {
-    // Hard cleanup: remove ALL old caches to avoid serving previously cached redirected responses.
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
-    await caches.open(CACHE);
-    await self.clients.claim();
-  })());
+self.addEventListener("activate", e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => k !== CACHE && caches.delete(k)))
+    )
+  );
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  if (req.method !== "GET") return;
-
-  const url = new URL(req.url);
-
-  // Never interfere with Supabase (Account must stay fully network-live).
+self.addEventListener("fetch", e => {
+  const url = new URL(e.request.url);
   if (url.hostname.endsWith("supabase.co")) return;
+  if (e.request.method !== "GET") return;
 
-  const isSameOrigin = url.origin === self.location.origin;
-  if (!isSameOrigin) return;
-
-  const isNavigate = req.mode === "navigate";
-
-  // Navigations: try cache of normalized .html, else network, then cache safe copy.
-  if (isNavigate) {
-    const path = normalizeNavPath(url.pathname);
-    const normalizedUrl = new URL(path, self.location.origin).toString();
-
-    e.respondWith((async () => {
-      const cache = await caches.open(CACHE);
-
-      const cached = await cache.match(path);
-      if (cached) return cached;
-
-      try {
-        const res = await safeFetchNoRedirect(normalizedUrl);
-        await cachePutIfSafe(cache, path, res);
-        return res;
-      } catch (err) {
-        // Offline fallback: if we have index/tracker cached, prefer that.
-        const fallback = await cache.match("/index.html") || await cache.match("/tracker.html");
-        if (fallback) return fallback;
-        throw err;
-      }
-    })());
-    return;
+  if (url.origin === self.location.origin) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(res => {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copy));
+          return res;
+        });
+      })
+    );
   }
-
-  // Static GETs: cache-first, then network, cache if safe.
-  e.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const cached = await cache.match(req);
-    if (cached) return cached;
-
-    const res = await safeFetchNoRedirect(req);
-    // Cache by request URL pathname for same-origin.
-    await cachePutIfSafe(cache, req, res);
-    return res;
-  })());
 });
