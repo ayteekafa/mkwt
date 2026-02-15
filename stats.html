@@ -252,7 +252,7 @@
 <button class="navAction" id="btnVr100" style="padding:6px 10px;" type="button">Last month</button>
 <button class="navAction" id="btnVr50" style="padding:6px 10px;" type="button">Last week</button>
 </div>
-<div class="muted" style="margin-top:10px;">Avg VR (selected window): <b class="avgBig" id="avgVrWindow" style="font-size:1.1em">–</b></div>
+<div class="muted" style="margin-top:10px;">Avg VR: <b class="avgBig" id="avgVrWindow" style="font-size:1.1em">–</b></div>
 </div>
 <div class="card">
 <div class="chartHeader">
@@ -270,9 +270,9 @@
 <button class="navAction" id="btnC2SortWin" style="padding:6px 10px;" type="button">Win rate</button>
 <button class="navAction" id="btnC2SortCount" style="padding:6px 10px;" type="button">Times played</button>
 <button class="navAction" id="btnC2SortAlpha" style="padding:6px 10px;" type="button">A–Z</button>
-<span class="muted" style="opacity:.85;">Click same filter again to reverse.</span>
+<span class="muted" style="opacity:.85;"></span>
 </div>
-<div class="muted" id="perfSelected" style="margin-top:8px;">Tap a bar for details.</div>
+<div class="muted" id="perfSelected" style="margin-top:8px;"></div>
 </div>
 <div class="card">
 <div class="chartHeader">
@@ -340,7 +340,7 @@
 <button class="navAction" id="btnBucketIm" style="padding:6px 10px;" type="button">Intermission only</button>
 </div>
 <div class="chartWrapBuckets"><canvas id="chartBuckets"></canvas></div>
-<div class="muted" id="bucketSelected" style="margin-top:8px;">Tap a bar for details.</div>
+<div class="muted" id="bucketSelected" style="margin-top:8px;"></div>
 </div>
 <div class="card">
 <div class="chartHeader">
@@ -1501,7 +1501,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     function updatePerfSelectedByIndex(i){
       if(!$perfSel) return;
       if(i == null || i < 0 || i >= perfRowsLast.length){
-        $perfSel.textContent = "Tap a bar for details.";
+        $perfSel.textContent = "";
         return;
       }
       const r = perfRowsLast[i];
@@ -2489,7 +2489,7 @@ function renderBuckets(){
         function setBucketSelected(i){
           if(!$bucketSel) return;
           if(i == null || !bucketAgg.stats[i]){
-            $bucketSel.textContent = "Tap a bar for details.";
+            $bucketSel.textContent = "";
             return;
           }
           const r = bucketAgg.stats[i];

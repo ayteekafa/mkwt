@@ -161,14 +161,14 @@ var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t
       <option value="purple">Purple Pop</option>
       <option value="rose">Rose Rime</option>
     </select>
-    <div class="muted" id="themeHelp" style="margin-top:6px; font-size:12px; opacity:.85;">Applies after you press Save (stored locally on this device).</div>
+    <div class="muted" id="themeHelp" style="margin-top:6px; font-size:12px; opacity:.85;"></div>
   </div>
 </div>
 
 <div class="row" style="margin-top:10px;">
 <div class="field" style="flex:1;">
   <div style="display:flex; align-items:center; gap:8px;">
-    <label for="settingsMinVr" class="muted" style="margin:0;">Min VR filter (exclude low-VR matches from stats)</label>
+    <label for="settingsMinVr" class="muted" style="margin:0;">Exclude low-VR matches from stats</label>
     <button aria-label="Info" class="mcard__infoBtn" data-info="minVrFilter" title="Info" type="button">i</button>
   </div>
 <div style="display:flex; align-items:center; gap:10px;">
@@ -183,19 +183,25 @@ var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t
 
 <hr style="margin:16px 0; border:none; border-top:1px solid var(--border);"/>
 
-<h3 style="margin:0 0 10px 0;">Account</h3>
-<div class="muted" style="font-size:12px; opacity:.85; margin-bottom:10px;">Change your MKWT account password (email/password). Google users can set an email password via “Forgot password”.</div>
+<div style="display:flex; align-items:center; gap:8px; margin:0 0 10px 0;">
+  <h3 style="margin:0;">Account</h3>
+  <button aria-label="Info" class="mcard__infoBtn" data-info="account" title="Info" type="button">i</button>
+</div>
+<div class="muted" style="font-size:12px; opacity:.85; margin-bottom:10px;"></div>
 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px;">
   <button class="btn2" id="btnChangePassword" type="button">Change password</button>
   <button class="btn" id="btnLogout" type="button" style="display:none">Logout</button>
-  <div class="muted" style="font-size:12px; opacity:.85;">Applies to email/password accounts.</div>
+  <div class="muted" style="font-size:12px; opacity:.85;"></div>
 </div>
 
 
 <hr style="margin:16px 0; border:none; border-top:1px solid var(--border);"/>
-<h3 style="margin:0 0 10px 0;">Contact</h3>
+<div style="display:flex; align-items:center; gap:8px; margin:0 0 10px 0;">
+  <h3 style="margin:0;">Contact</h3>
+  <button aria-label="Info" class="mcard__infoBtn" data-info="contact" title="Info" type="button">i</button>
+</div>
 <div class="muted" style="font-size:12px; opacity:.85; margin-bottom:10px;">
-  Want a VIP account or have ideas to improve the website? Feel free to contact me on Discord.
+  Want a free VIP account or have ideas to improve the website? Feel free to contact me on Discord.
 </div>
 <a class="btn2 discordBtn" href="https://discord.com/users/335049995055267840" target="_blank" rel="noopener noreferrer">
   <span class="discordIcon" aria-hidden="true">
@@ -395,6 +401,12 @@ const INFO_TEXT = {
   ,
   theme:
     "Choose a visual style for the whole app. Dark matches the current black look, Light uses a soft off-white background, Dendo (Blue) highlights the blue accent, Green adds a subtle green primary, and Red switches the primary accent to red. Changes apply after you press Save. Your choice is stored locally and used across tracker, stats, sessions, and settings."
+  ,
+  account:
+    "Test 123"
+  ,
+  contact:
+    "Test 123"
 };
 
 function openInfo(id){
@@ -448,15 +460,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
   // (Prevents mobile Safari label/tap forwarding to the button.)
   document.querySelectorAll('.mcard__infoBtn[data-info]').forEach((btn)=>{
     btn.addEventListener('click', (e)=>{
-      e.preventDefault();
       e.stopPropagation();
       openInfo(btn.dataset.info);
     });
-    // Safety: ignore touchend bubbling from surrounding elements
-    btn.addEventListener('touchend', (e)=>{
-      e.preventDefault();
-      e.stopPropagation();
-    }, {passive:false});
   });
 
   overlay?.addEventListener("click", (e)=>{
