@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<meta name="theme-color" content="#07080a"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<meta name="theme-color" content="#07080a"/><script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
 <title>MKWT – Stats</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -197,7 +197,7 @@
 <body>
 <nav class="nav">
 <div class="navInner">
-<div class="brand">MKWT</div>
+<div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
 <a class="navLink" href="tracker.html">Tracker</a>
 <a class="navLink" href="stats.html">Stats</a>
 <a class="navLink" href="sessions.html">Sessions</a>
@@ -209,13 +209,17 @@
 <div class="topbar">
 <div>
 <h2 style="margin:0 0 6px 0;">MKWT – Stats</h2>
+<div class="pageInfoLines" style="display:none">
 <div class="muted" id="userInfo">Loading session…</div>
 <div class="muted">Current VR (Profile): <b id="currentVr">–</b></div>
 <div class="muted">Matches: <b id="matchCount">–</b></div>
 </div>
 </div>
+</div>
+<div class="pageInfoLines" style="display:none">
 <div class="muted" id="status"></div>
 <div class="muted" id="debug"></div>
+</div>
 </div>
 <div class="card">
 <div class="chartHeader">
@@ -386,6 +390,19 @@
         overlay.style.display = 'flex';
       }
     }catch(e){ console.warn("[stats] openInfo failed", e); }
+  }
+
+  function maskEmail(email){
+    try{
+      if(!email || typeof email !== 'string') return '';
+      const at = email.indexOf('@');
+      if(at <= 0) return email;
+      const local = email.slice(0, at);
+      const domain = email.slice(at);
+      if(local.length <= 1) return local + '*' + domain;
+      if(local.length === 2) return local[0] + '*' + domain;
+      return local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] + domain;
+    }catch(e){ return email || ''; }
   }
 
   function closeInfo(){
@@ -681,6 +698,37 @@ async function exportBackupJSON() {
   let supabaseClient = null;
 
   let SESSION = null;
+
+  // ===== Guest (local) storage =====
+  const GUEST_KEY = "mkwt_guest_matches_v1";
+  function loadGuestMatches(){
+    try { return JSON.parse(localStorage.getItem(GUEST_KEY) || "[]") || []; } catch(e){ return []; }
+  }
+  function saveGuestMatches(arr){
+    try { localStorage.setItem(GUEST_KEY, JSON.stringify(arr || [])); } catch(e){}
+  }
+  function guestAddMatch(m){
+    const arr = loadGuestMatches();
+    arr.push(m);
+    saveGuestMatches(arr);
+    return m;
+  }
+  function guestUpdateMatch(id, patch){
+    const arr = loadGuestMatches();
+    const i = arr.findIndex(x=>x.id===id);
+    if(i>=0){ arr[i] = { ...arr[i], ...patch }; saveGuestMatches(arr); return true; }
+    return false;
+  }
+  function guestDeleteMatch(id){
+    const arr = loadGuestMatches();
+    const next = arr.filter(x=>x.id!==id);
+    saveGuestMatches(next);
+    return next.length !== arr.length;
+  }
+  function guestCount(){ return loadGuestMatches().length; }
+
+  function isGuest(){ return !window.SESSION || !window.SESSION.user; }
+
   let PROFILE = null;
   let matchesAsc = [];
 
@@ -738,10 +786,11 @@ async function exportBackupJSON() {
     if (session) {
       supabaseClient = clientLocal;
       SESSION = session;
+      try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
       // expose for shared navbar actions
       window.supabaseClient = supabaseClient;
       window.SESSION = SESSION;
-      $("userInfo").textContent = "Signed in as: " + (session.user?.email || "unknown");
+      $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
       return session;
     }
 
@@ -751,19 +800,38 @@ async function exportBackupJSON() {
     if (session) {
       supabaseClient = clientSess;
       SESSION = session;
+      try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
       // expose for shared navbar actions
       window.supabaseClient = supabaseClient;
       window.SESSION = SESSION;
-      $("userInfo").textContent = "Signed in as: " + (session.user?.email || "unknown");
+      $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
       return session;
     }
 
-    // keine session -> login
-    window.location.href = "login.html";
+    // no session -> Guest mode (local)
+    window.IS_GUEST = true;
+    SESSION = null;
+    supabaseClient = null;
+    window.supabaseClient = null;
+    window.SESSION = null;
+    try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){}
+    try { $("userInfo").textContent = "Guest (local)"; } catch(e){}
     return null;
   }
 
   async function loadProfile() {
+    if (isGuest() || !supabaseClient || !SESSION?.user?.id) {
+      const g = loadGuestMatches();
+      let cur = 0;
+      if (g.length > 0) {
+        const last = g.slice().sort((a,b)=> String(a.created_at||"").localeCompare(String(b.created_at||"")) || String(a.id||"").localeCompare(String(b.id||""))).at(-1);
+        cur = Number(last?.vr_after);
+        if (!Number.isFinite(cur)) cur = 0;
+      }
+      PROFILE = { id: "guest", nickname: "Guest", current_vr: cur };
+      $("currentVr").textContent = String(cur);
+      return;
+    }
     const { data, error } = await supabaseClient
       .from("profiles")
       .select("id, nickname, current_vr")
@@ -782,7 +850,9 @@ async function exportBackupJSON() {
     let from = 0;
     let all = [];
 
-    while (true) {
+    if (isGuest()) {
+      all = loadGuestMatches().slice().sort((a,b)=> String(a.created_at||"").localeCompare(String(b.created_at||"")) || String(a.id||"").localeCompare(String(b.id||"")));
+    } else while (true) {
       const { data, error } = await supabaseClient
         .from("matches")
         .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
@@ -2455,8 +2525,8 @@ function renderBuckets(){
 
   // Start
   (async () => {
-    const s = await requireAuth();
-    if (!s) return;
+    // Guest mode is allowed: continue even without a session.
+    await requireAuth();
     await refreshAll();
   })();
 </script>

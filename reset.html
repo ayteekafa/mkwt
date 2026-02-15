@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+  <meta name="theme-color" content="#07080a"/>
+  <script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+  <title>MKWT – Reset Password</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="mkwt_theme_v3.css" rel="stylesheet"/>
+  <link href="mkwt_shared.css" rel="stylesheet"/>
+  <style>
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    .cardWrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:16px;}
+    .resetCard{width:min(92vw,460px);padding:20px;border-radius:14px;}
+    .logo{text-align:center;font-weight:900;letter-spacing:4px;font-size:26px;margin:2px 0 10px 0;}
+    h2{text-align:center;margin:0 0 14px 0;}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+    .field label{font-weight:800;color:var(--muted);font-size:13px;}
+    .btnWide{width:100%;height:44px;}
+    .status{margin-top:12px;text-align:center;font-size:13px;color:var(--muted);min-height:18px;}
+  </style>
+</head>
+<body>
+  <div class="cardWrap">
+    <div class="card resetCard">
+      <div class="logo">MKWT</div>
+      <h2>Set a new password</h2>
+
+      <div class="field">
+        <label>New password</label>
+        <input id="p1" type="password" autocomplete="new-password" placeholder="••••••••"/>
+      </div>
+      <div class="field">
+        <label>Confirm new password</label>
+        <input id="p2" type="password" autocomplete="new-password" placeholder="••••••••"/>
+      </div>
+
+      <button class="btn btnWide" id="btnSet" type="button">Update password</button>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+<script>
+const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
+
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth:{
+    storage: sessionStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+const $ = (id)=>document.getElementById(id);
+function setStatus(msg, ok=true){
+  const el = $("status");
+  el.textContent = msg || "";
+  el.style.color = ok ? "var(--muted)" : "#ff6b6b";
+}
+
+async function ensureRecoverySession(){
+  // When coming from the Supabase recovery email, the session is parsed from the URL.
+  try{
+    const { data, error } = await client.auth.getSession();
+    if (error) console.warn(error);
+    if (data?.session) return true;
+  }catch(e){ console.warn(e); }
+
+  // Give the SDK a moment in case the URL parsing is still in progress.
+  const start = Date.now();
+  while(Date.now()-start < 2000){
+    await new Promise(r=>setTimeout(r, 150));
+    try{
+      const { data } = await client.auth.getSession();
+      if (data?.session) return true;
+    }catch{}
+  }
+  return false;
+}
+
+$("btnSet").onclick = async () => {
+  const p1 = String($("p1").value || "");
+  const p2 = String($("p2").value || "");
+
+  if(p1.length < 6){ setStatus("Password must be at least 6 characters.", false); return; }
+  if(p1 !== p2){ setStatus("Passwords do not match.", false); return; }
+
+  setStatus("Updating password…");
+
+  const ok = await ensureRecoverySession();
+  if(!ok){
+    setStatus("Reset session not found. Please open the newest reset email again.", false);
+    return;
+  }
+
+  const { error } = await client.auth.updateUser({ password: p1 });
+  if(error){ setStatus(error.message, false); return; }
+
+  setStatus("✅ Password updated. Redirecting to login…");
+  setTimeout(()=>location.replace("login.html"), 900);
+};
+
+// On load: just show a hint.
+setStatus("Open this page from your reset email link.");
+</script>
+</body>
+</html>

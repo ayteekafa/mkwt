@@ -342,6 +342,8 @@ button{ border:none; background:transparent; color:inherit; font:inherit; }
 .danger{ background: var(--danger); color: var(--danger-text); border-color: var(--danger); }
 .btn:hover{ filter: brightness(1.05); }
 .btn2:hover{ border-color: var(--primary); background: var(--hover); }
+/* Primary action (used for Guest login CTA in Settings) */
+
 .navAction:hover{ border-color: var(--primary); background: var(--hover); }
 .navAction.active{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
 .btn:active, .btn2:active, .navAction:active, .danger:active{ transform: translateY(1px); }
@@ -436,6 +438,18 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
 .navInner::-webkit-scrollbar-thumb{ background: var(--border); border-radius:999px; }
 
 .brand{ font-weight:900; letter-spacing:.3px; margin-right:6px; color: var(--accent-white); }
+
+/* subtle "by Aytee" brand (used in navbar + headers) */
+.brand .byAytee,
+h2 .byAytee{
+  font-weight:700;
+  opacity:.55;
+  font-size:.72em;
+  letter-spacing:.2px;
+  margin-left:6px;
+  text-transform:none;
+  white-space:nowrap;
+}
 
 .navLink{
   padding:8px 10px;
@@ -539,16 +553,23 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(0,0,0,0.25);
-  color: inherit;
-  font-weight: 700;
-  line-height: 20px;
-  text-align: center;
+  border: 1px solid var(--infoBtn-border);
+  background: var(--infoBtn-bg);
+  color: var(--infoBtn-text);
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   cursor: pointer;
+  opacity: 0.75;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.stratBtn:active{ transform: scale(0.98); }
+.stratBtn:hover{ opacity: 0.95; }
+.stratBtn:active{ transform: translateY(1px); }
 
 .stratPopup{
   position: fixed;

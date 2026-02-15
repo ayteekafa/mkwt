@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<meta name="theme-color" content="#07080a"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<meta name="theme-color" content="#07080a"/><script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
 <title>MKWT – App</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
@@ -363,12 +363,24 @@
       }
       .mcard__meta{ font-size:9px; }
     }
+
+    /* subtle "by Aytee" brand */
+    .brand .byAytee,
+    h2 .byAytee{
+      font-weight:700;
+      opacity:.55;
+      font-size:.72em;
+      letter-spacing:.2px;
+      margin-left:6px;
+      text-transform:none;
+      white-space:nowrap;
+    }
 </style>
 </head>
 <body>
 <nav class="nav">
 <div class="navInner">
-<div class="brand">MKWT</div>
+<div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
 <a class="navLink" href="tracker.html">Tracker</a>
 <a class="navLink" href="stats.html">Stats</a>
 <a class="navLink" href="sessions.html">Sessions</a>
@@ -379,7 +391,7 @@
 <div class="card profileCard">
 <div class="profileTop">
 <div>
-<h2 style="margin:0 0 6px 0;">MKWT</h2>
+<h2 style="margin:0 0 6px 0;">MKWT <span class="byAytee">by Aytee</span></h2>
 <div class="muted" id="userInfo">Loading session…</div>
 </div>
 </div>
@@ -537,8 +549,9 @@
 <input id="vrChange" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="text"/>
 </div>
 </div>
-<div class="field">
+<div class="field hasStratIcon">
 <label class="muted">new total VR</label>
+<button aria-label="Info" class="stratBtn" data-popup="vrAfter" id="infoBtnVrAfter" type="button">i</button>
 <input id="vrAfterInput" inputmode="numeric" pattern="[0-9]*" placeholder="z.B. 7980" type="text"/>
 <div class="muted"></div>
 </div>
@@ -643,8 +656,9 @@
 <input id="editVrChange" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" type="text">
 </input></div>
 </div>
-<div class="field">
+<div class="field hasStratIcon">
 <label class="muted">new total VR</label>
+<button aria-label="Info" class="stratBtn" data-popup="vrAfter" id="infoBtnVrAfterEdit" type="button">i</button>
 <input id="editVrAfter" inputmode="numeric" placeholder="e.g. 9000" type="number">
 </input></div>
 <div class="field">
@@ -1014,12 +1028,23 @@ async function exportBackupJSON() {
     while (true) {
       const to = from + chunk - 1;
 
-      const { data, error } = await supabaseClient
-        .from("matches")
-        .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
-        .eq("user_id", SESSION.user.id)
-        .order("created_at", { ascending: true }) // Backup chronologisch
-        .range(from, to);
+      let data = null, error = null;
+  if (isGuest()) {
+    const all = loadGuestMatches()
+      .slice()
+      .sort((a,b)=> (String(b.created_at||"").localeCompare(String(a.created_at||"")) || String(b.id||"").localeCompare(String(a.id||""))));
+    totalMatches = all.length;
+    data = all.slice(from, to + 1);
+  } else {
+    ({ data, error } = await supabaseClient
+      .from("matches")
+      .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+      .eq("user_id", SESSION.user.id)
+      // Deterministic ordering: created_at can collide (same second), so also order by id.
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to));
+  }
 
       if (error) throw error;
       if (!data || data.length === 0) break;
@@ -1356,6 +1381,34 @@ function fillTrackSelectFromList(selectEl, placeholder, list){
   }
 }
 
+// Apply special end-display suffixes (Reverse / Water Section / Beach Section / etc.)
+// ONLY for the Intermission End dropdown display.
+// Values stay unchanged (e.g., "DK Pass"), only the option text is adjusted.
+function applySpecialEndLabelsToSelect(endSelectEl, startVal){
+  try {
+    if (!endSelectEl) return;
+    const start = String(startVal || '').trim();
+    const metaIM = (window.MKWT_STRATS_META_INTERMISSIONS && typeof window.MKWT_STRATS_META_INTERMISSIONS === 'object')
+      ? window.MKWT_STRATS_META_INTERMISSIONS
+      : null;
+    const opts = Array.from(endSelectEl.querySelectorAll('option'));
+    for (const opt of opts){
+      if (!opt || opt.value === '') continue;
+      const end = String(opt.value);
+      let label = end;
+      if (start && metaIM){
+        const k = `${start}→${end}`;
+        const m = metaIM[k];
+        // Use the same naming/grouping as the Intermission Destiny chart.
+        // DISPLAY-ONLY: option.value (and saved data) stays as the plain end track.
+        const dg = (m && m.destiny_group) ? String(m.destiny_group).trim() : '';
+        if (dg) label = dg;
+      }
+      opt.textContent = label;
+    }
+  } catch(e) {}
+}
+
 function updateIntermissionPair(startEl, endEl, startPlaceholder, endPlaceholder){
   // Bidirectional filtering with loop-prevention.
   let isSyncing = false;
@@ -1379,6 +1432,9 @@ function updateIntermissionPair(startEl, endEl, startPlaceholder, endPlaceholder
 
     const allowed = Array.from(_startsToEnds.get(startVal) || []).sort();
     fillTrackSelectFromList(endEl, endPlaceholder, allowed);
+
+    // Only visual: show special variants (Reverse/Water/etc.) in the End dropdown.
+    applySpecialEndLabelsToSelect(endEl, startVal);
 
     // Preserve previous selection if still valid; otherwise clear.
     endEl.value = allowed.includes(prevEnd) ? prevEnd : "";
@@ -1469,6 +1525,77 @@ function resetIntermissionSelects(){
   let supabaseClient = null;
 
   let SESSION = null;
+
+  // ===== Guest (local) storage =====
+  const GUEST_KEY = "mkwt_guest_matches_v1";
+  function loadGuestMatches(){
+    try { return JSON.parse(localStorage.getItem(GUEST_KEY) || "[]") || []; } catch(e){ return []; }
+  }
+  function saveGuestMatches(arr){
+    try { localStorage.setItem(GUEST_KEY, JSON.stringify(arr || [])); } catch(e){}
+  }
+  function guestAddMatch(m){
+    const arr = loadGuestMatches();
+    arr.push(m);
+    saveGuestMatches(arr);
+    return m;
+  }
+  function guestUpdateMatch(id, patch){
+    const arr = loadGuestMatches();
+    const i = arr.findIndex(x=>x.id===id);
+    if(i>=0){ arr[i] = { ...arr[i], ...patch }; saveGuestMatches(arr); return true; }
+    return false;
+  }
+  function guestDeleteMatch(id){
+    const arr = loadGuestMatches();
+    const next = arr.filter(x=>x.id!==id);
+    saveGuestMatches(next);
+    return next.length !== arr.length;
+  }
+  function guestCount(){ return loadGuestMatches().length; }
+
+  // NOTE: Use the page-local SESSION as the source of truth.
+  // window.SESSION is exposed for shared navbar actions, but should not be relied on here.
+  function isGuest(){ return !SESSION || !SESSION.user; }
+
+  // ========= Guest Profile (local) =========
+  const GUEST_PROFILE_KEY = "mkwt_guest_profile_v1";
+  function loadGuestProfile(){
+    try{
+      const raw = localStorage.getItem(GUEST_PROFILE_KEY);
+      if(!raw) return null;
+      const obj = JSON.parse(raw);
+      if(!obj || typeof obj !== "object") return null;
+      const nickname = String(obj.nickname || "").trim();
+      const current_vr = Number(obj.current_vr);
+      if(!nickname) return null;
+      return {
+        id: "guest",
+        nickname,
+        current_vr: Number.isFinite(current_vr) ? current_vr : 0,
+        created_at: obj.created_at || null
+      };
+    }catch(e){ return null; }
+  }
+  function saveGuestProfile(p){
+    try{
+      const payload = {
+        nickname: String(p.nickname || "").trim(),
+        current_vr: Number(p.current_vr),
+        created_at: p.created_at || new Date().toISOString()
+      };
+      localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(payload));
+    }catch(e){}
+  }
+  function updateGuestCurrentVR(vr){
+    try{
+      const gp = loadGuestProfile();
+      if(!gp) return;
+      gp.current_vr = Number.isFinite(Number(vr)) ? Number(vr) : gp.current_vr;
+      saveGuestProfile(gp);
+    }catch(e){}
+  }
+
   let PROFILE = null;
 
     // ===== Pagination =====
@@ -1484,6 +1611,11 @@ function resetIntermissionSelects(){
     if (session) {
       supabaseClient = clientLocal;
       SESSION = session;
+      try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
+      try{ applyThemeForMode('account'); }catch(e){}
+      // expose for shared navbar actions (export/import, etc.)
+      window.supabaseClient = supabaseClient;
+      window.SESSION = SESSION;
       $("userInfo").textContent = "Profile: –";
       return session;
     }
@@ -1494,12 +1626,24 @@ function resetIntermissionSelects(){
     if (session) {
       supabaseClient = clientSess;
       SESSION = session;
+      try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
+      try{ applyThemeForMode('account'); }catch(e){}
+      // expose for shared navbar actions (export/import, etc.)
+      window.supabaseClient = supabaseClient;
+      window.SESSION = SESSION;
       $("userInfo").textContent = "Profile: –";
       return session;
     }
 
-    // 3) keine session -> zurück zum Login
-    window.location.href = "login.html";
+    // 3) no session -> Guest mode
+    window.IS_GUEST = true;
+    SESSION = null;
+    supabaseClient = null;
+    window.supabaseClient = null;
+    window.SESSION = null;
+    try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){}
+    try{ applyThemeForMode('guest'); }catch(e){}
+    try { $("userInfo").textContent = "Guest (local)"; } catch(e){}
     return null;
   }
 
@@ -1507,6 +1651,26 @@ function resetIntermissionSelects(){
   async function loadProfile() {
     PROFILE = null;
     $("statCurrentVr").textContent = "–";
+
+    // Guest mode: no Supabase client/session. Load local guest profile (or require setup).
+    if (isGuest() || !supabaseClient || !SESSION?.user?.id) {
+      const gp = loadGuestProfile();
+      if (!gp) {
+        PROFILE = null; // triggers setup modal
+        try { $("userInfo").textContent = "Guest (setup required)"; } catch(e) {}
+        return;
+      }
+      PROFILE = gp;
+      try { $("userInfo").textContent = "Guest: " + (gp.nickname || "Guest"); } catch(e) {}
+      try { $("statCurrentVr").textContent = String(gp.current_vr ?? "–"); } catch(e) {}
+
+      // full header stats from guest matches (same as account features)
+      try {
+        const g = loadGuestMatches();
+        updateGuestHeaderStats(gp, g);
+      } catch(e) {}
+      return;
+    }
 
     const { data, error } = await supabaseClient
       .from("profiles")
@@ -1580,6 +1744,97 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     if (maxLoss === Number.POSITIVE_INFINITY) maxLoss = 0;
 
     return { maxWin, maxLose, maxGain, maxLoss };
+  }
+
+  function applyThemeForMode(mode){
+    try{
+      const t = (mode === 'guest') ? 'dark' : (localStorage.getItem('mkwt_theme') || 'dark');
+      document.documentElement.dataset.theme = t;
+      const c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';
+      const m=document.querySelector('meta[name="theme-color"]');
+      if(m) m.setAttribute('content', c);
+    }catch(e){}
+  }
+
+  function updateGuestHeaderStats(gp, matches){
+    try{
+      const arr = (matches || []).slice();
+      // Match count
+      $("statMatchCount").textContent = String(arr.length);
+
+      // Highest VR
+      const base = Number(gp?.current_vr) || 0;
+      const highest = arr.reduce((m,x)=>{
+        const v = Number(x?.vr_after);
+        return Number.isFinite(v) ? Math.max(m, v) : m;
+      }, base);
+      $("statHighestVr").textContent = fmtNum(highest);
+
+      // Average VR over last 30 days (same label as account)
+      const cutoff = Date.now() - 30*24*60*60*1000;
+      const vals = arr
+        .filter(r=>{
+          const t = Date.parse(r?.created_at || '');
+          return Number.isFinite(t) ? (t >= cutoff) : false;
+        })
+        .map(r=>Number(r?.vr_after))
+        .filter(Number.isFinite);
+      const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : NaN;
+      $("statAvg50Vr").textContent = fmtNum(avg);
+
+      // Best Track (3-lap only): highest avg VR change
+      const sums = new Map();
+      for (const r of arr){
+        // 3-lap entries have intermission === null
+        if (r?.intermission != null) continue;
+        const t = String(r?.track || '').trim();
+        const d = Number(r?.vr_change);
+        if (!t || !Number.isFinite(d)) continue;
+        const cur = sums.get(t) || { sum:0, count:0 };
+        cur.sum += d;
+        cur.count += 1;
+        sums.set(t, cur);
+      }
+      let best = null;
+      for (const [track, {sum, count}] of sums.entries()){
+        if (!count) continue;
+        const a = sum / count;
+        if (!best || a > best.avg) best = { track, avg: a, count };
+      }
+      if (!best){
+        $("bestTrackName").textContent = "–";
+        $("bestTrackMeta").textContent = "–";
+      } else {
+        const avgTxt = fmtSigned(best.avg, 1) + " VR avg";
+        const runsTxt = best.count === 1 ? "1 run" : `${best.count} runs`;
+        $("bestTrackName").textContent = best.track;
+        $("bestTrackMeta").textContent = `${avgTxt} • ${runsTxt}`;
+      }
+
+      // Streaks + extremes
+      const ordered = arr
+        .filter(r=>Number.isFinite(Number(r?.vr_change)))
+        .slice()
+        .sort((a,b)=> Date.parse(a?.created_at||'') - Date.parse(b?.created_at||''));
+      const { maxWin, maxLose, maxGain, maxLoss } = calcStreaksAndExtremes(ordered);
+      $("statWinStreak").textContent = String(maxWin);
+      $("statLoseStreak").textContent = String(maxLose);
+      $("statMaxGain").textContent = fmtSignedInt(maxGain);
+      $("statMaxLoss").textContent = fmtSignedInt(maxLoss);
+    }catch(e){
+      // keep stable
+      try{
+        $("statHighestVr").textContent = "–";
+        $("statAvg50Vr").textContent = "–";
+        $("statMatchCount").textContent = "–";
+        $("bestTrackName").textContent = "–";
+        $("bestTrackMeta").textContent = "–";
+        $("statWinStreak").textContent = "–";
+        $("statLoseStreak").textContent = "–";
+        $("statMaxGain").textContent = "–";
+        $("statMaxLoss").textContent = "–";
+      }catch(_){ }
+    }
   }
 
   async function updateProfileQuickStats() {
@@ -1714,6 +1969,14 @@ async function createProfile() {
       if (!nickname) { setStatus("Please enter a nickname.", false); return; }
       if (!Number.isFinite(current_vr)) { setStatus("Invalid VR value.", false); return; }
 
+      // Guest profile is stored locally (no Supabase write)
+      if (isGuest() || !supabaseClient || !SESSION?.user?.id) {
+        saveGuestProfile({ nickname, current_vr, created_at: new Date().toISOString() });
+        setStatus("✅ Guest profile saved.", true);
+        await refreshAll();
+        return;
+      }
+
       setStatus("Creating profile…", true);
 
       const { error } = await supabaseClient.from("profiles").insert({
@@ -1742,6 +2005,9 @@ async function createProfile() {
  // ========= Matches (Pagination) =========
 
 async function getMatchesCount() {
+  if (isGuest()) {
+    return guestCount();
+  }
   const { count, error } = await supabaseClient
     .from("matches")
     .select("id", { count: "exact", head: true })
@@ -1767,14 +2033,38 @@ async function loadMatches() {
   const from = (currentPage - 1) * PAGE_SIZE;
   const to   = from + PAGE_SIZE - 1;
 
-  const { data, error } = await supabaseClient
-    .from("matches")
-    .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
-    .eq("user_id", SESSION.user.id)
-    // Deterministic ordering: created_at can collide (same second), so also order by id.
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(from, to);
+  // We'll fill these either from Guest storage or Supabase.
+  let data = null;
+  let error = null;
+
+	// Guest mode: load matches from localStorage and avoid any Supabase calls.
+	if (isGuest()) {
+	  const all = loadGuestMatches()
+	    .slice()
+	    .sort((a, b) => {
+	      const ta = Date.parse(a.created_at || 0) || 0;
+	      const tb = Date.parse(b.created_at || 0) || 0;
+	      if (tb !== ta) return tb - ta;
+	      // Tie-breaker for deterministic order.
+	      const ia = String(a.id || "");
+	      const ib = String(b.id || "");
+	      return ib.localeCompare(ia);
+	    });
+
+	  totalMatches = all.length;
+	  data = all.slice(from, to + 1);
+	} else {
+	  const res = await supabaseClient
+	    .from("matches")
+	    .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+	    .eq("user_id", SESSION.user.id)
+	    // Deterministic ordering: created_at can collide (same second), so also order by id.
+	    .order("created_at", { ascending: false })
+	    .order("id", { ascending: false })
+	    .range(from, to);
+	  data = res.data;
+	  error = res.error;
+	}
 
   if (error) {
     setStatus("Failed to load matches: " + error.message, false);
@@ -2021,15 +2311,33 @@ const opponentsRaw = $("opponents").value;
         vr_after = baseVr + vr_change;
         try { if ($("vrAfterInput")) $("vrAfterInput").value = String(vr_after); } catch(e) {}
       }
-const { error: insErr } = await supabaseClient.from("matches").insert({
-        user_id: SESSION.user.id,
-        intermission,
-        track,
-        vr_change,
-        vr_after, // Snapshot: VR nach diesem Match
-        opponents,
-        placement
-      });
+let insErr = null;
+      if (isGuest()) {
+        const id = "g_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+        guestAddMatch({
+          id,
+          created_at: new Date().toISOString(),
+          intermission,
+          track,
+          vr_change,
+          vr_after,
+          opponents,
+          placement
+        });
+        // Keep guest profile's current VR in sync
+        updateGuestCurrentVR(vr_after);
+        try { if (PROFILE) PROFILE.current_vr = vr_after; } catch(e) {}
+      } else {
+        ({ error: insErr } = await supabaseClient.from("matches").insert({
+          user_id: SESSION.user.id,
+          intermission,
+          track,
+          vr_change,
+          vr_after, // Snapshot: VR nach diesem Match
+          opponents,
+          placement
+        }));
+      }
 
       if (insErr) {
         setStatus("Failed to save match: " + insErr.message, false);
@@ -2066,16 +2374,20 @@ const { error: insErr } = await supabaseClient.from("matches").insert({
       try { $('placement').value = ''; } catch(e) {}
       const newVr = vr_after;
 
-      const { error: upErr } = await supabaseClient
-        .from("profiles")
-        .update({ current_vr: newVr, updated_at: new Date().toISOString() })
-        .eq("id", SESSION.user.id);
-
-      if (upErr) {
-        setStatus("⚠️ Match saved, but VR update failed: " + upErr.message, false);
-        setDebug(JSON.stringify(upErr, null, 2));
+      if (isGuest()) {
+        setStatus("✅ Match saved (Guest).", true);
       } else {
-        setStatus("✅ Match saved. VR updated.", true);
+        const { error: upErr } = await supabaseClient
+          .from("profiles")
+          .update({ current_vr: newVr, updated_at: new Date().toISOString() })
+          .eq("id", SESSION.user.id);
+
+        if (upErr) {
+          setStatus("⚠️ Match saved, but VR update failed: " + upErr.message, false);
+          setDebug(JSON.stringify(upErr, null, 2));
+        } else {
+          setStatus("✅ Match saved. VR updated.", true);
+        }
       }
 
 
@@ -2123,7 +2435,13 @@ const { error: insErr } = await supabaseClient.from("matches").insert({
     // removed ready pill
 
     $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
-    try { await updateProfileQuickStats(); } catch(e) {}
+    // IMPORTANT: Don't run cloud header stats in Guest mode.
+    // In Guest, compute header stats from localStorage matches.
+    if (isGuest()) {
+      try { updateGuestHeaderStats(PROFILE, loadGuestMatches()); } catch(e) {}
+    } else {
+      try { await updateProfileQuickStats(); } catch(e) {}
+    }
     // Re-sync inputs with new base VR
     try { syncFromDelta(); syncFromAfter(); } catch(e) {}
     await loadMatches();
@@ -2133,6 +2451,10 @@ const editDlg = $("editDlg");
 let EDIT_ROW = null;
 
 async function fetchMatchById(id) {
+  if (isGuest()) {
+    const all = loadGuestMatches();
+    return all.find(m => m.id === id) || null;
+  }
   const { data, error } = await supabaseClient
     .from("matches")
     .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
@@ -2141,7 +2463,7 @@ async function fetchMatchById(id) {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return data || null;
 }
 
 async function openEditDialog(id) {
@@ -2283,12 +2605,19 @@ async function saveEditDialog(){
     setStatus("Saving changes…", true);
 
     // 1) Match updaten + updated row zurückholen (wichtig: array!)
-    const { data: updatedRows, error: upMatchErr } = await supabaseClient
-    .from("matches")
-    .update({ intermission, track, vr_change, vr_after, opponents, placement })
-    .eq("id", EDIT_ROW.id)
-    .eq("user_id", SESSION.user.id)
-    .select("id, vr_change, vr_after, intermission, track, opponents, placement");
+    let updatedRows = null, upMatchErr = null;
+    if (isGuest()) {
+      const ok = guestUpdateMatch(EDIT_ROW.id, { intermission, track, vr_change, vr_after, opponents, placement });
+      if (!ok) upMatchErr = { message: "Match not found." };
+      else updatedRows = [{ id: EDIT_ROW.id, vr_change, vr_after, intermission, track, opponents, placement }];
+    } else {
+      ({ data: updatedRows, error: upMatchErr } = await supabaseClient
+        .from("matches")
+        .update({ intermission, track, vr_change, vr_after, opponents, placement })
+        .eq("id", EDIT_ROW.id)
+        .eq("user_id", SESSION.user.id)
+        .select("id, vr_change, vr_after, intermission, track, opponents, placement"));
+    }
 
     if (upMatchErr) {
     setStatus("Match update failed: " + upMatchErr.message, false);
@@ -2307,7 +2636,7 @@ async function saveEditDialog(){
     return;
 }
 
-    if (deltaVr !== 0) {
+    if (!isGuest() && deltaVr !== 0) {
       await loadProfile();
       const fixed = (PROFILE?.current_vr ?? 8500) + deltaVr;
 
@@ -2349,16 +2678,26 @@ async function deleteMatch(id){
 
     setStatus("Deleting match…", true);
 
-    const { error: delErr } = await supabaseClient
-      .from("matches")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", SESSION.user.id);
+    if (isGuest()) {
+      const okDel = guestDeleteMatch(id);
+      if (!okDel) { setStatus("Delete failed: not found.", false); return; }
+	      // Guest mode ends here (no Supabase writes)
+	      totalMatches = null;
+	      setStatus("✅ Match deleted.", true);
+	      await refreshAll();
+	      return;
+    } else {
+      const { error: delErr } = await supabaseClient
+        .from("matches")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", SESSION.user.id);
 
-    if (delErr) {
-      setStatus("Delete failed: " + delErr.message, false);
-      setDebug(JSON.stringify(delErr, null, 2));
-      return;
+      if (delErr) {
+        setStatus("Delete failed: " + delErr.message, false);
+        setDebug(JSON.stringify(delErr, null, 2));
+        return;
+      }
     }
 
     // Profil-VR korrigieren: Einfluss dieses Matches entfernen
@@ -2485,10 +2824,53 @@ async function deleteMatch(id){
     // Selects (Intermission/Track + Edit-Dialog) befüllen
     initSelects();
 
-    const s = await requireAuth();
-    if (!s) return;
-
+    // Guest mode is allowed: continue even without a session.
+    await requireAuth();
     await refreshAll();
+
+    // Offer to import Guest data on first login (only if account has 0 matches)
+    try {
+      if (!isGuest() && sessionStorage.getItem("mkwt_offer_import_guest") === "1") {
+        sessionStorage.removeItem("mkwt_offer_import_guest");
+        const guest = loadGuestMatches();
+        if (guest.length > 0) {
+          const { count } = await supabaseClient
+            .from("matches")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", SESSION.user.id);
+          if ((count || 0) === 0) {
+            const ok = confirm(`Import your Guest data into this account?\n\nGuest matches found: ${guest.length}\n\nOK = Import & clear Guest data\nCancel = Keep Guest data locally`);
+            if (ok) {
+              setStatus("Importing Guest data…", true);
+              const batchSize = 500;
+              let inserted = 0;
+              for (let i=0; i<guest.length; i+=batchSize) {
+                const batch = guest.slice(i, i+batchSize).map(m => ({
+                  user_id: SESSION.user.id,
+                  intermission: m.intermission ?? null,
+                  track: m.track ?? "",
+                  vr_change: Number(m.vr_change ?? 0),
+                  vr_after: Number(m.vr_after ?? 0),
+                  opponents: m.opponents ?? null,
+                  placement: m.placement ?? null,
+                  created_at: m.created_at || new Date().toISOString()
+                }));
+                const { error } = await supabaseClient.from("matches").insert(batch);
+                if (error) throw error;
+                inserted += batch.length;
+              }
+              saveGuestMatches([]); // clear guest after import to avoid duplicates
+              setStatus(`✅ Imported ${inserted} matches from Guest.`, true);
+              await refreshAll();
+            }
+          }
+        }
+      }
+    } catch(e) {
+      setStatus("Guest import failed: " + (e?.message || e), false);
+      setDebug(e?.stack || String(e));
+    }
+
     setDebug("");
     } catch (e) {
       try { $("userInfo").textContent = "Init error"; } catch(_){ }
@@ -2579,6 +2961,8 @@ async function deleteMatch(id){
 	    const stratPopup = document.getElementById('stratPopup');
 	    const stratPopupBody = document.getElementById('stratPopupBody');
 	    const stratBtnTrack = document.getElementById('stratBtnTrack');
+	    const infoBtnVrAfter = document.getElementById('infoBtnVrAfter');
+	    const infoBtnVrAfterEdit = document.getElementById('infoBtnVrAfterEdit');
 	    const trackSel = document.getElementById('track');
 	    const mm = (q) => (window.matchMedia ? window.matchMedia(q).matches : false);
 	    const isCoarse = mm('(pointer: coarse)');
@@ -2589,8 +2973,11 @@ async function deleteMatch(id){
 	        const r = await fetch('strats.json', { cache: 'no-store' });
 	        if (!r.ok) throw new Error('HTTP ' + r.status);
 	        STRATS = await r.json();
+	        // Expose META for special end-display labels (used by Intermission End dropdown).
+	        window.MKWT_STRATS_META_INTERMISSIONS = (STRATS && STRATS.META && STRATS.META.INTERMISSIONS) ? STRATS.META.INTERMISSIONS : {};
 	      } catch (e) {
 	        STRATS = null;
+	        window.MKWT_STRATS_META_INTERMISSIONS = {};
 	      }
 	    }
 
@@ -2616,6 +3003,14 @@ async function deleteMatch(id){
 	      return 'coming soon';
 	    }
 
+	    function getPopupText(anchor){
+	      const popupKey = anchor && anchor.dataset ? anchor.dataset.popup : '';
+	      if (popupKey === 'vrAfter'){
+	        return 'New total VR can be corrected in Settings (e.g., after a disconnect).';
+	      }
+	      return getStrategyText();
+	    }
+
 	    function positionPopup(anchor){
 	      if (!stratPopup || !anchor) return;
 	      const r = anchor.getBoundingClientRect();
@@ -2639,9 +3034,11 @@ async function deleteMatch(id){
 	      stratPopup.style.top  = Math.max(pad, top) + 'px';
 	    }
 
+	    let currentAnchorBtn = null;
 	    function openPopup(anchor){
 	      if (!stratPopup || !stratPopupBody) return;
-	      stratPopupBody.textContent = getStrategyText();
+	      currentAnchorBtn = anchor || null;
+	      stratPopupBody.textContent = getPopupText(anchor);
 	      stratPopup.classList.add('isOpen');
 	      stratPopup.setAttribute('aria-hidden', 'false');
 	      positionPopup(anchor);
@@ -2652,6 +3049,7 @@ async function deleteMatch(id){
 	      stratPopup.classList.remove('isOpen');
 	      stratPopup.setAttribute('aria-hidden', 'true');
 	      stratPopup.dataset.anchor = '';
+	      currentAnchorBtn = null;
 	    }
 	    function togglePopup(anchor){
 	      if (!stratPopup) return;
@@ -2716,11 +3114,13 @@ async function deleteMatch(id){
 	      }
 	    }
 	    bindStratBtn(stratBtnTrack);
+	    bindStratBtn(infoBtnVrAfter);
+	    bindStratBtn(infoBtnVrAfterEdit);
 
 	    if (stratPopup && !isCoarse){
 	      stratPopup.addEventListener('mouseleave', ()=>{
 	        setTimeout(()=>{
-	          const stillHover = stratPopup.matches(':hover') || (stratBtnTrack && stratBtnTrack.matches(':hover'));
+	          const stillHover = stratPopup.matches(':hover') || (currentAnchorBtn && currentAnchorBtn.matches && currentAnchorBtn.matches(':hover'));
 	          if (!stillHover) closePopup();
 	        }, 80);
 	      });
@@ -2730,7 +3130,7 @@ async function deleteMatch(id){
 	      if (!stratPopup || !stratPopup.classList.contains('isOpen')) return;
 	      // Keep open only when interacting with the ? button itself.
 	      // Clicking anywhere else (including the popup body) closes it.
-	      if (stratBtnTrack && stratBtnTrack.contains(e.target)) return;
+	      if (currentAnchorBtn && currentAnchorBtn.contains && currentAnchorBtn.contains(e.target)) return;
 	      closePopup();
 	    }
 	    // pointerdown ensures mobile closes reliably (some environments delay/skip click).
@@ -2752,7 +3152,21 @@ async function deleteMatch(id){
 	      if (stratPopup && stratPopup.classList.contains('isOpen')) openPopup(document.getElementById(stratPopup.dataset.anchor) || stratBtnTrack );
 	    });
 
-	    loadStrats().finally(()=>{ try { updateStratAvailability(); } catch(e) {} });
+	    loadStrats().finally(()=>{
+	      try { updateStratAvailability(); } catch(e) {}
+	      // If the user already selected a start/end before strats loaded,
+	      // re-apply the visual special suffixes now.
+	      try {
+	        const s = (intermissionSel && intermissionSel.value) ? intermissionSel.value : '';
+	        if (s) applySpecialEndLabelsToSelect(trackSel, s);
+	      } catch(e) {}
+	      try {
+	        const es = document.getElementById('editIntermission');
+	        const ee = document.getElementById('editTrack');
+	        const s2 = (es && es.value) ? es.value : '';
+	        if (s2) applySpecialEndLabelsToSelect(ee, s2);
+	      } catch(e) {}
+	    });
 
     const vr = document.getElementById("vrChange");
     const vrAfter = document.getElementById("vrAfterInput");
@@ -2879,7 +3293,18 @@ document.addEventListener('click', (e)=>{
         if (typeof window.setStatus === "function") window.setStatus("Creating backup…", true);
         await ensureSession();
         await ensureProfile();
-        if (!window.SESSION?.user) throw new Error("Not signed in.");
+        if (!window.SESSION?.user) {
+          // Guest: export local matches
+          const backup = {
+            version: 1,
+            exported_at: new Date().toISOString(),
+            mode: "guest",
+            matches: loadGuestMatches()
+          };
+          downloadTextFile("mkwt_guest_backup.json", JSON.stringify(backup, null, 2));
+          if (typeof window.setStatus === "function") window.setStatus("✅ Guest export created.", true);
+          return;
+        }
 
         const allMatches = [];
         const chunk = 1000;
@@ -2934,7 +3359,37 @@ document.addEventListener('click', (e)=>{
         if (typeof window.setStatus === "function") window.setStatus("Importing backup…", true);
 
         await ensureSession();
-        if (!window.SESSION?.user) throw new Error("Not signed in.");
+        if (!window.SESSION?.user) {
+          // Guest: import into local storage
+          const text = await file.text();
+          const parsed = JSON.parse(text || "{}");
+          const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.matches) ? parsed.matches : []);
+          if (!Array.isArray(incoming)) throw new Error("Invalid backup file.");
+          const current = loadGuestMatches();
+          const ids = new Set(current.map(m => String(m.id)));
+          let added = 0;
+          for (const raw of incoming) {
+            if (!raw) continue;
+            const m = {
+              id: String(raw.id || ("g_" + Date.now() + "_" + Math.random().toString(16).slice(2))),
+              created_at: raw.created_at || new Date().toISOString(),
+              intermission: raw.intermission ?? null,
+              track: raw.track ?? "",
+              vr_change: Number(raw.vr_change ?? 0),
+              vr_after: Number(raw.vr_after ?? 0),
+              opponents: raw.opponents ?? null,
+              placement: raw.placement ?? null
+            };
+            if (ids.has(m.id)) m.id = m.id + "_" + Math.random().toString(16).slice(2);
+            ids.add(m.id);
+            current.push(m);
+            added++;
+          }
+          saveGuestMatches(current);
+          if (typeof window.setStatus === "function") window.setStatus(`✅ Guest import complete. Added ${added} matches.`, true);
+          try { await refreshAll(); } catch(e) {}
+          return;
+        }
 
         const text = await file.text();
         const backup = JSON.parse(text);

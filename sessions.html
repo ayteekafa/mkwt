@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<meta name="theme-color" content="#07080a"/><script>(function(){try{var t=localStorage.getItem('mkwt_theme')||'dark';document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<meta name="theme-color" content="#07080a"/><script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
 <title>MKWT – Stats</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -36,7 +36,7 @@
 <body>
 <nav class="nav">
 <div class="navInner">
-<div class="brand">MKWT</div>
+<div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
 <a class="navLink" href="tracker.html">Tracker</a>
 <a class="navLink" href="stats.html">Stats</a>
 <a class="navLink" href="sessions.html">Sessions</a>
@@ -48,12 +48,16 @@
 <div class="topbar">
 <div>
 <h2 style="margin:0 0 6px 0;">MKWT – Sessions</h2>
+<div class="pageInfoLines" style="display:none">
 <div class="muted" id="userInfo">Loading session…</div>
 <div class="muted">Sessions: <b id="sessionCount">–</b></div>
 </div>
 </div>
+</div>
+<div class="pageInfoLines" style="display:none">
 <div class="muted" id="status"></div>
 <div class="muted" id="debug"></div>
+</div>
 </div>
 <div class="card">
 <div style="display:flex; gap:10px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
@@ -137,6 +141,37 @@
   window.supabaseClient = null;
   window.SESSION = null;
 
+  // ===== Guest (local) storage =====
+  const GUEST_KEY = "mkwt_guest_matches_v1";
+  function loadGuestMatches(){
+    try { return JSON.parse(localStorage.getItem(GUEST_KEY) || "[]") || []; } catch(e){ return []; }
+  }
+  function saveGuestMatches(arr){
+    try { localStorage.setItem(GUEST_KEY, JSON.stringify(arr || [])); } catch(e){}
+  }
+  function guestAddMatch(m){
+    const arr = loadGuestMatches();
+    arr.push(m);
+    saveGuestMatches(arr);
+    return m;
+  }
+  function guestUpdateMatch(id, patch){
+    const arr = loadGuestMatches();
+    const i = arr.findIndex(x=>x.id===id);
+    if(i>=0){ arr[i] = { ...arr[i], ...patch }; saveGuestMatches(arr); return true; }
+    return false;
+  }
+  function guestDeleteMatch(id){
+    const arr = loadGuestMatches();
+    const next = arr.filter(x=>x.id!==id);
+    saveGuestMatches(next);
+    return next.length !== arr.length;
+  }
+  function guestCount(){ return loadGuestMatches().length; }
+
+  function isGuest(){ return !window.SESSION || !window.SESSION.user; }
+
+
   async function requireAuth(){
     try{
       let { data:{ session } , error } = await clientLocal.auth.getSession();
@@ -144,6 +179,7 @@
       if(session){
         supabaseClient = clientLocal;
         SESSION = session;
+        try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
         window.supabaseClient = supabaseClient;
         window.SESSION = SESSION;
         return SESSION;
@@ -153,6 +189,7 @@
       if(session){
         supabaseClient = clientSess;
         SESSION = session;
+        try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
         window.supabaseClient = supabaseClient;
         window.SESSION = SESSION;
         return SESSION;
@@ -165,17 +202,29 @@
   }
 async function requireSession(){
     const sess = await requireAuth();
+    // Guest mode is allowed: if no session, continue with local matches.
     if (!sess) {
-      setStatus("Not logged in. Please sign in.", false);
+      window.IS_GUEST = true;
+      window.supabaseClient = null;
+      window.SESSION = null;
+      try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){}
       const ui = document.getElementById("userInfo");
-      if (ui) ui.textContent = "Not signed in";
-      const list = document.getElementById("sessionList");
-      if (list) {
-        list.innerHTML = '<div class="muted">Please <a href="login.html?next=sessions.html">sign in</a> to view sessions.</div>';
-      }
+      if (ui) ui.textContent = "Guest (local)";
       return null;
     }
-    const email = sess.user?.email || "Logged in";
+    function maskEmail(email){
+      try{
+        if(!email || typeof email !== 'string') return '';
+        const at = email.indexOf('@');
+        if(at <= 0) return email;
+        const local = email.slice(0, at);
+        const domain = email.slice(at);
+        if(local.length <= 1) return local + '*' + domain;
+        if(local.length === 2) return local[0] + '*' + domain;
+        return local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] + domain;
+      }catch(e){ return email || ''; }
+    }
+    const email = maskEmail(sess.user?.email) || "Logged in";
     if ($("userInfo")) $("userInfo").textContent = email;
     return sess;
   }
@@ -183,6 +232,13 @@ async function requireSession(){
   async function getAllMatchesAsc(){
     // same approach as stats: paginated fetch, chronological
     const all = [];
+    // Guest: use local matches
+    if (isGuest()) {
+      let g = loadGuestMatches().slice().sort((a,b)=> String(a.created_at||"").localeCompare(String(b.created_at||"")) || String(a.id||"").localeCompare(String(b.id||"")));
+      const minVr = (typeof getMinVrFilter === "function") ? getMinVrFilter() : 0;
+      if (minVr > 0 && typeof passesMinVrFilter === "function") g = g.filter(m => passesMinVrFilter(m, minVr));
+      return g;
+    }
     try {
       let page = 0;
       const pageSize = 1000;
@@ -391,8 +447,7 @@ async function requireSession(){
   async function main(){
     if (!window.supabase?.createClient) { setStatus("Supabase could not load (CDN blocked).", false); return; }
     wirePager();
-    const sess = await requireSession();
-    if (!sess) return;
+    await requireSession();
 
     setStatus("Loading matches…", true);
     const matchesAsc = await getAllMatchesAsc();

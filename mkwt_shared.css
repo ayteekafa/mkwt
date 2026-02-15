@@ -55,3 +55,16 @@ html {
   padding:18px;
   border-radius:14px;
 }
+
+
+/* subtle "by Aytee" brand */
+.brand .byAytee,
+h2 .byAytee{
+  font-weight:700;
+  opacity:.55;
+  font-size:.72em;
+  letter-spacing:.2px;
+  margin-left:6px;
+  text-transform:none;
+  white-space:nowrap;
+}
