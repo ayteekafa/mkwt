@@ -1,0 +1,6 @@
+/robots.txt   /robots.txt   200
+/sitemap.xml  /sitemap.xml  200
+/index.html   /index.html   200
+/about.html   /about.html   200
+
+/            /login.html    302

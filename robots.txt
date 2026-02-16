@@ -11,4 +11,4 @@ Disallow: /sessions.html
 Disallow: /settings.html
 Disallow: /mkwt_nav_snippet.html
 
-Sitemap: https://www.mkwt.app/sitemap.xml
+Sitemap: https://mkwt.app/sitemap.xml

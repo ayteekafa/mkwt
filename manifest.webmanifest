@@ -1,7 +1,7 @@
 {
   "name": "MKWT",
   "short_name": "MKWT",
-  "start_url": "/tracker.html",
+  "start_url": "/login.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0b1020",
