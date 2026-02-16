@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>About MKWT – Mario Kart World Tracker</title>
+  <meta name="description" content="Learn what MKWT can track in Mario Kart World: match logging, VR changes, sessions, intermission routes, stats & charts. Guest mode and Account mode explained." />
+
+  <link rel="canonical" href="https://www.mkwt.app/about.html" />
+  <meta name="theme-color" content="#0b1020" />
+  <script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+
+  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <meta property="og:title" content="About MKWT – Mario Kart World Tracker" />
+  <meta property="og:description" content="Features, modes (Guest vs Account), and what MKWT tracks." />
+  <meta property="og:image" content="https://www.mkwt.app/og-card.png" />
+  <meta property="og:url" content="https://www.mkwt.app/about.html" />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="mkwt_theme_v3.css" />
+  <link rel="stylesheet" href="mkwt_shared.css" />
+
+<style>
+    body { min-height: 100vh; }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 28px 16px 48px; }
+    .panel{ padding: 18px 16px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    h1{ margin: 0 0 8px; font-size: 26px; }
+    h2{ margin: 18px 0 8px; font-size: 16px; }
+    p, li{ font-size: 14px; opacity: .95; }
+    a{ color: rgba(255,255,255,0.92); }
+    .toplinks{ display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 6px; }
+    .btn{ text-decoration:none; padding: 9px 12px; border-radius: 12px; display:inline-flex; border: 1px solid rgba(255,255,255,0.18); background: rgba(0,0,0,0.12); }
+    .btn.primary{ background: rgba(255,255,255,0.92); color: #0b1020; border-color: transparent; font-weight: 800; }
+    .small{ font-size: 12px; opacity: .78; }
+  </style>
+</head>
+<body>
+  <div class="nav"><div class="navInner"><a class="navLink" href="index.html">Home</a><a class="navLink" href="about.html" style="opacity:.9;">About</a><div class="navSpacer"></div><a class="navAction" href="login.html">Login</a></div></div>
+  <main class="wrap">
+    <section class="panel">
+      <h1>About MKWT</h1>
+      <p>
+        MKWT is a <strong>Mario Kart World tracker</strong> for logging matches and reviewing performance over time.
+        If you’re looking for an <strong>MK World tracker</strong> to track VR changes, sessions and stats, MKWT keeps everything in one place.
+      </p>
+
+      <div class="toplinks">
+        <a class="btn primary" href="login.html">Login / Start</a>
+        <a class="navLink" href="index.html" aria-label="Home">Home</a>
+      </div>
+
+      <h2>What you can track</h2>
+      <ul>
+        <li><strong>Matches</strong>: track / intermission, route, opponents, placement, and VR after.</li>
+        <li><strong>VR changes</strong>: gains and losses per match, with helpful summaries.</li>
+        <li><strong>Sessions</strong>: see progress blocks and how your VR moved across a set of games.</li>
+        <li><strong>Stats & charts</strong>: distributions, win rates, averages, and performance by track/intermission.</li>
+      </ul>
+
+      <h2>Guest vs Account (Supabase)</h2>
+      <ul>
+        <li><strong>Guest mode</strong> stores data locally in your browser (no cloud).</li>
+        <li><strong>Account mode</strong> uses Supabase cloud to sync your matches across devices.</li>
+        <li>Some settings may be limited in Guest mode (by design).</li>
+      </ul>
+
+      <h2>FAQ</h2>
+      <p><strong>Does MKWT require an account?</strong> No — you can try it as Guest. For syncing across devices, use an account.</p>
+      <p><strong>Is MKWT affiliated with Nintendo?</strong> No.</p>
+
+      <p class="small">Last updated: 2026-02-16</p>
+    </section>
+  </main>
+</body>
+</html>

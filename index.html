@@ -1,215 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>MKWT – Mario Kart World Match Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Sofort-Redirect auf die App -->
-  <meta http-equiv="refresh" content="0; url=login.html">
+  <title>MKWT – Mario Kart World Tracker (VR, Matches, Stats)</title>
+  <meta name="description" content="MKWT is a Mario Kart World tracker for logging matches, VR changes, sessions, and intermission routes — with clean stats and charts." />
 
-  <!-- Falls Meta-Refresh geblockt ist -->
-  <script>
-    window.location.replace("login.html");
+  <link rel="canonical" href="https://www.mkwt.app/" />
+  <meta name="theme-color" content="#0b1020" />
+  <script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+
+  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <meta property="og:title" content="MKWT – Mario Kart World Tracker" />
+  <meta property="og:description" content="Track Mario Kart World matches and VR changes. Sessions, intermission routes, stats & charts." />
+  <meta property="og:image" content="https://www.mkwt.app/og-card.png" />
+  <meta property="og:url" content="https://www.mkwt.app/" />
+  <meta property="og:type" content="website" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MKWT – Mario Kart World Tracker" />
+  <meta name="twitter:description" content="Track matches, VR, sessions and intermission routes with MKWT." />
+  <meta name="twitter:image" content="https://www.mkwt.app/og-card.png" />
+  <link rel="stylesheet" href="mkwt_theme_v3.css" />
+  <link rel="stylesheet" href="mkwt_shared.css" />
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "MKWT",
+    "url": "https://www.mkwt.app/",
+    "description": "Mario Kart World tracker for matches, VR changes, sessions, intermission routes, stats and charts.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.mkwt.app/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
   </script>
 
-  <!-- Mobile / PWA freundlich -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#0b1020">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <style>
+    body { min-height: 100vh; }
+    .landing-wrap{ max-width: 980px; margin: 0 auto; padding: 28px 16px 48px; }
+    .hero{ padding: 22px 18px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .brand img{ width:44px; height:44px; border-radius: 10px; }
+    h1{ margin: 12px 0 8px; font-size: 28px; line-height: 1.15; }
+    .sub{ margin: 0 0 14px; opacity: 0.9; }
+    .cta{ display:flex; gap:10px; flex-wrap: wrap; margin-top: 14px; }
+    .cta .navAction{ text-decoration:none; }
+    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+    .landingCard{ padding: 14px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); }
+    .landingCard h2{ margin: 0 0 6px; font-size: 15px; }
+    .landingCard p{ margin: 0; font-size: 13px; opacity: 0.92; }
 
-  <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
-  <link rel="canonical" href="https://www.mkwt.app/">
-  <link rel="icon" href="/favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
-  <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
-  <meta property="og:image" content="https://www.mkwt.app/og-card.png">
-  <meta property="og:url" content="https://www.mkwt.app/">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MKWT – Mario Kart World Match Tracker">
-  <meta name="twitter:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
-  <meta name="twitter:image" content="https://www.mkwt.app/og-card.png">
+    .footer{ margin-top: 18px; opacity: 0.78; font-size: 12px; }
+    .footer a{ color: rgba(255,255,255,0.9); }
 
+    @media (max-width: 820px){
+      .grid{ grid-template-columns: 1fr; }
+      h1{ font-size: 24px; }
+    }
+  </style>
 </head>
 <body>
+  <main class="landing-wrap">
+    <section class="hero">
+      <div class="brand">
+        <img src="icons/icon-192.png" alt="MKWT" />
+        <div>
+          <div style="font-weight:900; letter-spacing:0.2px;">MKWT</div>
+          <div style="opacity:.85; font-size:12px;">Mario Kart World Tracker</div>
+        </div>
+      </div>
 
-<!-- MKWT Shared Nav Actions -->
-<script>
-(function(){
-  const $id = (id)=>document.getElementById(id);
+      <h1>Mario Kart World tracker for VR, matches, and clean stats</h1>
+      <p class="sub">
+        Log matches fast, track VR changes and sessions, and review performance by track and intermission routes.
+        MKWT works as <strong>Guest (local)</strong> or as an <strong>Account (Supabase)</strong>.
+      </p>
 
-  async function ensureSession(){
-    try{
-      if (window.SESSION && window.SESSION.user) return;
-      if (!window.supabaseClient?.auth?.getSession) return;
-      const { data } = await supabaseClient.auth.getSession();
-      window.SESSION = data?.session || null;
-    }catch(e){ console.warn(e); }
-  }
+      <div class="cta">
+        <a class="navAction" href="login.html">Login / Start</a>
+        <a class="navAction" href="login.html" id="tryGuest">Try as Guest</a>
+        <a class="navAction" href="about.html">About & Features</a>
+      </div>
 
-  async function ensureProfile(){
-    try{
-      if (typeof window.loadProfile === "function") { await window.loadProfile(); return; }
-      if (!window.supabaseClient || !window.SESSION?.user) return;
-      const { data, error } = await supabaseClient
-        .from("profiles")
-        .select("nickname,current_vr")
-        .eq("user_id", SESSION.user.id)
-        .maybeSingle();
-      if (!error) window.PROFILE = data || null;
-    }catch(e){ console.warn(e); }
-  }
+      <div class="grid" aria-label="Features">
+        <div class="landingCard">
+          <h2>Match logging</h2>
+          <p>Track + intermission entries, opponents, placement, VR after & VR change.</p>
+        </div>
+        <div class="landingCard">
+          <h2>Sessions & progress</h2>
+          <p>See runs over time: start VR, end VR, and performance trends.</p>
+        </div>
+        <div class="landingCard">
+          <h2>Stats & charts</h2>
+          <p>Distribution, win rates, averages, and track/intermission performance views.</p>
+        </div>
+      </div>
 
-  if (typeof window.downloadTextFile !== "function") {
-    window.downloadTextFile = function(filename, text){
-      const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch{} a.remove(); }, 0);
-    };
-  }
-
-  if (typeof window.exportBackupJSON !== "function") {
-    window.exportBackupJSON = async function(){
-      try{
-        if (typeof window.setStatus === "function") window.setStatus("Creating backup…", true);
-        await ensureSession();
-        await ensureProfile();
-        if (!window.SESSION?.user) throw new Error("Not signed in.");
-
-        const allMatches = [];
-        const chunk = 1000;
-        let from = 0;
-
-        while (true) {
-          const to = from + chunk - 1;
-          const { data, error } = await supabaseClient
-            .from("matches")
-            .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
-            .eq("user_id", SESSION.user.id)
-            .order("created_at", { ascending: true })
-            .range(from, to);
-
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-
-          allMatches.push(...data);
-          if (data.length < chunk) break;
-          from += chunk;
-        }
-
-        const backup = {
-          app: "MKWT",
-          version: 1,
-          exported_at: new Date().toISOString(),
-          user: { id: SESSION.user.id, email: SESSION.user.email || null },
-          profile: {
-            nickname: window.PROFILE?.nickname ?? null,
-            current_vr: window.PROFILE?.current_vr ?? null
-          },
-          matches: allMatches
-        };
-
-        const filename =
-          `mkwt_backup_${String(window.PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
-
-        window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
-        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} matches).`, true);
-      } catch(e){
-        if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
-        if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
-        console.error(e);
-      }
-    };
-  }
-
-  if (typeof window.importBackupJSON !== "function") {
-    window.importBackupJSON = async function(file){
-      try{
-        if (!file) return;
-        if (typeof window.setStatus === "function") window.setStatus("Importing backup…", true);
-
-        await ensureSession();
-        if (!window.SESSION?.user) throw new Error("Not signed in.");
-
-        const text = await file.text();
-        const backup = JSON.parse(text);
-
-        const incomingProfile = backup?.profile || null;
-        const incomingMatches = Array.isArray(backup?.matches) ? backup.matches : [];
-
-        if (incomingProfile) {
-          await supabaseClient
-            .from("profiles")
-            .upsert({
-              user_id: SESSION.user.id,
-              nickname: incomingProfile.nickname ?? null,
-              current_vr: incomingProfile.current_vr ?? null
-            });
-        }
-
-        const cleaned = incomingMatches.map(m => {
-          const row = { ...m, user_id: SESSION.user.id };
-          delete row.id; // avoid PK collisions
-          return row;
-        });
-
-        const batchSize = 500;
-        for (let i=0;i<cleaned.length;i+=batchSize){
-          const batch = cleaned.slice(i, i+batchSize);
-          const { error } = await supabaseClient.from("matches").insert(batch);
-          if (error) {
-            // We keep going — DB constraints may reject dupes depending on your setup
-            console.warn("Import batch error", error);
-          }
-        }
-
-        if (typeof window.setStatus === "function") window.setStatus(`✅ Import finished (${cleaned.length} matches). Refreshing…`, true);
-        setTimeout(()=>location.reload(), 350);
-      } catch(e){
-        if (typeof window.setStatus === "function") window.setStatus("Import failed: " + (e?.message || e), false);
-        if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
-        console.error(e);
-      }
-    };
-  }
-
-  function wireNav(){
-    const btnExport = $id("btnExport");
-    const btnLogout = $id("btnLogout");
-    const fileImport = $id("fileImport");
-
-    btnExport?.addEventListener("click", () => window.exportBackupJSON());
-    fileImport?.addEventListener("change", (ev) => {
-      const file = ev.target.files?.[0];
-      if (file) window.importBackupJSON(file);
-      ev.target.value = "";
-    });
-    btnLogout?.addEventListener("click", async () => {
-      try { await window.supabaseClient?.auth?.signOut?.(); } catch(e){ console.warn(e); }
-      location.href = "login.html";
-    });
-  }
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wireNav);
-  else wireNav();
-})();
-</script>
+      <p class="footer">
+        <span style="display:block; margin-top:6px;">Not affiliated with Nintendo.</span>
+      </p>
+    </section>
+  </main>
 
   <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
-      });
-    }
+    // Ensure “Try as Guest” is an explicit choice.
+    document.getElementById('tryGuest')?.addEventListener('click', () => {
+      try {
+        localStorage.setItem('mkwt_mode', 'guest');
+        localStorage.setItem('mkwt_last_mode', 'guest');
+      } catch(e) {}
+    });
   </script>
 </body>
 </html>

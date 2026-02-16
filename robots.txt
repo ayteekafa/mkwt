@@ -1,0 +1,14 @@
+User-agent: *
+
+# Public pages (index + about) are allowed.
+
+# Keep app/internal pages out of search results.
+Disallow: /login.html
+Disallow: /reset.html
+Disallow: /tracker.html
+Disallow: /stats.html
+Disallow: /sessions.html
+Disallow: /settings.html
+Disallow: /mkwt_nav_snippet.html
+
+Sitemap: https://www.mkwt.app/sitemap.xml
