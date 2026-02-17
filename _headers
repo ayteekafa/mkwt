@@ -1,0 +1,17 @@
+/*.html
+  Content-Type: text/html; charset=utf-8
+  Content-Disposition: inline
+
+/tracker
+  Content-Type: text/html; charset=utf-8
+  Content-Disposition: inline
+
+/login
+  Content-Type: text/html; charset=utf-8
+  Content-Disposition: inline
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
