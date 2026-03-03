@@ -691,6 +691,8 @@ async function exportBackupJSON() {
     setStatus("Logging out…", true);
     await clientLocal.auth.signOut();
     await clientSess.auth.signOut();
+    try{ localStorage.removeItem('mkwt_backup_session_local_v1'); }catch(e){}
+    try{ sessionStorage.removeItem('mkwt_backup_session_session_v1'); }catch(e){}
     window.location.href = "login.html";
   }
 
@@ -717,6 +719,30 @@ async function exportBackupJSON() {
 
   const clientLocal = makeClient(localStorage);
   const clientSess  = makeClient(sessionStorage);
+
+  // Backup session tokens for iOS PWA/Safari edge-cases where the Supabase
+  // storage entry may not be restored reliably after the app is killed.
+  const BACKUP_KEY_LOCAL = 'mkwt_backup_session_local_v1';
+  const BACKUP_KEY_SESS  = 'mkwt_backup_session_session_v1';
+  function preferredAuthStorage(){
+    try{ return (localStorage.getItem('mkwt_auth_storage') || 'local'); }catch(e){ return 'local'; }
+  }
+  function readBackup(which){
+    const key = which === 'session' ? BACKUP_KEY_SESS : BACKUP_KEY_LOCAL;
+    try{ return JSON.parse((which === 'session' ? sessionStorage : localStorage).getItem(key) || 'null'); }catch(e){ return null; }
+  }
+  async function tryRestoreFromBackup(){
+    const pref = preferredAuthStorage();
+    const b = readBackup(pref);
+    if (!b?.access_token || !b?.refresh_token) return false;
+    try{
+      const c = pref === 'session' ? clientSess : clientLocal;
+      await c.auth.setSession({ access_token: b.access_token, refresh_token: b.refresh_token });
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
   let supabaseClient = null;
 
   let SESSION = null;
@@ -847,6 +873,32 @@ async function exportBackupJSON() {
       $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
       try{ setNavAuthButton("account"); }catch(e){}
     return session;
+    }
+
+    // If no session found, try restoring from our backup (PWA/iOS workaround)
+    if (await tryRestoreFromBackup()) {
+      ({ data: { session }, error } = await clientLocal.auth.getSession());
+      if (session) {
+        supabaseClient = clientLocal;
+        SESSION = session;
+        try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
+        window.supabaseClient = supabaseClient;
+        window.SESSION = SESSION;
+        $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
+        try{ setNavAuthButton("account"); }catch(e){}
+        return session;
+      }
+      ({ data: { session }, error } = await clientSess.auth.getSession());
+      if (session) {
+        supabaseClient = clientSess;
+        SESSION = session;
+        try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
+        window.supabaseClient = supabaseClient;
+        window.SESSION = SESSION;
+        $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
+        try{ setNavAuthButton("account"); }catch(e){}
+        return session;
+      }
     }
 
     // no session -> Guest ONLY if user chose it

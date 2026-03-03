@@ -148,6 +148,18 @@ function createClient(storage){
   });
 }
 
+// Backup keys for iOS PWA/Safari edge-cases.
+const BACKUP_KEY_LOCAL = 'mkwt_backup_session_local_v1';
+const BACKUP_KEY_SESS  = 'mkwt_backup_session_session_v1';
+function writeBackup(stay, session){
+  try{
+    const payload = { access_token: session?.access_token, refresh_token: session?.refresh_token };
+    if (!payload.access_token || !payload.refresh_token) return;
+    if (stay) localStorage.setItem(BACKUP_KEY_LOCAL, JSON.stringify(payload));
+    else sessionStorage.setItem(BACKUP_KEY_SESS, JSON.stringify(payload));
+  }catch(e){}
+}
+
 let captchaWidgetId = null;
 let captchaToken = "";
 function renderCaptcha(){
@@ -198,16 +210,20 @@ async function login(){
     try{
       const s = data?.session;
       if (s?.access_token && s?.refresh_token) {
+        // Save a lightweight backup to survive some iOS PWA storage quirks.
+        writeBackup(stay, s);
         if (stay) {
           const cLocal = createClient(localStorage);
           await cLocal.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
           // Avoid stale parallel sessions.
           try{ await createClient(sessionStorage).auth.signOut(); }catch(e){}
+          try{ sessionStorage.removeItem(BACKUP_KEY_SESS); }catch(e){}
         } else {
           const cSess = createClient(sessionStorage);
           await cSess.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
           // Avoid accidentally staying logged in via localStorage.
           try{ await createClient(localStorage).auth.signOut(); }catch(e){}
+          try{ localStorage.removeItem(BACKUP_KEY_LOCAL); }catch(e){}
         }
       }
     }catch(e){
