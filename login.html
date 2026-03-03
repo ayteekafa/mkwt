@@ -175,6 +175,11 @@ async function login(){
   if(!captchaToken){ setStatus("Please complete the captcha first.", false); return; }
 
   const stay = $("stay").checked;
+  // Persist preference so other pages can prioritize the right storage.
+  try{ localStorage.setItem('mkwt_auth_storage', stay ? 'local' : 'session'); }catch(e){}
+
+  // Create client for chosen storage, but also explicitly set the session into the
+  // intended storage to make "Stay logged" robust across browsers.
   const storage = stay ? localStorage : sessionStorage;
   const client = createClient(storage);
 
@@ -188,6 +193,27 @@ async function login(){
       options: { captchaToken }
     });
     if (error) throw error;
+
+    // Ensure the session is stored in the intended storage.
+    try{
+      const s = data?.session;
+      if (s?.access_token && s?.refresh_token) {
+        if (stay) {
+          const cLocal = createClient(localStorage);
+          await cLocal.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
+          // Avoid stale parallel sessions.
+          try{ await createClient(sessionStorage).auth.signOut(); }catch(e){}
+        } else {
+          const cSess = createClient(sessionStorage);
+          await cSess.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
+          // Avoid accidentally staying logged in via localStorage.
+          try{ await createClient(localStorage).auth.signOut(); }catch(e){}
+        }
+      }
+    }catch(e){
+      // Non-fatal; fallback to default storage behavior.
+      console.warn(e);
+    }
 
     // mode: account
     try{ localStorage.setItem('mkwt_mode','account'); localStorage.setItem('mkwt_last_mode','account'); }catch(e){}

@@ -1797,6 +1797,33 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     return { maxWin, maxLose, maxGain, maxLoss };
   }
 
+
+  function calcCurrentStreaks(matchesDesc){
+    // matchesDesc: newest -> oldest (DESC).
+    // Win streak: consecutive vr_change > 0 from the most recent match backwards.
+    // Lose streak: consecutive vr_change <= 0 from the most recent match backwards.
+    let win = 0, lose = 0;
+    if (!matchesDesc || !matchesDesc.length) return { winStreak: 0, loseStreak: 0 };
+
+    const first = Number(matchesDesc[0]?.vr_change);
+    if (!Number.isFinite(first)) return { winStreak: 0, loseStreak: 0 };
+
+    if (first > 0){
+      for (const r of matchesDesc){
+        const d = Number(r?.vr_change);
+        if (!Number.isFinite(d) || d <= 0) break;
+        win += 1;
+      }
+    } else {
+      for (const r of matchesDesc){
+        const d = Number(r?.vr_change);
+        if (!Number.isFinite(d) || d > 0) break;
+        lose += 1;
+      }
+    }
+    return { winStreak: win, loseStreak: lose };
+  }
+
   function applyThemeForMode(mode){
     try{
       const t = (mode === 'guest') ? 'dark' : (localStorage.getItem('mkwt_theme') || 'dark');
@@ -1862,12 +1889,16 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
         $("bestTrackMeta").textContent = `${avgTxt} • ${runsTxt}`;
       }
 
-      // Streaks + extremes
-      const ordered = arr
+      // Streaks & extremes (ALL-TIME across all tracked matches)
+      // We compute the *longest* win/lose streak anywhere in the history.
+      // This will still increase automatically when your current streak sets a new personal best.
+      const asc = arr
         .filter(r=>Number.isFinite(Number(r?.vr_change)))
         .slice()
-        .sort((a,b)=> Date.parse(a?.created_at||'') - Date.parse(b?.created_at||''));
-      const { maxWin, maxLose, maxGain, maxLoss } = calcStreaksAndExtremes(ordered);
+        .sort((a,b)=> (String(a.created_at||'').localeCompare(String(b.created_at||'')) || String(a.id||'').localeCompare(String(b.id||''))));
+
+      const { maxWin, maxLose, maxGain, maxLoss } = calcStreaksAndExtremes(asc);
+
       $("statWinStreak").textContent = String(maxWin);
       $("statLoseStreak").textContent = String(maxLose);
       $("statMaxGain").textContent = fmtSignedInt(maxGain);
@@ -1975,18 +2006,31 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
       $("bestTrackMeta").textContent = `${avgTxt} • ${runsTxt}`;
     }
 
-    // Win/Lose streak + Max gain/loss (all matches)
-    const { data: streakData, error: streakErr } = await supabaseClient
-      .from("matches")
-      .select("created_at, vr_change")
-      .eq("user_id", SESSION.user.id)
-      .not("vr_change", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(5000);
+    // Win/Lose streak (ALL-TIME longest) + Max gain/loss (all-time)
+    // We must consider *all* tracked matches (can be > 1000), so we fetch paginated.
+    const all = [];
+    const chunk = 1000;
+    let from = 0;
+    while (true) {
+      const to = from + chunk - 1;
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("id, created_at, vr_change")
+        .eq("user_id", SESSION.user.id)
+        .not("vr_change", "is", null)
+        // Deterministic ordering: created_at can collide (same second), so also order by id.
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < chunk) break;
+      from += chunk;
+    }
 
-    if (streakErr) throw streakErr;
-
-    const { maxWin, maxLose, maxGain, maxLoss } = calcStreaksAndExtremes(streakData || []);
+    const asc = all.filter(r=>Number.isFinite(Number(r?.vr_change)));
+    const { maxWin, maxLose, maxGain, maxLoss } = calcStreaksAndExtremes(asc);
 
     $("statWinStreak").textContent  = String(maxWin);
     $("statLoseStreak").textContent = String(maxLose);
