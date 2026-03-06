@@ -9,6 +9,5 @@ Disallow: /tracker.html
 Disallow: /stats.html
 Disallow: /sessions.html
 Disallow: /settings.html
-Disallow: /mkwt_nav_snippet.html
 
 Sitemap: https://mkwt.app/sitemap.xml

@@ -264,7 +264,6 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100%;
-  background-color: var(--bg);
 }
 
 a{ color: var(--link); text-decoration:none; }
@@ -613,8 +612,7 @@ h2 .byAytee{
     display: block; /* IMPORTANT: overrides any earlier display:none */
   }
 
-/* ===== Mobile Card Icons for Opponents & Placement ===== */
-@media (max-width: 480px) and (pointer: coarse){
+  /* ===== Mobile Card Icons for Opponents & Placement ===== */
 
   /* Opponents: ♟ */
   #listCard table tbody td:nth-child(7)::before{
@@ -635,7 +633,6 @@ h2 .byAytee{
   #listCard table tbody td:nth-child(8):empty::before{
     content: "";
   }
-}
 
   /* Match # */
   #listCard table tbody td:nth-child(1){
@@ -898,3 +895,34 @@ td:last-child{
   --modeBtn-active-border: var(--primary);
   --modeBtn-active-text: var(--primary-text);
 }
+
+/* ===== Login responsive (from shared) ===== */
+.login-wrap{
+  min-height:100dvh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+.login-card{
+  width:min(92vw,420px);
+  padding:18px;
+  border-radius:14px;
+}
+
+/* ===== Utility classes (replaces repeated inline styles) ===== */
+.navAction--sm{ padding:6px 10px; }
+.flex-1{ flex:1; }
+.row-inline{ display:flex; align-items:center; gap:8px; }
+.row-inline--gap10{ display:flex; align-items:center; gap:10px; }
+.mt-0{ margin-top:0; }
+.mt-8{ margin-top:8px; }
+.mt-10{ margin-top:10px; }
+.mt-12{ margin-top:12px; }
+.mb-0{ margin-bottom:0; }
+.mb-10{ margin-bottom:10px; }
+.mb-12{ margin-bottom:12px; }
+.m-0{ margin:0; }
+.divider{ margin:16px 0; border:none; border-top:1px solid var(--border); }
+.section-header{ display:flex; align-items:center; gap:8px; margin:0 0 10px 0; }
+.hint{ margin-top:6px; font-size:12px; opacity:.85; }

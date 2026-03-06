@@ -1,11 +1,15 @@
 {
   "name": "MKWT",
   "short_name": "MKWT",
+  "description": "Mario Kart World tracker for matches, VR, sessions, and stats.",
   "start_url": "/login.html",
+  "id": "/login.html",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b1020",
-  "theme_color": "#0b1020",
+  "orientation": "portrait",
+  "background_color": "#07080a",
+  "theme_color": "#07080a",
+  "categories": ["games", "utilities"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
