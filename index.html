@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 
   <title>MKWT – Mario Kart World Tracker (VR, Matches, Stats)</title>
   <meta name="description" content="MKWT is a Mario Kart World tracker for logging matches, VR changes, sessions, and intermission routes — with clean stats and charts." />
 
   <link rel="canonical" href="https://mkwt.app/index.html" />
   <meta name="theme-color" content="#07080a" />
-  <script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+  <script src="mkwt_bootstrap.js"></script>
 
   <link rel="icon" href="favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
@@ -43,29 +45,8 @@
   }
   </script>
 
-  <style>
-    body { min-height: 100vh; }
-    .landing-wrap{ max-width: 980px; margin: 0 auto; padding: 28px 16px 48px; }
-    .hero{ padding: 22px 18px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
-    .brand{ display:flex; align-items:center; gap:12px; }
-    .brand img{ width:44px; height:44px; border-radius: 10px; }
-    h1{ margin: 12px 0 8px; font-size: 28px; line-height: 1.15; }
-    .sub{ margin: 0 0 14px; opacity: 0.9; }
-    .cta{ display:flex; gap:10px; flex-wrap: wrap; margin-top: 14px; }
-    .cta .navAction{ text-decoration:none; }
-    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
-    .landingCard{ padding: 14px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); }
-    .landingCard h2{ margin: 0 0 6px; font-size: 15px; }
-    .landingCard p{ margin: 0; font-size: 13px; opacity: 0.92; }
+  <link href="index.css" rel="stylesheet"/>
 
-    .footer{ margin-top: 18px; opacity: 0.78; font-size: 12px; }
-    .footer a{ color: rgba(255,255,255,0.9); }
-
-    @media (max-width: 820px){
-      .grid{ grid-template-columns: 1fr; }
-      h1{ font-size: 24px; }
-    }
-  </style>
 </head>
 <body>
 <noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
@@ -112,14 +93,9 @@
     </section>
   </main>
 
-  <script>
-    // Ensure “Try as Guest” is an explicit choice.
-    document.getElementById('tryGuest')?.addEventListener('click', () => {
-      try {
-        localStorage.setItem('mkwt_mode', 'guest');
-        localStorage.setItem('mkwt_last_mode', 'guest');
-      } catch(e) {}
-    });
-  </script>
+  
+
+<script src="mkwt_public.js"></script>
+<script src="index.js"></script>
 </body>
 </html>

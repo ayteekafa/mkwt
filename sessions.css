@@ -1,0 +1,20 @@
+/* ===== Mobile Chart Fix ===== */
+    .chartWrap { position: relative; width: 100%; height: 360px; }
+    @media (max-width: 520px){ .chartWrap { height: 320px; } }
+
+/* ===== Sessions UI polish ===== */
+    .sessCard { padding:14px; margin:0; }
+    .sessHeader { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
+    .sessTitle { font-weight:900; font-size:16px; letter-spacing:.2px; }
+    .sessBadge { padding:2px 8px; border-radius:999px; font-weight:800; font-size:12px; }
+    .sessMeta { margin-top:8px; display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+    .sessVR { font-size:13px; }
+    .sessGrid { margin-top:10px; display:grid; grid-template-columns: 1fr auto; gap:8px 14px; max-width:420px; }
+    .sessGrid .label { opacity:.85; }
+    .sessGrid .val { text-align:right; font-variant-numeric: tabular-nums; }
+    .sessNum { font-variant-numeric: tabular-nums; }
+    .sessAvg { font-weight:800; }
+    @media (max-width: 520px){
+      .sessTitle{ font-size:15px; }
+      .sessGrid{ max-width: 100%; }
+    }

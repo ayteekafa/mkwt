@@ -1,0 +1,11 @@
+body { min-height: 100vh; }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 28px 16px 48px; }
+    .panel{ padding: 18px 16px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    h1{ margin: 0 0 8px; font-size: 26px; }
+    h2{ margin: 18px 0 8px; font-size: 16px; }
+    p, li{ font-size: 14px; opacity: .95; }
+    a{ color: rgba(255,255,255,0.92); }
+    .toplinks{ display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 6px; }
+    .btn{ text-decoration:none; padding: 9px 12px; border-radius: 12px; display:inline-flex; border: 1px solid rgba(255,255,255,0.18); background: rgba(0,0,0,0.12); }
+    .btn.primary{ background: rgba(255,255,255,0.92); color: #0b1020; border-color: transparent; font-weight: 800; }
+    .small{ font-size: 12px; opacity: .78; }

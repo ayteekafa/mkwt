@@ -135,6 +135,81 @@ function downloadTextFile(filename, text) {
 }
 window.downloadTextFile = downloadTextFile;
 
+
+function syncSharedSession(client, session){
+  supabaseClient = client || null;
+  SESSION = session || null;
+  window.supabaseClient = supabaseClient;
+  window.SESSION = SESSION;
+}
+
+async function resolveStoredSession({ tryBackupRestore = false, onDebug = null } = {}){
+  let session = null;
+  let error = null;
+
+  ({ data:{ session }, error } = await clientLocal.auth.getSession());
+  if (error && typeof onDebug === "function") onDebug("getSession(local) error: " + JSON.stringify(error, null, 2));
+  if (session) return { client: clientLocal, session, source: "local" };
+
+  ({ data:{ session }, error } = await clientSess.auth.getSession());
+  if (error && typeof onDebug === "function") onDebug("getSession(session) error: " + JSON.stringify(error, null, 2));
+  if (session) return { client: clientSess, session, source: "session" };
+
+  if (tryBackupRestore && await tryRestoreFromBackup()) {
+    ({ data:{ session } } = await clientLocal.auth.getSession());
+    if (session) return { client: clientLocal, session, source: "backup-local" };
+
+    ({ data:{ session } } = await clientSess.auth.getSession());
+    if (session) return { client: clientSess, session, source: "backup-session" };
+  }
+
+  return { client: null, session: null, source: null };
+}
+
+window.mkwtRequireAuth = async function(options = {}){
+  const {
+    pageName = "app.html",
+    allowGuest = false,
+    tryBackupRestore = false,
+    onDebug = null,
+    onAccount = null,
+    onGuest = null,
+  } = options;
+
+  const resolved = await resolveStoredSession({ tryBackupRestore, onDebug });
+  if (resolved.session) {
+    syncSharedSession(resolved.client, resolved.session);
+    try { localStorage.setItem("mkwt_mode", "account"); } catch(e){ /* safe to ignore */ }
+    if (typeof onAccount === "function") await onAccount(resolved.session, resolved.client, resolved.source);
+    return resolved.session;
+  }
+
+  if (!allowGuest) {
+    try{
+      localStorage.setItem("mkwt_mode", "unknown");
+      localStorage.setItem("mkwt_last_page", location.pathname || pageName);
+    }catch(e){ /* safe to ignore */ }
+    window.location.replace("login.html");
+    return null;
+  }
+
+  const last = (()=>{ try{ return localStorage.getItem("mkwt_last_mode") || ""; }catch(e){ return ""; } })();
+  if (last !== "guest") {
+    try{
+      localStorage.setItem("mkwt_mode", "unknown");
+      localStorage.setItem("mkwt_last_page", location.pathname || pageName);
+    }catch(e){ /* safe to ignore */ }
+    window.location.replace("login.html");
+    return null;
+  }
+
+  window.IS_GUEST = true;
+  syncSharedSession(null, null);
+  try { localStorage.setItem("mkwt_mode", "guest"); } catch(e){ /* safe to ignore */ }
+  if (typeof onGuest === "function") await onGuest();
+  return null;
+};
+
 // ========= Shared Nav Actions (Export / Import / Logout) =========
 (function(){
   const $id = (id)=>document.getElementById(id);
@@ -436,9 +511,4 @@ window.downloadTextFile = downloadTextFile;
   else wireNav();
 })();
 
-// ========= Service Worker =========
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
-}
+// Service Worker registration is handled by mkwt_public.js (loaded on all pages).

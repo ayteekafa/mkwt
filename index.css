@@ -1,0 +1,21 @@
+body { min-height: 100vh; }
+    .landing-wrap{ max-width: 980px; margin: 0 auto; padding: 28px 16px 48px; }
+    .hero{ padding: 22px 18px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .brand img{ width:44px; height:44px; border-radius: 10px; }
+    h1{ margin: 12px 0 8px; font-size: 28px; line-height: 1.15; }
+    .sub{ margin: 0 0 14px; opacity: 0.9; }
+    .cta{ display:flex; gap:10px; flex-wrap: wrap; margin-top: 14px; }
+    .cta .navAction{ text-decoration:none; }
+    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+    .landingCard{ padding: 14px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); }
+    .landingCard h2{ margin: 0 0 6px; font-size: 15px; }
+    .landingCard p{ margin: 0; font-size: 13px; opacity: 0.92; }
+
+    .footer{ margin-top: 18px; opacity: 0.78; font-size: 12px; }
+    .footer a{ color: rgba(255,255,255,0.9); }
+
+    @media (max-width: 820px){
+      .grid{ grid-template-columns: 1fr; }
+      h1{ font-size: 24px; }
+    }

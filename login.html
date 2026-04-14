@@ -7,62 +7,15 @@
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 <meta content="#07080a" name="theme-color"/>
 <meta charset="utf-8"/>
-<script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<script src="mkwt_bootstrap.js"></script>
 <title>MKWT – Mario Kart World Match Tracker</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <!-- Cloudflare Turnstile (CAPTCHA) -->
 <script async="" defer="" src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+<script src="mkwt_page_helpers.js"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
-<style>
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+<link href="login.css" rel="stylesheet"/>
 
-    /* Center the login card on desktop + mobile */
-    .page{
-      min-height:100dvh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      box-sizing:border-box;
-    }
-
-    .loginCard{width:min(92vw,460px);padding:20px;border-radius:14px;}
-    .logo{text-align:center;margin:2px 0 10px 0;}
-    .logo .brand{font-size:26px;letter-spacing:.3px;}
-    h2{text-align:center;margin:0 0 14px 0;}
-
-    .tabs{display:flex;gap:10px;margin:0 0 14px 0;}
-    .tab{flex:1;height:40px;border-radius:12px;font-weight:900;}
-
-    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
-    .field label{font-weight:800;color:var(--muted);font-size:13px;}
-
-    .rememberRow{display:flex;align-items:center;margin:12px 0 14px 0;}
-
-    /* custom checkbox to avoid inconsistent native look across browsers */
-    .checkWrap{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;font-weight:800;color:var(--text);}
-    .checkWrap input{position:absolute;opacity:0;pointer-events:none;}
-    .checkUI{width:18px;height:18px;border:2px solid var(--border);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:rgba(255,255,255,0.02);}
-    .checkWrap input:checked + .checkUI{border-color:var(--primary);background:var(--primary);}
-    .checkWrap input:checked + .checkUI::after{content:"";width:10px;height:6px;border-left:2px solid var(--primary-text);border-bottom:2px solid var(--primary-text);transform:rotate(-45deg);margin-top:-1px;}
-    .checkWrap input:focus-visible + .checkUI{outline:2px solid var(--primary);outline-offset:3px;}
-    .checkLabel{white-space:nowrap;}
-
-    .btnWide{width:100%;height:44px;}
-
-    .divider{display:flex;align-items:center;gap:10px;margin:14px 0;opacity:.85;}
-    .divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--border);}
-    .divider span{font-size:12px;color:var(--muted);font-weight:900;letter-spacing:.5px;}
-
-    .smallLinks{display:flex;justify-content:space-between;gap:10px;margin-top:10px;}
-    .linkBtn{background:transparent;border:0;padding:0;color:var(--primary);font-weight:900;cursor:pointer;text-decoration:underline;}
-
-    #captchaBox{display:flex;justify-content:center;}
-    #captchaBox > div{margin:0 auto;}
-
-    .status{margin-top:12px;text-align:center;font-size:13px;color:var(--muted);min-height:18px;}
-  </style>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -74,7 +27,6 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/manifest.webmanifest">
   <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
@@ -130,161 +82,9 @@
     </div>
   </div>
 
-<script>
-// ===== Supabase =====
-const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
-const TURNSTILE_SITE_KEY = "0x4AAAAAACbMzpocodRPIf88";
+  
 
-function $(id){ return document.getElementById(id); }
-function setStatus(msg, ok=true){ const el=$("status"); if(!el) return; el.textContent=msg||""; el.style.color = ok ? "var(--text)" : "var(--danger)"; }
-
-function createClient(storage){
-  return supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: {
-      persistSession: true,
-      storage: storage,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
-}
-
-// Backup keys for iOS PWA/Safari edge-cases.
-const BACKUP_KEY_LOCAL = 'mkwt_backup_session_local_v1';
-const BACKUP_KEY_SESS  = 'mkwt_backup_session_session_v1';
-function writeBackup(stay, session){
-  try{
-    const payload = { access_token: session?.access_token, refresh_token: session?.refresh_token };
-    if (!payload.access_token || !payload.refresh_token) return;
-    if (stay) localStorage.setItem(BACKUP_KEY_LOCAL, JSON.stringify(payload));
-    else sessionStorage.setItem(BACKUP_KEY_SESS, JSON.stringify(payload));
-  }catch(e){}
-}
-
-let captchaWidgetId = null;
-let captchaToken = "";
-function renderCaptcha(){
-  try{
-    if (!window.turnstile) return;
-    const box = $("captchaBox");
-    if (!box) return;
-    box.innerHTML = "";
-    captchaToken = "";
-    captchaWidgetId = window.turnstile.render(box, {
-      sitekey: TURNSTILE_SITE_KEY,
-      callback: (token)=>{ captchaToken = token || ""; },
-      "expired-callback": ()=>{ captchaToken=""; },
-      "error-callback": ()=>{ captchaToken=""; }
-    });
-  }catch(e){
-    console.warn(e);
-  }
-}
-
-async function login(){
-  const email = ($("email").value||"").trim();
-  const password = $("password").value||"";
-  if(!email || !password){ setStatus("Please enter email and password.", false); return; }
-  if(!captchaToken){ setStatus("Please complete the captcha first.", false); return; }
-
-  const stay = $("stay").checked;
-  // Persist preference so other pages can prioritize the right storage.
-  try{ localStorage.setItem('mkwt_auth_storage', stay ? 'local' : 'session'); }catch(e){}
-
-  // Create client for chosen storage, but also explicitly set the session into the
-  // intended storage to make "Stay logged" robust across browsers.
-  const storage = stay ? localStorage : sessionStorage;
-  const client = createClient(storage);
-
-  $("btnLogin").disabled = true;
-  try{
-    setStatus("Signing in…", true);
-
-    const { data, error } = await client.auth.signInWithPassword({
-      email,
-      password,
-      options: { captchaToken }
-    });
-    if (error) throw error;
-
-    // Ensure the session is stored in the intended storage.
-    try{
-      const s = data?.session;
-      if (s?.access_token && s?.refresh_token) {
-        // Save a lightweight backup to survive some iOS PWA storage quirks.
-        writeBackup(stay, s);
-        if (stay) {
-          const cLocal = createClient(localStorage);
-          await cLocal.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
-          // Avoid stale parallel sessions.
-          try{ await createClient(sessionStorage).auth.signOut(); }catch(e){}
-          try{ sessionStorage.removeItem(BACKUP_KEY_SESS); }catch(e){}
-        } else {
-          const cSess = createClient(sessionStorage);
-          await cSess.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
-          // Avoid accidentally staying logged in via localStorage.
-          try{ await createClient(localStorage).auth.signOut(); }catch(e){}
-          try{ localStorage.removeItem(BACKUP_KEY_LOCAL); }catch(e){}
-        }
-      }
-    }catch(e){
-      // Non-fatal; fallback to default storage behavior.
-      console.warn(e);
-    }
-
-    // mode: account
-    try{ localStorage.setItem('mkwt_mode','account'); localStorage.setItem('mkwt_last_mode','account'); }catch(e){}
-
-    // Offer to import Guest data if the account currently has 0 matches
-    try{
-      const guest = JSON.parse(localStorage.getItem("mkwt_guest_matches_v1") || "[]") || [];
-      if (guest.length > 0 && data?.user?.id){
-        const { count, error: cErr } = await client
-          .from("matches")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", data.user.id);
-        if (!cErr && (count || 0) === 0){
-          sessionStorage.setItem("mkwt_offer_import_guest", "1");
-        }
-      }
-    }catch(e){}
-
-    setStatus("✅ Logged in.", true);
-    window.location.href = "tracker.html";
-  }catch(e){
-    setStatus("Login failed: " + (e?.message || e), false);
-    try{ if (window.turnstile && captchaWidgetId!=null) window.turnstile.reset(captchaWidgetId); }catch(_){}
-    captchaToken="";
-  }finally{
-    $("btnLogin").disabled = false;
-  }
-}
-
-document.addEventListener("DOMContentLoaded", ()=>{
-  $("btnLogin").addEventListener("click", login);
-  $("btnGuest").addEventListener("click", ()=>{
-  try{
-    localStorage.setItem("mkwt_last_mode","guest");
-    localStorage.setItem("mkwt_mode","guest");
-    const lp = localStorage.getItem("mkwt_last_page");
-    if (lp) localStorage.removeItem("mkwt_last_page");
-    window.location.href = lp || "tracker.html";
-  }catch(e){ window.location.href="tracker.html"; }
-});
-  // Enter key
-  $("password").addEventListener("keydown", (e)=>{ if(e.key==="Enter") login(); });
-});
-
-// Turnstile loads async
-window.onload = ()=>{ renderCaptcha(); };
-</script>
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
-      });
-    }
-  </script>
+<script src="mkwt_public.js"></script>
+<script src="login.js"></script>
 </body>
 </html>

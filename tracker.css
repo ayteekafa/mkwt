@@ -1,0 +1,363 @@
+.profileTop{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:12px;
+      text-align:center;
+    }
+    .profileTop > div{ text-align:center; }
+    .statGrid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+    .statBox{
+      border:1px solid var(--border);
+      background: var(--card-2);
+      border-radius: 14px;
+      padding: 8px 9px;
+      min-width: 0;
+      text-align:center;
+    }
+    .statLabel{
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .statValue{
+      margin-top:5px;
+      font-size: 18px;
+      font-weight: 950;
+      line-height: 1.05;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .bestTrackLine{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      margin-top:12px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card-2);
+      text-align:center;
+    }
+    .bestTrackLabel{
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      white-space:nowrap;
+    }
+    .bestTrackName{
+      font-size: 16px;
+      font-weight: 950;
+      line-height: 1.15;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width: 100%;
+    }
+    .bestTrackMeta{
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 100%;
+    }
+
+    /* Match form actions: Clear far left, Save far right */
+    .matchFormActions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      width:100%;
+      margin-top:12px;
+    }
+    .matchFormActions #btnClear{ margin-right:auto; }
+    .matchFormActions #btnSaveMatch{ margin-left:auto; }
+    @media (max-width: 920px){
+      /* Keep 4 cards per row, just tighten spacing a bit */
+      .statGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px; }
+      .statBox{ padding:8px 9px; }
+      .statLabel{ font-size: 10px; }
+      .statValue{ font-size: 18px; }
+      .bestTrackName{ max-width: 100%; }
+      .bestTrackMeta{ max-width: 100%; }
+    }
+    @media (max-width: 480px){
+      /* Mobile: still 4 per row (very compact) */
+      .statGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); gap:7px; }
+      .statBox{ padding:7px 8px; border-radius: 13px; }
+      .statLabel{ font-size: 9px; }
+      .statValue{ font-size: 17px; }
+
+      /* Mobile: keep everything theme-driven (important for Light mode) */
+      .card{ background: var(--card); border-color: var(--border); }
+      .statBox{ background: var(--card); border-color: var(--border); }
+
+      /* Match entries cards follow theme, too */
+      .mcard{ background: var(--card); border-color: var(--border); backdrop-filter:none; }
+      .mcard__infoPop{ background: var(--card-2); border-color: var(--border); }
+      .mcard__infoBtn{ background: var(--infoBtn-bg); border-color: var(--infoBtn-border); }
+
+
+      /* Best Track: centered, 2 lines (name + meta) */
+      .bestTrackLine{ gap:6px; }
+      .bestTrackName{ font-size: 15px; }
+      .bestTrackMeta{ font-size: 12px; }
+
+      /* Match input: 2 columns for the small fields */
+      .compactRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+      .compactRow .field{ min-width:0; }
+    }
+  
+
+    /* ===== Mobile Match Cards (clean, centered) ===== */
+    .matchListScroll{ overflow:auto; max-height:520px; }
+
+    /* Desktop: show table, hide cards */
+    .matchTableWrap{ display:block; }
+    .matchCards{ display:none; }
+
+    /* Match card */
+    .mcard{
+      position:relative;
+      border-radius:16px;
+      background: var(--card);
+      border:1px solid var(--border);
+      backdrop-filter: blur(8px);
+      padding:14px 50px 14px 50px; /* reserve for meta + actions */
+      min-height:74px;
+      min-width:0;
+    }
+.mcard--im{ min-height:92px; }
+
+    .matchCards{
+      flex-direction:column;
+      gap:10px;
+      padding:2px;
+    }
+    .mcard__meta{
+      position:absolute;
+      top:8px;
+      font-size:10px;
+      letter-spacing:0.10em;
+      opacity:0.55;
+      text-transform:uppercase;
+      white-space:nowrap;
+      max-width:45%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .mcard__meta--tl{ left:10px; text-align:left; display:flex; align-items:center; gap:6px; }
+    .mcard__meta--tr{ right:10px; text-align:right; }
+
+        .mcard__meta--bl{ left:10px; bottom:10px; top:auto; text-align:left; }
+/* Tiny info button (only when placement/opponents exist) */
+    .mcard__infoBtn{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:1px solid var(--infoBtn-border);
+      background: var(--infoBtn-bg);
+      color: var(--infoBtn-text);
+      font-size:11px;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      opacity:0.75;
+    }
+    .mcard__infoBtn:active{ transform: translateY(1px); }
+
+    .mcard__infoPop{
+      position:absolute;
+      left:10px;
+      top:28px;
+      max-width:72%;
+      padding:8px 10px;
+      border-radius:12px;
+      background: var(--card-2);
+      border:1px solid var(--border);
+      font-size:12px;
+      letter-spacing:0.02em;
+      text-transform:none;
+      opacity:0.95;
+      z-index:3;
+      backdrop-filter: blur(10px);
+    }
+    .mcard__infoPop strong{ opacity:0.8; font-weight:700; }
+    .mcard__infoPop .row{ display:flex; gap:8px; flex-wrap:nowrap; }
+    .mcard__infoPop .row span{ white-space:nowrap; }
+
+    .mcard__main{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      gap:6px;
+      min-width:0;
+    }
+
+    .mcard__track{
+      font-weight:950;
+      line-height:1.05;
+      font-size: clamp(14px, 4.2vw, 18px);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      padding:0 6px;
+      max-width:100%;
+    }
+
+
+/* Intermission: show start/end stacked with arrow */
+.mcard__track--im{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  align-items:center;
+  padding:0 6px;
+  max-width:100%;
+}
+.mcard__track--im .imLine{
+  font-weight:950;
+  line-height:1.05;
+  font-size: clamp(13px, 4.0vw, 17px);
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.mcard__track--im .imArrow{
+  font-size:12px;
+  opacity:0.55;
+  line-height:1;
+  margin:1px 0;
+}
+
+/* Optional extra info under VR */
+.mcard__extra{
+  margin-top:6px;
+  display:flex;
+  gap:6px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.mcard__pill{
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:999px;
+  background: var(--hover);
+  border:1px solid var(--border);
+  opacity:0.85;
+  white-space:nowrap;
+}
+
+    .mcard__vr{
+      font-size:13px;
+      font-weight:850;
+      color: var(--text);
+      display:flex;
+      gap:6px;
+      align-items:baseline;
+      justify-content:center;
+      white-space:nowrap;
+    }
+    .mcard__vrTotal{
+      font-size:14px;
+      font-weight:950;
+    }
+    .mcard__vrDelta{
+      font-size:13px;
+      font-weight:900;
+      opacity:0.95;
+    }
+    .mcard__vrDelta--pos{ color: rgba(124,255,178,0.95); }
+    .mcard__vrDelta--neg{ color: rgba(255,124,124,0.95); }
+
+    .mcard__actions{
+      position:absolute;
+      right:10px;
+      bottom:10px;
+      display:flex;
+      gap:6px;
+    }
+    .mcard__btn{
+      width:26px;
+      height:26px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background: var(--hover);
+      color: var(--text);
+      font-size:12px;
+      line-height:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      opacity:0.70;
+    }
+    .mcard__btn:active{ transform:translateY(1px); opacity:0.95; }
+    .mcard:focus-within .mcard__btn{ opacity:0.95; }
+
+    /* Mobile: show cards, hide table */
+    @media (max-width: 480px){
+      .matchTableWrap{ display:none; }
+      .matchCards{ display:flex; }
+      .matchListScroll{ max-height:none; overflow:visible; }
+      .mcard{ padding:14px 48px 14px 48px; }
+
+      /* Mobile card color: match top nav */
+      .mcard{
+        background: var(--card);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(10px);
+      }
+      .mcard__btn{
+        background: var(--infoBtn-bg);
+        border: 1px solid var(--border);
+      }
+      .mcard__infoBtn{
+        background: var(--infoBtn-bg);
+        border: 1px solid var(--border);
+      }
+      .mcard__infoPop{
+        background: var(--card-2);
+        border: 1px solid var(--border);
+      }
+      .mcard__meta{ font-size:9px; }
+    }
+
+    /* subtle "by Aytee" brand */
+    .brand .byAytee,
+    h2 .byAytee{
+      font-weight:700;
+      opacity:.55;
+      font-size:.72em;
+      letter-spacing:.2px;
+      margin-left:6px;
+      text-transform:none;
+      white-space:nowrap;
+    }

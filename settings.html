@@ -6,81 +6,15 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
-<meta name="theme-color" content="#07080a"/><script>(function(){try{var mode=localStorage.getItem('mkwt_mode')||'';var t=(mode==='guest')?'dark':(localStorage.getItem('mkwt_theme')||'dark');document.documentElement.dataset.theme=t;var c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){}})();</script>
+<meta name="theme-color" content="#07080a"/><script src="mkwt_bootstrap.js"></script>
 <title>MKWT – Settings</title>
 <!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
+<script src="mkwt_page_helpers.js"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
-<style>    /* Info button (same visual language as tracker) */
-    .mcard__infoBtn{
-      width:18px;
-      height:18px;
-      border-radius:999px;
-      border:1px solid var(--infoBtn-border);
-      background: var(--infoBtn-bg);
-      color: var(--infoBtn-text);
-      font-size:11px;
-      line-height:1;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:0;
-      opacity:0.75;
-      cursor:pointer;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-      position:relative;
-      touch-action: manipulation;
-    }
-    .mcard__infoBtn:hover{ opacity:0.95; }
-    .mcard__infoBtn:active{ transform: translateY(1px); }
-    /* Larger tap target without changing the visible icon size */
-    .mcard__infoBtn::after{
-      content:"";
-      position:absolute;
-      inset:-10px;
-    }
+<link href="settings.css" rel="stylesheet"/>
 
-
-    /* Small modal used for settings info */
-    .infoOverlay{
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      background: var(--backdrop);
-      backdrop-filter: blur(6px);
-      z-index: 9999;
-    }
-    .infoOverlay[hidden]{ display:none !important; }
-    .infoPanel{
-      width: min(560px, 100%);
-      border: 1px solid var(--border);
-      background: var(--card);
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    .infoHeader{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      padding: 12px 12px 10px 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    .infoTitle{ font-weight:900; letter-spacing:.2px; }
-    .infoBody{ padding: 12px 14px 14px 14px; color: var(--text); line-height: 1.4; }
-  
-/* Discord button */
-.discordBtn{display:inline-flex; align-items:center; gap:10px; text-decoration:none;}
-.discordIcon{display:inline-flex; align-items:center; justify-content:center;}
-.discordIcon svg{width:18px; height:18px; fill:currentColor;}
-
-</style>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -92,7 +26,7 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/manifest.webmanifest">
+  
   <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
@@ -128,7 +62,7 @@
       <div class="muted">Matches: <b id="matchCount">–</b></div>
     </div>
   </div>
-  <div class="muted" id="status"></div>
+  <div class="muted" data-status="shared" id="statusTop"></div>
 </div>
 
 <div class="card">
@@ -191,7 +125,6 @@
   <div class="muted" style="font-size:12px; opacity:.85;"></div>
 </div>
 
-
 <hr class="divider"/>
 <div class="section-header">
   <h3 class="m-0">Contact</h3>
@@ -208,7 +141,6 @@
   Message me on Discord
 </a>
 
-
 <hr class="divider"/>
 <h3 style="margin:0 0 10px 0;">Data</h3>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -218,7 +150,7 @@
         <input accept="application/json" id="fileImport" style="display:none;" type="file"/>
 </label>
 </div>
-<div class="muted" id="status"></div>
+<div class="muted" data-status="shared" id="statusData"></div>
 </div>
 </div>
 
@@ -247,7 +179,6 @@
   </div>
 </div>
 
-
 <!-- Reusable Info Modal -->
 <div class="infoOverlay" hidden="" id="infoOverlay">
 <div aria-labelledby="infoTitle" aria-modal="true" class="infoPanel" role="dialog">
@@ -258,455 +189,8 @@
 <div class="infoBody" id="infoBody"></div>
 </div>
 </div>
-<script>
-/* ========= IDENTISCH ZU b.html ========= */
 
-
-  // ===== Guest (local) storage =====
-
-
-  // ========= Guest Profile (local) =========
-  const GUEST_PROFILE_KEY = "mkwt_guest_profile_v1";
-  function loadGuestProfile(){
-    try{
-      const raw = localStorage.getItem(GUEST_PROFILE_KEY);
-      if(!raw) return { id:"guest", nickname:"Guest", current_vr:0, created_at:null };
-      const obj = JSON.parse(raw);
-      if(!obj || typeof obj !== "object") return { id:"guest", nickname:"Guest", current_vr:0, created_at:null };
-      const nickname = String(obj.nickname || "").trim() || "Guest";
-      const current_vr = Number(obj.current_vr);
-      return {
-        id: "guest",
-        nickname,
-        current_vr: Number.isFinite(current_vr) ? current_vr : 0,
-        created_at: obj.created_at || null
-      };
-    }catch(e){ return { id:"guest", nickname:"Guest", current_vr:0, created_at:null }; }
-  }
-  function saveGuestProfile(p){
-    try{
-      const payload = {
-        nickname: String(p.nickname || "").trim() || "Guest",
-        current_vr: Number(p.current_vr) || 0,
-        created_at: p.created_at || new Date().toISOString()
-      };
-      localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(payload));
-    }catch(e){}
-  }
-
-
-const $ = id => document.getElementById(id);
-const status = $("status");
-function setStatus(t){ status.textContent = t }
-
-
-// ========= Theme (local setting, affects the whole UI) =========
-function applyThemeValue(t){
-  try{
-    document.documentElement.dataset.theme = (t && String(t).trim()) ? String(t).trim() : "dark";
-  }catch(e){}
-}
-function loadThemeSetting(){
-  try{
-    const t = localStorage.getItem("mkwt_theme") || "dark";
-    const sel = $("settingsTheme");
-    if (sel) sel.value = t;
-    applyThemeValue(t);
-  }catch(e){
-    applyThemeValue("dark");
-  }
-}
-function saveThemeSetting(){
-  try{
-    const sel = $("settingsTheme");
-    const t = (sel && sel.value) ? sel.value : "dark";
-    localStorage.setItem("mkwt_theme", t);
-    applyThemeValue(t);
-  }catch(e){}
-}
-
-// ========= Min-VR Filter (local setting, affects stats/sessions) =========
-function loadMinVrSetting(){
-  try{
-    const v = parseInt(localStorage.getItem("mkwt_min_vr_filter") || "0", 10);
-    $("settingsMinVr").value = (Number.isFinite(v) && v > 0) ? String(v) : "";
-  }catch(e){
-    try{ $("settingsMinVr").value = ""; }catch{}
-  }
-}
-
-function saveMinVrSetting(){
-  try{
-    const raw = String($("settingsMinVr").value || "").trim();
-    const v = raw === "" ? 0 : parseInt(raw, 10);
-    const ok = Number.isFinite(v) && v > 0 ? v : 0;
-    localStorage.setItem("mkwt_min_vr_filter", String(ok));
-    return ok;
-  }catch(e){
-    return 0;
-  }
-}
-
-// ========= Small reusable Info Modal (no external libs) =========
-const INFO_TEXT = {
-  minVrFilter:
-    "This filter removes low-VR outliers from your stats. Any match where your VR total before OR after the game is below the threshold will be excluded from charts and averages. Use this to ignore early games (e.g. Nintendo starting VR) where gains can be extremely high and skew the data. Set it to 0 (or empty) to disable the filter."
-  ,
-  theme:
-    "Choose a visual style for the whole app. Dark matches the current black look, Light uses a soft off-white background, Dendo (Blue) highlights the blue accent, Green adds a subtle green primary, and Red switches the primary accent to red. Changes apply after you press Save. Your choice is stored locally and used across tracker, stats, sessions, and settings."
-  ,
-  account:
-    "Changing your password is only available for logged-in accounts. Guest mode has no account credentials, so there is no password to change."
-  ,
-  contact:
-    "Want a free VIP account or have ideas to improve the website? Feel free to contact me on Discord."
-};
-
-function openInfo(id){
-  const overlay = $("infoOverlay");
-  const body = $("infoBody");
-  const title = $("infoTitle");
-  if (!overlay || !body) return;
-  title.textContent = "Info";
-  body.textContent = INFO_TEXT[id] || "";
-  overlay.hidden = false;
-  overlay.style.display = "flex";
-}
-
-function closeInfo(){
-  const overlay = $("infoOverlay");
-  if (!overlay) return;
-  overlay.hidden = true;
-  overlay.style.display = "none";
-}
-
-
-function setTopInfo({emailText, currentVrText, matchCountText}){
-  const ui = $("userInfo");
-  const cv = $("currentVr");
-  const mc = $("matchCount");
-  if(ui && emailText!=null) ui.textContent = emailText;
-  if(cv && currentVrText!=null) cv.textContent = currentVrText;
-  if(mc && matchCountText!=null) mc.textContent = matchCountText;
-}
-
-// Close: X button + outside tap
-document.addEventListener("DOMContentLoaded", ()=>{
-  const overlay = $("infoOverlay");
-  const closeBtn = $("infoClose");
-  closeBtn?.addEventListener("click", closeInfo);
-
-  // Open only when the actual info icon is clicked/tapped.
-  // (Prevents mobile Safari label/tap forwarding to the button.)
-  document.querySelectorAll('.mcard__infoBtn[data-info]').forEach((btn)=>{
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openInfo(btn.dataset.info);
-    });
-  });
-
-  overlay?.addEventListener("click", (e)=>{
-    if (e.target === overlay) closeInfo();
-  });
-});
-
-/* ========= AUTH ========= */
-
-  // Settings override: Logout = always red (danger), Login = primary (active)
-  function setNavAuthButton(mode){
-    const b = document.getElementById("btnLogout");
-    if(!b) return;
-    b.style.display = "";
-    if(mode === "account"){
-      b.textContent = "Logout";
-      b.classList.remove("active");
-      b.classList.add("danger");
-      try{ localStorage.setItem("mkwt_last_mode","account"); }catch(e){}
-    }else{
-      b.textContent = "Login";
-      b.classList.remove("danger");
-      b.classList.add("active");
-    }
-  }
-
-async function requireAuth(){
-  let { data:{session} } = await clientLocal.auth.getSession();
-  if(session){
-    supabaseClient=clientLocal; SESSION=session; window.supabaseClient=supabaseClient; window.SESSION=SESSION;
-    try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
-    setTopInfo({emailText: "Signed in as: " + (maskEmail(session.user?.email) || "unknown")});
-    try{ setNavAuthButton("account"); }catch(e){}
-    return;
-  }
-
-  ({ data:{session} } = await clientSess.auth.getSession());
-  if(session){
-    supabaseClient=clientSess; SESSION=session; window.supabaseClient=supabaseClient; window.SESSION=SESSION;
-    try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
-    setTopInfo({emailText: "Signed in as: " + (maskEmail(session.user?.email) || "unknown")});
-    try{ setNavAuthButton("account"); }catch(e){}
-    return;
-  }
-
-  // Guest mode is allowed to open Settings (for guest export/import etc.).
-  const last = (()=>{
-    try{ return localStorage.getItem('mkwt_last_mode') || ''; }catch(e){ return ''; }
-  })();
-  if (last !== 'guest') {
-    try{ localStorage.setItem('mkwt_mode','unknown'); localStorage.setItem('mkwt_last_page', location.pathname || 'settings.html'); }catch(e){}
-    window.location.replace('login.html');
-    return;
-  }
-
-  // Guest mode
-  window.supabaseClient=null;
-  window.SESSION=null;
-  try{ localStorage.setItem('mkwt_mode','guest'); }catch(e){}
-  setTopInfo({emailText:"Guest mode (local)", currentVrText:"–", matchCountText:"–"});
-  try{ setNavAuthButton("guest"); }catch(e){}
-  return;
-}
-
-/* ========= PROFILE ========= */
-async function loadProfile(){
-  if(!SESSION?.user?.id){
-    // Guest: load local profile
-    const gp = loadGuestProfile();
-    $("settingsNickname").value = gp?.nickname || "Guest";
-    $("settingsVr").value = (gp?.current_vr ?? "");
-    const count = guestCount();
-    setTopInfo({ emailText: "Guest mode (local)", currentVrText: String(gp?.current_vr ?? "–"), matchCountText: String(count) });
-    setStatus("Guest mode (saved locally)");
-    return;
-  }
-
-  // Prefer profiles.id (most common in your project). If that column doesn't exist, fallback to profiles.user_id.
-  let { data, error } = await supabaseClient
-    .from("profiles")
-    .select("nickname,current_vr")
-    .eq("id", SESSION.user.id)
-    .maybeSingle();
-
-  if (error && String(error.message || "").includes("column profiles.id")) {
-    ({ data, error } = await supabaseClient
-      .from("profiles")
-      .select("nickname,current_vr")
-      .eq("user_id", SESSION.user.id)
-      .maybeSingle());
-  }
-
-  if(error){ setStatus(error.message); return }
-
-  $("settingsNickname").value = data?.nickname || "";
-  $("settingsVr").value = (data?.current_vr ?? "");
-
-  // Top card: Current VR + Matches count
-  try{
-    setTopInfo({ currentVrText: String(data?.current_vr ?? "–") });
-    const { count } = await supabaseClient
-      .from("matches")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", SESSION.user.id);
-    if (typeof count === "number") setTopInfo({ matchCountText: String(count) });
-  }catch(e){}
-}
-
-
-async function saveSettings(){
-  // Apply + save local UI settings only when Save is pressed
-  saveThemeSetting();
-  const minVr = saveMinVrSetting();
-
-  const nickname = $("settingsNickname").value.trim();
-  const vr = parseInt($("settingsVr").value,10);
-
-  // Guest: store profile locally (no cloud)
-  if (isGuest()){
-    if(nickname && Number.isFinite(vr)){
-      saveGuestProfile({ nickname, current_vr: vr });
-    }
-    setStatus(`✅ Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : ""}.`);
-    return;
-  }
-
-  // Allow saving the filter even if nickname/VR are not filled.
-  if(!nickname || !Number.isFinite(vr)){
-    setStatus(`✅ Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : " (Min VR: disabled)"}.`);
-    return;
-  }
-
-  const payload = {
-    id: SESSION.user.id,          // primary key in your current schema
-    nickname,
-    current_vr: vr,
-    updated_at: new Date().toISOString()
-  };
-
-  // Prefer upsert so it works whether the row exists or not.
-  let { error } = await supabaseClient
-    .from("profiles")
-    .upsert(payload);
-
-  // Fallback if this project uses profiles.user_id instead of profiles.id
-  if (error && String(error.message || "").includes("column profiles.id")) {
-    ({ error } = await supabaseClient
-      .from("profiles")
-      .upsert({ user_id: SESSION.user.id, nickname, current_vr: vr, updated_at: new Date().toISOString() }));
-  }
-
-  if(error){ setStatus(error.message); return }
-
-  setStatus(`✅ Saved${minVr>0 ? ` (Min VR: ${minVr})` : ""}`);
-}
-
-
-/* ========= NAV ACTIONS ========= */
-// Nav actions (Export / Import / Logout) are wired by the shared nav script at the bottom.
-
-/* ========= INIT ========= */
-$("btnSaveSettings").onclick = saveSettings;
-
-$("btnChangePassword").onclick = () => {
-  openPwModal();
-};
-
-$("pwCancel").onclick = closePwModal;
-$("pwClose").onclick = closePwModal;
-$("pwConfirm").onclick = async () => {
-  const p1 = String($("pwNew").value || "");
-  const p2 = String($("pwConfirmInput").value || "");
-
-  $("pwStatus").textContent = "";
-
-  if(p1.length < 6){
-    $("pwStatus").textContent = "Password must be at least 6 characters.";
-    return;
-  }
-  if(p1 !== p2){
-    $("pwStatus").textContent = "Passwords do not match.";
-    return;
-  }
-
-  try{
-    $("pwStatus").textContent = "Updating password…";
-    const { error } = await supabaseClient.auth.updateUser({ password: p1 });
-    if(error){ $("pwStatus").textContent = error.message; return; }
-    $("pwNew").value = "";
-    $("pwConfirmInput").value = "";
-    $("pwStatus").textContent = "✅ Password updated.";
-    setStatus("✅ Password updated.");
-    // Close after a short moment
-    setTimeout(closePwModal, 600);
-  }catch(e){
-    $("pwStatus").textContent = "Password update failed: " + (e?.message || e);
-  }
-};
-
-function openPwModal(){
-  $("pwOverlay").hidden = false;
-  $("pwStatus").textContent = "";
-  $("pwNew").value = "";
-  $("pwConfirmInput").value = "";
-  setTimeout(()=>{ try{$("pwNew").focus();}catch{} }, 0);
-}
-
-function closePwModal(){
-  $("pwOverlay").hidden = true;
-}
-
-$("pwOverlay").addEventListener("click", (e)=>{
-  if(e.target === $("pwOverlay")) closePwModal();
-});
-
-document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape" && !$("pwOverlay").hidden) closePwModal();
-});
-
-
-function applyAuthVisibility(){
-  const authed = !!(window.SESSION && window.SESSION.user);
-  const btnLogout = document.getElementById("btnLogout");
-  const btnChangePw = document.getElementById("btnChangePassword");
-  const themeSel = document.getElementById("settingsTheme");
-  const themeHelp = document.getElementById("themeHelp");
-
-  if (!authed){
-    // Guest mode: keep settings visible, but lock account-only controls
-    if (btnChangePw){
-      btnChangePw.disabled = true;
-      btnChangePw.style.opacity = "0.55";
-      btnChangePw.style.cursor = "not-allowed";
-      btnChangePw.title = "Login required";
-      btnChangePw.onclick = ()=>{};
-    }
-
-    if (themeSel){
-      themeSel.value = "dark";
-      themeSel.disabled = true;
-      themeSel.style.opacity = "0.65";
-      themeSel.style.cursor = "not-allowed";
-    }
-    if (themeHelp){
-      themeHelp.textContent = "Theme changes require login (Guest is locked to Midnight Matte).";
-    }
-
-    // Turn Logout into Login
-    if (btnLogout){
-      btnLogout.textContent = "Login";
-      btnLogout.classList.remove("danger");
-      btnLogout.classList.remove("btn2");
-      btnLogout.classList.add("btn");
-      // keep button styling unified with the rest of the app
-      btnLogout.onclick = ()=>{ window.location.href = "login.html"; };
-    }
-  } else {
-    // Logged-in: enable everything
-    if (btnChangePw){
-      btnChangePw.disabled = false;
-      btnChangePw.style.opacity = "";
-      btnChangePw.style.cursor = "";
-      btnChangePw.title = "";
-    }
-    if (themeSel){
-      themeSel.disabled = false;
-      themeSel.style.opacity = "";
-      themeSel.style.cursor = "";
-    }
-    if (themeHelp){
-      themeHelp.textContent = "Applies after you press Save (stored locally on this device).";
-    }
-    if (btnLogout){
-      btnLogout.textContent = "Logout";
-      btnLogout.classList.remove("btn");
-      btnLogout.classList.add("danger");
-      btnLogout.classList.remove("btn2");
-      }
-  }
-}
-
-(async()=>{
-  await requireAuth();
-  applyAuthVisibility();
-  await loadProfile();
-  loadMinVrSetting();
-
-  // Theme: account can pick, guest is locked to dark
-  if (window.SESSION && window.SESSION.user){
-    loadThemeSetting();
-  } else {
-    try{ document.documentElement.dataset.theme = "dark"; }catch(e){}
-    try{ const sel = document.getElementById("settingsTheme"); if(sel){ sel.value="dark"; } }catch(e){}
-  }
-})();
-</script>
-<script>
-  (function(){
-    const p = (location.pathname.split("/").pop() || "").toLowerCase();
-    document.querySelectorAll(".navLink").forEach(a=>{
-      const href = (a.getAttribute("href")||"").toLowerCase();
-      if (href && href === p) a.classList.add("active");
-    });
-  })();
-</script>
+<script src="mkwt_public.js"></script>
+<script src="settings.js"></script>
 </body>
 </html>
