@@ -242,16 +242,42 @@ window.mkwtRequireAuth = async function(options = {}){
         if (typeof window.setStatus === "function") window.setStatus("Creating backup…", true);
         await ensureSession();
         await ensureProfile();
+
+        const exportedAt = new Date().toISOString();
+        const loungeKeys = window.MKWT_LOUNGE_STORAGE || { current: 'mkwt_lounge_current_v1', sessions: 'mkwt_lounge_sessions_v1' };
+        const safeReadJson = (key, fallback) => {
+          try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : fallback;
+          } catch(e) {
+            return fallback;
+          }
+        };
+        const loungeCurrent = safeReadJson(loungeKeys.current, null);
+        const loungeSessions = safeReadJson(loungeKeys.sessions, []);
+
         if (!window.SESSION?.user) {
-          // Guest: export local matches
+          const guestMatches = loadGuestMatches();
           const backup = {
-            version: 1,
-            exported_at: new Date().toISOString(),
+            app: "MKWT",
+            version: 2,
+            exported_at: exportedAt,
             mode: "guest",
-            matches: loadGuestMatches()
+            vr_tracker: {
+              source: "local_storage",
+              match_count: guestMatches.length,
+              matches: guestMatches
+            },
+            lounge_tracker: {
+              source: "local_storage",
+              current_mogi: loungeCurrent,
+              session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
+              sessions: Array.isArray(loungeSessions) ? loungeSessions : []
+            },
+            matches: guestMatches
           };
           downloadTextFile("mkwt_guest_backup.json", JSON.stringify(backup, null, 2));
-          if (typeof window.setStatus === "function") window.setStatus("✅ Guest export created.", true);
+          if (typeof window.setStatus === "function") window.setStatus(`✅ Guest export created (${guestMatches.length} VR matches, ${(Array.isArray(loungeSessions) ? loungeSessions.length : 0)} Lounge Mogis).`, true);
           return;
         }
 
@@ -278,12 +304,23 @@ window.mkwtRequireAuth = async function(options = {}){
 
         const backup = {
           app: "MKWT",
-          version: 1,
-          exported_at: new Date().toISOString(),
+          version: 2,
+          exported_at: exportedAt,
           user: { id: SESSION.user.id, email: SESSION.user.email || null },
           profile: {
             nickname: window.PROFILE?.nickname ?? null,
             current_vr: window.PROFILE?.current_vr ?? null
+          },
+          vr_tracker: {
+            source: "supabase",
+            match_count: allMatches.length,
+            matches: allMatches
+          },
+          lounge_tracker: {
+            source: "local_storage",
+            current_mogi: loungeCurrent,
+            session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
+            sessions: Array.isArray(loungeSessions) ? loungeSessions : []
           },
           matches: allMatches
         };
@@ -292,7 +329,7 @@ window.mkwtRequireAuth = async function(options = {}){
           `mkwt_backup_${String(window.PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
 
         window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
-        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} matches).`, true);
+        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} VR matches, ${(Array.isArray(loungeSessions) ? loungeSessions.length : 0)} Lounge Mogis).`, true);
       } catch(e){
         if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
         if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
@@ -312,8 +349,15 @@ window.mkwtRequireAuth = async function(options = {}){
         // Guest: import into local storage
         const text = await file.text();
         const parsed = JSON.parse(text || "{}");
-        const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.matches) ? parsed.matches : []);
+        const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.matches) ? parsed.matches : (Array.isArray(parsed?.vr_tracker?.matches) ? parsed.vr_tracker.matches : []));
         if (!Array.isArray(incoming)) throw new Error("Invalid backup file.");
+        const loungePayload = parsed?.lounge_tracker || null;
+        if (loungePayload && typeof localStorage !== 'undefined') {
+          try {
+            if ('current_mogi' in loungePayload) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.current || 'mkwt_lounge_current_v1'), JSON.stringify(loungePayload.current_mogi ?? null));
+            if (Array.isArray(loungePayload.sessions)) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.sessions || 'mkwt_lounge_sessions_v1'), JSON.stringify(loungePayload.sessions));
+          } catch(e){}
+        }
         const current = loadGuestMatches();
         const ids = new Set(current.map(m => String(m.id)));
         let added = 0;
@@ -342,14 +386,22 @@ window.mkwtRequireAuth = async function(options = {}){
 
       const text = await file.text();
       const backup = JSON.parse(text);
+      const backupMatches = Array.isArray(backup?.matches) ? backup.matches : (Array.isArray(backup?.vr_tracker?.matches) ? backup.vr_tracker.matches : null);
+      const loungePayload = backup?.lounge_tracker || null;
+      if (loungePayload && typeof localStorage !== 'undefined') {
+        try {
+          if ('current_mogi' in loungePayload) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.current || 'mkwt_lounge_current_v1'), JSON.stringify(loungePayload.current_mogi ?? null));
+          if (Array.isArray(loungePayload.sessions)) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.sessions || 'mkwt_lounge_sessions_v1'), JSON.stringify(loungePayload.sessions));
+        } catch(e){}
+      }
 
-      if (!backup || backup.app !== "MKWT" || !Array.isArray(backup.matches)) {
+      if (!backup || backup.app !== "MKWT" || !Array.isArray(backupMatches)) {
         if (typeof window.setStatus === "function") window.setStatus("❌ This file isn't a valid MKWT backup.", false);
         return;
       }
 
       // Deduplicate backup by fingerprint (keep first occurrence in chronological order)
-      const sortedBackup = [...backup.matches].sort((a,b)=> String(a?.created_at||"").localeCompare(String(b?.created_at||"")));
+      const sortedBackup = [...backupMatches].sort((a,b)=> String(a?.created_at||"").localeCompare(String(b?.created_at||"")));
       const uniqueBackup = [];
       const backupFp = new Set();
       for (const r of sortedBackup) {

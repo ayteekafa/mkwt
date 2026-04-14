@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#07080a"/>
+<script src="mkwt_bootstrap.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="mkwt_theme_v3.css" rel="stylesheet"/>
+<link href="stats.css" rel="stylesheet"/>
+<link href="lounge.css" rel="stylesheet"/>
+<title>MKWT – Lounge 12p</title>
+</head>
+<body>
+<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript.</p></div></noscript>
+<nav class="nav">
+  <div class="navInner">
+    <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
+    <a class="navLink" href="tracker.html">Tracker</a>
+    <a class="navLink" href="stats.html">Stats</a>
+    <a class="navLink" href="sessions.html">Sessions</a>
+    <a class="navLink active" href="lounge.html">Lounge 12p</a>
+    <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">⚙</a>
+  </div>
+</nav>
+<div class="wrap loungeWrap">
+  <section class="card pageHero">
+    <div class="pageHero__titleWrap">
+      <h2>MK World Lounge 12p</h2>
+      <p class="muted pageHero__subtitle">Clean 12-race Mogi tracking with saved sessions, track performance and quick race entry.</p>
+    </div>
+    <div id="status" class="muted statusLine"></div>
+  </section>
+
+  <section class="card cardSection">
+    <div class="sectionHead sectionHead--split">
+      <div>
+        <div class="eyebrow">Current Mogi</div>
+        <h3>Track Mogi</h3>
+        <p class="muted sectionText">Pick lobby size, enter track and placement, then save each race. After 12 races the Mogi is stored as one session.</p>
+      </div>
+      <button id="btnNewMogi" class="navAction navAction--sm" type="button">New Mogi</button>
+    </div>
+
+    <div class="controlSurface">
+      <div class="surfaceRow surfaceRow--top">
+        <div class="surfaceBlock surfaceBlock--grow">
+          <div class="fieldLabel">Lobby size</div>
+          <div class="segRow segRow--compact" id="lobbyGroup" data-btn-group="lobbySize">
+            <button class="navAction active" data-lobby="12" type="button">12p</button>
+            <button class="navAction" data-lobby="11" type="button">11p</button>
+            <button class="navAction" data-lobby="10" type="button">10p</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="entryPanel">
+        <div class="formGrid">
+          <label>
+            <span>Track</span>
+            <select id="trackSelect">
+              <option value="">Select track</option>
+              <option value="Intermission">Intermission</option>
+              <option value="Acorn Heights">Acorn Heights</option>
+              <option value="Airship Fortress">Airship Fortress</option>
+              <option value="Boo Cinema">Boo Cinema</option>
+              <option value="Bowser's Castle">Bowser's Castle</option>
+              <option value="Cheep Cheep Falls">Cheep Cheep Falls</option>
+              <option value="Choco Mountain">Choco Mountain</option>
+              <option value="Crown City">Crown City</option>
+              <option value="Dandelion Depths">Dandelion Depths</option>
+              <option value="Desert Hills">Desert Hills</option>
+              <option value="Dino Dino Jungle">Dino Dino Jungle</option>
+              <option value="DK Pass">DK Pass</option>
+              <option value="DK Spaceport">DK Spaceport</option>
+              <option value="Dry Bones Burnout">Dry Bones Burnout</option>
+              <option value="Faraway Oasis">Faraway Oasis</option>
+              <option value="Great ? Block Ruins">Great ? Block Ruins</option>
+              <option value="Koopa Troopa Beach">Koopa Troopa Beach</option>
+              <option value="Mario Circuit">Mario Circuit</option>
+              <option value="Mario Bros. Circuit">Mario Bros. Circuit</option>
+              <option value="Moo Moo Meadows">Moo Moo Meadows</option>
+              <option value="Peach Beach">Peach Beach</option>
+              <option value="Peach Stadium">Peach Stadium</option>
+              <option value="Rainbow Road">Rainbow Road</option>
+              <option value="Salty Salty Speedway">Salty Salty Speedway</option>
+              <option value="Shy Guy Bazaar">Shy Guy Bazaar</option>
+              <option value="Sky-High Sundae">Sky-High Sundae</option>
+              <option value="Starview Peak">Starview Peak</option>
+              <option value="Toad's Factory">Toad's Factory</option>
+              <option value="Wario Shipyard">Wario Shipyard</option>
+              <option value="Wario Stadium">Wario Stadium</option>
+              <option value="Whistlestop Summit">Whistlestop Summit</option>
+            </select>
+          </label>
+          <label>
+            <span>Placement</span>
+            <select id="placementSelect"></select>
+          </label>
+        </div>
+
+        <div class="actionStrip" aria-label="Race actions">
+          <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Track</button>
+          <button id="btnDisconnect" class="navAction actionStripBtn" type="button">DC</button>
+          <button id="btnUndo" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last">↶</button>
+        </div>
+      </div>
+
+      <div class="mogiSummary">
+        <div class="statBox"><div class="statLabel">Race</div><div class="statValue" id="sumRaceCount">0 / 12</div></div>
+        <div class="statBox"><div class="statLabel">Points</div><div class="statValue" id="sumPoints">0</div></div>
+        <div class="statBox"><div class="statLabel">Average</div><div class="statValue" id="sumAvg">0.00</div></div>
+        <div class="statBox"><div class="statLabel">DCs</div><div class="statValue" id="sumDcs">0</div></div>
+        <div class="statBox"><div class="statLabel">Remaining</div><div class="statValue" id="sumRemain">12</div></div>
+      </div>
+
+      <div class="scoreLine muted" id="scorePreview"></div>
+    </div>
+
+    <details class="foldCard" open>
+      <summary>
+        <span>Current races</span>
+        <span class="muted">Open race list</span>
+      </summary>
+      <div class="tableWrap">
+        <table>
+          <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+          <tbody id="currentMogiBody"><tr><td colspan="6" class="muted">No races tracked yet.</td></tr></tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <section class="card cardSection">
+    <div class="sectionHead">
+      <div>
+        <div class="eyebrow">Stats</div>
+        <h3>Track Performance</h3>
+        <p class="muted sectionText">Average points per track. Disconnects are excluded. Tap a bar to view the track stats below.</p>
+      </div>
+      <div class="segRow sortRow" id="trackSortGroup">
+        <button id="btnSortPerformance" class="navAction active" type="button">Performance ↓</button>
+        <button id="btnSortPlayed" class="navAction" type="button">Most played</button>
+      </div>
+    </div>
+    <div class="chartShell">
+      <div class="chartWrap chartWrapC2"><canvas id="chartTrackAvg"></canvas></div>
+      <div class="trackInsight" id="trackInsight">
+        <div class="muted">Click on a track bar to see AVG points and times played.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card cardSection">
+    <div class="sectionHead">
+      <div>
+        <div class="eyebrow">History</div>
+        <h3>Saved Mogi Sessions</h3>
+        <p class="muted sectionText">Each finished 12-race Mogi is stored here as one session.</p>
+      </div>
+    </div>
+    <div id="sessionList" class="sessionListCompact"><div class="muted">No saved Mogis yet.</div></div>
+    <div class="paginationRow" id="sessionPaginationRow">
+      <div class="muted" id="sessionPageInfo">Page 1</div>
+      <div class="paginationActions">
+        <button class="navAction navAction--sm" id="btnSessionPrev" type="button">← Prev</button>
+        <button class="navAction navAction--sm" id="btnSessionNext" type="button">Next →</button>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="lounge.js"></script>
+</body>
+</html>

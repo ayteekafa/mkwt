@@ -1,0 +1,78 @@
+
+.loungeWrap{padding-bottom:56px}
+.loungeWrap .card{margin-bottom:20px}
+.loungeWrap .card:last-child{margin-bottom:0}
+.loungeWrap h2,.loungeWrap h3{margin:0;line-height:1.15}
+.pageHero{padding:22px 22px 18px}
+.pageHero__titleWrap{display:flex;flex-direction:column;gap:8px}
+.pageHero__subtitle{max-width:720px}
+.statusLine{margin-top:10px;min-height:20px}
+.cardSection{padding:20px}
+.sectionHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.sectionHead--split{margin-bottom:18px}
+.sectionText{margin-top:8px;max-width:760px;line-height:1.45}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:800}
+.fieldLabel{display:block;margin-bottom:8px;color:var(--muted);font-size:13px;font-weight:700}
+.controlSurface{display:flex;flex-direction:column;gap:16px}
+.surfaceRow{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.surfaceBlock{min-width:0}
+.surfaceBlock--grow{flex:1 1 240px}
+.entryPanel{padding:16px;border:1px solid var(--border);border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,.01)), var(--card-2)}
+.formGrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(120px,1fr);gap:12px;align-items:end}
+.formGrid label{min-width:0}
+.formGrid select{min-width:0}
+label span{display:block;margin-bottom:6px;color:var(--muted);font-size:13px;font-weight:700}
+select,input,button{font:inherit}
+select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card-2);color:var(--text);outline:none}
+select:focus{box-shadow:var(--ring);border-color:var(--primary)}
+.segRow{display:flex;gap:8px;flex-wrap:wrap}
+.segRow--compact .navAction{min-width:72px}
+.sortRow{margin-left:auto}
+.actionStrip{display:grid;grid-template-columns:minmax(0,2fr) minmax(92px,1fr) 52px;gap:10px;margin-top:14px;align-items:stretch}
+.actionStripBtn{width:100%;justify-content:center;display:inline-flex;align-items:center}
+.actionStripBtn--icon{font-size:20px;padding-inline:0}
+.mogiSummary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.scoreLine{padding-left:2px}
+.tableWrap{overflow:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:11px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.navAction{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card-2);color:var(--text);cursor:pointer}
+.navAction.active{background:var(--primary);color:var(--primary-text);border-color:var(--primary)}
+.navLink.active{background:var(--primary);color:var(--primary-text);border-radius:10px;padding:8px 12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--card-2)}
+.chartShell{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.trackInsight{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card-2)}
+.trackInsightTitle{font-size:18px;font-weight:800;margin-bottom:4px}
+.trackInsightGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.sessionListCompact{display:flex;flex-direction:column;gap:12px}
+.sessionCard{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--card-2)}
+.sessionCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.sessionTitle{font-size:16px;font-weight:800;margin-bottom:4px}
+.infoBtn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer}
+.sessionActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sessionDetails{margin-top:12px}
+.danger{border-color:#7d2932;color:#ffdfe2}
+.foldCard{margin-top:16px;border:1px solid var(--border);border-radius:16px;background:var(--card-2);overflow:hidden}
+.foldCard summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer;font-weight:700}
+.foldCard summary::-webkit-details-marker{display:none}
+.foldCard[open] summary{border-bottom:1px solid var(--border)}
+.foldCard .tableWrap{padding:0 14px 10px}
+@media (max-width:760px){
+  .cardSection,.pageHero{padding:18px}
+  .mogiSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .sectionHead{margin-bottom:14px}
+  .formGrid{grid-template-columns:minmax(0,2fr) minmax(96px,1fr);gap:10px}
+  .actionStrip{grid-template-columns:minmax(0,2fr) minmax(78px,1fr) 52px}
+  .sortRow{width:100%}
+  .sortRow .navAction{flex:1 1 0}
+  .trackInsightGrid{grid-template-columns:1fr}
+  .sessionCardHead{flex-direction:column}
+}
+
+
+.paginationRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
+.paginationActions{display:flex;gap:10px;justify-content:flex-end}
+.paginationRow[hidden]{display:none !important}
