@@ -19,7 +19,7 @@
   window.MKWT_LOUNGE_STORAGE = { current: STORAGE_CURRENT, sessions: STORAGE_SESSIONS };
 
   const $ = (id) => document.getElementById(id);
-  const state = { lobbySize: 12, current: null, sessions: [], chart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1 };
+  const state = { lobbySize: 12, current: null, sessions: [], chart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1, openSessionDetails: {}, editingSessionIndex: null };
 
   function read(key, fallback){
     try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(e){ return fallback; }
@@ -31,7 +31,8 @@
     const el = $('status');
     if(!el) return;
     el.textContent = msg || '';
-    el.className = 'muted ' + (msg ? (ok ? 'ok' : 'bad') : '');
+    el.className = 'muted statusLine ' + (msg ? (ok ? 'ok' : 'bad') : '');
+    el.hidden = !msg;
   }
   function currentTs(){ return new Date().toISOString(); }
   function fmtDate(iso){
@@ -200,15 +201,30 @@ function aggregateTrackStats(){
       const points = (s.races || []).reduce((a,r)=>a + Number(r.points || 0), 0);
       const count = (s.races || []).length;
       const dcs = (s.races || []).filter(r => r.disconnect).length;
-      const details = (s.races || []).map((r, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${escapeHtml(r.track)}</td>
-          <td>${r.lobbySize}p</td>
-          <td>${r.disconnect ? 'DC' : r.placement}</td>
-          <td>${r.points}</td>
-          <td>${r.disconnect ? 'Disconnect' : 'Normal'}</td>
-        </tr>`).join('');
+      const originalIndex = s.__originalIndex;
+      const isEditing = state.editingSessionIndex === originalIndex;
+      const isOpen = !!state.openSessionDetails[originalIndex] || isEditing;
+      const details = isEditing
+        ? `
+          <div class="sessionEditor" data-session-editor="${originalIndex}">
+            <div class="tableWrap">
+              <table>
+                <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+                <tbody>${renderSessionEditRows(s.races || [])}</tbody>
+              </table>
+            </div>
+            <div class="sessionEditActions">
+              <button class="navAction navAction--sm active" type="button" data-session-save="${originalIndex}">Save changes</button>
+              <button class="navAction navAction--sm" type="button" data-session-cancel="${originalIndex}">Cancel</button>
+            </div>
+          </div>`
+        : `
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+              <tbody>${renderSessionViewRows(s.races || [])}</tbody>
+            </table>
+          </div>`;
       return `
         <div class="sessionCard">
           <div class="sessionCardHead">
@@ -217,33 +233,23 @@ function aggregateTrackStats(){
               <div class="muted">${count} races · ${points} points · Avg ${count ? (points/count).toFixed(2) : '0.00'} · DCs ${dcs}</div>
             </div>
             <div class="sessionActions">
-              <button class="infoBtn" type="button" data-session-toggle="${idx}" aria-expanded="false" title="Show matches">?</button>
-              <button class="navAction navAction--sm danger" type="button" data-session-delete="${s.__originalIndex}" title="Delete Mogi">Delete</button>
+              <button class="infoBtn" type="button" data-session-toggle="${originalIndex}" aria-expanded="${isOpen ? 'true' : 'false'}" title="Show matches">?</button>
+              <button class="navAction navAction--sm" type="button" data-session-edit="${originalIndex}">${isEditing ? 'Editing' : 'Edit'}</button>
+              <button class="navAction navAction--sm danger" type="button" data-session-delete="${originalIndex}" title="Delete Mogi">Delete</button>
             </div>
           </div>
-          <div class="sessionDetails" id="sessionDetails-${idx}" hidden>
-            <div class="tableWrap">
-              <table>
-                <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
-                <tbody>${details}</tbody>
-              </table>
-            </div>
+          <div class="sessionDetails" id="sessionDetails-${originalIndex}"${isOpen ? '' : ' hidden'}>
+            ${details}
           </div>
         </div>`;
     }).join('');
 
     wrap.querySelectorAll('[data-session-toggle]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-session-toggle');
-        const panel = $(`sessionDetails-${id}`);
-        const open = !panel.hasAttribute('hidden');
-        if(open){
-          panel.setAttribute('hidden', 'hidden');
-          btn.setAttribute('aria-expanded', 'false');
-        } else {
-          panel.removeAttribute('hidden');
-          btn.setAttribute('aria-expanded', 'true');
-        }
+        const id = Number(btn.getAttribute('data-session-toggle'));
+        if(state.editingSessionIndex === id) return;
+        state.openSessionDetails[id] = !state.openSessionDetails[id];
+        renderSessions();
       });
     });
 
@@ -253,6 +259,34 @@ function aggregateTrackStats(){
         if (!Number.isInteger(originalIndex) || originalIndex < 0) return;
         deleteMogi(originalIndex);
       });
+    });
+
+    wrap.querySelectorAll('[data-session-edit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const originalIndex = Number(btn.getAttribute('data-session-edit'));
+        if (!Number.isInteger(originalIndex) || originalIndex < 0) return;
+        if(state.editingSessionIndex === originalIndex) return;
+        startEditMogi(originalIndex);
+      });
+    });
+
+    wrap.querySelectorAll('[data-session-cancel]').forEach(btn => {
+      btn.addEventListener('click', cancelEditMogi);
+    });
+
+    wrap.querySelectorAll('[data-session-save]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const originalIndex = Number(btn.getAttribute('data-session-save'));
+        if (!Number.isInteger(originalIndex) || originalIndex < 0) return;
+        saveEditedMogi(originalIndex);
+      });
+    });
+
+    wrap.querySelectorAll('.sessionEditor [data-edit-row]').forEach(row => {
+      row.querySelector('[data-edit-lobby]')?.addEventListener('change', () => updateEditRow(row));
+      row.querySelector('[data-edit-placement]')?.addEventListener('change', () => updateEditRow(row));
+      row.querySelector('[data-edit-type]')?.addEventListener('change', () => updateEditRow(row));
+      updateEditRow(row);
     });
   }
   function renderChart(stats){
@@ -285,9 +319,30 @@ function aggregateTrackStats(){
     });
   }
   function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#fff'; }
+
+  function renderHeroSummary(stats){
+    const sessions = state.sessions || [];
+    const mogiCount = sessions.length;
+    const totalPoints = sessions.reduce((sum, session) => sum + (session.races || []).reduce((a, r) => a + Number(r.points || 0), 0), 0);
+    const avgMogi = mogiCount ? (totalPoints / mogiCount) : 0;
+    const bestTrack = (stats || []).filter(s => s.count > 0).sort((a,b) => {
+      const diff = b.avg - a.avg;
+      if(diff !== 0) return diff;
+      return b.count - a.count;
+    })[0] || null;
+    const bestTrackName = $('heroBestTrackName');
+    const bestTrackMeta = $('heroBestTrackMeta');
+    const mogiCountEl = $('heroMogiCount');
+    const avgEl = $('heroMogiAvg');
+    if(mogiCountEl) mogiCountEl.textContent = String(mogiCount);
+    if(avgEl) avgEl.textContent = avgMogi.toFixed(2);
+    if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : '–';
+    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'No track data yet';
+  }
   function refresh(){
     renderCurrent();
     const stats = aggregateTrackStats();
+    renderHeroSummary(stats);
     renderSessions();
     renderChart(stats);
     renderTrackInsight(state.lastSelectedTrack && stats.some(s => s.track === state.lastSelectedTrack) ? state.lastSelectedTrack : null);
@@ -354,11 +409,122 @@ function aggregateTrackStats(){
     const ok = window.confirm(`Delete saved Mogi from ${label}?`);
     if(!ok) return;
     state.sessions.splice(index, 1);
+    if(state.editingSessionIndex === index) state.editingSessionIndex = null;
+    delete state.openSessionDetails[index];
     setStatus('Saved Mogi deleted.', true);
     refresh();
   }
   function escapeHtml(s){
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function buildTrackOptions(selected){
+    return TRACKS.map(track => `<option value="${escapeHtml(track)}"${track === selected ? ' selected' : ''}>${escapeHtml(track)}</option>`).join('');
+  }
+  function buildLobbyOptions(selected){
+    return [12,11,10].map(size => `<option value="${size}"${Number(selected) === size ? ' selected' : ''}>${size}p</option>`).join('');
+  }
+  function buildPlacementOptionsForLobby(lobbySize, placement){
+    const max = Number(lobbySize) || 12;
+    const opts = ['<option value="">Select</option>'];
+    for(let i = 1; i <= max; i += 1){
+      opts.push(`<option value="${i}"${Number(placement) === i ? ' selected' : ''}>${i}</option>`);
+    }
+    return opts.join('');
+  }
+  function renderSessionViewRows(races){
+    return (races || []).map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${escapeHtml(r.track)}</td>
+          <td>${r.lobbySize}p</td>
+          <td>${r.disconnect ? 'DC' : r.placement}</td>
+          <td>${r.points}</td>
+          <td>${r.disconnect ? 'Disconnect' : 'Normal'}</td>
+        </tr>`).join('');
+  }
+  function renderSessionEditRows(races){
+    return (races || []).map((r, i) => `
+      <tr data-edit-row="${i}">
+        <td>${i + 1}</td>
+        <td><select class="sessionEditSelect" data-edit-track>${buildTrackOptions(r.track)}</select></td>
+        <td><select class="sessionEditSelect" data-edit-lobby>${buildLobbyOptions(r.lobbySize)}</select></td>
+        <td><select class="sessionEditSelect" data-edit-placement>${buildPlacementOptionsForLobby(r.lobbySize, r.placement)}</select></td>
+        <td class="muted" data-edit-points>${Number(r.points || 0)}</td>
+        <td>
+          <select class="sessionEditSelect" data-edit-type>
+            <option value="normal"${r.disconnect ? '' : ' selected'}>Normal</option>
+            <option value="disconnect"${r.disconnect ? ' selected' : ''}>Disconnect</option>
+          </select>
+        </td>
+      </tr>`).join('');
+  }
+  function updateEditRow(row){
+    if(!row) return;
+    const lobbySel = row.querySelector('[data-edit-lobby]');
+    const placementSel = row.querySelector('[data-edit-placement]');
+    const typeSel = row.querySelector('[data-edit-type]');
+    const pointsCell = row.querySelector('[data-edit-points]');
+    const lobby = Number(lobbySel?.value || 12);
+    const prevPlacement = Number(placementSel?.value || 0);
+    if(placementSel){
+      placementSel.innerHTML = buildPlacementOptionsForLobby(lobby, prevPlacement);
+      if(prevPlacement > lobby) placementSel.value = '';
+      placementSel.disabled = typeSel?.value === 'disconnect';
+    }
+    let points = 1;
+    if(typeSel?.value !== 'disconnect'){
+      const placement = Number(placementSel?.value || 0);
+      const p = getPoints(lobby, placement);
+      points = p == null ? '–' : p;
+    }
+    if(pointsCell) pointsCell.textContent = String(points);
+  }
+  function startEditMogi(index){
+    state.editingSessionIndex = index;
+    state.openSessionDetails[index] = true;
+    refresh();
+  }
+  function cancelEditMogi(){
+    state.editingSessionIndex = null;
+    refresh();
+  }
+  function saveEditedMogi(index){
+    const session = state.sessions[index];
+    if(!session){ setStatus('Mogi not found.', false); return; }
+    const wrap = document.querySelector(`[data-session-editor="${index}"]`);
+    if(!wrap){ setStatus('Editor not found.', false); return; }
+    const rows = Array.from(wrap.querySelectorAll('[data-edit-row]'));
+    const races = [];
+    for(const row of rows){
+      const track = row.querySelector('[data-edit-track]')?.value || '';
+      const lobbySize = Number(row.querySelector('[data-edit-lobby]')?.value || 12);
+      const type = row.querySelector('[data-edit-type]')?.value || 'normal';
+      const disconnect = type === 'disconnect';
+      const placement = disconnect ? null : Number(row.querySelector('[data-edit-placement]')?.value || 0);
+      if(!track){ setStatus('Each race needs a track.', false); return; }
+      let points = 1;
+      if(!disconnect){
+        if(!placement){ setStatus('Each normal race needs a placement.', false); return; }
+        const calc = getPoints(lobbySize, placement);
+        if(calc == null){ setStatus('One edited race has an invalid placement.', false); return; }
+        points = calc;
+      }
+      races.push({
+        ...session.races[Number(row.getAttribute('data-edit-row'))],
+        track,
+        lobbySize,
+        placement: disconnect ? null : placement,
+        points,
+        disconnect
+      });
+    }
+    session.races = races;
+    session.totalPoints = races.reduce((a, r) => a + Number(r.points || 0), 0);
+    session.disconnects = races.filter(r => r.disconnect).length;
+    session.updated_at = currentTs();
+    state.editingSessionIndex = null;
+    setStatus('Saved Mogi updated.', true);
+    refresh();
   }
   function bind(){
     document.querySelectorAll('#lobbyGroup .navAction').forEach(btn => btn.addEventListener('click', () => {

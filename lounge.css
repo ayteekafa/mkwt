@@ -76,3 +76,27 @@ thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(
 .paginationRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
 .paginationActions{display:flex;gap:10px;justify-content:flex-end}
 .paginationRow[hidden]{display:none !important}
+
+.sessionEditor{display:flex;flex-direction:column;gap:12px}
+.sessionEditSelect{width:100%;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
+.sessionEditActions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.sessionDetails[hidden]{display:none !important}
+.sessionActions .navAction[disabled]{opacity:.6;cursor:default}
+
+
+/* tracker-style lounge header */
+.loungeHeroStats{grid-template-columns:repeat(2,minmax(0,1fr));max-width:560px;margin:12px auto 0}
+.profileCard #status{margin-top:12px}
+@media (max-width:480px){
+  .loungeHeroStats{gap:7px}
+}
+
+
+/* tracker-matched lounge header */
+.loungeHeroStats{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none;margin-top:12px}
+.profileCard #userInfo{text-align:center}
+.profileCard #status{margin-top:12px;min-height:0}
+.profileCard .bestTrackLine{margin-top:12px}
+@media (max-width:640px){
+  .loungeHeroStats{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+}

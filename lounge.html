@@ -7,6 +7,7 @@
 <script src="mkwt_bootstrap.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
+<link href="tracker.css" rel="stylesheet"/>
 <link href="stats.css" rel="stylesheet"/>
 <link href="lounge.css" rel="stylesheet"/>
 <title>MKWT – Lounge 12p</title>
@@ -24,20 +25,43 @@
   </div>
 </nav>
 <div class="wrap loungeWrap">
-  <section class="card pageHero">
-    <div class="pageHero__titleWrap">
-      <h2>MK World Lounge 12p</h2>
-      <p class="muted pageHero__subtitle">Clean 12-race Mogi tracking with saved sessions, track performance and quick race entry.</p>
+  <section class="card profileCard">
+    <div class="profileTop">
+      <div>
+        <h2 style="margin:0 0 6px 0;">MKWT <span class="byAytee">by Aytee</span></h2>
+        <div class="muted" id="userInfo">Lounge 12p</div>
+      </div>
     </div>
-    <div id="status" class="muted statusLine"></div>
+    <div aria-label="Lounge quick stats" class="statGrid loungeHeroStats">
+      <div class="statBox">
+        <div class="statLabel">Mogis</div>
+        <div class="statValue" id="heroMogiCount">0</div>
+      </div>
+      <div class="statBox">
+        <div class="statLabel">Average</div>
+        <div class="statValue" id="heroMogiAvg">0.00</div>
+      </div>
+      <div class="statBox">
+        <div class="statLabel">Races</div>
+        <div class="statValue" id="heroRaceCount">0</div>
+      </div>
+      <div class="statBox">
+        <div class="statLabel">DCs</div>
+        <div class="statValue" id="heroDcCount">0</div>
+      </div>
+    </div>
+    <div class="bestTrackLine">
+      <div class="bestTrackLabel">Best Track</div>
+      <div class="bestTrackName" id="heroBestTrackName">–</div>
+      <div class="bestTrackMeta" id="heroBestTrackMeta">–</div>
+    </div>
+    <div id="status" class="muted hidden"></div>
   </section>
 
   <section class="card cardSection">
     <div class="sectionHead sectionHead--split">
       <div>
-        <div class="eyebrow">Current Mogi</div>
         <h3>Track Mogi</h3>
-        <p class="muted sectionText">Pick lobby size, enter track and placement, then save each race. After 12 races the Mogi is stored as one session.</p>
       </div>
       <button id="btnNewMogi" class="navAction navAction--sm" type="button">New Mogi</button>
     </div>
@@ -120,7 +144,7 @@
     <details class="foldCard" open>
       <summary>
         <span>Current races</span>
-        <span class="muted">Open race list</span>
+        
       </summary>
       <div class="tableWrap">
         <table>
@@ -134,9 +158,7 @@
   <section class="card cardSection">
     <div class="sectionHead">
       <div>
-        <div class="eyebrow">Stats</div>
         <h3>Track Performance</h3>
-        <p class="muted sectionText">Average points per track. Disconnects are excluded. Tap a bar to view the track stats below.</p>
       </div>
       <div class="segRow sortRow" id="trackSortGroup">
         <button id="btnSortPerformance" class="navAction active" type="button">Performance ↓</button>
@@ -154,9 +176,7 @@
   <section class="card cardSection">
     <div class="sectionHead">
       <div>
-        <div class="eyebrow">History</div>
         <h3>Saved Mogi Sessions</h3>
-        <p class="muted sectionText">Each finished 12-race Mogi is stored here as one session.</p>
       </div>
     </div>
     <div id="sessionList" class="sessionListCompact"><div class="muted">No saved Mogis yet.</div></div>
