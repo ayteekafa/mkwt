@@ -4,13 +4,17 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#07080a"/>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 <script src="mkwt_bootstrap.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+<script src="mkwt_core.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
 <link href="tracker.css" rel="stylesheet"/>
 <link href="stats.css" rel="stylesheet"/>
 <link href="lounge.css" rel="stylesheet"/>
-<title>MKWT – Lounge 12p</title>
+<title>MKWT â€“ Lounge 12p</title>
 </head>
 <body>
 <noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript.</p></div></noscript>
@@ -21,7 +25,7 @@
     <a class="navLink" href="stats.html">Stats</a>
     <a class="navLink" href="sessions.html">Sessions</a>
     <a class="navLink active" href="lounge.html">Lounge 12p</a>
-    <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">⚙</a>
+    <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">âš™</a>
   </div>
 </nav>
 <div class="wrap loungeWrap">
@@ -52,8 +56,8 @@
     </div>
     <div class="bestTrackLine">
       <div class="bestTrackLabel">Best Track</div>
-      <div class="bestTrackName" id="heroBestTrackName">–</div>
-      <div class="bestTrackMeta" id="heroBestTrackMeta">–</div>
+      <div class="bestTrackName" id="heroBestTrackName">â€“</div>
+      <div class="bestTrackMeta" id="heroBestTrackMeta">â€“</div>
     </div>
     <div id="status" class="muted hidden"></div>
   </section>
@@ -126,7 +130,7 @@
         <div class="actionStrip" aria-label="Race actions">
           <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Track</button>
           <button id="btnDisconnect" class="navAction actionStripBtn" type="button">DC</button>
-          <button id="btnUndo" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last">↶</button>
+          <button id="btnUndo" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last">â†¶</button>
         </div>
       </div>
 
@@ -161,7 +165,7 @@
         <h3>Track Performance</h3>
       </div>
       <div class="segRow sortRow" id="trackSortGroup">
-        <button id="btnSortPerformance" class="navAction active" type="button">Performance ↓</button>
+        <button id="btnSortPerformance" class="navAction active" type="button">Performance â†“</button>
         <button id="btnSortPlayed" class="navAction" type="button">Most played</button>
       </div>
     </div>
@@ -183,8 +187,8 @@
     <div class="paginationRow" id="sessionPaginationRow">
       <div class="muted" id="sessionPageInfo">Page 1</div>
       <div class="paginationActions">
-        <button class="navAction navAction--sm" id="btnSessionPrev" type="button">← Prev</button>
-        <button class="navAction navAction--sm" id="btnSessionNext" type="button">Next →</button>
+        <button class="navAction navAction--sm" id="btnSessionPrev" type="button">â† Prev</button>
+        <button class="navAction navAction--sm" id="btnSessionNext" type="button">Next â†’</button>
       </div>
     </div>
   </section>
