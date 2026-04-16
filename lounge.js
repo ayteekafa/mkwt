@@ -20,6 +20,10 @@
 
   const $ = (id) => document.getElementById(id);
   const state = { lobbySize: 12, current: null, sessions: [], chart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1, openSessionDetails: {}, editingSessionIndex: null };
+  let loungeClient = null;
+  let loungeSession = null;
+  let cloudMode = false;
+  let isBound = false;
 
   function read(key, fallback){
     try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(e){ return fallback; }
@@ -36,7 +40,7 @@
   }
   function currentTs(){ return new Date().toISOString(); }
   function fmtDate(iso){
-    try{ return new Date(iso).toLocaleString(); }catch(e){ return iso || '–'; }
+    try{ return new Date(iso).toLocaleString(); }catch(e){ return iso || 'â€“'; }
   }
   function getPoints(lobbySize, placement){
     const arr = SCORE_MAP[Number(lobbySize)] || SCORE_MAP[12];
@@ -46,14 +50,136 @@
   function makeFreshMogi(){
     return { created_at: currentTs(), races: [], totalPoints: 0, disconnects: 0, saved: false };
   }
+  function isCloud(){
+    return cloudMode && loungeClient && loungeSession?.user?.id;
+  }
+  function summarizeRaces(races){
+    const list = Array.isArray(races) ? races : [];
+    return {
+      race_count: list.length,
+      total_points: list.reduce((a, r) => a + Number(r.points || 0), 0),
+      disconnects: list.filter(r => r.disconnect).length,
+    };
+  }
+  function dbRaceToLocal(row){
+    return {
+      id: row.id,
+      cloud_id: row.id,
+      race_number: row.race_number,
+      track: row.track,
+      lobbySize: row.lobby_size,
+      placement: row.placement,
+      points: row.points,
+      disconnect: !!row.disconnect,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+  }
+  function dbMogiToLocal(row, races){
+    const localRaces = (races || []).map(dbRaceToLocal).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0));
+    return {
+      id: row.id,
+      cloud_id: row.id,
+      created_at: row.created_at,
+      completed_at: row.completed_at,
+      updated_at: row.updated_at,
+      races: localRaces,
+      totalPoints: row.total_points,
+      disconnects: row.disconnects,
+      saved: row.status === 'completed',
+    };
+  }
+  function raceToDbPayload(race, mogiId, raceNumber){
+    return {
+      mogi_id: mogiId,
+      user_id: loungeSession.user.id,
+      race_number: raceNumber,
+      track: race.track,
+      lobby_size: race.lobbySize,
+      placement: race.disconnect ? null : race.placement,
+      points: race.points,
+      disconnect: !!race.disconnect,
+      created_at: race.created_at || currentTs(),
+    };
+  }
   function loadAll(){
     state.sessions = read(STORAGE_SESSIONS, []);
     state.current = read(STORAGE_CURRENT, null) || makeFreshMogi();
     if (!Array.isArray(state.current.races)) state.current = makeFreshMogi();
   }
   function persist(){
+    if (isCloud()) return;
     write(STORAGE_CURRENT, state.current);
     write(STORAGE_SESSIONS, state.sessions);
+  }
+  async function loadCloud(){
+    if (!isCloud()) return;
+    const uid = loungeSession.user.id;
+    setStatus('Loading cloud lounge...', true);
+
+    const { data: mogis, error: mogiError } = await loungeClient
+      .from('lounge_mogis')
+      .select('id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false });
+    if (mogiError) throw mogiError;
+
+    const { data: races, error: raceError } = await loungeClient
+      .from('lounge_races')
+      .select('id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at')
+      .eq('user_id', uid)
+      .order('race_number', { ascending: true });
+    if (raceError) throw raceError;
+
+    const racesByMogi = new Map();
+    for (const race of races || []) {
+      if (!racesByMogi.has(race.mogi_id)) racesByMogi.set(race.mogi_id, []);
+      racesByMogi.get(race.mogi_id).push(race);
+    }
+
+    const active = (mogis || []).find(m => m.status === 'active');
+    state.current = active ? dbMogiToLocal(active, racesByMogi.get(active.id)) : makeFreshMogi();
+    state.sessions = (mogis || [])
+      .filter(m => m.status === 'completed')
+      .map(m => dbMogiToLocal(m, racesByMogi.get(m.id)))
+      .sort((a, b) => String(b.completed_at || b.created_at || '').localeCompare(String(a.completed_at || a.created_at || '')));
+    state.sessionPage = 1;
+    state.openSessionDetails = {};
+    state.editingSessionIndex = null;
+    setStatus('Cloud lounge ready.', true);
+  }
+  async function ensureCloudCurrentMogi(){
+    if (!isCloud()) return null;
+    if (state.current?.cloud_id) return state.current.cloud_id;
+
+    const { data, error } = await loungeClient
+      .from('lounge_mogis')
+      .insert({
+        user_id: loungeSession.user.id,
+        status: 'active',
+        race_count: 0,
+        total_points: 0,
+        disconnects: 0,
+      })
+      .select('id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects')
+      .single();
+    if (error) throw error;
+    state.current = dbMogiToLocal(data, []);
+    return data.id;
+  }
+  async function updateCloudMogi(mogi, patch = {}){
+    if (!isCloud() || !mogi?.cloud_id) return;
+    const summary = summarizeRaces(mogi.races);
+    const payload = {
+      ...summary,
+      ...patch,
+    };
+    const { error } = await loungeClient
+      .from('lounge_mogis')
+      .update(payload)
+      .eq('id', mogi.cloud_id)
+      .eq('user_id', loungeSession.user.id);
+    if (error) throw error;
   }
   function updatePlacementOptions(){
     const sel = $('placementSelect');
@@ -115,8 +241,8 @@
     const playedActive = state.trackSortKey === 'count';
     perfBtn.classList.toggle('active', perfActive);
     playedBtn.classList.toggle('active', playedActive);
-    perfBtn.textContent = perfActive ? `Performance ${state.trackSortDir === 'desc' ? '↓' : '↑'}` : 'Performance';
-    playedBtn.textContent = playedActive ? `Most played ${state.trackSortDir === 'desc' ? '↓' : '↑'}` : 'Most played';
+    perfBtn.textContent = perfActive ? `Performance ${state.trackSortDir === 'desc' ? 'â†“' : 'â†‘'}` : 'Performance';
+    playedBtn.textContent = playedActive ? `Most played ${state.trackSortDir === 'desc' ? 'â†“' : 'â†‘'}` : 'Most played';
   }
   function setTrackSort(key){
     if(state.trackSortKey === key){
@@ -165,7 +291,7 @@ function aggregateTrackStats(){
         </div>
       </div>
       <div class="trackInsightGrid">
-        <div class="statBox"><div class="statLabel">AVG points</div><div class="statValue">${stat.count ? stat.avg.toFixed(2) : '–'}</div></div>
+        <div class="statBox"><div class="statLabel">AVG points</div><div class="statValue">${stat.count ? stat.avg.toFixed(2) : 'â€“'}</div></div>
         <div class="statBox"><div class="statLabel">Times played</div><div class="statValue">${stat.count}</div></div>
       </div>`;
   }
@@ -230,7 +356,7 @@ function aggregateTrackStats(){
           <div class="sessionCardHead">
             <div>
               <div class="sessionTitle">${escapeHtml(fmtDate(s.completed_at || s.created_at))}</div>
-              <div class="muted">${count} races · ${points} points · Avg ${count ? (points/count).toFixed(2) : '0.00'} · DCs ${dcs}</div>
+              <div class="muted">${count} races Â· ${points} points Â· Avg ${count ? (points/count).toFixed(2) : '0.00'} Â· DCs ${dcs}</div>
             </div>
             <div class="sessionActions">
               <button class="infoBtn" type="button" data-session-toggle="${originalIndex}" aria-expanded="${isOpen ? 'true' : 'false'}" title="Show matches">?</button>
@@ -336,8 +462,8 @@ function aggregateTrackStats(){
     const avgEl = $('heroMogiAvg');
     if(mogiCountEl) mogiCountEl.textContent = String(mogiCount);
     if(avgEl) avgEl.textContent = avgMogi.toFixed(2);
-    if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : '–';
-    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'No track data yet';
+    if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : 'â€“';
+    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG Â· ${bestTrack.count} plays` : 'No track data yet';
   }
   function refresh(){
     renderCurrent();
@@ -348,71 +474,142 @@ function aggregateTrackStats(){
     renderTrackInsight(state.lastSelectedTrack && stats.some(s => s.track === state.lastSelectedTrack) ? state.lastSelectedTrack : null);
     persist();
   }
-  function maybeCompleteMogi(){
+  async function maybeCompleteMogi(){
     if((state.current.races || []).length < 12) return;
     const finished = {
       ...state.current,
       completed_at: currentTs(),
       saved: true,
     };
+    if (isCloud() && state.current.cloud_id) {
+      await updateCloudMogi(state.current, {
+        status: 'completed',
+        completed_at: finished.completed_at,
+      });
+    }
     state.sessions.push(finished);
     state.sessionPage = 1;
     state.current = makeFreshMogi();
     setStatus('Mogi completed and saved as one session.', true);
     refresh();
   }
-  function saveRace({disconnect=false}){
-    const track = $('trackSelect').value;
-    const placement = Number($('placementSelect').value || 0);
-    const lobbySize = Number(state.lobbySize || 12);
-    if(!track){ setStatus('Please select a track.', false); return; }
-    if((state.current.races || []).length >= 12){ setStatus('This Mogi already has 12 races. Start a new Mogi.', false); return; }
-    let points, effectivePlacement;
-    if(disconnect){
-      points = 1;
-      effectivePlacement = null;
-    } else {
-      if(!placement){ setStatus('Please select a placement.', false); return; }
-      points = getPoints(lobbySize, placement);
-      effectivePlacement = placement;
-      if(points == null){ setStatus('Invalid placement for this lobby size.', false); return; }
+  async function saveRace({disconnect=false}){
+    try {
+      const track = $('trackSelect').value;
+      const placement = Number($('placementSelect').value || 0);
+      const lobbySize = Number(state.lobbySize || 12);
+      if(!track){ setStatus('Please select a track.', false); return; }
+      if((state.current.races || []).length >= 12){ setStatus('This Mogi already has 12 races. Start a new Mogi.', false); return; }
+      let points, effectivePlacement;
+      if(disconnect){
+        points = 1;
+        effectivePlacement = null;
+      } else {
+        if(!placement){ setStatus('Please select a placement.', false); return; }
+        points = getPoints(lobbySize, placement);
+        effectivePlacement = placement;
+        if(points == null){ setStatus('Invalid placement for this lobby size.', false); return; }
+      }
+      const race = {
+        track,
+        lobbySize,
+        placement: effectivePlacement,
+        points,
+        disconnect,
+        created_at: currentTs()
+      };
+
+      if (isCloud()) {
+        setStatus('Saving race to cloud...', true);
+        const mogiId = await ensureCloudCurrentMogi();
+        const raceNumber = (state.current.races || []).length + 1;
+        const { data, error } = await loungeClient
+          .from('lounge_races')
+          .insert(raceToDbPayload(race, mogiId, raceNumber))
+          .select('id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at')
+          .single();
+        if (error) throw error;
+        state.current.races.push(dbRaceToLocal(data));
+        await updateCloudMogi(state.current);
+      } else {
+        state.current.races.push(race);
+      }
+
+      $('trackSelect').value = '';
+      $('placementSelect').value = '';
+      setStatus(disconnect ? 'DC saved with 1 point. It is excluded from track stats.' : 'Race tracked.', true);
+      refresh();
+      await maybeCompleteMogi();
+    } catch(e) {
+      setStatus('Race save failed: ' + (e?.message || e), false);
+      console.error(e);
     }
-    state.current.races.push({
-      track,
-      lobbySize,
-      placement: effectivePlacement,
-      points,
-      disconnect,
-      created_at: currentTs()
-    });
-    $('trackSelect').value = '';
-    $('placementSelect').value = '';
-    setStatus(disconnect ? 'DC saved with 1 point. It is excluded from track stats.' : 'Race tracked.', true);
-    refresh();
-    maybeCompleteMogi();
   }
-  function undoLast(){
+  async function undoLast(){
     if(!(state.current.races || []).length){ setStatus('Nothing to undo.', false); return; }
-    state.current.races.pop();
-    setStatus('Last entry removed.', true);
-    refresh();
+    try {
+      const last = state.current.races[state.current.races.length - 1];
+      if (isCloud() && last?.cloud_id) {
+        setStatus('Removing race from cloud...', true);
+        const { error } = await loungeClient
+          .from('lounge_races')
+          .delete()
+          .eq('id', last.cloud_id)
+          .eq('user_id', loungeSession.user.id);
+        if (error) throw error;
+      }
+      state.current.races.pop();
+      if (isCloud()) await updateCloudMogi(state.current);
+      setStatus('Last entry removed.', true);
+      refresh();
+    } catch(e) {
+      setStatus('Undo failed: ' + (e?.message || e), false);
+      console.error(e);
+    }
   }
-  function newMogi(){
-    state.current = makeFreshMogi();
-    setStatus('New Mogi started.', true);
-    refresh();
+  async function newMogi(){
+    try {
+      if (isCloud() && state.current?.cloud_id) {
+        const { error } = await loungeClient
+          .from('lounge_mogis')
+          .delete()
+          .eq('id', state.current.cloud_id)
+          .eq('user_id', loungeSession.user.id);
+        if (error) throw error;
+      }
+      state.current = makeFreshMogi();
+      setStatus('New Mogi started.', true);
+      refresh();
+    } catch(e) {
+      setStatus('New Mogi failed: ' + (e?.message || e), false);
+      console.error(e);
+    }
   }
-  function deleteMogi(index){
+  async function deleteMogi(index){
     const session = state.sessions[index];
     if(!session){ setStatus('Mogi not found.', false); return; }
     const label = fmtDate(session.completed_at || session.created_at);
     const ok = window.confirm(`Delete saved Mogi from ${label}?`);
     if(!ok) return;
-    state.sessions.splice(index, 1);
-    if(state.editingSessionIndex === index) state.editingSessionIndex = null;
-    delete state.openSessionDetails[index];
-    setStatus('Saved Mogi deleted.', true);
-    refresh();
+    try {
+      if (isCloud() && session.cloud_id) {
+        setStatus('Deleting Mogi from cloud...', true);
+        const { error } = await loungeClient
+          .from('lounge_mogis')
+          .delete()
+          .eq('id', session.cloud_id)
+          .eq('user_id', loungeSession.user.id);
+        if (error) throw error;
+      }
+      state.sessions.splice(index, 1);
+      if(state.editingSessionIndex === index) state.editingSessionIndex = null;
+      delete state.openSessionDetails[index];
+      setStatus('Saved Mogi deleted.', true);
+      refresh();
+    } catch(e) {
+      setStatus('Delete failed: ' + (e?.message || e), false);
+      console.error(e);
+    }
   }
   function escapeHtml(s){
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -475,7 +672,7 @@ function aggregateTrackStats(){
     if(typeSel?.value !== 'disconnect'){
       const placement = Number(placementSel?.value || 0);
       const p = getPoints(lobby, placement);
-      points = p == null ? '–' : p;
+      points = p == null ? 'â€“' : p;
     }
     if(pointsCell) pointsCell.textContent = String(points);
   }
@@ -488,7 +685,7 @@ function aggregateTrackStats(){
     state.editingSessionIndex = null;
     refresh();
   }
-  function saveEditedMogi(index){
+  async function saveEditedMogi(index){
     const session = state.sessions[index];
     if(!session){ setStatus('Mogi not found.', false); return; }
     const wrap = document.querySelector(`[data-session-editor="${index}"]`);
@@ -518,15 +715,43 @@ function aggregateTrackStats(){
         disconnect
       });
     }
-    session.races = races;
-    session.totalPoints = races.reduce((a, r) => a + Number(r.points || 0), 0);
-    session.disconnects = races.filter(r => r.disconnect).length;
-    session.updated_at = currentTs();
-    state.editingSessionIndex = null;
-    setStatus('Saved Mogi updated.', true);
-    refresh();
+    try {
+      if (isCloud() && session.cloud_id) {
+        setStatus('Saving Mogi to cloud...', true);
+        const { error: deleteError } = await loungeClient
+          .from('lounge_races')
+          .delete()
+          .eq('mogi_id', session.cloud_id)
+          .eq('user_id', loungeSession.user.id);
+        if (deleteError) throw deleteError;
+
+        const payload = races.map((race, i) => raceToDbPayload(race, session.cloud_id, i + 1));
+        if (payload.length) {
+          const { data, error: insertError } = await loungeClient
+            .from('lounge_races')
+            .insert(payload)
+            .select('id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at');
+          if (insertError) throw insertError;
+          races.splice(0, races.length, ...(data || []).map(dbRaceToLocal).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)));
+        }
+        await updateCloudMogi({ ...session, races }, { status: 'completed', completed_at: session.completed_at || currentTs() });
+      }
+
+      session.races = races;
+      session.totalPoints = races.reduce((a, r) => a + Number(r.points || 0), 0);
+      session.disconnects = races.filter(r => r.disconnect).length;
+      session.updated_at = currentTs();
+      state.editingSessionIndex = null;
+      setStatus('Saved Mogi updated.', true);
+      refresh();
+    } catch(e) {
+      setStatus('Save failed: ' + (e?.message || e), false);
+      console.error(e);
+    }
   }
   function bind(){
+    if (isBound) return;
+    isBound = true;
     document.querySelectorAll('#lobbyGroup .navAction').forEach(btn => btn.addEventListener('click', () => {
       state.lobbySize = Number(btn.dataset.lobby || 12);
       updatePlacementOptions();
@@ -539,10 +764,53 @@ function aggregateTrackStats(){
     $('btnNewMogi').addEventListener('click', newMogi);
     $('btnSessionPrev')?.addEventListener('click', () => { if(state.sessionPage <= 1) return; state.sessionPage -= 1; renderSessions(); persist(); });
     $('btnSessionNext')?.addEventListener('click', () => { const maxPage = Math.max(1, Math.ceil(state.sessions.length / SESSION_PAGE_SIZE)); if(state.sessionPage >= maxPage) return; state.sessionPage += 1; renderSessions(); persist(); });
-    window.addEventListener('storage', () => { loadAll(); refresh(); });
+    window.addEventListener('storage', () => { if(isCloud()) return; loadAll(); refresh(); });
   }
-  loadAll();
-  updatePlacementOptions();
-  bind();
-  refresh();
+  async function init(){
+    try {
+      if (typeof window.mkwtRequireAuth === 'function') {
+        let authHandled = false;
+        await window.mkwtRequireAuth({
+          pageName: 'lounge.html',
+          allowGuest: true,
+          tryBackupRestore: true,
+          onAccount: async (session, client) => {
+            authHandled = true;
+            loungeClient = client;
+            loungeSession = session;
+            cloudMode = true;
+            try{ applyThemeForMode('account'); }catch(e){}
+            try{ setNavAuthButton('account'); }catch(e){}
+            const info = $('userInfo');
+            if (info) info.textContent = 'Cloud lounge: ' + (typeof maskEmail === 'function' ? maskEmail(session.user?.email) : (session.user?.email || 'Account'));
+            await loadCloud();
+          },
+          onGuest: async () => {
+            authHandled = true;
+            loungeClient = null;
+            loungeSession = null;
+            cloudMode = false;
+            try{ applyThemeForMode('guest'); }catch(e){}
+            try{ setNavAuthButton('guest'); }catch(e){}
+            const info = $('userInfo');
+            if (info) info.textContent = 'Guest lounge (local)';
+            loadAll();
+          },
+        });
+        if (!authHandled && !state.current) loadAll();
+      } else {
+        cloudMode = false;
+        loadAll();
+      }
+    } catch(e) {
+      cloudMode = false;
+      loadAll();
+      setStatus('Cloud lounge unavailable. Local mode loaded.', false);
+      console.error(e);
+    }
+    updatePlacementOptions();
+    bind();
+    refresh();
+  }
+  init();
 })();
