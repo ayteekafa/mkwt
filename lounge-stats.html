@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#07080a"/>
+<script src="mkwt_bootstrap.js"></script>
+<title>MKWT - Lounge Stats</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+<script src="mkwt_core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="mkwt_page_helpers.js"></script>
+<link href="mkwt_theme_v3.css" rel="stylesheet"/>
+<link href="mkcentral.css" rel="stylesheet"/>
+</head>
+<body>
+<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript for this page.</p></div></noscript>
+<nav class="nav">
+  <div class="navInner">
+    <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
+    <a class="navLink" href="tracker.html">Tracker</a>
+    <a class="navLink" href="stats.html">Stats</a>
+    <a class="navLink" href="sessions.html">Sessions</a>
+    <a class="navLink" href="lounge.html">Lounge 12p</a>
+    <a class="navLink active" href="lounge-stats.html">Lounge Stats</a>
+    <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
+  </div>
+</nav>
+
+<main class="wrap mkcWrap">
+  <section class="card mkcHero">
+    <div>
+      <p class="eyebrow">MKCentral Season 2 / 12p</p>
+      <h2>Lounge Stats</h2>
+      <p class="muted">Pull your public MKCentral events once, keep them locally in this app, and update later without deleting old entries.</p>
+    </div>
+    <div class="mkcActions">
+      <label class="mkcInputLabel">
+        <span>Player ID or profile URL</span>
+        <input id="mkcPlayerInput" inputmode="url" placeholder="78188"/>
+      </label>
+      <button class="navAction active" id="btnUpdateMkc" type="button">Update data</button>
+      <a class="navAction" href="settings.html">Settings</a>
+    </div>
+    <div class="muted statusLine" id="mkcStatus"></div>
+  </section>
+
+  <section class="mkcGrid" id="mkcCards">
+    <div class="mkcEmpty">No local Lounge Stats data yet. Press Update data to pull Season 2 / 12p from MKCentral.</div>
+  </section>
+
+  <section class="card">
+    <div class="sectionHead">
+      <div>
+        <h3>MMR Gains by Event</h3>
+        <div class="muted" id="mkcChartMeta">Waiting for local data.</div>
+      </div>
+    </div>
+    <div class="mkcChartWrap"><canvas id="chartMkcDelta"></canvas></div>
+  </section>
+
+  <section class="card">
+    <div class="sectionHead">
+      <div>
+        <h3>MMR Verlauf</h3>
+        <div class="muted">Chronological event order from locally saved MKCentral events.</div>
+      </div>
+    </div>
+    <div class="mkcChartWrap mkcChartWrapSmall"><canvas id="chartMkcMmr"></canvas></div>
+  </section>
+
+  <section class="mkcTwo">
+    <div class="card">
+      <h3>Event Types</h3>
+      <div class="tableWrap">
+        <table>
+          <thead><tr><th>Type</th><th>Events</th><th>Total</th><th>Avg</th><th>WR</th></tr></thead>
+          <tbody id="mkcTypeRows"><tr><td colspan="5" class="muted">No local data yet.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Tiers</h3>
+      <div class="tableWrap">
+        <table>
+          <thead><tr><th>Tier</th><th>Events</th><th>Total</th><th>Avg</th><th>WR</th></tr></thead>
+          <tbody id="mkcTierRows"><tr><td colspan="5" class="muted">No local data yet.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="sectionHead">
+      <div>
+        <h3>Saved Events</h3>
+        <div class="muted" id="mkcEventMeta">Newest locally saved events.</div>
+      </div>
+    </div>
+    <div class="tableWrap">
+      <table>
+        <thead><tr><th>Event</th><th>Time</th><th>Delta</th><th>MMR</th></tr></thead>
+        <tbody id="mkcEventRows"><tr><td colspan="4" class="muted">No events saved yet.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="mkcentral.js"></script>
+</body>
+</html>

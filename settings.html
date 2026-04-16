@@ -48,6 +48,7 @@
 <a class="navLink" href="stats.html">Stats</a>
 <a class="navLink" href="sessions.html">Sessions</a>
 <a class="navLink" href="lounge.html">Lounge 12p</a>
+<a class="navLink" href="lounge-stats.html">Lounge Stats</a>
 <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>
@@ -111,6 +112,23 @@
 </div>
 <div class="mt-12">
 <button class="btn" id="btnSaveSettings">Save</button>
+</div>
+
+<hr class="divider"/>
+
+<div class="section-header">
+  <h3 class="m-0">MKCentral</h3>
+  <button aria-label="Info" class="mcard__infoBtn" data-info="mkcentral" title="Info" type="button">i</button>
+</div>
+<div class="row mt-10">
+  <div class="field flex-1">
+    <label class="muted" for="settingsMkcentralPlayer">Player ID or profile URL</label>
+    <input id="settingsMkcentralPlayer" inputmode="url" placeholder="78188 or https://lounge.mkcentral.com/mkworld/PlayerDetails/78188"/>
+    <div class="muted" style="font-size:12px; opacity:.85; margin-top:6px;">Used by Lounge Stats. Saved to your cloud profile when logged in, or locally in guest mode. Pulled events stay local in this app.</div>
+  </div>
+</div>
+<div class="mt-12">
+  <a class="btn2" href="lounge-stats.html">Open Lounge Stats</a>
 </div>
 
 <hr class="divider"/>

@@ -1,7 +1,7 @@
 // MKWT Service Worker (Safari-safe)
 // Goal: cache static assets for speed/offline Guest, but NEVER serve redirected responses.
 // Also: avoid precaching HTML during install to prevent Safari "redirected response" crash.
-const CACHE = "mkwt-v204"; // bump to force refresh
+const CACHE = "mkwt-v206"; // bump to force refresh
 
 const STATIC_ASSETS = [
   "/mkwt_theme_v3.css",
@@ -20,6 +20,8 @@ const STATIC_ASSETS = [
   "/sessions.js",
   "/lounge.css",
   "/lounge.js",
+  "/mkcentral.css",
+  "/mkcentral.js",
   "/settings.css",
   "/settings.js",
   "/login.css",
@@ -45,6 +47,8 @@ const normalizeNavPath = (pathname) => {
   if (p === "/tracker") return "/tracker.html";
   if (p === "/stats") return "/stats.html";
   if (p === "/sessions") return "/sessions.html";
+  if (p === "/mkcentral") return "/mkcentral.html";
+  if (p === "/lounge-stats") return "/lounge-stats.html";
   if (p === "/settings") return "/settings.html";
   if (p === "/login") return "/login.html";
   if (p === "/reset") return "/reset.html";
@@ -107,6 +111,7 @@ self.addEventListener("fetch", (e) => {
 
   const isSameOrigin = url.origin === self.location.origin;
   if (!isSameOrigin) return;
+  if (url.pathname.startsWith("/api/")) return;
 
   const isNavigate = req.mode === "navigate";
 

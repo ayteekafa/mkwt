@@ -1,7 +1,8 @@
-const $ = id => document.getElementById(id);
+﻿const $ = id => document.getElementById(id);
 const statusEls = Array.from(document.querySelectorAll('[data-status="shared"]'));
 function setStatus(t, ok=true){ window.MKWT?.setStatus?.(statusEls, t, ok); }
 const STORAGE_KEYS = window.MKWT?.storageKeys || { theme:'mkwt_theme', minVrFilter:'mkwt_min_vr_filter', lastMode:'mkwt_last_mode' };
+const MKCENTRAL_PLAYER_KEY = 'mkwt_mkcentral_player_ref_v1';
 
 
 // ========= Theme (local setting, affects the whole UI) =========
@@ -51,6 +52,36 @@ function saveMinVrSetting(){
   }
 }
 
+function loadMkcentralSetting(){
+  try{
+    const input = $("settingsMkcentralPlayer");
+    if(input) input.value = window.MKWT?.readStorage?.(MKCENTRAL_PLAYER_KEY, "") || "";
+  }catch(e){}
+}
+
+function extractMkcentralPlayerId(value){
+  const raw = String(value || "").trim();
+  if(!raw) return "";
+  if(/^\d+$/.test(raw)) return raw;
+  const match = raw.match(/PlayerDetails\/(\d+)/i);
+  return match ? match[1] : "";
+}
+
+function saveMkcentralSetting(){
+  try{
+    const raw = String($("settingsMkcentralPlayer")?.value || "").trim();
+    const normalized = extractMkcentralPlayerId(raw);
+    if(normalized){
+      window.MKWT?.writeStorage?.(MKCENTRAL_PLAYER_KEY, normalized);
+      if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = normalized;
+    }
+    else localStorage.removeItem(MKCENTRAL_PLAYER_KEY);
+    return normalized;
+  }catch(e){
+    return "";
+  }
+}
+
 
 
 const INFO_TEXT = {
@@ -60,6 +91,8 @@ const INFO_TEXT = {
     "Choose a visual style for the whole app. The selected theme is stored locally and applied across tracker, stats, sessions, and settings.",
   account:
     "Changing your password is only available for logged-in accounts. Guest mode has no account credentials, so there is no password to change.",
+  mkcentral:
+    "Stores your MKCentral player ID in your account profile when logged in, or locally on this device in guest mode. Lounge Stats uses it to pull Season 2 / 12 player events into a separate local cache without mixing them into your MKWT tracker data.",
   contact:
     "Want a free VIP account or have ideas to improve the website? Feel free to contact me on Discord."
 };
@@ -73,6 +106,7 @@ window.MKWT?.bindInfoOverlay?.({
     minVrFilter: { title: 'Info', body: INFO_TEXT.minVrFilter },
     theme: { title: 'Info', body: INFO_TEXT.theme },
     account: { title: 'Info', body: INFO_TEXT.account },
+    mkcentral: { title: 'Info', body: INFO_TEXT.mkcentral },
     contact: { title: 'Info', body: INFO_TEXT.contact }
   }
 });
@@ -110,7 +144,7 @@ async function requireAuth(){
     onGuest: async () => {
       window.supabaseClient = null;
       window.SESSION = null;
-      setTopInfo({emailText:"Guest mode (local)", currentVrText:"–", matchCountText:"–"});
+      setTopInfo({emailText:"Guest mode (local)", currentVrText:"â€“", matchCountText:"â€“"});
       try{ setNavAuthButton("guest"); }catch(e){}
     }
   });
@@ -124,7 +158,7 @@ async function loadProfile(){
     $("settingsNickname").value = gp?.nickname || "Guest";
     $("settingsVr").value = (gp?.current_vr ?? "");
     const count = guestCount();
-    setTopInfo({ emailText: "Guest mode (local)", currentVrText: String(gp?.current_vr ?? "–"), matchCountText: String(count) });
+    setTopInfo({ emailText: "Guest mode (local)", currentVrText: String(gp?.current_vr ?? "â€“"), matchCountText: String(count) });
     setStatus("Guest mode (saved locally)");
     return;
   }
@@ -132,14 +166,14 @@ async function loadProfile(){
   // Prefer profiles.id (most common in your project). If that column doesn't exist, fallback to profiles.user_id.
   let { data, error } = await supabaseClient
     .from("profiles")
-    .select("nickname,current_vr")
+    .select("nickname,current_vr,mkcentral_player_id")
     .eq("id", SESSION.user.id)
     .maybeSingle();
 
   if (error && String(error.message || "").includes("column profiles.id")) {
     ({ data, error } = await supabaseClient
       .from("profiles")
-      .select("nickname,current_vr")
+      .select("nickname,current_vr,mkcentral_player_id")
       .eq("user_id", SESSION.user.id)
       .maybeSingle());
   }
@@ -148,10 +182,17 @@ async function loadProfile(){
 
   $("settingsNickname").value = data?.nickname || "";
   $("settingsVr").value = (data?.current_vr ?? "");
+  const mkcentralPlayerId = String(data?.mkcentral_player_id || "").trim();
+  if(mkcentralPlayerId){
+    window.MKWT?.writeStorage?.(MKCENTRAL_PLAYER_KEY, mkcentralPlayerId);
+    if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = mkcentralPlayerId;
+  }else{
+    loadMkcentralSetting();
+  }
 
   // Top card: Current VR + Matches count
   try{
-    setTopInfo({ currentVrText: String(data?.current_vr ?? "–") });
+    setTopInfo({ currentVrText: String(data?.current_vr ?? "â€“") });
     const { count } = await supabaseClient
       .from("matches")
       .select("id", { count: "exact", head: true })
@@ -165,6 +206,14 @@ async function saveSettings(){
   // Apply + save local UI settings only when Save is pressed
   saveThemeSetting();
   const minVr = saveMinVrSetting();
+  const mkcentralRaw = String($("settingsMkcentralPlayer")?.value || "").trim();
+  const mkcentralId = extractMkcentralPlayerId(mkcentralRaw);
+  if(mkcentralRaw && !mkcentralId){
+    setStatus("Enter a valid MKCentral player ID or PlayerDetails URL.", false);
+    return;
+  }
+  const mkcentral = saveMkcentralSetting();
+  const mkcentralText = mkcentral ? " | MKCentral saved" : " | MKCentral cleared";
 
   const nickname = $("settingsNickname").value.trim();
   const vr = parseInt($("settingsVr").value,10);
@@ -174,22 +223,17 @@ async function saveSettings(){
     if(nickname && Number.isFinite(vr)){
       window.MKWT?.saveGuestProfile?.({ nickname, current_vr: vr });
     }
-    setStatus(`✅ Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : ""}.`);
-    return;
-  }
-
-  // Allow saving the filter even if nickname/VR are not filled.
-  if(!nickname || !Number.isFinite(vr)){
-    setStatus(`✅ Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : " (Min VR: disabled)"}.`);
+    setStatus(`Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : ""}${mkcentralText}.`);
     return;
   }
 
   const payload = {
     id: SESSION.user.id,          // primary key in your current schema
-    nickname,
-    current_vr: vr,
+    mkcentral_player_id: mkcentralId || null,
     updated_at: new Date().toISOString()
   };
+  if(nickname) payload.nickname = nickname;
+  if(Number.isFinite(vr)) payload.current_vr = vr;
 
   // Prefer upsert so it works whether the row exists or not.
   let { error } = await supabaseClient
@@ -200,12 +244,18 @@ async function saveSettings(){
   if (error && String(error.message || "").includes("column profiles.id")) {
     ({ error } = await supabaseClient
       .from("profiles")
-      .upsert({ user_id: SESSION.user.id, nickname, current_vr: vr, updated_at: new Date().toISOString() }));
+      .upsert({
+        user_id: SESSION.user.id,
+        mkcentral_player_id: mkcentralId || null,
+        ...(nickname ? { nickname } : {}),
+        ...(Number.isFinite(vr) ? { current_vr: vr } : {}),
+        updated_at: new Date().toISOString()
+      }));
   }
 
   if(error){ setStatus(error.message); return }
 
-  setStatus(`✅ Saved${minVr>0 ? ` (Min VR: ${minVr})` : ""}`);
+  setStatus(`Saved${minVr>0 ? ` (Min VR: ${minVr})` : ""}${mkcentralText}`);
 }
 
 
@@ -237,13 +287,13 @@ $("pwConfirm").onclick = async () => {
   }
 
   try{
-    $("pwStatus").textContent = "Updating password…";
+    $("pwStatus").textContent = "Updating passwordâ€¦";
     const { error } = await supabaseClient.auth.updateUser({ password: p1 });
     if(error){ $("pwStatus").textContent = error.message; return; }
     $("pwNew").value = "";
     $("pwConfirmInput").value = "";
-    $("pwStatus").textContent = "✅ Password updated.";
-    setStatus("✅ Password updated.");
+    $("pwStatus").textContent = "âœ… Password updated.";
+    setStatus("âœ… Password updated.");
     // Close after a short moment
     setTimeout(closePwModal, 600);
   }catch(e){
@@ -338,6 +388,7 @@ function applyAuthVisibility(){
   applyAuthVisibility();
   await loadProfile();
   loadMinVrSetting();
+  loadMkcentralSetting();
 
   // Theme: account can pick, guest is locked to dark
   if (window.SESSION && window.SESSION.user){
