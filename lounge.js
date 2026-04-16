@@ -206,6 +206,7 @@
     const statRaces = races.filter(r => !r.disconnect);
     const statPoints = statRaces.reduce((a,r)=>a + Number(r.points || 0), 0);
     const currentAvg = statRaces.length ? (statPoints / statRaces.length) : 0;
+    const isComplete = races.length >= 12;
     $('sumRaceCount').textContent = `${races.length} / 12`;
     $('sumPoints').textContent = String(races.reduce((a,r)=>a + Number(r.points || 0), 0));
     const sumAvg = $('sumAvg');
@@ -213,6 +214,16 @@
     toneAvgElement(sumAvg, currentAvg, statRaces.length > 0);
     $('sumDcs').textContent = String(races.filter(r => r.disconnect).length);
     $('sumRemain').textContent = String(Math.max(0, 12 - races.length));
+    const saveBtn = $('btnSaveRace');
+    const dcBtn = $('btnDisconnect');
+    if(saveBtn){
+      saveBtn.textContent = isComplete ? 'Confirm Mogi' : 'Track';
+      saveBtn.title = isComplete ? 'Open the result confirmation again' : '';
+    }
+    if(dcBtn){
+      dcBtn.disabled = isComplete;
+      dcBtn.title = isComplete ? 'Confirm this Mogi before adding another race' : '';
+    }
 
     const body = $('currentMogiBody');
     if(!races.length){
@@ -527,7 +538,7 @@ function aggregateTrackStats(){
     const dcCount = sessions.reduce((sum, session) => sum + (session.races || []).filter(r => r.disconnect).length, 0);
     const totalPoints = statRaces.reduce((sum, race) => sum + Number(race.points || 0), 0);
     const avgMogi = raceCount ? (totalPoints / raceCount) : 0;
-    const bestTrack = (stats || []).filter(s => s.count > 0).sort((a,b) => {
+    const bestTrack = (stats || []).filter(s => s.count >= 5).sort((a,b) => {
       const diff = b.avg - a.avg;
       if(diff !== 0) return diff;
       return b.count - a.count;
@@ -543,8 +554,8 @@ function aggregateTrackStats(){
     toneAvgElement(avgEl, avgMogi, raceCount > 0);
     if(raceCountEl) raceCountEl.textContent = String(raceCount);
     if(dcCountEl) dcCountEl.textContent = String(dcCount);
-    if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : '–';
-    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'No track data yet';
+    if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : 'Not enough data';
+    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'Best Track starts after 5 plays on one track.';
   }
   function refresh(){
     renderCurrent();
@@ -628,16 +639,16 @@ function aggregateTrackStats(){
   }
   async function saveRace({disconnect=false}){
     try {
+      if((state.current.races || []).length >= 12){
+        setStatus('This Mogi has 12 races. Confirm the result before starting another race.', true);
+        openMogiResultDialog();
+        return;
+      }
       const track = $('trackSelect').value;
       const placement = Number($('placementSelect').value || 0);
       const lobbySize = Number(state.lobbySize || 12);
       if(!track){ setStatus('Please select a track.', false); return; }
       if(!placement){ setStatus('Please select a placement.', false); return; }
-      if((state.current.races || []).length >= 12){
-        setStatus('This Mogi has 12 races. Confirm the result before starting another race.', false);
-        openMogiResultDialog();
-        return;
-      }
       const points = getPoints(lobbySize, placement);
       if(points == null){ setStatus('Invalid placement for this lobby size.', false); return; }
       const race = {
