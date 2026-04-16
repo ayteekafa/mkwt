@@ -236,6 +236,67 @@ window.mkwtRequireAuth = async function(options = {}){
     }catch(e){ console.warn(e); }
   }
 
+  async function readLoungeCloudForBackup(){
+    if (!window.supabaseClient || !window.SESSION?.user?.id) return null;
+    const uid = window.SESSION.user.id;
+
+    const { data: mogis, error: mogiError } = await supabaseClient
+      .from("lounge_mogis")
+      .select("id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
+    if (mogiError) throw mogiError;
+
+    const { data: races, error: raceError } = await supabaseClient
+      .from("lounge_races")
+      .select("id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at")
+      .eq("user_id", uid)
+      .order("race_number", { ascending: true });
+    if (raceError) throw raceError;
+
+    const racesByMogi = new Map();
+    for (const race of races || []) {
+      if (!racesByMogi.has(race.mogi_id)) racesByMogi.set(race.mogi_id, []);
+      racesByMogi.get(race.mogi_id).push(race);
+    }
+
+    const toLocalRace = (race) => ({
+      track: race.track,
+      lobbySize: race.lobby_size,
+      placement: race.placement,
+      points: race.points,
+      disconnect: !!race.disconnect,
+      created_at: race.created_at,
+    });
+    const toLocalMogi = (mogi) => {
+      const mogiRaces = (racesByMogi.get(mogi.id) || [])
+        .slice()
+        .sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0))
+        .map(toLocalRace);
+      return {
+        created_at: mogi.created_at,
+        races: mogiRaces,
+        totalPoints: mogi.total_points,
+        disconnects: mogi.disconnects,
+        saved: mogi.status === "completed",
+        completed_at: mogi.completed_at,
+      };
+    };
+
+    const active = (mogis || []).find(mogi => mogi.status === "active");
+    const sessions = (mogis || [])
+      .filter(mogi => mogi.status === "completed")
+      .map(toLocalMogi)
+      .sort((a, b) => String(b.completed_at || b.created_at || "").localeCompare(String(a.completed_at || a.created_at || "")));
+
+    return {
+      source: "supabase",
+      current_mogi: active ? toLocalMogi(active) : null,
+      session_count: sessions.length,
+      sessions,
+    };
+  }
+
   if (typeof window.exportBackupJSON !== "function") {
     window.exportBackupJSON = async function(){
       try{
@@ -302,6 +363,18 @@ window.mkwtRequireAuth = async function(options = {}){
           from += chunk;
         }
 
+        let loungeBackup = {
+          source: "local_storage",
+          current_mogi: loungeCurrent,
+          session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
+          sessions: Array.isArray(loungeSessions) ? loungeSessions : []
+        };
+        try {
+          loungeBackup = await readLoungeCloudForBackup() || loungeBackup;
+        } catch(e) {
+          console.warn("Lounge cloud export fallback:", e);
+        }
+
         const backup = {
           app: "MKWT",
           version: 2,
@@ -316,12 +389,7 @@ window.mkwtRequireAuth = async function(options = {}){
             match_count: allMatches.length,
             matches: allMatches
           },
-          lounge_tracker: {
-            source: "local_storage",
-            current_mogi: loungeCurrent,
-            session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
-            sessions: Array.isArray(loungeSessions) ? loungeSessions : []
-          },
+          lounge_tracker: loungeBackup,
           matches: allMatches
         };
 
@@ -329,7 +397,7 @@ window.mkwtRequireAuth = async function(options = {}){
           `mkwt_backup_${String(window.PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
 
         window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
-        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} VR matches, ${(Array.isArray(loungeSessions) ? loungeSessions.length : 0)} Lounge Mogis).`, true);
+        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} VR matches, ${loungeBackup.session_count || 0} Lounge Mogis).`, true);
       } catch(e){
         if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
         if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
@@ -340,6 +408,96 @@ window.mkwtRequireAuth = async function(options = {}){
 
   // Always override to ensure consistent navbar import behavior across pages.
   // TRUE RESTORE: dedupes by fingerprint, deletes DB rows not in backup, inserts missing rows
+  async function restoreLoungeCloud(loungePayload){
+    if (!loungePayload || !window.supabaseClient || !window.SESSION?.user?.id) {
+      return { mogis: 0, races: 0 };
+    }
+
+    const uid = window.SESSION.user.id;
+    const sessions = Array.isArray(loungePayload.sessions) ? loungePayload.sessions : [];
+    const current = loungePayload.current_mogi && Array.isArray(loungePayload.current_mogi.races)
+      ? loungePayload.current_mogi
+      : null;
+
+    const { data: existing, error: loadErr } = await supabaseClient
+      .from("lounge_mogis")
+      .select("id")
+      .eq("user_id", uid);
+    if (loadErr) throw loadErr;
+
+    const existingIds = (existing || []).map(row => row.id);
+    for (let i = 0; i < existingIds.length; i += 100) {
+      const batchIds = existingIds.slice(i, i + 100);
+      const { error } = await supabaseClient
+        .from("lounge_mogis")
+        .delete()
+        .in("id", batchIds)
+        .eq("user_id", uid);
+      if (error) throw error;
+    }
+
+    let mogis = 0;
+    let races = 0;
+
+    async function insertMogi(raw, status){
+      const rawRaces = Array.isArray(raw?.races) ? raw.races : [];
+      if (!raw || (status === "active" && rawRaces.length === 0)) return;
+
+      const raceCount = Math.min(rawRaces.length, 12);
+      const keptRaces = rawRaces.slice(0, raceCount);
+      const totalPoints = keptRaces.reduce((sum, race) => sum + Number(race?.points || 0), 0);
+      const disconnects = keptRaces.filter(race => !!race?.disconnect).length;
+      const createdAt = raw.created_at || new Date().toISOString();
+      const completedAt = status === "completed" ? (raw.completed_at || createdAt) : null;
+
+      const { data: mogi, error: mogiErr } = await supabaseClient
+        .from("lounge_mogis")
+        .insert({
+          user_id: uid,
+          created_at: createdAt,
+          completed_at: completedAt,
+          status,
+          total_points: totalPoints,
+          race_count: raceCount,
+          disconnects,
+        })
+        .select("id")
+        .single();
+      if (mogiErr) throw mogiErr;
+      mogis++;
+
+      const raceRows = keptRaces.map((race, index) => {
+        const disconnect = !!race?.disconnect;
+        return {
+          mogi_id: mogi.id,
+          user_id: uid,
+          race_number: index + 1,
+          track: String(race?.track || ""),
+          lobby_size: Number(race?.lobbySize ?? race?.lobby_size ?? 12),
+          placement: disconnect ? null : Number(race?.placement),
+          points: Number(race?.points ?? (disconnect ? 1 : 0)),
+          disconnect,
+          created_at: race?.created_at || createdAt,
+        };
+      });
+
+      if (raceRows.length) {
+        const { error: raceErr } = await supabaseClient.from("lounge_races").insert(raceRows);
+        if (raceErr) throw raceErr;
+        races += raceRows.length;
+      }
+    }
+
+    for (const session of sessions) {
+      await insertMogi(session, "completed");
+    }
+    if (current && current.races.length) {
+      await insertMogi(current, "active");
+    }
+
+    return { mogis, races };
+  }
+
   window.importBackupJSON = async function(file){
     try{
       if (!file) return;
@@ -409,15 +567,17 @@ window.mkwtRequireAuth = async function(options = {}){
         if (!backupFp.has(fp)) { backupFp.add(fp); uniqueBackup.push(r); }
       }
 
+      const loungeCount = Array.isArray(loungePayload?.sessions) ? loungePayload.sessions.length : 0;
       const ok = confirm(
         `Restore from backup?\n\n` +
         `Matches in file: ${uniqueBackup.length}\n\n` +
+        `Lounge Mogis in file: ${loungeCount}\n\n` +
         `This will make your match history EXACTLY match the backup.\n` +
-        `All matches NOT in the backup will be deleted.`
+        `All matches and Lounge Mogis NOT in the backup will be deleted.`
       );
       if (!ok) return;
 
-      if (typeof window.setStatus === "function") window.setStatus("Restoring… (delete + dedupe + insert)", true);
+      if (typeof window.setStatus === "function") window.setStatus("Restoring… (VR + Lounge cloud)", true);
 
       // --- Load all existing matches ---
       const existingKeepFp = new Set();
@@ -485,6 +645,8 @@ window.mkwtRequireAuth = async function(options = {}){
         inserted += batch.length;
       }
 
+      const loungeRestored = await restoreLoungeCloud(loungePayload);
+
       // Update profile current_vr from latest match
       try{
         const { data: latestData, error: latestErr } = await supabaseClient
@@ -504,7 +666,7 @@ window.mkwtRequireAuth = async function(options = {}){
       }catch(e){ console.warn(e); }
 
       if (typeof window.setStatus === "function") window.setStatus(
-        `✅ Restore complete. Backup: ${uniqueBackup.length} | Deleted: ${deleted} | Inserted: ${inserted}. Reloading…`,
+        `✅ Restore complete. VR Backup: ${uniqueBackup.length} | Deleted: ${deleted} | Inserted: ${inserted} | Lounge Mogis: ${loungeRestored.mogis} | Lounge races: ${loungeRestored.races}. Reloading…`,
         true
       );
       setTimeout(()=>location.reload(), 350);
