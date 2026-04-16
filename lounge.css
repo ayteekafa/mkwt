@@ -41,7 +41,12 @@ thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(
 .navAction.active{background:var(--primary);color:var(--primary-text);border-color:var(--primary)}
 .navLink.active{background:var(--primary);color:var(--primary-text);border-radius:10px;padding:8px 12px}
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--card-2)}
+.statValue.avgGood{color:#4da319;text-shadow:0 0 12px rgba(77,163,25,.28)}
+.statValue.avgBad{color:#ff5050;text-shadow:0 0 12px rgba(255,80,80,.24)}
 .chartShell{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.placementChartBlock{margin-top:20px}
+.placementChartHead{margin-bottom:10px}
+.chartWrapPlacement{height:320px}
 .trackInsight{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card-2)}
 .trackInsightTitle{font-size:18px;font-weight:800;margin-bottom:4px}
 .trackInsightGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
@@ -82,6 +87,18 @@ thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(
 .sessionEditActions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .sessionDetails[hidden]{display:none !important}
 .sessionActions .navAction[disabled]{opacity:.6;cursor:default}
+.mogiResultDialog{width:min(860px,calc(100vw - 28px));border:1px solid var(--border);border-radius:16px;padding:0;background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.mogiResultDialog::backdrop{background:var(--backdrop)}
+.mogiResultPanel{padding:18px}
+.mogiResultHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.mogiResultTotalBox{min-width:160px;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:var(--card-2);text-align:center}
+.mogiResultTotal{font-size:38px;line-height:1;font-weight:900;color:var(--primary);text-shadow:0 0 16px rgba(77,163,25,.28)}
+.mogiResultTableWrap{max-height:52vh;border:1px solid var(--border);border-radius:14px;background:var(--card-2)}
+.mogiResultActions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+@media (max-width:640px){
+  .mogiResultPanel{padding:14px}
+  .mogiResultTotalBox{width:100%}
+}
 
 
 /* tracker-style lounge header */

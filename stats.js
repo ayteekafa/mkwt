@@ -59,7 +59,6 @@
     return STRATS_META_INTERMISSIONS;
   }
 
-
     async function requireAuth() {
     return window.mkwtRequireAuth({
       pageName: "stats.html",
@@ -222,15 +221,17 @@
   let chartVr = null, chartPerf = null, chartPie5 = null, chartItTr = null, chartWeekly = null, chartBuckets = null;
   // Chart 1 window state
   let vrWindowMode = "all";
-  let vrButtonsWired = false;
-
-  // Chart 4 window state
-  let itWindowMode = "all";
-  let itButtonsWired = false;
 
   // Chart 5 window state
   let pie5WindowMode = "all";
-  let pie5ButtonsWired = false;
+
+  function freshButton(id){
+    const btn = $(id);
+    if(!btn || !btn.parentNode) return btn;
+    const next = btn.cloneNode(true);
+    btn.parentNode.replaceChild(next, btn);
+    return next;
+  }
 
 function destroyCharts(){
     chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy(); chartWeekly?.destroy(); chartBuckets?.destroy();
@@ -535,13 +536,10 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     setTimeout(function(){ setActiveById((vrWindowMode==="month")?"btnVr100":(vrWindowMode==="week")?"btnVr50":"btnVrAll"); }, 0);
     setActiveById((vrWindowMode==="month")?"btnVr100":(vrWindowMode==="week")?"btnVr50":"btnVrAll");
 
-    if (!vrButtonsWired) {
-      const setMode = (mode) => { vrWindowMode = mode; renderVrChart(mode); updateAvgVrUI(mode); };
-      $("btnVrAll")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("all"); });
-      $("btnVr100")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("month"); });
-      $("btnVr50")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("week"); });
-      vrButtonsWired = true;
-    }
+    const setMode = (mode) => { vrWindowMode = mode; renderVrChart(mode); updateAvgVrUI(mode); };
+    freshButton("btnVrAll")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("all"); });
+    freshButton("btnVr100")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("month"); });
+    freshButton("btnVr50")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("week"); });
 
     
     // --- Performance (Unified): Tracks + Intermission (Destiny / Separated) ---
@@ -691,13 +689,11 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     // --- Unified chart state ---
     const perfCanvas = $("chartPerf");
     const $perfSel = $("perfSelected");
-    let chartPerf = null;
 
     let perfMode = "tracks";     // tracks | im_destiny | im_routes
     let perfSortKey = "avg";     // avg | win | count | alpha
     let perfSortDir = "desc";    // desc | asc
     let perfRowsLast = [];
-    let perfWired = false;
 
     function setPerfMode(mode, btn){
       perfMode = mode;
@@ -714,6 +710,17 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       }
       if(btn) setActiveButton(btn);
       renderPerfChart();
+    }
+
+    function bindPerfButtons(){
+      freshButton("btnPerfTracks")?.addEventListener("click", (e)=> setPerfMode("tracks", e.target));
+      freshButton("btnPerfImDestiny")?.addEventListener("click", (e)=> setPerfMode("im_destiny", e.target));
+      freshButton("btnPerfImRoutes")?.addEventListener("click", (e)=> setPerfMode("im_routes", e.target));
+
+      freshButton("btnC2SortAvg")?.addEventListener("click", (e) => setPerfSort("avg", e.target));
+      freshButton("btnC2SortWin")?.addEventListener("click", (e) => setPerfSort("win", e.target));
+      freshButton("btnC2SortCount")?.addEventListener("click", (e) => setPerfSort("count", e.target));
+      freshButton("btnC2SortAlpha")?.addEventListener("click", (e) => setPerfSort("alpha", e.target));
     }
 
     function updatePerfSelectedByIndex(i){
@@ -819,26 +826,12 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       });
 
       updatePerfSelectedByIndex(null);
-
-      if(!perfWired){
-        // Mode buttons
-        $("btnPerfTracks")?.addEventListener("click", (e)=> setPerfMode("tracks", e.target));
-        $("btnPerfImDestiny")?.addEventListener("click", (e)=> setPerfMode("im_destiny", e.target));
-        $("btnPerfImRoutes")?.addEventListener("click", (e)=> setPerfMode("im_routes", e.target));
-
-        // Sort buttons (re-use existing IDs)
-        $("btnC2SortAvg")?.addEventListener("click", (e) => setPerfSort("avg", e.target));
-        $("btnC2SortWin")?.addEventListener("click", (e) => setPerfSort("win", e.target));
-        $("btnC2SortCount")?.addEventListener("click", (e) => setPerfSort("count", e.target));
-        $("btnC2SortAlpha")?.addEventListener("click", (e) => setPerfSort("alpha", e.target));
-
-        perfWired = true;
-      }
     }
 
     // Defaults
     setActiveById("btnPerfTracks");
     setActiveById("btnC2SortAvg");
+    bindPerfButtons();
     renderPerfChart();
 
 
@@ -964,15 +957,12 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           renderChart5();
         };
 
-        if(!pie5ButtonsWired){
-          $("btnPie5All")?.addEventListener("click", (e)=> setPie5Window("all", e.target));
-          $("btnPie5100")?.addEventListener("click", (e)=> setPie5Window("month", e.target));
-          $("btnPie550")?.addEventListener("click", (e)=> setPie5Window("week", e.target));
-          pie5ButtonsWired = true;
-        }
+        freshButton("btnPie5All")?.addEventListener("click", (e)=> setPie5Window("all", e.target));
+        freshButton("btnPie5100")?.addEventListener("click", (e)=> setPie5Window("month", e.target));
+        freshButton("btnPie550")?.addEventListener("click", (e)=> setPie5Window("week", e.target));
 
         // Default
-        setActiveById("btnPie5All");
+        setActiveById((pie5WindowMode==="month")?"btnPie5100":(pie5WindowMode==="week")?"btnPie550":"btnPie5All");
         renderChart5();
       }
     }catch(err){
@@ -1206,9 +1196,8 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           buildChart();
         }
 
-        // wire buttons once
-        $("btnWkVrAvg")?.addEventListener("click", (e)=> setWeeklyMode("vravg", e.target));
-        $("btnWkGains")?.addEventListener("click", (e)=> setWeeklyMode("gains", e.target));
+        freshButton("btnWkVrAvg")?.addEventListener("click", (e)=> setWeeklyMode("vravg", e.target));
+        freshButton("btnWkGains")?.addEventListener("click", (e)=> setWeeklyMode("gains", e.target));
 
         // default
         setActiveById("btnWkVrAvg");
@@ -1745,10 +1734,9 @@ function renderBuckets(){
         renderBuckets();
       }
 
-      // wire buttons once (but safe even if re-run)
-      $("btnBucketOverall")?.addEventListener("click", (e)=> setBucketMode("overall", e.target));
-      $("btnBucketTrack")?.addEventListener("click", (e)=> setBucketMode("track", e.target));
-      $("btnBucketIm")?.addEventListener("click", (e)=> setBucketMode("im", e.target));
+      freshButton("btnBucketOverall")?.addEventListener("click", (e)=> setBucketMode("overall", e.target));
+      freshButton("btnBucketTrack")?.addEventListener("click", (e)=> setBucketMode("track", e.target));
+      freshButton("btnBucketIm")?.addEventListener("click", (e)=> setBucketMode("im", e.target));
 
       // default active state based on persisted mode
       const m = window.__bucketMode || "overall";

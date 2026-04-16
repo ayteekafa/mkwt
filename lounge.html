@@ -175,6 +175,14 @@
         <div class="muted">Click on a track bar to see AVG points and times played.</div>
       </div>
     </div>
+    <div class="placementChartBlock">
+      <div class="sectionHead placementChartHead">
+        <div>
+          <h3>Placement Distribution</h3>
+        </div>
+      </div>
+      <div class="chartWrap chartWrapPlacement"><canvas id="chartPlacementDist"></canvas></div>
+    </div>
   </section>
 
   <section class="card cardSection">
@@ -193,6 +201,30 @@
     </div>
   </section>
 </div>
+<dialog class="mogiResultDialog" id="mogiResultDialog">
+  <div class="mogiResultPanel">
+    <div class="mogiResultHead">
+      <div>
+        <h3>Mogi Result</h3>
+        <div class="muted" id="mogiResultMeta">12 races tracked</div>
+      </div>
+      <div class="mogiResultTotalBox">
+        <div class="statLabel">Final points</div>
+        <div class="mogiResultTotal" id="mogiResultTotal">0</div>
+      </div>
+    </div>
+    <div class="tableWrap mogiResultTableWrap">
+      <table>
+        <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+        <tbody id="mogiResultRows"></tbody>
+      </table>
+    </div>
+    <div class="mogiResultActions">
+      <button class="navAction" id="btnKeepMogiResult" type="button">Review</button>
+      <button class="navAction active" id="btnConfirmMogiResult" type="button">Confirm Mogi</button>
+    </div>
+  </div>
+</dialog>
 <script src="lounge.js"></script>
 </body>
 </html>

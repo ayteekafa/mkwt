@@ -16,10 +16,11 @@
   const STORAGE_CURRENT = 'mkwt_lounge_current_v1';
   const STORAGE_SESSIONS = 'mkwt_lounge_sessions_v1';
   const SESSION_PAGE_SIZE = 10;
+  const AVG_GAIN_THRESHOLD = 6.83;
   window.MKWT_LOUNGE_STORAGE = { current: STORAGE_CURRENT, sessions: STORAGE_SESSIONS };
 
   const $ = (id) => document.getElementById(id);
-  const state = { lobbySize: 12, current: null, sessions: [], chart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1, openSessionDetails: {}, editingSessionIndex: null };
+  const state = { lobbySize: 12, current: null, sessions: [], chart: null, placementChart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1, openSessionDetails: {}, editingSessionIndex: null };
   let loungeClient = null;
   let loungeSession = null;
   let cloudMode = false;
@@ -40,12 +41,22 @@
   }
   function currentTs(){ return new Date().toISOString(); }
   function fmtDate(iso){
-    try{ return new Date(iso).toLocaleString(); }catch(e){ return iso || 'â€“'; }
+    try{ return new Date(iso).toLocaleString(); }catch(e){ return iso || '–'; }
   }
   function getPoints(lobbySize, placement){
     const arr = SCORE_MAP[Number(lobbySize)] || SCORE_MAP[12];
     const idx = Number(placement) - 1;
     return Number.isInteger(idx) && idx >= 0 && idx < arr.length ? arr[idx] : null;
+  }
+  function toneAvgElement(el, avg, hasData){
+    if(!el) return;
+    el.classList.remove('avgGood', 'avgBad');
+    if(!hasData) {
+      el.removeAttribute('title');
+      return;
+    }
+    el.classList.add(avg < AVG_GAIN_THRESHOLD ? 'avgBad' : 'avgGood');
+    el.title = `Break-even AVG: ${AVG_GAIN_THRESHOLD.toFixed(2)}`;
   }
   function makeFreshMogi(){
     return { created_at: currentTs(), races: [], totalPoints: 0, disconnects: 0, saved: false };
@@ -96,7 +107,7 @@
       race_number: raceNumber,
       track: race.track,
       lobby_size: race.lobbySize,
-      placement: race.disconnect ? null : race.placement,
+      placement: race.placement,
       points: race.points,
       disconnect: !!race.disconnect,
       created_at: race.created_at || currentTs(),
@@ -192,9 +203,14 @@
   }
   function renderCurrent(){
     const races = state.current.races || [];
+    const statRaces = races.filter(r => !r.disconnect);
+    const statPoints = statRaces.reduce((a,r)=>a + Number(r.points || 0), 0);
+    const currentAvg = statRaces.length ? (statPoints / statRaces.length) : 0;
     $('sumRaceCount').textContent = `${races.length} / 12`;
     $('sumPoints').textContent = String(races.reduce((a,r)=>a + Number(r.points || 0), 0));
-    $('sumAvg').textContent = races.length ? (races.reduce((a,r)=>a + Number(r.points || 0), 0) / races.length).toFixed(2) : '0.00';
+    const sumAvg = $('sumAvg');
+    if(sumAvg) sumAvg.textContent = statRaces.length ? currentAvg.toFixed(2) : '0.00';
+    toneAvgElement(sumAvg, currentAvg, statRaces.length > 0);
     $('sumDcs').textContent = String(races.filter(r => r.disconnect).length);
     $('sumRemain').textContent = String(Math.max(0, 12 - races.length));
 
@@ -208,9 +224,9 @@
         <td>${idx+1}</td>
         <td>${escapeHtml(r.track)}</td>
         <td>${r.lobbySize}p</td>
-        <td>${r.disconnect ? 'DC' : r.placement}</td>
+        <td>${r.placement ?? '–'}</td>
         <td>${r.points}</td>
-        <td>${r.disconnect ? '<span class="badge">Disconnect</span>' : 'Normal'}</td>
+        <td>${r.disconnect ? '<span class="badge">DC</span>' : 'Normal'}</td>
       </tr>`).join('');
   }
   
@@ -241,8 +257,8 @@
     const playedActive = state.trackSortKey === 'count';
     perfBtn.classList.toggle('active', perfActive);
     playedBtn.classList.toggle('active', playedActive);
-    perfBtn.textContent = perfActive ? `Performance ${state.trackSortDir === 'desc' ? 'â†“' : 'â†‘'}` : 'Performance';
-    playedBtn.textContent = playedActive ? `Most played ${state.trackSortDir === 'desc' ? 'â†“' : 'â†‘'}` : 'Most played';
+    perfBtn.textContent = perfActive ? `Performance ${state.trackSortDir === 'desc' ? '↓' : '↑'}` : 'Performance';
+    playedBtn.textContent = playedActive ? `Most played ${state.trackSortDir === 'desc' ? '↓' : '↑'}` : 'Most played';
   }
   function setTrackSort(key){
     if(state.trackSortKey === key){
@@ -274,6 +290,19 @@ function aggregateTrackStats(){
       };
     });
   }
+  function aggregatePlacementStats(){
+    const counts = Array.from({ length: 12 }, (_, i) => ({ placement: i + 1, count: 0 }));
+    for(const session of state.sessions){
+      for(const race of (session.races || [])){
+        if(race.disconnect) continue;
+        const placement = Number(race.placement);
+        if(Number.isInteger(placement) && placement >= 1 && placement <= 12) {
+          counts[placement - 1].count += 1;
+        }
+      }
+    }
+    return counts;
+  }
   function renderTrackInsight(trackName){
     state.lastSelectedTrack = trackName || null;
     const el = $('trackInsight');
@@ -291,7 +320,7 @@ function aggregateTrackStats(){
         </div>
       </div>
       <div class="trackInsightGrid">
-        <div class="statBox"><div class="statLabel">AVG points</div><div class="statValue">${stat.count ? stat.avg.toFixed(2) : 'â€“'}</div></div>
+        <div class="statBox"><div class="statLabel">AVG points</div><div class="statValue">${stat.count ? stat.avg.toFixed(2) : '–'}</div></div>
         <div class="statBox"><div class="statLabel">Times played</div><div class="statValue">${stat.count}</div></div>
       </div>`;
   }
@@ -356,7 +385,7 @@ function aggregateTrackStats(){
           <div class="sessionCardHead">
             <div>
               <div class="sessionTitle">${escapeHtml(fmtDate(s.completed_at || s.created_at))}</div>
-              <div class="muted">${count} races Â· ${points} points Â· Avg ${count ? (points/count).toFixed(2) : '0.00'} Â· DCs ${dcs}</div>
+              <div class="muted">${count} races · ${points} points · Avg ${count ? (points/count).toFixed(2) : '0.00'} · DCs ${dcs}</div>
             </div>
             <div class="sessionActions">
               <button class="infoBtn" type="button" data-session-toggle="${originalIndex}" aria-expanded="${isOpen ? 'true' : 'false'}" title="Show matches">?</button>
@@ -421,11 +450,13 @@ function aggregateTrackStats(){
     updateSortButtons();
     const labels = sortedStats.map(s => s.track);
     const values = sortedStats.map(s => Number(s.avg.toFixed(2)));
+    const colors = sortedStats.map(s => s.avg >= AVG_GAIN_THRESHOLD ? 'rgba(77,163,25,0.85)' : 'rgba(255,80,80,0.85)');
+    const borders = sortedStats.map(s => s.avg >= AVG_GAIN_THRESHOLD ? 'rgb(77,163,25)' : 'rgb(255,80,80)');
     const ctx = $('chartTrackAvg');
     if(state.chart) state.chart.destroy();
     state.chart = new Chart(ctx, {
       type: 'bar',
-      data: { labels, datasets: [{ label: 'Average points', data: values, borderWidth: 1 }] },
+      data: { labels, datasets: [{ label: 'Average points', data: values, backgroundColor: colors, borderColor: borders, borderWidth: 1 }] },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -434,7 +465,19 @@ function aggregateTrackStats(){
           x: { beginAtZero: true, max: 15, ticks: { color: getCss('--text') } },
           y: { ticks: { color: getCss('--text'), autoSkip: false } }
         },
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const stat = sortedStats[ctx.dataIndex];
+                const avg = Number(stat?.avg || 0).toFixed(2);
+                const count = Number(stat?.count || 0);
+                return [`AVG points: ${avg}`, `Played: ${count}`];
+              }
+            }
+          }
+        },
         onClick: (_, elements) => {
           if(!elements?.length) return;
           const idx = elements[0].index;
@@ -444,13 +487,46 @@ function aggregateTrackStats(){
       }
     });
   }
+  function renderPlacementChart(stats){
+    const ctx = $('chartPlacementDist');
+    if(!ctx) return;
+    if(state.placementChart) state.placementChart.destroy();
+    const labels = stats.map(s => String(s.placement));
+    const values = stats.map(s => s.count);
+    state.placementChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label: 'Placements', data: values, borderWidth: 1 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: 'Placement', color: getCss('--muted') }, ticks: { color: getCss('--text') } },
+          y: { beginAtZero: true, ticks: { color: getCss('--text'), precision: 0 } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.parsed.y || 0} races`
+            }
+          }
+        }
+      }
+    });
+  }
   function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#fff'; }
 
   function renderHeroSummary(stats){
     const sessions = state.sessions || [];
     const mogiCount = sessions.length;
-    const totalPoints = sessions.reduce((sum, session) => sum + (session.races || []).reduce((a, r) => a + Number(r.points || 0), 0), 0);
-    const avgMogi = mogiCount ? (totalPoints / mogiCount) : 0;
+    const statRaces = sessions.flatMap(session => (session.races || []).filter(r => !r.disconnect));
+    const raceCount = statRaces.length;
+    const dcCount = sessions.reduce((sum, session) => sum + (session.races || []).filter(r => r.disconnect).length, 0);
+    const totalPoints = statRaces.reduce((sum, race) => sum + Number(race.points || 0), 0);
+    const avgMogi = raceCount ? (totalPoints / raceCount) : 0;
     const bestTrack = (stats || []).filter(s => s.count > 0).sort((a,b) => {
       const diff = b.avg - a.avg;
       if(diff !== 0) return diff;
@@ -460,10 +536,15 @@ function aggregateTrackStats(){
     const bestTrackMeta = $('heroBestTrackMeta');
     const mogiCountEl = $('heroMogiCount');
     const avgEl = $('heroMogiAvg');
+    const raceCountEl = $('heroRaceCount');
+    const dcCountEl = $('heroDcCount');
     if(mogiCountEl) mogiCountEl.textContent = String(mogiCount);
     if(avgEl) avgEl.textContent = avgMogi.toFixed(2);
-    if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : 'â€“';
-    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG Â· ${bestTrack.count} plays` : 'No track data yet';
+    toneAvgElement(avgEl, avgMogi, raceCount > 0);
+    if(raceCountEl) raceCountEl.textContent = String(raceCount);
+    if(dcCountEl) dcCountEl.textContent = String(dcCount);
+    if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : '–';
+    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'No track data yet';
   }
   function refresh(){
     renderCurrent();
@@ -471,27 +552,79 @@ function aggregateTrackStats(){
     renderHeroSummary(stats);
     renderSessions();
     renderChart(stats);
+    renderPlacementChart(aggregatePlacementStats());
     renderTrackInsight(state.lastSelectedTrack && stats.some(s => s.track === state.lastSelectedTrack) ? state.lastSelectedTrack : null);
     persist();
   }
+  function renderMogiResultDialog(){
+    const races = (state.current?.races || []).slice(0, 12);
+    const total = races.reduce((sum, race) => sum + Number(race.points || 0), 0);
+    const dcs = races.filter(r => r.disconnect).length;
+    const statRaces = races.filter(r => !r.disconnect);
+    const statPoints = statRaces.reduce((sum, race) => sum + Number(race.points || 0), 0);
+    const statAvg = statRaces.length ? (statPoints / statRaces.length).toFixed(2) : '0.00';
+    const totalEl = $('mogiResultTotal');
+    const metaEl = $('mogiResultMeta');
+    const rowsEl = $('mogiResultRows');
+
+    if(totalEl) totalEl.textContent = String(total);
+    if(metaEl) metaEl.textContent = `${races.length} races · ${statAvg} AVG · ${dcs} DCs`;
+    if(rowsEl) {
+      rowsEl.innerHTML = races.map((race, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(race.track)}</td>
+          <td>${race.lobbySize}p</td>
+          <td>${race.placement ?? '–'}</td>
+          <td>${race.points}</td>
+          <td>${race.disconnect ? '<span class="badge">DC</span>' : 'Normal'}</td>
+        </tr>`).join('');
+    }
+  }
+  function openMogiResultDialog(){
+    if((state.current?.races || []).length < 12) return;
+    renderMogiResultDialog();
+    const dlg = $('mogiResultDialog');
+    if(!dlg) return;
+    if(typeof dlg.showModal === 'function' && !dlg.open) dlg.showModal();
+    else dlg.setAttribute('open', '');
+  }
+  function closeMogiResultDialog(){
+    const dlg = $('mogiResultDialog');
+    if(!dlg) return;
+    if(typeof dlg.close === 'function' && dlg.open) dlg.close();
+    else dlg.removeAttribute('open');
+  }
   async function maybeCompleteMogi(){
     if((state.current.races || []).length < 12) return;
-    const finished = {
-      ...state.current,
-      completed_at: currentTs(),
-      saved: true,
-    };
-    if (isCloud() && state.current.cloud_id) {
-      await updateCloudMogi(state.current, {
-        status: 'completed',
-        completed_at: finished.completed_at,
-      });
+    setStatus('Mogi complete. Confirm the result to save it.', true);
+    openMogiResultDialog();
+  }
+  async function confirmMogiResult(){
+    if((state.current.races || []).length < 12){ closeMogiResultDialog(); return; }
+    try {
+      const finished = {
+        ...state.current,
+        completed_at: currentTs(),
+        saved: true,
+      };
+      if (isCloud() && state.current.cloud_id) {
+        setStatus('Saving confirmed Mogi to cloud...', true);
+        await updateCloudMogi(state.current, {
+          status: 'completed',
+          completed_at: finished.completed_at,
+        });
+      }
+      state.sessions.push(finished);
+      state.sessionPage = 1;
+      state.current = makeFreshMogi();
+      closeMogiResultDialog();
+      setStatus('Mogi completed and saved as one session.', true);
+      refresh();
+    } catch(e) {
+      setStatus('Mogi confirm failed: ' + (e?.message || e), false);
+      console.error(e);
     }
-    state.sessions.push(finished);
-    state.sessionPage = 1;
-    state.current = makeFreshMogi();
-    setStatus('Mogi completed and saved as one session.', true);
-    refresh();
   }
   async function saveRace({disconnect=false}){
     try {
@@ -499,21 +632,18 @@ function aggregateTrackStats(){
       const placement = Number($('placementSelect').value || 0);
       const lobbySize = Number(state.lobbySize || 12);
       if(!track){ setStatus('Please select a track.', false); return; }
-      if((state.current.races || []).length >= 12){ setStatus('This Mogi already has 12 races. Start a new Mogi.', false); return; }
-      let points, effectivePlacement;
-      if(disconnect){
-        points = 1;
-        effectivePlacement = null;
-      } else {
-        if(!placement){ setStatus('Please select a placement.', false); return; }
-        points = getPoints(lobbySize, placement);
-        effectivePlacement = placement;
-        if(points == null){ setStatus('Invalid placement for this lobby size.', false); return; }
+      if(!placement){ setStatus('Please select a placement.', false); return; }
+      if((state.current.races || []).length >= 12){
+        setStatus('This Mogi has 12 races. Confirm the result before starting another race.', false);
+        openMogiResultDialog();
+        return;
       }
+      const points = getPoints(lobbySize, placement);
+      if(points == null){ setStatus('Invalid placement for this lobby size.', false); return; }
       const race = {
         track,
         lobbySize,
-        placement: effectivePlacement,
+        placement,
         points,
         disconnect,
         created_at: currentTs()
@@ -537,7 +667,7 @@ function aggregateTrackStats(){
 
       $('trackSelect').value = '';
       $('placementSelect').value = '';
-      setStatus(disconnect ? 'DC saved with 1 point. It is excluded from track stats.' : 'Race tracked.', true);
+      setStatus(disconnect ? 'Race tracked with DC tag. Stats ignore DC races.' : 'Race tracked.', true);
       refresh();
       await maybeCompleteMogi();
     } catch(e) {
@@ -578,6 +708,7 @@ function aggregateTrackStats(){
         if (error) throw error;
       }
       state.current = makeFreshMogi();
+      closeMogiResultDialog();
       setStatus('New Mogi started.', true);
       refresh();
     } catch(e) {
@@ -634,9 +765,9 @@ function aggregateTrackStats(){
           <td>${i + 1}</td>
           <td>${escapeHtml(r.track)}</td>
           <td>${r.lobbySize}p</td>
-          <td>${r.disconnect ? 'DC' : r.placement}</td>
+          <td>${r.placement ?? '–'}</td>
           <td>${r.points}</td>
-          <td>${r.disconnect ? 'Disconnect' : 'Normal'}</td>
+          <td>${r.disconnect ? '<span class="badge">DC</span>' : 'Normal'}</td>
         </tr>`).join('');
   }
   function renderSessionEditRows(races){
@@ -666,14 +797,10 @@ function aggregateTrackStats(){
     if(placementSel){
       placementSel.innerHTML = buildPlacementOptionsForLobby(lobby, prevPlacement);
       if(prevPlacement > lobby) placementSel.value = '';
-      placementSel.disabled = typeSel?.value === 'disconnect';
     }
-    let points = 1;
-    if(typeSel?.value !== 'disconnect'){
-      const placement = Number(placementSel?.value || 0);
-      const p = getPoints(lobby, placement);
-      points = p == null ? 'â€“' : p;
-    }
+    const placement = Number(placementSel?.value || 0);
+    const p = getPoints(lobby, placement);
+    const points = p == null ? '–' : p;
     if(pointsCell) pointsCell.textContent = String(points);
   }
   function startEditMogi(index){
@@ -697,20 +824,16 @@ function aggregateTrackStats(){
       const lobbySize = Number(row.querySelector('[data-edit-lobby]')?.value || 12);
       const type = row.querySelector('[data-edit-type]')?.value || 'normal';
       const disconnect = type === 'disconnect';
-      const placement = disconnect ? null : Number(row.querySelector('[data-edit-placement]')?.value || 0);
+      const placement = Number(row.querySelector('[data-edit-placement]')?.value || 0);
       if(!track){ setStatus('Each race needs a track.', false); return; }
-      let points = 1;
-      if(!disconnect){
-        if(!placement){ setStatus('Each normal race needs a placement.', false); return; }
-        const calc = getPoints(lobbySize, placement);
-        if(calc == null){ setStatus('One edited race has an invalid placement.', false); return; }
-        points = calc;
-      }
+      if(!placement){ setStatus('Each race needs a placement.', false); return; }
+      const points = getPoints(lobbySize, placement);
+      if(points == null){ setStatus('One edited race has an invalid placement.', false); return; }
       races.push({
         ...session.races[Number(row.getAttribute('data-edit-row'))],
         track,
         lobbySize,
-        placement: disconnect ? null : placement,
+        placement,
         points,
         disconnect
       });
@@ -762,6 +885,15 @@ function aggregateTrackStats(){
     $('btnDisconnect').addEventListener('click', () => saveRace({disconnect:true}));
     $('btnUndo').addEventListener('click', undoLast);
     $('btnNewMogi').addEventListener('click', newMogi);
+    $('btnConfirmMogiResult')?.addEventListener('click', confirmMogiResult);
+    $('btnKeepMogiResult')?.addEventListener('click', () => {
+      closeMogiResultDialog();
+      setStatus('Result kept in the current Mogi. Confirm when ready.', true);
+    });
+    $('mogiResultDialog')?.addEventListener('cancel', (ev) => {
+      ev.preventDefault();
+      setStatus('Confirm the result or choose Review to keep editing.', false);
+    });
     $('btnSessionPrev')?.addEventListener('click', () => { if(state.sessionPage <= 1) return; state.sessionPage -= 1; renderSessions(); persist(); });
     $('btnSessionNext')?.addEventListener('click', () => { const maxPage = Math.max(1, Math.ceil(state.sessions.length / SESSION_PAGE_SIZE)); if(state.sessionPage >= maxPage) return; state.sessionPage += 1; renderSessions(); persist(); });
     window.addEventListener('storage', () => { if(isCloud()) return; loadAll(); refresh(); });
@@ -811,6 +943,7 @@ function aggregateTrackStats(){
     updatePlacementOptions();
     bind();
     refresh();
+    if((state.current?.races || []).length >= 12) openMogiResultDialog();
   }
   init();
 })();

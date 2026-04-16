@@ -474,7 +474,7 @@ window.mkwtRequireAuth = async function(options = {}){
           race_number: index + 1,
           track: String(race?.track || ""),
           lobby_size: Number(race?.lobbySize ?? race?.lobby_size ?? 12),
-          placement: disconnect ? null : Number(race?.placement),
+          placement: race?.placement == null || race?.placement === "" ? null : Number(race.placement),
           points: Number(race?.points ?? (disconnect ? 1 : 0)),
           disconnect,
           created_at: race?.created_at || createdAt,
