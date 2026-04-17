@@ -225,6 +225,23 @@
     return Number.isFinite(n) ? n : null;
   }
 
+  function parsedNumber(value){
+    if(typeof value === "number") return Number.isFinite(value) ? value : null;
+    return parseNumber(value);
+  }
+
+  function normalizeEventNumbers(event){
+    if(!event || typeof event !== "object") return event;
+    return {
+      ...event,
+      mmr_delta: parsedNumber(event.mmr_delta),
+      mmr_after: parsedNumber(event.mmr_after),
+      mmr_before: parsedNumber(event.mmr_before),
+      table_rank: parsedNumber(event.table_rank),
+      table_score: parsedNumber(event.table_score),
+    };
+  }
+
   function normalizeIsoTime(value){
     const raw = String(value || "").trim();
     if(!raw) return "";
@@ -397,7 +414,7 @@
           mmr_after: parseNumber(mmrAfterText),
           table_url: `https://lounge.mkcentral.com/mkworld/TableDetails/${id}`,
         };
-        if(Number.isFinite(event.mmr_delta) || Number.isFinite(event.mmr_after)) events.push(event);
+        if(parsedNumber(event.mmr_delta) != null || parsedNumber(event.mmr_after) != null) events.push(normalizeEventNumbers(event));
       });
       if(events.length) break;
     }
@@ -409,29 +426,44 @@
     const doc = new DOMParser().parseFromString(html, "text/html");
     const meta = readAllDls(doc);
     const normalizedPlayerName = cleanText(playerName).toLowerCase();
-    const rows = Array.from(doc.querySelectorAll("table tr")).filter((row) => !row.querySelector("th"));
     let playerRow = null;
 
-    for(const row of rows){
-      const cells = Array.from(row.querySelectorAll("td"));
-      if(cells.length < 6) continue;
-      const playerCell = cells[Math.max(1, cells.length - 5)];
-      const link = playerCell?.querySelector(`a[href*="/PlayerDetails/${playerId}"]`) || playerCell?.querySelector('a[href*="/PlayerDetails/"]');
-      const href = link?.getAttribute("href") || "";
-      const rowPlayerId = (href.match(/PlayerDetails\/(\d+)/i)?.[1] || "").trim();
-      const rowPlayerName = cleanText(link?.textContent || playerCell?.textContent || "");
-      const samePlayer = rowPlayerId === String(playerId) || (!!normalizedPlayerName && rowPlayerName.toLowerCase() === normalizedPlayerName);
-      if(!samePlayer) continue;
+    for(const table of Array.from(doc.querySelectorAll("table"))){
+      const headerRow = Array.from(table.querySelectorAll("tr")).find((row) => row.querySelectorAll("th").length >= 4);
+      if(!headerRow) continue;
+      const headers = Array.from(headerRow.querySelectorAll("th")).map((th) => cleanText(th.textContent).toLowerCase());
+      const rankIdx = headers.findIndex((text) => text.includes("rank"));
+      const playerIdx = headers.findIndex((text) => text.includes("player"));
+      const scoreIdx = headers.findIndex((text) => text.includes("score"));
+      const beforeIdx = headers.findIndex((text) => text.includes("previous") && text.includes("mmr"));
+      const deltaIdx = headers.findIndex((text) => text.includes("change") || text.includes("delta"));
+      const afterIdx = headers.findIndex((text) => text.includes("new") && text.includes("mmr"));
+      const needed = [rankIdx, playerIdx, scoreIdx, beforeIdx, deltaIdx, afterIdx];
+      if(needed.some((idx) => idx < 0)) continue;
 
-      playerRow = {
-        table_rank: parseNumber(cells[0]?.textContent),
-        table_score: parseNumber(cells[cells.length - 4]?.textContent),
-        mmr_before: parseNumber(cells[cells.length - 3]?.textContent),
-        mmr_delta: parseDelta(cells[cells.length - 2]?.textContent),
-        mmr_after: parseNumber(cells[cells.length - 1]?.textContent),
-        table_player_name: rowPlayerName || playerName || "",
-      };
-      break;
+      for(const row of Array.from(table.querySelectorAll("tr"))){
+        if(row === headerRow) continue;
+        const cells = Array.from(row.querySelectorAll("th,td"));
+        if(cells.length <= Math.max(...needed)) continue;
+        const playerCell = cells[playerIdx];
+        const link = playerCell?.querySelector(`a[href*="/PlayerDetails/${playerId}"]`) || playerCell?.querySelector('a[href*="/PlayerDetails/"]');
+        const href = link?.getAttribute("href") || "";
+        const rowPlayerId = (href.match(/PlayerDetails\/(\d+)/i)?.[1] || "").trim();
+        const rowPlayerName = cleanText(link?.textContent || playerCell?.textContent || "");
+        const samePlayer = rowPlayerId === String(playerId) || (!!normalizedPlayerName && rowPlayerName.toLowerCase() === normalizedPlayerName);
+        if(!samePlayer) continue;
+
+        playerRow = {
+          table_rank: parseNumber(cells[rankIdx]?.textContent),
+          table_score: parseNumber(cells[scoreIdx]?.textContent),
+          mmr_before: parseNumber(cells[beforeIdx]?.textContent),
+          mmr_delta: parseDelta(cells[deltaIdx]?.textContent),
+          mmr_after: parseNumber(cells[afterIdx]?.textContent),
+          table_player_name: rowPlayerName || playerName || "",
+        };
+        break;
+      }
+      if(playerRow) break;
     }
 
     return {
@@ -452,14 +484,14 @@
 
   function mergeEvents(existingEvents, incomingEvents){
     const map = new Map();
-    for(const event of existingEvents || []) map.set(String(event.id), event);
+    for(const event of existingEvents || []) map.set(String(event.id), normalizeEventNumbers(event));
     let added = 0;
     let updated = 0;
     for(const event of incomingEvents || []){
       const key = String(event.id);
       if(map.has(key)) updated += 1;
       else added += 1;
-      map.set(key, { ...(map.get(key) || {}), ...event });
+      map.set(key, normalizeEventNumbers({ ...(map.get(key) || {}), ...event }));
     }
     const events = Array.from(map.values()).sort((a, b) => {
       const da = new Date(a.created_at || 0).getTime();
@@ -582,7 +614,10 @@
   }
 
   function getStatEvents(events){
-    return (events || []).filter((event) => !/^placement$/i.test(String(event.event || "")));
+    return (events || [])
+      .map(normalizeEventNumbers)
+      .filter((event) => !/^placement$/i.test(String(event.event || "")))
+      .filter((event) => parsedNumber(event.mmr_delta) != null);
   }
 
   function sum(values){
@@ -590,7 +625,7 @@
   }
 
   function calcDerived(events, profile, summary){
-    const statEvents = getStatEvents(events).filter((event) => Number.isFinite(event.mmr_delta));
+    const statEvents = getStatEvents(events);
     const deltas = statEvents.map((event) => Number(event.mmr_delta));
     const wins = deltas.filter((v) => v > 0).length;
     const losses = deltas.filter((v) => v < 0).length;
@@ -642,8 +677,8 @@
     getStatEvents(events).forEach((event) => {
       const label = cleanText(event[key]) || "Other";
       const row = map.get(label) || { label, count: 0, total: 0, wins: 0, losses: 0 };
-      const delta = event.mmr_delta;
-      if(!Number.isFinite(delta)) return;
+      const delta = parsedNumber(event.mmr_delta);
+      if(delta == null) return;
       row.count += 1;
       row.total += delta;
       if(delta > 0) row.wins += 1;
@@ -763,11 +798,11 @@
 
   function renderCharts(events){
     if(typeof Chart === "undefined") return;
-    const statEvents = getStatEvents(events).filter((event) => Number.isFinite(event.mmr_delta));
+    const statEvents = getStatEvents(events);
     const dailySeries = buildDailyPlaySeries(events);
     const labels = statEvents.map((event, index) => String(index + 1));
-    const deltas = statEvents.map((event) => event.mmr_delta);
-    const mmr = statEvents.map((event) => event.mmr_after);
+    const deltas = statEvents.map((event) => parsedNumber(event.mmr_delta));
+    const mmr = statEvents.map((event) => parsedNumber(event.mmr_after));
     const chartMeta = $("mkcChartMeta");
     if(chartMeta) chartMeta.textContent = `Estimated daily play time from ${fmtDateShort(dateFromKey(SEASON_START_DATE) || SEASON_START_DATE)} to ${fmtDateShort(new Date())}. 1 mogi = ${AVG_MOGI_MINUTES} minutes.`;
 
@@ -916,7 +951,7 @@
         playerName: parsed.playerName,
         profile: parsed.profile,
         summary: parsed.summary,
-        events: enriched.events,
+        events: enriched.events.map(normalizeEventNumbers),
         updated_at: fetched.fetched_at || new Date().toISOString(),
         source_url: fetched.url || "",
       };
