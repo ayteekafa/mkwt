@@ -15,12 +15,15 @@
   };
   const STORAGE_CURRENT = 'mkwt_lounge_current_v1';
   const STORAGE_SESSIONS = 'mkwt_lounge_sessions_v1';
+  const MKCENTRAL_SETTINGS_KEY = 'mkwt_mkcentral_player_ref_v1';
+  const MKCENTRAL_SEASON = '2';
+  const MKCENTRAL_PLAYER_COUNT = '12';
   const SESSION_PAGE_SIZE = 10;
   const AVG_GAIN_THRESHOLD = 6.83;
   window.MKWT_LOUNGE_STORAGE = { current: STORAGE_CURRENT, sessions: STORAGE_SESSIONS };
 
   const $ = (id) => document.getElementById(id);
-  const state = { lobbySize: 12, current: null, sessions: [], chart: null, placementChart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1, openSessionDetails: {}, editingSessionIndex: null };
+  const state = { lobbySize: 12, current: null, sessions: [], chart: null, placementChart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1, openSessionDetails: {}, editingSessionIndex: null, mkcentralMatches: {}, mkcentralPlayerId: '' };
   let loungeClient = null;
   let loungeSession = null;
   let cloudMode = false;
@@ -42,6 +45,48 @@
   function currentTs(){ return new Date().toISOString(); }
   function fmtDate(iso){
     try{ return new Date(iso).toLocaleString(); }catch(e){ return iso || '–'; }
+  }
+  function fmtDelta(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return 'â€“';
+    return `${n > 0 ? '+' : ''}${Math.round(n)}`;
+  }
+  function fmtMmr(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return 'â€“';
+    return n.toLocaleString('en-US');
+  }
+  function finiteNumber(value){
+    if(value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  function extractMkcentralPlayerId(value){
+    const raw = String(value || '').trim();
+    if(/^\d+$/.test(raw)) return raw;
+    const match = raw.match(/PlayerDetails\/(\d+)/i);
+    return match ? match[1] : '';
+  }
+  function mkcentralDataKey(playerId){
+    return `mkwt_mkcentral_${playerId}_season${MKCENTRAL_SEASON}_p${MKCENTRAL_PLAYER_COUNT}_v1`;
+  }
+  function eventTimestamp(value){
+    const time = new Date(value || '').getTime();
+    return Number.isFinite(time) ? time : 0;
+  }
+  function sessionFinishedAt(session){
+    return session?.completed_at || session?.updated_at || session?.created_at || '';
+  }
+  function sessionTotalPoints(session){
+    return (session?.races || []).reduce((sum, race) => sum + Number(race?.points || 0), 0);
+  }
+  function sessionRaceCount(session){
+    return Array.isArray(session?.races) ? session.races.length : 0;
+  }
+  function mkcentralGainClass(value){
+    const n = Number(value);
+    if(!Number.isFinite(n) || n === 0) return 'sessionMkcGainFlat';
+    return n > 0 ? 'sessionMkcGainGood' : 'sessionMkcGainBad';
   }
   function getPoints(lobbySize, placement){
     const arr = SCORE_MAP[Number(lobbySize)] || SCORE_MAP[12];
@@ -71,6 +116,169 @@
       total_points: list.reduce((a, r) => a + Number(r.points || 0), 0),
       disconnects: list.filter(r => r.disconnect).length,
     };
+  }
+  function readMkcentralPayload(){
+    try{
+      const playerId = extractMkcentralPlayerId(localStorage.getItem(MKCENTRAL_SETTINGS_KEY) || '');
+      state.mkcentralPlayerId = playerId || '';
+      if(!playerId) return null;
+      const payload = read(mkcentralDataKey(playerId), null);
+      return payload && Array.isArray(payload.events) ? payload : null;
+    }catch(e){
+      state.mkcentralPlayerId = '';
+      return null;
+    }
+  }
+  function mkcentralTimeScore(hours){
+    if(!Number.isFinite(hours)) return 0;
+    if(hours <= 0.5) return 52;
+    if(hours <= 2) return 44;
+    if(hours <= 6) return 30;
+    if(hours <= 12) return 20;
+    if(hours <= 24) return 12;
+    if(hours <= 72) return 5;
+    return 0;
+  }
+  function mkcentralPointsScore(diff, hasScore){
+    if(!hasScore || !Number.isFinite(diff)) return 0;
+    if(diff === 0) return 54;
+    if(diff <= 2) return 44;
+    if(diff <= 5) return 34;
+    if(diff <= 10) return 22;
+    if(diff <= 15) return 12;
+    if(diff <= 25) return 5;
+    return 0;
+  }
+  function mkcentralOrderScore(sessionOrder, eventOrder, sessionTotal, eventTotal){
+    if(sessionTotal <= 1 || eventTotal <= 1) return 8;
+    const sessionRatio = sessionOrder / Math.max(1, sessionTotal - 1);
+    const eventRatio = eventOrder / Math.max(1, eventTotal - 1);
+    const diff = Math.abs(sessionRatio - eventRatio);
+    if(diff <= 0.015) return 18;
+    if(diff <= 0.04) return 12;
+    if(diff <= 0.08) return 8;
+    if(diff <= 0.15) return 4;
+    return 0;
+  }
+  function mkcentralConfidenceLabel(score){
+    if(score >= 90) return 'High';
+    if(score >= 70) return 'Medium';
+    return 'Low';
+  }
+  function buildMkcentralNote(candidate){
+    const parts = [];
+    if(Number.isFinite(candidate.pointsDiff)){
+      parts.push(candidate.pointsDiff === 0 ? 'same score' : `${candidate.pointsDiff} pts off`);
+    }
+    if(Number.isFinite(candidate.hoursDiff)){
+      parts.push(candidate.hoursDiff < 1 ? 'time < 1h' : `${candidate.hoursDiff.toFixed(1)}h off`);
+    }
+    return parts.length ? `Auto-match: ${parts.join(' · ')}` : 'Auto-match';
+  }
+  function computeMkcentralMatches(){
+    state.mkcentralMatches = {};
+    const payload = readMkcentralPayload();
+    if(!payload || !state.sessions.length) return;
+
+    const events = (payload.events || [])
+      .filter((event) => String(event?.id || '').trim())
+      .filter((event) => !/^placement$/i.test(String(event?.event || '').trim()))
+      .map((event, originalEventIndex) => ({
+        ...event,
+        __originalEventIndex: originalEventIndex,
+        __time: eventTimestamp(event.created_at || event.table_created_at),
+      }))
+      .sort((a, b) => a.__time - b.__time || String(a.id).localeCompare(String(b.id)));
+
+    const sessions = state.sessions
+      .map((session, originalIndex) => ({
+        session,
+        originalIndex,
+        time: eventTimestamp(sessionFinishedAt(session)),
+        points: sessionTotalPoints(session),
+        raceCount: sessionRaceCount(session),
+      }))
+      .sort((a, b) => a.time - b.time || a.originalIndex - b.originalIndex);
+
+    if(!events.length || !sessions.length) return;
+
+    const candidates = [];
+    sessions.forEach((sessionItem, sessionOrder) => {
+      events.forEach((event, eventOrder) => {
+        const tableScore = finiteNumber(event.table_score);
+        const hasScore = tableScore != null;
+        const pointsDiff = hasScore ? Math.abs(sessionItem.points - tableScore) : Infinity;
+        const hoursDiff = sessionItem.time && event.__time ? Math.abs(sessionItem.time - event.__time) / 3600000 : Infinity;
+        const score = mkcentralTimeScore(hoursDiff)
+          + mkcentralPointsScore(pointsDiff, hasScore)
+          + mkcentralOrderScore(sessionOrder, eventOrder, sessions.length, events.length)
+          + (sessionItem.raceCount >= 12 ? 6 : 0);
+
+        if(!hasScore && hoursDiff > 12) return;
+        if(score < 34) return;
+
+        candidates.push({
+          score,
+          pointsDiff,
+          hoursDiff,
+          sessionOrder,
+          eventOrder,
+          originalIndex: sessionItem.originalIndex,
+          event,
+        });
+      });
+    });
+
+    candidates.sort((a, b) =>
+      b.score - a.score
+      || a.hoursDiff - b.hoursDiff
+      || a.pointsDiff - b.pointsDiff
+      || Math.abs(a.sessionOrder - a.eventOrder) - Math.abs(b.sessionOrder - b.eventOrder)
+    );
+
+    const assignedSessions = new Set();
+    const assignedEvents = new Set();
+
+    candidates.forEach((candidate) => {
+      const eventId = String(candidate.event?.id || '');
+      if(!eventId || assignedSessions.has(candidate.originalIndex) || assignedEvents.has(eventId)) return;
+
+      assignedSessions.add(candidate.originalIndex);
+      assignedEvents.add(eventId);
+      state.mkcentralMatches[candidate.originalIndex] = {
+        event_id: eventId,
+        event_name: candidate.event.event || '',
+        format: candidate.event.format || 'Other',
+        tier: candidate.event.tier || '',
+        table_url: candidate.event.table_url || '',
+        table_rank: finiteNumber(candidate.event.table_rank),
+        table_score: finiteNumber(candidate.event.table_score),
+        mmr_before: finiteNumber(candidate.event.mmr_before),
+        mmr_delta: finiteNumber(candidate.event.mmr_delta),
+        mmr_after: finiteNumber(candidate.event.mmr_after),
+        created_at: candidate.event.created_at || candidate.event.table_created_at || '',
+        confidence_label: mkcentralConfidenceLabel(candidate.score),
+        confidence_note: buildMkcentralNote(candidate),
+        confidence_score: candidate.score,
+      };
+    });
+  }
+  function renderSessionMkcentral(match){
+    if(!match) return '';
+    const bits = [];
+    if(match.format) bits.push(`<span>${escapeHtml(match.format)}</span>`);
+    if(Number.isFinite(match.table_rank)) bits.push(`<span>Place #${escapeHtml(String(match.table_rank))}</span>`);
+    if(Number.isFinite(match.table_score)) bits.push(`<span>${escapeHtml(String(match.table_score))} pts</span>`);
+    if(Number.isFinite(match.mmr_delta)) bits.push(`<span class="${mkcentralGainClass(match.mmr_delta)}">${escapeHtml(fmtDelta(match.mmr_delta))}</span>`);
+    if(Number.isFinite(match.mmr_after)) bits.push(`<span>${escapeHtml(fmtMmr(match.mmr_after))} MMR</span>`);
+    if(match.table_url) bits.push(`<a class="sessionMkcLink" href="${escapeHtml(match.table_url)}" target="_blank" rel="noopener noreferrer">Table</a>`);
+
+    return `
+      <div class="sessionMkcMeta">
+        <span class="badge">MKCentral</span>
+        ${bits.join('')}
+      </div>
+      <div class="sessionMkcHint muted">${escapeHtml(match.confidence_note || `Auto-match ${match.confidence_label}`)}</div>`;
   }
   function dbRaceToLocal(row){
     return {
@@ -364,10 +572,11 @@ function aggregateTrackStats(){
     if(paginationRow) paginationRow.hidden = items.length <= SESSION_PAGE_SIZE;
 
     wrap.innerHTML = pageItems.map((s, idx) => {
-      const points = (s.races || []).reduce((a,r)=>a + Number(r.points || 0), 0);
+      const points = sessionTotalPoints(s);
       const count = (s.races || []).length;
       const dcs = (s.races || []).filter(r => r.disconnect).length;
       const originalIndex = s.__originalIndex;
+      const mkcMatch = state.mkcentralMatches[originalIndex] || null;
       const isEditing = state.editingSessionIndex === originalIndex;
       const isOpen = !!state.openSessionDetails[originalIndex] || isEditing;
       const details = isEditing
@@ -396,6 +605,7 @@ function aggregateTrackStats(){
           <div class="sessionCardHead">
             <div>
               <div class="sessionTitle">${escapeHtml(fmtDate(s.completed_at || s.created_at))}</div>
+              ${mkcMatch ? renderSessionMkcentral(mkcMatch) : ''}
               <div class="muted">${count} races · ${points} points · Avg ${count ? (points/count).toFixed(2) : '0.00'} · DCs ${dcs}</div>
             </div>
             <div class="sessionActions">
@@ -558,6 +768,7 @@ function aggregateTrackStats(){
     if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'Best Track starts after 5 plays on one track.';
   }
   function refresh(){
+    computeMkcentralMatches();
     renderCurrent();
     const stats = aggregateTrackStats();
     renderHeroSummary(stats);
@@ -705,25 +916,6 @@ function aggregateTrackStats(){
       refresh();
     } catch(e) {
       setStatus('Undo failed: ' + (e?.message || e), false);
-      console.error(e);
-    }
-  }
-  async function newMogi(){
-    try {
-      if (isCloud() && state.current?.cloud_id) {
-        const { error } = await loungeClient
-          .from('lounge_mogis')
-          .delete()
-          .eq('id', state.current.cloud_id)
-          .eq('user_id', loungeSession.user.id);
-        if (error) throw error;
-      }
-      state.current = makeFreshMogi();
-      closeMogiResultDialog();
-      setStatus('New Mogi started.', true);
-      refresh();
-    } catch(e) {
-      setStatus('New Mogi failed: ' + (e?.message || e), false);
       console.error(e);
     }
   }
@@ -895,7 +1087,6 @@ function aggregateTrackStats(){
     $('btnSaveRace').addEventListener('click', () => saveRace({disconnect:false}));
     $('btnDisconnect').addEventListener('click', () => saveRace({disconnect:true}));
     $('btnUndo').addEventListener('click', undoLast);
-    $('btnNewMogi').addEventListener('click', newMogi);
     $('btnConfirmMogiResult')?.addEventListener('click', confirmMogiResult);
     $('btnKeepMogiResult')?.addEventListener('click', () => {
       closeMogiResultDialog();

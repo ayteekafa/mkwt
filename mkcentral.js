@@ -13,6 +13,7 @@
   let chartMmr = null;
   let supabaseClient = null;
   let SESSION = null;
+  const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 
   function setStatus(message, ok = true){
     const el = $("mkcStatus");
@@ -40,6 +41,21 @@
 
   function writeJson(key, value){
     try{ localStorage.setItem(key, JSON.stringify(value)); return true; }catch(e){ return false; }
+  }
+
+  function setPlayerDisplay(playerRef){
+    const idEl = $("mkcPlayerDisplay");
+    const nameEl = $("mkcPlayerNameDisplay");
+    if(!idEl) return "";
+    const playerId = extractPlayerId(playerRef);
+    idEl.dataset.playerId = playerId;
+    idEl.textContent = playerId || "ID not set";
+    idEl.classList.toggle("isEmpty", !playerId);
+    if(nameEl){
+      nameEl.textContent = "MKCentral Player";
+      nameEl.classList.toggle("isEmpty", !playerId);
+    }
+    return playerId;
   }
 
   function makeSupabaseClient(storage){
@@ -203,6 +219,12 @@
     return parseNumber(String(value || "").replace(/\u2212/g, "-"));
   }
 
+  function finiteNumber(value){
+    if(value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
   function normalizeIsoTime(value){
     const raw = String(value || "").trim();
     if(!raw) return "";
@@ -312,6 +334,10 @@
     return out;
   }
 
+  function readAllDls(doc){
+    return Array.from(doc.querySelectorAll("dl")).reduce((acc, dl) => Object.assign(acc, readDl(dl)), {});
+  }
+
   function nextDlAfterHeading(doc, headingText){
     const heading = Array.from(doc.querySelectorAll("h3"))
       .find((el) => cleanText(el.textContent).toLowerCase() === headingText.toLowerCase());
@@ -363,6 +389,51 @@
     return { playerName, profile, summary, events };
   }
 
+  function parseTablePage(html, tableId, playerId, playerName){
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const meta = readAllDls(doc);
+    const normalizedPlayerName = cleanText(playerName).toLowerCase();
+    const rows = Array.from(doc.querySelectorAll("table tr")).filter((row) => !row.querySelector("th"));
+    let playerRow = null;
+
+    for(const row of rows){
+      const cells = Array.from(row.querySelectorAll("td"));
+      if(cells.length < 6) continue;
+      const playerCell = cells[Math.max(1, cells.length - 5)];
+      const link = playerCell?.querySelector(`a[href*="/PlayerDetails/${playerId}"]`) || playerCell?.querySelector('a[href*="/PlayerDetails/"]');
+      const href = link?.getAttribute("href") || "";
+      const rowPlayerId = (href.match(/PlayerDetails\/(\d+)/i)?.[1] || "").trim();
+      const rowPlayerName = cleanText(link?.textContent || playerCell?.textContent || "");
+      const samePlayer = rowPlayerId === String(playerId) || (!!normalizedPlayerName && rowPlayerName.toLowerCase() === normalizedPlayerName);
+      if(!samePlayer) continue;
+
+      playerRow = {
+        table_rank: parseNumber(cells[0]?.textContent),
+        table_score: parseNumber(cells[cells.length - 4]?.textContent),
+        mmr_before: parseNumber(cells[cells.length - 3]?.textContent),
+        mmr_delta: parseDelta(cells[cells.length - 2]?.textContent),
+        mmr_after: parseNumber(cells[cells.length - 1]?.textContent),
+        table_player_name: rowPlayerName || playerName || "",
+      };
+      break;
+    }
+
+    return {
+      id: String(tableId || "").trim(),
+      table_id: String(tableId || "").trim(),
+      table_rank: playerRow?.table_rank ?? null,
+      table_score: playerRow?.table_score ?? null,
+      mmr_before: playerRow?.mmr_before ?? null,
+      mmr_delta: playerRow?.mmr_delta ?? null,
+      mmr_after: playerRow?.mmr_after ?? null,
+      table_player_name: playerRow?.table_player_name || playerName || "",
+      format: cleanText(meta["Format"]) || "",
+      tier: cleanText(meta["Tier"]) || "",
+      table_created_at: normalizeIsoTime(meta["Time Created"] || ""),
+      table_verified_at: normalizeIsoTime(meta["Time Verified"] || ""),
+    };
+  }
+
   function mergeEvents(existingEvents, incomingEvents){
     const map = new Map();
     for(const event of existingEvents || []) map.set(String(event.id), event);
@@ -382,14 +453,11 @@
     return { events, added, updated };
   }
 
-  async function fetchMkcentral(playerId){
-    const path = `/api/mkcentral-player?playerId=${encodeURIComponent(playerId)}&season=${SEASON}&p=${PLAYER_COUNT}&t=${Date.now()}`;
-    const localHostnames = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+  async function fetchMkcentralApi(path, label){
     const urls = [path];
-    if(localHostnames.has(location.hostname)){
+    if(LOCAL_HOSTNAMES.has(location.hostname)){
       urls.push(`http://127.0.0.1:8788${path}`);
     }
-
     let lastStatus = 0;
     let lastError = "";
     for(const url of urls){
@@ -399,7 +467,7 @@
         const payload = await res.json().catch(() => null);
         if(res.ok && payload?.ok) return payload;
         lastError = payload?.error || `HTTP ${res.status}`;
-        if(localHostnames.has(location.hostname) && !url.startsWith("http://127.0.0.1:8788")){
+        if(LOCAL_HOSTNAMES.has(location.hostname) && !url.startsWith("http://127.0.0.1:8788")){
           continue;
         }
         if(res.status !== 404) break;
@@ -408,13 +476,79 @@
       }
     }
 
-    if(localHostnames.has(location.hostname) && lastStatus === 404){
-      throw new Error("Live Server cannot run /api/mkcentral-player. Run tools/mkcentral-local-proxy.ps1 in PowerShell, then press Update data again.");
+    if(LOCAL_HOSTNAMES.has(location.hostname) && lastStatus === 404){
+      throw new Error(`Live Server cannot run ${label}. Run tools/mkcentral-local-proxy.ps1 in PowerShell, then press Update data again.`);
     }
-    if(localHostnames.has(location.hostname)){
+    if(LOCAL_HOSTNAMES.has(location.hostname)){
       throw new Error(`Local MKCentral proxy is not reachable. Run tools/mkcentral-local-proxy.ps1 in PowerShell. Last error: ${lastError}`);
     }
     throw new Error(lastError || "MKCentral sync failed.");
+  }
+
+  async function fetchMkcentral(playerId){
+    const path = `/api/mkcentral-player?playerId=${encodeURIComponent(playerId)}&season=${SEASON}&p=${PLAYER_COUNT}&t=${Date.now()}`;
+    return fetchMkcentralApi(path, "/api/mkcentral-player");
+  }
+
+  async function fetchMkcentralTable(tableId){
+    const path = `/api/mkcentral-table?tableId=${encodeURIComponent(tableId)}&t=${Date.now()}`;
+    return fetchMkcentralApi(path, "/api/mkcentral-table");
+  }
+
+  async function enrichEventsWithTableDetails(events, playerId, playerName){
+    const nextEvents = Array.isArray(events) ? events.slice() : [];
+    const targets = nextEvents.filter((event) => {
+      const tableId = String(event?.id || "").trim();
+      if(!tableId) return false;
+      return finiteNumber(event.table_rank) == null
+        || finiteNumber(event.table_score) == null
+        || finiteNumber(event.mmr_before) == null
+        || !cleanText(event.table_player_name);
+    });
+
+    if(!targets.length){
+      return { events: nextEvents, enriched: 0, failed: 0 };
+    }
+
+    let enriched = 0;
+    let failed = 0;
+    const batchSize = 4;
+
+    for(let index = 0; index < targets.length; index += batchSize){
+      const batch = targets.slice(index, index + batchSize);
+      const rangeStart = index + 1;
+      const rangeEnd = index + batch.length;
+      setStatus(`Updating MKCentral table details ${rangeStart}-${rangeEnd} / ${targets.length}...`, true);
+
+      const results = await Promise.all(batch.map(async (event) => {
+        try{
+          const fetched = await fetchMkcentralTable(event.id);
+          const parsed = parseTablePage(fetched.html, event.id, playerId, playerName);
+          return { ok: true, eventId: String(event.id), parsed };
+        }catch(error){
+          return { ok: false, eventId: String(event.id), error };
+        }
+      }));
+
+      results.forEach((result) => {
+        const eventIndex = nextEvents.findIndex((event) => String(event?.id || "") === result.eventId);
+        if(eventIndex < 0) return;
+        if(result.ok){
+          const parsed = result.parsed || {};
+          nextEvents[eventIndex] = {
+            ...nextEvents[eventIndex],
+            ...parsed,
+            format: cleanText(parsed.format) || cleanText(nextEvents[eventIndex].format),
+            tier: cleanText(parsed.tier) || cleanText(nextEvents[eventIndex].tier),
+          };
+          if(finiteNumber(parsed.table_rank) != null || finiteNumber(parsed.table_score) != null) enriched += 1;
+        }else{
+          failed += 1;
+        }
+      });
+    }
+
+    return { events: nextEvents, enriched, failed };
   }
 
   function getStoredPayload(playerId){
@@ -714,12 +848,19 @@
 
   function render(payload){
     if(!payload || !Array.isArray(payload.events) || !payload.events.length){
+      const nameEl = $("mkcPlayerNameDisplay");
+      if(nameEl) nameEl.textContent = $("mkcPlayerDisplay")?.dataset?.playerId ? "MKCentral Player" : "MKCentral Player";
       $("mkcCards").innerHTML = '<div class="mkcEmpty">No local Lounge Stats data yet. Press Update data to pull Season 2 / 12p from MKCentral.</div>';
       renderGroupTable("mkcTypeRows", []);
       renderGroupTable("mkcTierRows", []);
       renderEvents([]);
       renderCharts([]);
       return;
+    }
+    const nameEl = $("mkcPlayerNameDisplay");
+    if(nameEl){
+      nameEl.textContent = payload.playerName || "MKCentral Player";
+      nameEl.classList.remove("isEmpty");
     }
     renderCards(payload);
     renderGroupTable("mkcTypeRows", groupedRows(payload.events, "format"));
@@ -738,16 +879,12 @@
   }
 
   async function update(){
-    const input = $("mkcPlayerInput");
-    const ref = String(input?.value || "").trim();
-    const playerId = extractPlayerId(ref);
+    const playerId = String($("mkcPlayerDisplay")?.dataset?.playerId || "").trim();
     if(!playerId){
-      setStatus("Enter a valid MKCentral player ID or PlayerDetails URL.", false);
+      setStatus("Set your MKCentral Player ID in Settings first.", false);
       return;
     }
     writeStorage(SETTINGS_KEY, playerId);
-    if(input) input.value = playerId;
-    await saveCloudPlayerRef(playerId);
 
     try{
       setStatus("Updating local Lounge Stats from MKCentral Season 2 / 12p...", true);
@@ -755,6 +892,7 @@
       const parsed = parsePlayerPage(fetched.html);
       const current = getStoredPayload(playerId);
       const merged = mergeEvents(current.events || [], parsed.events || []);
+      const enriched = await enrichEventsWithTableDetails(merged.events, playerId, parsed.playerName);
       const next = {
         playerId,
         season: SEASON,
@@ -762,13 +900,13 @@
         playerName: parsed.playerName,
         profile: parsed.profile,
         summary: parsed.summary,
-        events: merged.events,
+        events: enriched.events,
         updated_at: fetched.fetched_at || new Date().toISOString(),
         source_url: fetched.url || "",
       };
       writeJson(dataKey(playerId), next);
       render(next);
-      setStatus(`Local data updated. Added ${merged.added} new events. Local total: ${merged.events.length}.`, true);
+      setStatus(`Local data updated. Added ${merged.added} new events, refreshed ${enriched.enriched} table details. Local total: ${enriched.events.length}.${enriched.failed ? ` ${enriched.failed} table pages could not be read.` : ""}`, true);
     }catch(e){
       setStatus(e?.message || "Update failed.", false);
       console.error(e);
@@ -777,9 +915,7 @@
 
   async function init(){
     const savedRef = await loadInitialPlayerRef();
-    const input = $("mkcPlayerInput");
-    if(input) input.value = savedRef;
-    const playerId = extractPlayerId(savedRef);
+    const playerId = setPlayerDisplay(savedRef);
     if(playerId) render(getStoredPayload(playerId));
     else render(null);
     $("btnUpdateMkc")?.addEventListener("click", update);

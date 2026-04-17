@@ -54,6 +54,14 @@ thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(
 .sessionCard{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--card-2)}
 .sessionCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .sessionTitle{font-size:16px;font-weight:800;margin-bottom:4px}
+.sessionMkcMeta{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:8px 0 6px}
+.sessionMkcMeta span,.sessionMkcMeta a{font-size:12px;line-height:1.2}
+.sessionMkcHint{font-size:12px;line-height:1.35;margin-bottom:6px}
+.sessionMkcLink{text-decoration:none;color:var(--link)}
+.sessionMkcLink:hover{text-decoration:underline}
+.sessionMkcGainGood{color:#4da319;font-weight:800}
+.sessionMkcGainBad{color:#ff5050;font-weight:800}
+.sessionMkcGainFlat{color:var(--muted);font-weight:800}
 .infoBtn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer}
 .sessionActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sessionDetails{margin-top:12px}

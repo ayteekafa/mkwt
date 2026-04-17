@@ -69,23 +69,32 @@
 
 <div class="card">
 <h2>Settings</h2>
-<div class="row">
-<div class="field">
-<label class="muted">Nickname</label>
-<input id="settingsNickname"/>
+<div class="profileSettingsGrid">
+  <div class="field">
+    <label class="muted" for="settingsNickname">Name</label>
+    <input class="lockableInput" disabled id="settingsNickname"/>
+    <div class="fieldState saved" id="settingsNicknameState">Saved</div>
+  </div>
+  <div class="field">
+    <label class="muted" for="settingsVr">Current VR</label>
+    <input class="lockableInput" disabled id="settingsVr" type="number"/>
+    <div class="fieldState saved" id="settingsVrState">Saved</div>
+  </div>
+  <div class="field">
+    <label class="muted" for="settingsMkcentralPlayer">MKCentral ID</label>
+    <input class="lockableInput" disabled id="settingsMkcentralPlayer" inputmode="url" placeholder="78188 or https://lounge.mkcentral.com/mkworld/PlayerDetails/78188"/>
+    <div class="fieldState saved" id="settingsMkcentralState">Saved</div>
+  </div>
 </div>
-<div class="field">
-<label class="muted">Current VR</label>
-<input id="settingsVr" type="number"/>
-</div>
-</div>
-<div class="row mt-10">
+<div class="settingsLowerGrid mt-10">
   <div class="field flex-1">
-    <div class="row-inline">
-      <label for="settingsTheme" class="muted m-0">Theme</label>
-      <button aria-label="Info" class="mcard__infoBtn" data-info="theme" title="Info" type="button">i</button>
+    <div class="fieldHead fieldHead--withInfo">
+      <div class="row-inline">
+        <label for="settingsTheme" class="muted m-0">Theme</label>
+        <button aria-label="Info" class="mcard__infoBtn" data-info="theme" title="Info" type="button">i</button>
+      </div>
     </div>
-    <select id="settingsTheme">
+    <select class="lockableInput" disabled id="settingsTheme">
       <option value="dark">Midnight Matte</option>
       <option value="light">Soft Snow</option>
       <option value="dendo">Dendo Denim</option>
@@ -94,24 +103,27 @@
       <option value="purple">Purple Pop</option>
       <option value="rose">Rose Rime</option>
     </select>
+    <div class="fieldState saved" id="settingsThemeState">Saved</div>
     <div class="muted" id="themeHelp" class="hint"></div>
   </div>
-</div>
-
-<div class="row mt-10">
-<div class="field flex-1">
-  <div class="row-inline">
-    <label for="settingsMinVr" class="muted m-0">Exclude low-VR matches from stats</label>
-    <button aria-label="Info" class="mcard__infoBtn" data-info="minVrFilter" title="Info" type="button">i</button>
+  <div class="field flex-1">
+    <div class="fieldHead fieldHead--withInfo">
+      <div class="row-inline">
+        <label for="settingsMinVr" class="muted m-0">Exclude low-VR matches from stats</label>
+        <button aria-label="Info" class="mcard__infoBtn" data-info="minVrFilter" title="Info" type="button">i</button>
+      </div>
+    </div>
+    <div class="row-inline--gap10">
+      <span class="muted" style="opacity:.85;">&lt;</span>
+      <input class="lockableInput" disabled id="settingsMinVr" inputmode="numeric" placeholder="0" style="flex:1;" type="number"/>
+    </div>
+    <div class="fieldState saved" id="settingsMinVrState">Saved</div>
   </div>
-<div class="row-inline--gap10">
-<span class="muted" style="opacity:.85;">&lt;</span>
-<input id="settingsMinVr" inputmode="numeric" placeholder="0" style="flex:1;" type="number"/>
 </div>
-</div>
-</div>
-<div class="mt-12">
-<button class="btn" id="btnSaveSettings">Save</button>
+<div class="settingsActionRow mt-12">
+<button class="btn2" id="btnEditSettings" type="button">Edit</button>
+<button class="btn" disabled id="btnSaveSettings" type="button">Save</button>
+<button class="btn2" disabled id="btnCancelSettings" type="button">Cancel</button>
 </div>
 
 <hr class="divider"/>
@@ -120,13 +132,7 @@
   <h3 class="m-0">MKCentral</h3>
   <button aria-label="Info" class="mcard__infoBtn" data-info="mkcentral" title="Info" type="button">i</button>
 </div>
-<div class="row mt-10">
-  <div class="field flex-1">
-    <label class="muted" for="settingsMkcentralPlayer">Player ID or profile URL</label>
-    <input id="settingsMkcentralPlayer" inputmode="url" placeholder="78188 or https://lounge.mkcentral.com/mkworld/PlayerDetails/78188"/>
-    <div class="muted" style="font-size:12px; opacity:.85; margin-top:6px;">Used by Lounge Stats. Saved to your cloud profile when logged in, or locally in guest mode. Pulled events stay local in this app.</div>
-  </div>
-</div>
+<div class="muted mt-10" style="font-size:12px; opacity:.85;">Used by Lounge Stats. Saved to your cloud profile when logged in, or locally in guest mode. Pulled events stay local in this app.</div>
 <div class="mt-12">
   <a class="btn2" href="lounge-stats.html">Open Lounge Stats</a>
 </div>

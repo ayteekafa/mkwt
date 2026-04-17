@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 
-  <title>MKWT – Mario Kart World Tracker (VR, Matches, Stats)</title>
-  <meta name="description" content="MKWT is a Mario Kart World tracker for logging matches, VR changes, sessions, and intermission routes — with clean stats and charts." />
+  <title>MKWT - Mario Kart World Tracker, Lounge 12p, and MKCentral Stats</title>
+  <meta name="description" content="MKWT lets you track VR matches, sessions, Lounge 12p mogis, and MKCentral Season 2 / 12p stats in one clean Mario Kart World app." />
 
-  <link rel="canonical" href="https://mkwt.app/index.html" />
+  <link rel="canonical" href="https://mkwt.app/" />
   <meta name="theme-color" content="#07080a" />
   <script src="mkwt_bootstrap.js"></script>
 
@@ -18,82 +18,173 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
 
-  <meta property="og:title" content="MKWT – Mario Kart World Tracker" />
-  <meta property="og:description" content="Track Mario Kart World matches and VR changes. Sessions, intermission routes, stats & charts." />
+  <meta property="og:title" content="MKWT - Mario Kart World Tracker" />
+  <meta property="og:description" content="Track VR matches, Lounge 12p mogis, and MKCentral Season 2 / 12p stats in one place." />
   <meta property="og:image" content="https://mkwt.app/og-card.png" />
-  <meta property="og:url" content="https://mkwt.app/index.html" />
+  <meta property="og:url" content="https://mkwt.app/" />
   <meta property="og:type" content="website" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MKWT – Mario Kart World Tracker" />
-  <meta name="twitter:description" content="Track matches, VR, sessions and intermission routes with MKWT." />
+  <meta name="twitter:title" content="MKWT - Mario Kart World Tracker" />
+  <meta name="twitter:description" content="Track ranked matches, sessions, Lounge 12p mogis, and MKCentral stats with MKWT." />
   <meta name="twitter:image" content="https://mkwt.app/og-card.png" />
-  <link rel="stylesheet" href="mkwt_theme_v3.css" />
 
-<script type="application/ld+json">
+  <link rel="stylesheet" href="mkwt_theme_v3.css" />
+  <link rel="stylesheet" href="index.css" />
+
+  <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "MKWT",
-    "url": "https://mkwt.app/index.html",
-    "description": "Mario Kart World tracker for matches, VR changes, sessions, intermission routes, stats and charts.",
+    "url": "https://mkwt.app/",
+    "description": "Mario Kart World tracker for VR matches, sessions, Lounge 12p mogis, and MKCentral Season 2 / 12 player stats.",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://mkwt.app/index.html?q={search_term_string}",
+      "target": "https://mkwt.app/?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   }
   </script>
-
-  <link href="index.css" rel="stylesheet"/>
-
 </head>
 <body>
 <noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
-  <main class="landing-wrap">
-    <section class="hero">
-      <div class="brand">
-        <img src="icons/icon-192.png" alt="MKWT" width="44" height="44" />
-        <div>
-          <div style="font-weight:900; letter-spacing:0.2px;">MKWT</div>
-          <div style="opacity:.85; font-size:12px;">Mario Kart World Tracker</div>
+
+<nav class="nav">
+  <div class="navInner">
+    <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
+    <a class="navLink active" href="index.html">Home</a>
+    <a class="navLink" href="tracker.html">Tracker</a>
+    <a class="navLink" href="stats.html">Stats</a>
+    <a class="navLink" href="sessions.html">Sessions</a>
+    <a class="navLink" href="lounge.html">Lounge 12p</a>
+    <a class="navLink" href="lounge-stats.html">Lounge Stats</a>
+    <a class="navLink" href="about.html">About</a>
+    <div class="navSpacer"></div>
+    <a class="navAction" href="login.html">Login</a>
+    <a class="navAction active" data-guest-link="true" href="tracker.html">Try as Guest</a>
+  </div>
+</nav>
+
+<main class="wrap homeWrap">
+  <section class="homeHero" aria-label="MKWT overview">
+    <div class="homeHeroInner">
+      <p class="eyebrow">Mario Kart World Match Tracker</p>
+      <div class="homeBrandRow">
+        <img class="homeAppIcon" src="icons/icon-192.png" alt="MKWT icon" width="72" height="72" />
+        <div class="homeBrandText">
+          <h1>Track VR, Lounge 12p, and MKCentral history in one place.</h1>
+          <p class="homeLead">
+            Log ranked matches, review sessions, measure track and intermission performance, save Lounge 12p mogis race by race,
+            and pull your Season 2 / 12p MKCentral stats into local charts.
+          </p>
         </div>
       </div>
 
-      <h1>Mario Kart World tracker for VR, matches, and clean stats</h1>
-      <p class="sub">
-        Log matches fast, track VR changes and sessions, and review performance by track and intermission routes.
-        MKWT works as <strong>Guest (local)</strong> or as an <strong>Account (Supabase)</strong>.
-      </p>
-
-      <div class="cta">
-        <a class="navAction" href="login.html">Login / Start</a>
-        <a class="navAction" href="login.html" id="tryGuest">Try as Guest</a>
+      <div class="homeActions">
+        <a class="navAction active" href="login.html">Login / Start</a>
+        <a class="navAction" data-guest-link="true" href="tracker.html">Open as Guest</a>
         <a class="navAction" href="about.html">About & Features</a>
       </div>
 
-      <div class="grid" aria-label="Features">
-        <div class="landingCard">
-          <h2>Match logging</h2>
-          <p>Track + intermission entries, opponents, placement, VR after & VR change.</p>
+      <div class="homeHighlights" aria-label="Core features">
+        <div class="homeHighlight">
+          <div class="homeHighlightLabel">VR Tracker</div>
+          <div class="homeHighlightValue">Fast logging</div>
+          <p>Track, intermission, placement, opponents, VR after, and VR change.</p>
         </div>
-        <div class="landingCard">
-          <h2>Sessions & progress</h2>
-          <p>See runs over time: start VR, end VR, and performance trends.</p>
+        <div class="homeHighlight">
+          <div class="homeHighlightLabel">Stats</div>
+          <div class="homeHighlightValue">Clean review</div>
+          <p>See averages, best tracks, distributions, trends, and session progress.</p>
         </div>
-        <div class="landingCard">
-          <h2>Stats & charts</h2>
-          <p>Distribution, win rates, averages, and track/intermission performance views.</p>
+        <div class="homeHighlight">
+          <div class="homeHighlightLabel">Lounge 12p</div>
+          <div class="homeHighlightValue">Race by race</div>
+          <p>Save mogis with DC tags, review the full set after race 12, and keep stats clean.</p>
+        </div>
+        <div class="homeHighlight">
+          <div class="homeHighlightLabel">Lounge Stats</div>
+          <div class="homeHighlightValue">MKCentral sync</div>
+          <p>Pull Season 2 / 12p history, daily play time, MMR trends, and last 50 average MMR.</p>
         </div>
       </div>
+    </div>
+  </section>
 
-      <p class="footer">
-        <span style="display:block; margin-top:6px;">Not affiliated with Nintendo.</span>
+  <section class="homeFeatureGrid" aria-label="Feature overview">
+    <article class="card homeFeature">
+      <p class="eyebrow">Tracker</p>
+      <h2>Log ranked matches without friction.</h2>
+      <p>
+        Save track or intermission results in seconds, keep VR before and after tidy, and build a complete match history without
+        leaving the app flow.
       </p>
-    </section>
-  </main>
+      <div class="homeFeatureMeta">Built for quick daily use, not spreadsheet cleanup later.</div>
+      <div class="homeFeatureActions">
+        <a class="navAction navAction--sm" href="tracker.html">Open Tracker</a>
+      </div>
+    </article>
 
-  
+    <article class="card homeFeature">
+      <p class="eyebrow">Stats</p>
+      <h2>See what actually moves your results.</h2>
+      <p>
+        Review VR history, session summaries, streaks, win rates, track distribution, and the routes or tracks where your results
+        stay strongest over time.
+      </p>
+      <div class="homeFeatureMeta">Built around the same charts and summaries you already use inside the app.</div>
+      <div class="homeFeatureActions">
+        <a class="navAction navAction--sm" href="stats.html">Open Stats</a>
+        <a class="navAction navAction--sm" href="sessions.html">Open Sessions</a>
+      </div>
+    </article>
+
+    <article class="card homeFeature">
+      <p class="eyebrow">Lounge 12p</p>
+      <h2>Track mogis race by race with proper review at the end.</h2>
+      <p>
+        Save 12-player mogis one race at a time, tag DCs without polluting the stats, and review the full 12-race result before you
+        commit it.
+      </p>
+      <div class="homeFeatureMeta">Placement charts, best-track rules, and cleaner post-mogi review are already included.</div>
+      <div class="homeFeatureActions">
+        <a class="navAction navAction--sm" href="lounge.html">Open Lounge 12p</a>
+      </div>
+    </article>
+
+    <article class="card homeFeature">
+      <p class="eyebrow">Lounge Stats</p>
+      <h2>Bring MKCentral Season 2 history into MKWT.</h2>
+      <p>
+        Save your MKCentral player ID in Settings, sync Season 2 / 12p results, and view local charts for MMR trend, daily play
+        time, average MMR over the last 50 mogis, and estimated season hours.
+      </p>
+      <div class="homeFeatureMeta">Account mode keeps your player ID in the cloud. Guest mode keeps it local.</div>
+      <div class="homeFeatureActions">
+        <a class="navAction navAction--sm" href="lounge-stats.html">Open Lounge Stats</a>
+        <a class="navAction navAction--sm" href="settings.html">Open Settings</a>
+      </div>
+    </article>
+  </section>
+
+  <section class="card homeAccess">
+    <div>
+      <p class="eyebrow">Access</p>
+      <h2>Play your way.</h2>
+      <p class="homeAccessText">
+        Guest mode keeps everything local on this device. Account mode syncs your tracker profile, Lounge data, and MKCentral player
+        ID through Supabase so you can pick up where you left off.
+      </p>
+    </div>
+    <div class="homeAccessActions">
+      <a class="navAction active" href="login.html">Login / Create Account</a>
+      <a class="navAction" data-guest-link="true" href="tracker.html">Continue as Guest</a>
+    </div>
+  </section>
+
+  <p class="homeDisclaimer">Not affiliated with Nintendo.</p>
+</main>
 
 <script src="mkwt_public.js"></script>
 <script src="index.js"></script>

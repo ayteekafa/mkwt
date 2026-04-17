@@ -35,10 +35,11 @@
       <p class="muted">Pull your public MKCentral events once, keep them locally in this app, and update later without deleting old entries.</p>
     </div>
     <div class="mkcActions">
-      <label class="mkcInputLabel">
-        <span>Player ID or profile URL</span>
-        <input id="mkcPlayerInput" inputmode="url" placeholder="78188"/>
-      </label>
+      <div class="mkcIdentityLine">
+        <span class="mkcIdentityName" id="mkcPlayerNameDisplay">MKCentral Player</span>
+        <span class="mkcIdentityDot">&bull;</span>
+        <span class="mkcIdentityId" id="mkcPlayerDisplay">Not set</span>
+      </div>
       <button class="navAction active" id="btnUpdateMkc" type="button">Update data</button>
       <a class="navAction" href="settings.html">Settings</a>
     </div>

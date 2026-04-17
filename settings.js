@@ -4,6 +4,97 @@ function setStatus(t, ok=true){ window.MKWT?.setStatus?.(statusEls, t, ok); }
 const STORAGE_KEYS = window.MKWT?.storageKeys || { theme:'mkwt_theme', minVrFilter:'mkwt_min_vr_filter', lastMode:'mkwt_last_mode' };
 const MKCENTRAL_PLAYER_KEY = 'mkwt_mkcentral_player_ref_v1';
 
+const SETTINGS_FIELDS = [
+  { inputId: "settingsNickname", stateId: "settingsNicknameState" },
+  { inputId: "settingsVr", stateId: "settingsVrState" },
+  { inputId: "settingsMkcentralPlayer", stateId: "settingsMkcentralState" },
+  { inputId: "settingsTheme", stateId: "settingsThemeState", accountOnly: true },
+  { inputId: "settingsMinVr", stateId: "settingsMinVrState" }
+];
+
+let settingsEditMode = false;
+let settingsSnapshot = null;
+
+function isAccountMode(){
+  return !!(window.SESSION && window.SESSION.user);
+}
+
+function captureSettingsSnapshot(){
+  return {
+    nickname: String($("settingsNickname")?.value || ""),
+    vr: String($("settingsVr")?.value || ""),
+    mkcentralPlayer: String($("settingsMkcentralPlayer")?.value || ""),
+    theme: String($("settingsTheme")?.value || "dark"),
+    minVr: String($("settingsMinVr")?.value || "")
+  };
+}
+
+function restoreSettingsSnapshot(snapshot){
+  if(!snapshot) return;
+  if($("settingsNickname")) $("settingsNickname").value = snapshot.nickname || "";
+  if($("settingsVr")) $("settingsVr").value = snapshot.vr || "";
+  if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = snapshot.mkcentralPlayer || "";
+  if($("settingsTheme")){
+    $("settingsTheme").value = snapshot.theme || "dark";
+    applyThemeValue($("settingsTheme").value);
+  }
+  if($("settingsMinVr")) $("settingsMinVr").value = snapshot.minVr || "";
+}
+
+function setFieldLockedState(field){
+  const input = $(field.inputId);
+  const state = $(field.stateId);
+  if(!input) return;
+
+  const lockedByAccount = !!field.accountOnly && !isAccountMode();
+  const editable = settingsEditMode && !lockedByAccount;
+
+  input.disabled = !editable;
+  input.classList.toggle("isEditing", editable);
+  input.classList.toggle("isSaved", !editable);
+
+  if(state){
+    state.textContent = lockedByAccount ? "Login required" : (editable ? "Editing..." : "Saved");
+    state.classList.toggle("editing", editable);
+    state.classList.toggle("saved", !editable);
+  }
+}
+
+function refreshSettingsEditUi(){
+  SETTINGS_FIELDS.forEach(setFieldLockedState);
+
+  const editBtn = $("btnEditSettings");
+  const saveBtn = $("btnSaveSettings");
+  const cancelBtn = $("btnCancelSettings");
+
+  if(editBtn) editBtn.disabled = settingsEditMode;
+  if(saveBtn) saveBtn.disabled = !settingsEditMode;
+  if(cancelBtn) cancelBtn.disabled = !settingsEditMode;
+}
+
+function beginSettingsEdit(){
+  settingsSnapshot = captureSettingsSnapshot();
+  settingsEditMode = true;
+  refreshSettingsEditUi();
+  try{
+    $("settingsNickname")?.focus();
+    $("settingsNickname")?.select?.();
+  }catch(e){}
+}
+
+function cancelSettingsEdit(){
+  restoreSettingsSnapshot(settingsSnapshot);
+  settingsEditMode = false;
+  refreshSettingsEditUi();
+  setStatus("Changes discarded.");
+}
+
+function finishSettingsSave(){
+  settingsSnapshot = captureSettingsSnapshot();
+  settingsEditMode = false;
+  refreshSettingsEditUi();
+}
+
 
 // ========= Theme (local setting, affects the whole UI) =========
 function applyThemeValue(t){
@@ -157,6 +248,7 @@ async function loadProfile(){
     const gp = window.MKWT?.loadGuestProfile ? window.MKWT.loadGuestProfile() : { nickname:'Guest', current_vr:0 };
     $("settingsNickname").value = gp?.nickname || "Guest";
     $("settingsVr").value = (gp?.current_vr ?? "");
+    loadMkcentralSetting();
     const count = guestCount();
     setTopInfo({ emailText: "Guest mode (local)", currentVrText: String(gp?.current_vr ?? "â€“"), matchCountText: String(count) });
     setStatus("Guest mode (saved locally)");
@@ -203,15 +295,18 @@ async function loadProfile(){
 
 
 async function saveSettings(){
-  // Apply + save local UI settings only when Save is pressed
-  saveThemeSetting();
-  const minVr = saveMinVrSetting();
+  if(!settingsEditMode) return;
+
   const mkcentralRaw = String($("settingsMkcentralPlayer")?.value || "").trim();
   const mkcentralId = extractMkcentralPlayerId(mkcentralRaw);
   if(mkcentralRaw && !mkcentralId){
     setStatus("Enter a valid MKCentral player ID or PlayerDetails URL.", false);
     return;
   }
+
+  // Apply + save local UI settings only when Save is pressed
+  saveThemeSetting();
+  const minVr = saveMinVrSetting();
   const mkcentral = saveMkcentralSetting();
   const mkcentralText = mkcentral ? " | MKCentral saved" : " | MKCentral cleared";
 
@@ -222,7 +317,9 @@ async function saveSettings(){
   if (isGuest()){
     if(nickname && Number.isFinite(vr)){
       window.MKWT?.saveGuestProfile?.({ nickname, current_vr: vr });
+      setTopInfo({ currentVrText: String(vr) });
     }
+    finishSettingsSave();
     setStatus(`Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : ""}${mkcentralText}.`);
     return;
   }
@@ -255,6 +352,8 @@ async function saveSettings(){
 
   if(error){ setStatus(error.message); return }
 
+  if(Number.isFinite(vr)) setTopInfo({ currentVrText: String(vr) });
+  finishSettingsSave();
   setStatus(`Saved${minVr>0 ? ` (Min VR: ${minVr})` : ""}${mkcentralText}`);
 }
 
@@ -264,6 +363,8 @@ async function saveSettings(){
 
 /* ========= INIT ========= */
 $("btnSaveSettings").onclick = saveSettings;
+$("btnEditSettings").onclick = beginSettingsEdit;
+$("btnCancelSettings").onclick = cancelSettingsEdit;
 
 $("btnChangePassword").onclick = () => {
   openPwModal();
@@ -341,9 +442,6 @@ function applyAuthVisibility(){
 
     if (themeSel){
       themeSel.value = "dark";
-      themeSel.disabled = true;
-      themeSel.style.opacity = "0.65";
-      themeSel.style.cursor = "not-allowed";
     }
     if (themeHelp){
       themeHelp.textContent = "Theme changes require login (Guest is locked to Midnight Matte).";
@@ -366,11 +464,6 @@ function applyAuthVisibility(){
       btnChangePw.style.cursor = "";
       btnChangePw.title = "";
     }
-    if (themeSel){
-      themeSel.disabled = false;
-      themeSel.style.opacity = "";
-      themeSel.style.cursor = "";
-    }
     if (themeHelp){
       themeHelp.textContent = "Applies after you press Save (stored locally on this device).";
     }
@@ -381,14 +474,15 @@ function applyAuthVisibility(){
       btnLogout.classList.remove("btn2");
       }
   }
+
+  refreshSettingsEditUi();
 }
 
 (async()=>{
   await requireAuth();
   applyAuthVisibility();
-  await loadProfile();
   loadMinVrSetting();
-  loadMkcentralSetting();
+  await loadProfile();
 
   // Theme: account can pick, guest is locked to dark
   if (window.SESSION && window.SESSION.user){
@@ -397,4 +491,8 @@ function applyAuthVisibility(){
     try{ document.documentElement.dataset.theme = "dark"; }catch(e){}
     try{ const sel = document.getElementById("settingsTheme"); if(sel){ sel.value="dark"; } }catch(e){}
   }
+
+  settingsSnapshot = captureSettingsSnapshot();
+  settingsEditMode = false;
+  refreshSettingsEditUi();
 })();
