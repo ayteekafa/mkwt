@@ -3,6 +3,8 @@
   const DEFAULT_PLAYER_REF = "";
   const SEASON = "2";
   const PLAYER_COUNT = "12";
+  const SEASON_START_DATE = "2026-02-01";
+  const AVG_MOGI_MINUTES = 42;
   const SUPABASE_URL = "https://imxlssgtzzdfgdscubdx.supabase.co";
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
   const $ = (id) => document.getElementById(id);
@@ -230,6 +232,15 @@
     return (n > 0 ? "+" : "") + fmtNumber(n, decimals);
   }
 
+  function fmtDurationMinutes(value){
+    const totalMinutes = Math.max(0, Math.round(Number(value) || 0));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if(hours && minutes) return `${hours}h ${minutes}m`;
+    if(hours) return `${hours}h`;
+    return `${minutes}m`;
+  }
+
   function fmtPct(value){
     const n = Number(value);
     if(!Number.isFinite(n)) return "-";
@@ -247,6 +258,31 @@
       hour: "2-digit",
       minute: "2-digit",
     });
+  }
+
+  function fmtDateShort(value){
+    if(!value) return "-";
+    const date = value instanceof Date ? value : new Date(value);
+    if(!Number.isFinite(date.getTime())) return String(value);
+    return date.toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  }
+
+  function toLocalDateKey(value){
+    const date = value instanceof Date ? value : new Date(value);
+    if(!Number.isFinite(date.getTime())) return "";
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function dateFromKey(key){
+    const match = String(key || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!match) return null;
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   }
 
   function escapeHtml(value){
@@ -421,6 +457,7 @@
       : null;
     const last10 = statEvents.slice(-10);
     const last50 = statEvents.slice(-50);
+    const last50Mmr = last50.map((event) => Number(event.mmr_after)).filter(Number.isFinite);
     const bestEvent = statEvents.slice().sort((a, b) => Number(b.mmr_delta) - Number(a.mmr_delta))[0] || null;
     const worstEvent = statEvents.slice().sort((a, b) => Number(a.mmr_delta) - Number(b.mmr_delta))[0] || null;
 
@@ -437,8 +474,9 @@
       neutral,
       last10Gain: sum(last10.map((event) => event.mmr_delta)),
       last10Count: last10.length,
-      last50Avg: last50.length ? sum(last50.map((event) => event.mmr_delta)) / last50.length : null,
+      last50MmrAvg: last50Mmr.length ? sum(last50Mmr) / last50Mmr.length : null,
       last50Count: last50.length,
+      seasonMinutes: statEvents.length * AVG_MOGI_MINUTES,
       bestEvent,
       worstEvent,
       officialEvents: parseNumber(summary?.["Events Played"]),
@@ -489,7 +527,8 @@
       card("Events", fmtNumber(derived.eventCount), derived.officialEvents ? `Official: ${fmtNumber(derived.officialEvents)}` : "Local synced"),
       card("Total Gain", fmtDelta(derived.totalGain), "Merged local history", gainClass(derived.totalGain)),
       card("Avg Gain", derived.avgGain == null ? "-" : fmtSigned(derived.avgGain), "Per event", gainClass(derived.avgGain)),
-      card("Avg Last 50", derived.last50Avg == null ? "-" : fmtSigned(derived.last50Avg), `${derived.last50Count} events`, gainClass(derived.last50Avg)),
+      card("Avg Last 50", derived.last50MmrAvg == null ? "-" : fmtNumber(derived.last50MmrAvg), `${derived.last50Count} events | average MMR`),
+      card("Season Hours", fmtDurationMinutes(derived.seasonMinutes), `${derived.eventCount} mogis x ${AVG_MOGI_MINUTES}m`),
       card("Winrate", fmtPct(derived.winrate), `${derived.wins} W / ${derived.losses} L / ${derived.neutral} even`),
       card("Last 10 Gain", fmtDelta(derived.last10Gain), `${derived.last10Count} events`, gainClass(derived.last10Gain)),
       card("Best Event", derived.bestEvent ? fmtDelta(derived.bestEvent.mmr_delta) : "-", derived.bestEvent?.event || "", gainClass(derived.bestEvent?.mmr_delta)),
@@ -541,14 +580,46 @@
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   }
 
+  function buildDailyPlaySeries(events){
+    const countsByDay = new Map();
+    getStatEvents(events).forEach((event) => {
+      const key = toLocalDateKey(event.created_at);
+      if(!key) return;
+      countsByDay.set(key, (countsByDay.get(key) || 0) + 1);
+    });
+
+    const startDate = dateFromKey(SEASON_START_DATE) || new Date();
+    startDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const labels = [];
+    const dateKeys = [];
+    const mogis = [];
+    const minutes = [];
+
+    for(let cursor = new Date(startDate); cursor <= today; cursor.setDate(cursor.getDate() + 1)){
+      const day = new Date(cursor);
+      const key = toLocalDateKey(day);
+      const count = countsByDay.get(key) || 0;
+      dateKeys.push(key);
+      labels.push(fmtDateShort(day));
+      mogis.push(count);
+      minutes.push(count * AVG_MOGI_MINUTES);
+    }
+
+    return { labels, dateKeys, mogis, minutes };
+  }
+
   function renderCharts(events){
     if(typeof Chart === "undefined") return;
     const statEvents = getStatEvents(events).filter((event) => Number.isFinite(event.mmr_delta));
+    const dailySeries = buildDailyPlaySeries(events);
     const labels = statEvents.map((event, index) => String(index + 1));
     const deltas = statEvents.map((event) => event.mmr_delta);
     const mmr = statEvents.map((event) => event.mmr_after);
     const chartMeta = $("mkcChartMeta");
-    if(chartMeta) chartMeta.textContent = statEvents.length ? `${statEvents.length} events, oldest to newest.` : "No event data yet.";
+    if(chartMeta) chartMeta.textContent = `Estimated daily play time from ${fmtDateShort(dateFromKey(SEASON_START_DATE) || SEASON_START_DATE)} to ${fmtDateShort(new Date())}. 1 mogi = ${AVG_MOGI_MINUTES} minutes.`;
 
     const textColor = cssVar("--text", "#fff");
     const gridColor = cssVar("--border", "rgba(255,255,255,.2)");
@@ -556,17 +627,28 @@
       const event = statEvents[items?.[0]?.dataIndex];
       return event ? `${event.event} (${fmtDate(event.created_at)})` : "";
     };
+    const dailyTooltipTitle = (items) => {
+      const key = dailySeries.dateKeys[items?.[0]?.dataIndex];
+      const date = dateFromKey(key);
+      return date ? date.toLocaleDateString("de-DE", {
+        weekday: "short",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }) : "";
+    };
+    const dailyHours = dailySeries.minutes.map((value) => Number((value / 60).toFixed(2)));
 
     chartDelta?.destroy();
     chartDelta = new Chart($("chartMkcDelta"), {
       type: "bar",
       data: {
-        labels,
+        labels: dailySeries.labels,
         datasets: [{
-          label: "MMR Delta",
-          data: deltas,
-          backgroundColor: deltas.map((v) => v >= 0 ? "rgba(77,163,25,.82)" : "rgba(255,80,80,.82)"),
-          borderColor: deltas.map((v) => v >= 0 ? "rgb(77,163,25)" : "rgb(255,80,80)"),
+          label: "Daily Play Time",
+          data: dailyHours,
+          backgroundColor: "rgba(78,124,255,.82)",
+          borderColor: "rgb(78,124,255)",
           borderWidth: 1,
         }],
       },
@@ -575,15 +657,21 @@
         maintainAspectRatio: false,
         scales: {
           x: { ticks: { color: textColor, maxRotation: 0, autoSkip: true }, grid: { color: gridColor } },
-          y: { ticks: { color: textColor }, grid: { color: gridColor } },
+          y: {
+            ticks: {
+              color: textColor,
+              callback: (value) => `${value}h`,
+            },
+            grid: { color: gridColor },
+          },
         },
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              title: tooltipTitle,
-              label: (ctx) => `Delta: ${fmtDelta(ctx.parsed.y)}`,
-              afterLabel: (ctx) => `MMR after: ${fmtNumber(statEvents[ctx.dataIndex]?.mmr_after)}`,
+              title: dailyTooltipTitle,
+              label: (ctx) => `Play time: ${fmtDurationMinutes(dailySeries.minutes[ctx.dataIndex])}`,
+              afterLabel: (ctx) => `Mogis: ${dailySeries.mogis[ctx.dataIndex]}`,
             },
           },
         },
