@@ -67,6 +67,33 @@
     const match = raw.match(/PlayerDetails\/(\d+)/i);
     return match ? match[1] : '';
   }
+  function normalizeMkcentralFormat(value){
+    const raw = String(value || '').trim();
+    if(!raw || /^\d{5,}$/.test(raw)) return 'Other';
+    const upper = raw.toUpperCase();
+    if(upper === 'FFA') return 'FFA';
+    if(/^\d+V\d+$/.test(upper)) return upper;
+    return upper || 'Other';
+  }
+  function normalizeMkcentralTier(value){
+    const raw = String(value || '').trim();
+    if(!raw || /^\d{5,}$/.test(raw)) return 'Other';
+    return raw.toUpperCase() || 'Other';
+  }
+  function parseMkcentralEventLabel(label){
+    const text = String(label || '');
+    return {
+      format: normalizeMkcentralFormat((text.match(/\b(FFA|\d+v\d+)\b/i) || [])[1]),
+      tier: normalizeMkcentralTier((text.match(/\bTier\s+([A-Z]+)\b/i) || [])[1]),
+    };
+  }
+  function mkcentralGroupValue(event, key){
+    const normalizer = key === 'tier' ? normalizeMkcentralTier : normalizeMkcentralFormat;
+    const direct = normalizer(event?.[key]);
+    if(direct !== 'Other') return direct;
+    const parsed = parseMkcentralEventLabel(event?.raw_event || event?.event || event?.event_name || '');
+    return normalizer(parsed[key]);
+  }
   function mkcentralDataKey(playerId){
     return `mkwt_mkcentral_${playerId}_season${MKCENTRAL_SEASON}_p${MKCENTRAL_PLAYER_COUNT}_v1`;
   }
@@ -161,8 +188,8 @@
     return 0;
   }
   function mkcentralConfidenceLabel(score){
-    if(score >= 90) return 'High';
-    if(score >= 70) return 'Medium';
+    if(score >= 95) return 'High';
+    if(score >= 78) return 'Medium';
     return 'Low';
   }
   function buildMkcentralNote(candidate){
@@ -173,7 +200,152 @@
     if(Number.isFinite(candidate.hoursDiff)){
       parts.push(candidate.hoursDiff < 1 ? 'time < 1h' : `${candidate.hoursDiff.toFixed(1)}h off`);
     }
-    return parts.length ? `Auto-match: ${parts.join(' · ')}` : 'Auto-match';
+    return parts.length ? `Auto-match: ${parts.join(' | ')}` : 'Auto-match';
+  }
+  function dateKeyFromTimestamp(timestamp){
+    if(!Number.isFinite(timestamp) || timestamp <= 0) return '';
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  function buildMkcentralCandidate(sessionItem, sessionOrder, event, eventOrder, sessionTotal, eventTotal){
+    if(sessionItem.raceCount < 12) return null;
+
+    const eventTime = event.__time || eventTimestamp(event.table_verified_at || event.created_at || event.table_created_at);
+    const hoursDiff = sessionItem.time && eventTime ? Math.abs(sessionItem.time - eventTime) / 3600000 : Infinity;
+    if(hoursDiff > 72) return null;
+
+    const tableScore = finiteNumber(event.table_score);
+    const hasScore = tableScore != null;
+    const pointsDiff = hasScore ? Math.abs(sessionItem.points - tableScore) : Infinity;
+
+    if(hasScore){
+      if(pointsDiff > 10) return null;
+      if(pointsDiff > 5 && hoursDiff > 6) return null;
+      if(pointsDiff > 2 && hoursDiff > 24) return null;
+    }else if(hoursDiff > 4){
+      return null;
+    }
+
+    let pointsScore = 0;
+    if(hasScore){
+      if(pointsDiff === 0) pointsScore = 70;
+      else if(pointsDiff <= 2) pointsScore = 54;
+      else if(pointsDiff <= 5) pointsScore = 34;
+      else pointsScore = 16;
+    }
+
+    let timeScore = 0;
+    if(hoursDiff <= 0.5) timeScore = 32;
+    else if(hoursDiff <= 2) timeScore = 24;
+    else if(hoursDiff <= 6) timeScore = 16;
+    else if(hoursDiff <= 12) timeScore = 10;
+    else if(hoursDiff <= 24) timeScore = 5;
+
+    let orderScore = 0;
+    if(sessionTotal <= 1 || eventTotal <= 1){
+      orderScore = 8;
+    }else{
+      const sessionRatio = sessionOrder / Math.max(1, sessionTotal - 1);
+      const eventRatio = eventOrder / Math.max(1, eventTotal - 1);
+      const orderDiff = Math.abs(sessionRatio - eventRatio);
+      if(orderDiff <= 0.015) orderScore = 14;
+      else if(orderDiff <= 0.04) orderScore = 10;
+      else if(orderDiff <= 0.08) orderScore = 6;
+      else if(orderDiff <= 0.15) orderScore = 2;
+    }
+
+    const sameDayScore = sessionItem.time && eventTime && dateKeyFromTimestamp(sessionItem.time) === dateKeyFromTimestamp(eventTime) ? 6 : 0;
+    const score = pointsScore + timeScore + orderScore + sameDayScore;
+    if(score < 78) return null;
+
+    return {
+      score,
+      pointsDiff,
+      hoursDiff,
+      sessionOrder,
+      eventOrder,
+      eventTime,
+      originalIndex: sessionItem.originalIndex,
+      event,
+    };
+  }
+  function assignMkcentralMatchesWithOrder(sessions, events){
+    const dp = Array.from({ length: sessions.length + 1 }, () => Array(events.length + 1).fill(0));
+    const choice = Array.from({ length: sessions.length + 1 }, () => Array(events.length + 1).fill(null));
+
+    for(let i = 1; i <= sessions.length; i += 1){
+      for(let j = 1; j <= events.length; j += 1){
+        const candidate = buildMkcentralCandidate(
+          sessions[i - 1],
+          i - 1,
+          events[j - 1],
+          j - 1,
+          sessions.length,
+          events.length
+        );
+
+        let best = dp[i - 1][j];
+        let bestChoice = 'skip-session';
+
+        if(dp[i][j - 1] > best){
+          best = dp[i][j - 1];
+          bestChoice = 'skip-event';
+        }
+
+        if(candidate){
+          const matchScore = dp[i - 1][j - 1] + candidate.score;
+          if(matchScore > best){
+            best = matchScore;
+            bestChoice = candidate;
+          }
+        }
+
+        dp[i][j] = best;
+        choice[i][j] = bestChoice;
+      }
+    }
+
+    let i = sessions.length;
+    let j = events.length;
+    const matches = [];
+    while(i > 0 && j > 0){
+      const picked = choice[i][j];
+      if(picked === 'skip-session'){
+        i -= 1;
+      }else if(picked === 'skip-event'){
+        j -= 1;
+      }else if(picked && typeof picked === 'object'){
+        matches.push(picked);
+        i -= 1;
+        j -= 1;
+      }else{
+        break;
+      }
+    }
+
+    matches.reverse().forEach((candidate) => {
+      const eventId = String(candidate.event?.id || '');
+      if(!eventId) return;
+      state.mkcentralMatches[candidate.originalIndex] = {
+        event_id: eventId,
+        event_name: candidate.event.event || '',
+        format: mkcentralGroupValue(candidate.event, 'format'),
+        tier: mkcentralGroupValue(candidate.event, 'tier'),
+        table_url: candidate.event.table_url || '',
+        table_rank: finiteNumber(candidate.event.table_rank),
+        table_score: finiteNumber(candidate.event.table_score),
+        mmr_before: finiteNumber(candidate.event.mmr_before),
+        mmr_delta: finiteNumber(candidate.event.mmr_delta),
+        mmr_after: finiteNumber(candidate.event.mmr_after),
+        created_at: candidate.event.table_verified_at || candidate.event.created_at || candidate.event.table_created_at || '',
+        confidence_label: mkcentralConfidenceLabel(candidate.score),
+        confidence_note: buildMkcentralNote(candidate),
+        confidence_score: candidate.score,
+      };
+    });
   }
   function computeMkcentralMatches(){
     state.mkcentralMatches = {};
@@ -186,7 +358,7 @@
       .map((event, originalEventIndex) => ({
         ...event,
         __originalEventIndex: originalEventIndex,
-        __time: eventTimestamp(event.created_at || event.table_created_at),
+        __time: eventTimestamp(event.table_verified_at || event.created_at || event.table_created_at),
       }))
       .sort((a, b) => a.__time - b.__time || String(a.id).localeCompare(String(b.id)));
 
@@ -202,71 +374,13 @@
 
     if(!events.length || !sessions.length) return;
 
-    const candidates = [];
-    sessions.forEach((sessionItem, sessionOrder) => {
-      events.forEach((event, eventOrder) => {
-        const tableScore = finiteNumber(event.table_score);
-        const hasScore = tableScore != null;
-        const pointsDiff = hasScore ? Math.abs(sessionItem.points - tableScore) : Infinity;
-        const hoursDiff = sessionItem.time && event.__time ? Math.abs(sessionItem.time - event.__time) / 3600000 : Infinity;
-        const score = mkcentralTimeScore(hoursDiff)
-          + mkcentralPointsScore(pointsDiff, hasScore)
-          + mkcentralOrderScore(sessionOrder, eventOrder, sessions.length, events.length)
-          + (sessionItem.raceCount >= 12 ? 6 : 0);
-
-        if(!hasScore && hoursDiff > 12) return;
-        if(score < 34) return;
-
-        candidates.push({
-          score,
-          pointsDiff,
-          hoursDiff,
-          sessionOrder,
-          eventOrder,
-          originalIndex: sessionItem.originalIndex,
-          event,
-        });
-      });
-    });
-
-    candidates.sort((a, b) =>
-      b.score - a.score
-      || a.hoursDiff - b.hoursDiff
-      || a.pointsDiff - b.pointsDiff
-      || Math.abs(a.sessionOrder - a.eventOrder) - Math.abs(b.sessionOrder - b.eventOrder)
-    );
-
-    const assignedSessions = new Set();
-    const assignedEvents = new Set();
-
-    candidates.forEach((candidate) => {
-      const eventId = String(candidate.event?.id || '');
-      if(!eventId || assignedSessions.has(candidate.originalIndex) || assignedEvents.has(eventId)) return;
-
-      assignedSessions.add(candidate.originalIndex);
-      assignedEvents.add(eventId);
-      state.mkcentralMatches[candidate.originalIndex] = {
-        event_id: eventId,
-        event_name: candidate.event.event || '',
-        format: candidate.event.format || 'Other',
-        tier: candidate.event.tier || '',
-        table_url: candidate.event.table_url || '',
-        table_rank: finiteNumber(candidate.event.table_rank),
-        table_score: finiteNumber(candidate.event.table_score),
-        mmr_before: finiteNumber(candidate.event.mmr_before),
-        mmr_delta: finiteNumber(candidate.event.mmr_delta),
-        mmr_after: finiteNumber(candidate.event.mmr_after),
-        created_at: candidate.event.created_at || candidate.event.table_created_at || '',
-        confidence_label: mkcentralConfidenceLabel(candidate.score),
-        confidence_note: buildMkcentralNote(candidate),
-        confidence_score: candidate.score,
-      };
-    });
+    assignMkcentralMatchesWithOrder(sessions, events);
   }
   function renderSessionMkcentral(match){
     if(!match) return '';
     const bits = [];
-    if(match.format) bits.push(`<span>${escapeHtml(match.format)}</span>`);
+    if(match.format && match.format !== 'Other') bits.push(`<span>${escapeHtml(match.format)}</span>`);
+    if(match.tier && match.tier !== 'Other') bits.push(`<span>Tier ${escapeHtml(match.tier)}</span>`);
     if(Number.isFinite(match.table_rank)) bits.push(`<span>Place #${escapeHtml(String(match.table_rank))}</span>`);
     if(Number.isFinite(match.table_score)) bits.push(`<span>${escapeHtml(String(match.table_score))} pts</span>`);
     if(Number.isFinite(match.mmr_delta)) bits.push(`<span class="${mkcentralGainClass(match.mmr_delta)}">${escapeHtml(fmtDelta(match.mmr_delta))}</span>`);

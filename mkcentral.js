@@ -242,6 +242,28 @@
     };
   }
 
+  function isSuspiciousGroupLabel(value){
+    const raw = cleanText(value);
+    return !raw || /^\d{5,}$/.test(raw);
+  }
+
+  function normalizeGroupLabel(value, key){
+    const raw = cleanText(value);
+    if(key === "format"){
+      const upper = raw.toUpperCase();
+      if(/^FFA$/.test(upper)) return "FFA";
+      if(/^\d+V\d+$/.test(upper)) return upper;
+      if(isSuspiciousGroupLabel(raw)) return "Other";
+      return upper || "Other";
+    }
+    if(key === "tier"){
+      const upper = raw.toUpperCase();
+      if(isSuspiciousGroupLabel(upper)) return "Other";
+      return upper || "Other";
+    }
+    return raw || "Other";
+  }
+
   function normalizeIsoTime(value){
     const raw = String(value || "").trim();
     if(!raw) return "";
@@ -344,7 +366,15 @@
     const out = {};
     if(!dl) return out;
     dl.querySelectorAll("dt").forEach((dt) => {
-      const dd = dt.parentElement?.querySelector("dd");
+      let dd = dt.nextElementSibling;
+      while(dd && dd.tagName?.toLowerCase() !== "dd") dd = dd.nextElementSibling;
+      if(!dd){
+        const parent = dt.parentElement;
+        if(parent){
+          const localDd = Array.from(parent.children).find((child) => child.tagName?.toLowerCase() === "dd");
+          if(localDd) dd = localDd;
+        }
+      }
       const key = cleanText(dt.textContent);
       if(key) out[key] = cleanText(dd?.textContent || "");
     });
@@ -368,6 +398,13 @@
     const format = (title.match(/\b(FFA|\d+v\d+)\b/i)?.[1] || "Other").toUpperCase();
     const tier = title.match(/\bTier\s+([A-Z]+)\b/i)?.[1]?.toUpperCase() || "Other";
     return { title, format, tier };
+  }
+
+  function eventGroupLabel(event, key){
+    const label = normalizeGroupLabel(event?.[key], key);
+    if(label !== "Other") return label;
+    const parsed = parseEventLabel(event?.raw_event || event?.event || "");
+    return normalizeGroupLabel(parsed[key], key);
   }
 
   function parsePlayerPage(html){
@@ -475,8 +512,8 @@
       mmr_delta: playerRow?.mmr_delta ?? null,
       mmr_after: playerRow?.mmr_after ?? null,
       table_player_name: playerRow?.table_player_name || playerName || "",
-      format: cleanText(meta["Format"]) || "",
-      tier: cleanText(meta["Tier"]) || "",
+      format: cleanText(meta["Format"]).toUpperCase() || "",
+      tier: cleanText(meta["Tier"]).toUpperCase() || "",
       table_created_at: normalizeIsoTime(meta["Time Created"] || ""),
       table_verified_at: normalizeIsoTime(meta["Time Verified"] || ""),
     };
@@ -551,7 +588,9 @@
       return finiteNumber(event.table_rank) == null
         || finiteNumber(event.table_score) == null
         || finiteNumber(event.mmr_before) == null
-        || !cleanText(event.table_player_name);
+        || !cleanText(event.table_player_name)
+        || isSuspiciousGroupLabel(event.format)
+        || isSuspiciousGroupLabel(event.tier);
     });
 
     if(!targets.length){
@@ -586,8 +625,8 @@
           nextEvents[eventIndex] = {
             ...nextEvents[eventIndex],
             ...parsed,
-            format: cleanText(parsed.format) || cleanText(nextEvents[eventIndex].format),
-            tier: cleanText(parsed.tier) || cleanText(nextEvents[eventIndex].tier),
+            format: normalizeGroupLabel(parsed.format || nextEvents[eventIndex].format, "format"),
+            tier: normalizeGroupLabel(parsed.tier || nextEvents[eventIndex].tier, "tier"),
           };
           if(finiteNumber(parsed.table_rank) != null || finiteNumber(parsed.table_score) != null) enriched += 1;
         }else{
@@ -675,7 +714,7 @@
   function groupedRows(events, key){
     const map = new Map();
     getStatEvents(events).forEach((event) => {
-      const label = cleanText(event[key]) || "Other";
+      const label = eventGroupLabel(event, key);
       const row = map.get(label) || { label, count: 0, total: 0, wins: 0, losses: 0 };
       const delta = parsedNumber(event.mmr_delta);
       if(delta == null) return;
@@ -689,7 +728,25 @@
       ...row,
       avg: row.count ? row.total / row.count : 0,
       winrate: (row.wins + row.losses) ? row.wins / (row.wins + row.losses) * 100 : null,
-    })).sort((a, b) => b.count - a.count || b.avg - a.avg || a.label.localeCompare(b.label));
+    })).sort((a, b) => {
+      if(key === "format"){
+        const order = ["FFA", "2V2", "3V3", "4V4", "OTHER"];
+        const ai = order.indexOf(String(a.label).toUpperCase());
+        const bi = order.indexOf(String(b.label).toUpperCase());
+        const av = ai === -1 ? order.length : ai;
+        const bv = bi === -1 ? order.length : bi;
+        return av - bv || b.count - a.count || b.avg - a.avg || a.label.localeCompare(b.label);
+      }
+      if(key === "tier"){
+        const order = ["X", "S", "A", "AB", "B", "BC", "C", "CD", "D", "DE", "E", "F", "OTHER"];
+        const ai = order.indexOf(String(a.label).toUpperCase());
+        const bi = order.indexOf(String(b.label).toUpperCase());
+        const av = ai === -1 ? order.length : ai;
+        const bv = bi === -1 ? order.length : bi;
+        return av - bv || a.label.localeCompare(b.label, "en", { numeric: true }) || b.count - a.count || b.avg - a.avg;
+      }
+      return b.count - a.count || b.avg - a.avg || a.label.localeCompare(b.label);
+    });
   }
 
   function card(label, value, meta = "", cls = ""){
