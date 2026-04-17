@@ -360,31 +360,47 @@
     const dls = Array.from(doc.querySelectorAll("dl"));
     const profile = readDl(dls[0]);
     const summary = readDl(nextDlAfterHeading(doc, "12 Player Events") || dls[1]);
-    const rows = Array.from(doc.querySelectorAll("table tr")).filter((row) => !row.querySelector("th"));
+    const events = [];
+    for(const table of Array.from(doc.querySelectorAll("table"))){
+      const headerRow = Array.from(table.querySelectorAll("tr")).find((row) => row.querySelectorAll("th").length >= 3);
+      if(!headerRow) continue;
+      const headers = Array.from(headerRow.querySelectorAll("th")).map((th) => cleanText(th.textContent).toLowerCase());
+      const eventIdx = headers.findIndex((text) => text.includes("event"));
+      const timeIdx = headers.findIndex((text) => text.includes("time"));
+      const deltaIdx = headers.findIndex((text) => text.includes("delta"));
+      const mmrIdx = headers.findIndex((text) => text === "mmr" || text.includes("new mmr"));
+      if(eventIdx < 0 || timeIdx < 0 || deltaIdx < 0 || mmrIdx < 0) continue;
 
-    const events = rows.map((row) => {
-      const cells = Array.from(row.querySelectorAll("td"));
-      if(cells.length < 4) return null;
-      const link = cells[0].querySelector("a");
-      const label = cleanText(link?.textContent || cells[0].textContent);
-      const href = link?.getAttribute("href") || "";
-      const id = (href.match(/TableDetails\/(\d+)/i)?.[1] || label.match(/ID:\s*(\d+)/i)?.[1] || "").trim();
-      if(!id || !label) return null;
-      const parsed = parseEventLabel(label);
-      const timeAttr = cells[1].querySelector("[data-time]")?.getAttribute("data-time") || cleanText(cells[1].textContent);
-      const createdAt = normalizeIsoTime(timeAttr);
-      return {
-        id,
-        event: parsed.title,
-        raw_event: label,
-        format: parsed.format,
-        tier: parsed.tier,
-        created_at: createdAt,
-        mmr_delta: parseDelta(cells[2].textContent),
-        mmr_after: parseNumber(cells[3].textContent),
-        table_url: `https://lounge.mkcentral.com/mkworld/TableDetails/${id}`,
-      };
-    }).filter(Boolean);
+      Array.from(table.querySelectorAll("tr")).forEach((row) => {
+        if(row === headerRow || row.querySelector("th")) return;
+        const cells = Array.from(row.querySelectorAll("td"));
+        if(cells.length <= Math.max(eventIdx, timeIdx, deltaIdx, mmrIdx)) return;
+        const eventCell = cells[eventIdx];
+        const link = eventCell?.querySelector("a");
+        const label = cleanText(link?.textContent || eventCell?.textContent || "");
+        const href = link?.getAttribute("href") || "";
+        const id = (href.match(/TableDetails\/(\d+)/i)?.[1] || label.match(/ID:\s*(\d+)/i)?.[1] || "").trim();
+        if(!id || !label) return;
+        const parsed = parseEventLabel(label);
+        const timeAttr = cells[timeIdx]?.querySelector("[data-time]")?.getAttribute("data-time") || cleanText(cells[timeIdx]?.textContent);
+        const createdAt = normalizeIsoTime(timeAttr);
+        const mmrDeltaText = cleanText(cells[deltaIdx]?.textContent);
+        const mmrAfterText = cleanText(cells[mmrIdx]?.textContent);
+        const event = {
+          id,
+          event: parsed.title,
+          raw_event: label,
+          format: parsed.format,
+          tier: parsed.tier,
+          created_at: createdAt,
+          mmr_delta: parseDelta(mmrDeltaText),
+          mmr_after: parseNumber(mmrAfterText),
+          table_url: `https://lounge.mkcentral.com/mkworld/TableDetails/${id}`,
+        };
+        if(Number.isFinite(event.mmr_delta) || Number.isFinite(event.mmr_after)) events.push(event);
+      });
+      if(events.length) break;
+    }
 
     return { playerName, profile, summary, events };
   }
