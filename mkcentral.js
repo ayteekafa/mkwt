@@ -112,23 +112,60 @@
     try{
       const resolved = await resolveSession();
       if(!resolved.session?.user?.id || !resolved.client) return;
+      const uid = resolved.session.user.id;
+      const now = new Date().toISOString();
 
-      let { error } = await resolved.client
+      let { data, error } = await resolved.client
         .from("profiles")
-        .upsert({
-          id: resolved.session.user.id,
-          mkcentral_player_id: playerId,
-          updated_at: new Date().toISOString(),
-        });
+        .select("id")
+        .eq("id", uid)
+        .maybeSingle();
 
       if(error && String(error.message || "").includes("column profiles.id")){
-        ({ error } = await resolved.client
+        ({ data, error } = await resolved.client
           .from("profiles")
-          .upsert({
-            user_id: resolved.session.user.id,
-            mkcentral_player_id: playerId,
-            updated_at: new Date().toISOString(),
-          }));
+          .select("user_id")
+          .eq("user_id", uid)
+          .maybeSingle());
+        if(error) throw error;
+
+        if(data){
+          ({ error } = await resolved.client
+            .from("profiles")
+            .update({
+              mkcentral_player_id: playerId,
+              updated_at: now,
+            })
+            .eq("user_id", uid));
+        }else{
+          ({ error } = await resolved.client
+            .from("profiles")
+            .insert({
+              user_id: uid,
+              mkcentral_player_id: playerId,
+              updated_at: now,
+            }));
+        }
+      }else{
+        if(error) throw error;
+
+        if(data){
+          ({ error } = await resolved.client
+            .from("profiles")
+            .update({
+              mkcentral_player_id: playerId,
+              updated_at: now,
+            })
+            .eq("id", uid));
+        }else{
+          ({ error } = await resolved.client
+            .from("profiles")
+            .insert({
+              id: uid,
+              mkcentral_player_id: playerId,
+              updated_at: now,
+            }));
+        }
       }
 
       if(error) throw error;
@@ -326,6 +363,9 @@
         const payload = await res.json().catch(() => null);
         if(res.ok && payload?.ok) return payload;
         lastError = payload?.error || `HTTP ${res.status}`;
+        if(localHostnames.has(location.hostname) && !url.startsWith("http://127.0.0.1:8788")){
+          continue;
+        }
         if(res.status !== 404) break;
       }catch(e){
         lastError = e?.message || "Network error";
