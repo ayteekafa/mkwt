@@ -99,10 +99,18 @@
   }
 
 
-  function escapeHtml(s){
+function escapeHtml(s){
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
+}
+
+function placementBannerClass(placement){
+  const place = Number(placement);
+  if (place === 1) return "trackerRow--gold";
+  if (place === 2) return "trackerRow--silver";
+  if (place === 3) return "trackerRow--bronze";
+  return "";
 }
 
 // ========= Track-Liste =========
@@ -359,7 +367,7 @@ async function loadMatches() {
       const perfStr = opp ? perf.toFixed(2) : "";
       const canDelete = (currentPage === 1 && idx === 0); // only newest match can be deleted
       return `
-        <tr>
+        <tr class="${placementBannerClass(place)}">
           <td>${matchNo}</td>
           <td>${created}</td>
           <td>${intermissionCellHtml}</td>
@@ -1300,9 +1308,34 @@ async function deleteMatch(id){
     setDebug(e?.stack || "");
   }
 }
+
+function setupSessionsDialog(){
+  const btn = $("btnShowSessions");
+  const dlg = $("sessionsDlg");
+  const closeBtn = $("btnCloseSessionsDlg");
+  const frame = $("sessionsFrame");
+  if (!btn || !dlg || !frame) return;
+
+  const closeDialog = () => {
+    if (typeof dlg.close === "function") dlg.close();
+    else dlg.removeAttribute("open");
+  };
+
+  btn.addEventListener("click", () => {
+    frame.src = "sessions.html?embed=1&t=" + Date.now();
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+  });
+  closeBtn?.addEventListener("click", closeDialog);
+  dlg.addEventListener("click", (event) => {
+    if (event.target === dlg) closeDialog();
+  });
+}
+
   // Buttons
   $("btnCreateProfile")?.addEventListener("click", createProfile);
   $("btnSaveMatch")?.addEventListener("click", saveMatch);
+  setupSessionsDialog();
 
   // Live-Sync der Eingabefelder
   $("vrChange")?.addEventListener("input", syncFromDelta);

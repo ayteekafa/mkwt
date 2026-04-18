@@ -461,6 +461,74 @@ h2 .byAytee{
 .navLink:hover{ border-color: var(--border); background: var(--hover); }
 .navLink.active{ background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
 
+.navDropdown{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  flex:0 0 auto;
+}
+.navDropTrigger{
+  appearance:none;
+  background:transparent;
+  cursor:pointer;
+  font:inherit;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.navDropTrigger::after{
+  content:"";
+  width:0;
+  height:0;
+  border-left:4px solid transparent;
+  border-right:4px solid transparent;
+  border-top:5px solid currentColor;
+  opacity:.7;
+  transform:translateY(1px);
+}
+.navDropdownMenu{
+  position:fixed;
+  left:0;
+  top:0;
+  min-width:190px;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(-4px);
+  transition:opacity .14s ease, transform .14s ease, visibility .14s ease;
+  pointer-events:none;
+  z-index:1000;
+}
+.navDropdown.is-open .navDropdownMenu{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+.navDropdownItem{
+  display:block;
+  padding:9px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--nav-text);
+  text-decoration:none;
+  white-space:nowrap;
+  font-weight:800;
+}
+.navDropdownItem:hover{
+  background: var(--hover);
+}
+.navDropdownItem.active{
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
 .navLink.navIcon{
   width: 36px;
   text-align:center;
@@ -512,6 +580,9 @@ h2 .byAytee{
     padding: 8px 9px;
     font-size: 13px;
     white-space: nowrap;
+  }
+  .navDropdownMenu{
+    min-width:168px;
   }
   .navLink.navIcon{ width: 34px; font-size: 16px; }
 

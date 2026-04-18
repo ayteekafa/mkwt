@@ -239,17 +239,19 @@ window.mkwtRequireAuth = async function(options = {}){
   async function readLoungeCloudForBackup(){
     if (!window.supabaseClient || !window.SESSION?.user?.id) return null;
     const uid = window.SESSION.user.id;
+    const loungePlayerCount = Number(window.MKWT_LOUNGE_CONFIG?.playerCount || 12);
 
     const { data: mogis, error: mogiError } = await supabaseClient
       .from("lounge_mogis")
-      .select("id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects")
+      .select("id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects, player_count")
       .eq("user_id", uid)
+      .eq("player_count", loungePlayerCount)
       .order("created_at", { ascending: false });
     if (mogiError) throw mogiError;
 
     const { data: races, error: raceError } = await supabaseClient
       .from("lounge_races")
-      .select("id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at")
+      .select("id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at")
       .eq("user_id", uid)
       .order("race_number", { ascending: true });
     if (raceError) throw raceError;
@@ -262,6 +264,9 @@ window.mkwtRequireAuth = async function(options = {}){
 
     const toLocalRace = (race) => ({
       track: race.track,
+      raceKind: race.race_kind || "track",
+      intermissionStart: race.intermission_start || null,
+      intermissionEnd: race.intermission_end || null,
       lobbySize: race.lobby_size,
       placement: race.placement,
       points: race.points,
@@ -275,6 +280,7 @@ window.mkwtRequireAuth = async function(options = {}){
         .map(toLocalRace);
       return {
         created_at: mogi.created_at,
+        playerCount: mogi.player_count || loungePlayerCount,
         races: mogiRaces,
         totalPoints: mogi.total_points,
         disconnects: mogi.disconnects,
@@ -291,6 +297,7 @@ window.mkwtRequireAuth = async function(options = {}){
 
     return {
       source: "supabase",
+      playerCount: loungePlayerCount,
       current_mogi: active ? toLocalMogi(active) : null,
       session_count: sessions.length,
       sessions,
@@ -331,6 +338,7 @@ window.mkwtRequireAuth = async function(options = {}){
             },
             lounge_tracker: {
               source: "local_storage",
+              playerCount: Number(window.MKWT_LOUNGE_CONFIG?.playerCount || 12),
               current_mogi: loungeCurrent,
               session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
               sessions: Array.isArray(loungeSessions) ? loungeSessions : []
@@ -365,6 +373,7 @@ window.mkwtRequireAuth = async function(options = {}){
 
         let loungeBackup = {
           source: "local_storage",
+          playerCount: Number(window.MKWT_LOUNGE_CONFIG?.playerCount || 12),
           current_mogi: loungeCurrent,
           session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
           sessions: Array.isArray(loungeSessions) ? loungeSessions : []
@@ -414,6 +423,7 @@ window.mkwtRequireAuth = async function(options = {}){
     }
 
     const uid = window.SESSION.user.id;
+    const loungePlayerCount = Number(window.MKWT_LOUNGE_CONFIG?.playerCount || loungePayload.playerCount || 12);
     const sessions = Array.isArray(loungePayload.sessions) ? loungePayload.sessions : [];
     const current = loungePayload.current_mogi && Array.isArray(loungePayload.current_mogi.races)
       ? loungePayload.current_mogi
@@ -422,7 +432,8 @@ window.mkwtRequireAuth = async function(options = {}){
     const { data: existing, error: loadErr } = await supabaseClient
       .from("lounge_mogis")
       .select("id")
-      .eq("user_id", uid);
+      .eq("user_id", uid)
+      .eq("player_count", loungePlayerCount);
     if (loadErr) throw loadErr;
 
     const existingIds = (existing || []).map(row => row.id);
@@ -457,6 +468,7 @@ window.mkwtRequireAuth = async function(options = {}){
           created_at: createdAt,
           completed_at: completedAt,
           status,
+          player_count: Number(raw.playerCount || raw.player_count || loungePlayerCount),
           total_points: totalPoints,
           race_count: raceCount,
           disconnects,
@@ -473,7 +485,10 @@ window.mkwtRequireAuth = async function(options = {}){
           user_id: uid,
           race_number: index + 1,
           track: String(race?.track || ""),
-          lobby_size: Number(race?.lobbySize ?? race?.lobby_size ?? 12),
+          race_kind: String(race?.raceKind || race?.race_kind || "track"),
+          intermission_start: race?.intermissionStart || race?.intermission_start || null,
+          intermission_end: race?.intermissionEnd || race?.intermission_end || null,
+          lobby_size: Number(race?.lobbySize ?? race?.lobby_size ?? loungePlayerCount),
           placement: race?.placement == null || race?.placement === "" ? null : Number(race.placement),
           points: Number(race?.points ?? (disconnect ? 1 : 0)),
           disconnect,

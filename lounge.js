@@ -1,6 +1,5 @@
 (() => {
-  const TRACKS = [
-    "Intermission",
+  const COURSE_TRACKS = [
     "Acorn Heights","Airship Fortress","Boo Cinema","Bowser's Castle","Cheep Cheep Falls",
     "Choco Mountain","Crown City","Dandelion Depths","Desert Hills","Dino Dino Jungle",
     "DK Pass","DK Spaceport","Dry Bones Burnout","Faraway Oasis","Great ? Block Ruins",
@@ -8,26 +7,66 @@
     "Peach Beach","Peach Stadium","Rainbow Road","Salty Salty Speedway","Shy Guy Bazaar",
     "Sky-High Sundae","Starview Peak","Toad's Factory","Wario Shipyard","Wario Stadium","Whistlestop Summit"
   ];
+  const PAGE_CONFIG = (() => {
+    const ds = document.body?.dataset || {};
+    const requestedCount = Number(ds.loungePlayerCount || 12);
+    const playerCount = requestedCount === 24 ? 24 : 12;
+    return {
+      playerCount,
+      storageSuffix: String(ds.loungeStorageSuffix || (playerCount === 24 ? '24' : '12')),
+      pageName: String(ds.loungePageName || (playerCount === 24 ? 'lounge-24.html' : 'lounge.html')),
+      title: String(ds.loungeTitle || (playerCount === 24 ? 'Lounge 24p' : 'Lounge 12p')),
+      allowIntermissionRoutes: String(ds.loungeAllowIntermission || '').toLowerCase() === 'true',
+      allowLobbyTags: String(ds.loungeLobbyTags || (playerCount === 24 ? 'false' : 'true')).toLowerCase() !== 'false',
+      mkcentralSeason: String(ds.loungeMkcentralSeason || '2'),
+      mkcentralPlayerCount: String(ds.loungeMkcentralPlayerCount || playerCount),
+    };
+  })();
+  const TRACKS = PAGE_CONFIG.allowIntermissionRoutes ? COURSE_TRACKS : ["Intermission", ...COURSE_TRACKS];
   const SCORE_MAP = {
     12: [15,12,10,9,8,7,6,5,4,3,2,1],
     11: [15,12,10,9,8,7,6,5,4,3,2],
-    10: [15,12,10,9,8,7,6,5,4,3]
+    10: [15,12,10,9,8,7,6,5,4,3],
+    24: [15,12,10,9,9,8,8,7,7,6,6,6,5,5,5,4,4,4,3,3,3,2,2,1]
   };
-  const STORAGE_CURRENT = 'mkwt_lounge_current_v1';
-  const STORAGE_SESSIONS = 'mkwt_lounge_sessions_v1';
+  const STORAGE_CURRENT = PAGE_CONFIG.storageSuffix === '12' ? 'mkwt_lounge_current_v1' : `mkwt_lounge${PAGE_CONFIG.storageSuffix}_current_v1`;
+  const STORAGE_SESSIONS = PAGE_CONFIG.storageSuffix === '12' ? 'mkwt_lounge_sessions_v1' : `mkwt_lounge${PAGE_CONFIG.storageSuffix}_sessions_v1`;
   const MKCENTRAL_SETTINGS_KEY = 'mkwt_mkcentral_player_ref_v1';
-  const MKCENTRAL_SEASON = '2';
-  const MKCENTRAL_PLAYER_COUNT = '12';
+  const MKCENTRAL_SEASON = PAGE_CONFIG.mkcentralSeason;
+  const MKCENTRAL_PLAYER_COUNT = PAGE_CONFIG.mkcentralPlayerCount;
   const SESSION_PAGE_SIZE = 10;
-  const AVG_GAIN_THRESHOLD = 6.83;
+  const AVG_GAIN_THRESHOLD = PAGE_CONFIG.playerCount === 24 ? 6 : 6.83;
   window.MKWT_LOUNGE_STORAGE = { current: STORAGE_CURRENT, sessions: STORAGE_SESSIONS };
+  window.MKWT_LOUNGE_CONFIG = PAGE_CONFIG;
 
   const $ = (id) => document.getElementById(id);
-  const state = { lobbySize: 12, current: null, sessions: [], chart: null, placementChart: null, lastTrackStats: [], lastSelectedTrack: null, trackSortKey: 'avg', trackSortDir: 'desc', sessionPage: 1, openSessionDetails: {}, editingSessionIndex: null, mkcentralMatches: {}, mkcentralPlayerId: '' };
+  const state = {
+    lobbySize: PAGE_CONFIG.playerCount,
+    entryMode: 'track',
+    entryDisconnect: false,
+    current: null,
+    sessions: [],
+    chart: null,
+    placementChart: null,
+    typePieChart: null,
+    trackChartMode: 'tracks',
+    placementMode: 'all',
+    lastTrackStats: [],
+    lastSelectedTrack: null,
+    trackSortKey: 'avg',
+    trackSortDir: 'desc',
+    sessionPage: 1,
+    openSessionDetails: {},
+    editingSessionIndex: null,
+    mkcentralMatches: {},
+    mkcentralPlayerId: ''
+  };
   let loungeClient = null;
   let loungeSession = null;
   let cloudMode = false;
   let isBound = false;
+  let routeFiltersBound = false;
+  let stratsMetaIntermissions = null;
 
   function read(key, fallback){
     try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(e){ return fallback; }
@@ -116,9 +155,286 @@
     return n > 0 ? 'sessionMkcGainGood' : 'sessionMkcGainBad';
   }
   function getPoints(lobbySize, placement){
-    const arr = SCORE_MAP[Number(lobbySize)] || SCORE_MAP[12];
+    const arr = SCORE_MAP[Number(lobbySize)] || SCORE_MAP[PAGE_CONFIG.playerCount] || SCORE_MAP[12];
     const idx = Number(placement) - 1;
     return Number.isInteger(idx) && idx >= 0 && idx < arr.length ? arr[idx] : null;
+  }
+  function currentLobbySize(){
+    if(!PAGE_CONFIG.allowLobbyTags) return PAGE_CONFIG.playerCount;
+    const lobby = Number(state.lobbySize);
+    return lobby === 11 || lobby === 10 ? lobby : 12;
+  }
+  function updateEntryTagButtons(){
+    const lobby = currentLobbySize();
+    document.querySelectorAll('[data-lobby-tag]').forEach((btn) => {
+      const active = Number(btn.dataset.lobbyTag) === lobby;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    const dcBtn = $('btnDisconnect');
+    if(dcBtn){
+      const active = !!state.entryDisconnect;
+      dcBtn.classList.toggle('active', active);
+      dcBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      dcBtn.textContent = active ? 'DC on' : 'DC';
+      dcBtn.title = active ? 'DC tag active' : 'DC tag off';
+    }
+  }
+  function setLobbyTag(size){
+    if(!PAGE_CONFIG.allowLobbyTags) return;
+    const next = Number(size);
+    state.lobbySize = currentLobbySize() === next ? 12 : next;
+    updatePlacementOptions();
+  }
+  function toggleDisconnectTag(){
+    state.entryDisconnect = !state.entryDisconnect;
+    updateEntryTagButtons();
+  }
+  function setEntryMode(mode){
+    state.entryMode = mode === 'intermission' && PAGE_CONFIG.allowIntermissionRoutes ? 'intermission' : 'track';
+    document.querySelectorAll('[data-entry-mode]').forEach((btn) => {
+      const active = btn.dataset.entryMode === state.entryMode;
+      btn.classList.toggle('isActive', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    const trackFields = $('trackEntryFields');
+    const intermissionFields = $('intermissionEntryFields');
+    if(trackFields) trackFields.hidden = state.entryMode !== 'track';
+    if(intermissionFields) intermissionFields.hidden = state.entryMode !== 'intermission';
+  }
+  function routeLabel(start, end){
+    return `${start} -> ${end}`;
+  }
+  function parseRouteLabel(value){
+    const match = String(value || '').match(/^\s*(.*?)\s*->\s*(.*?)\s*$/);
+    if(!match) return null;
+    const start = match[1].trim();
+    const end = match[2].trim();
+    return start && end ? { start, end } : null;
+  }
+  function getIntermissionRoutes(){
+    try{
+      if(typeof INTERMISSION_ROUTES !== 'undefined' && Array.isArray(INTERMISSION_ROUTES)) return INTERMISSION_ROUTES;
+    }catch(e){}
+    return [];
+  }
+  function normalizeRouteKey(start, end){
+    const s = String(start || '').trim();
+    const e = String(end || '').trim();
+    return s && e ? `${s}\u2192${e}` : '';
+  }
+  async function loadStratsMeta(){
+    if(stratsMetaIntermissions) return stratsMetaIntermissions;
+    try{
+      const res = await fetch('strats.json', { cache: 'no-cache' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      stratsMetaIntermissions = json?.META?.INTERMISSIONS || {};
+    }catch(e){
+      console.warn('[lounge] failed to load strats.json META', e);
+      stratsMetaIntermissions = {};
+    }
+    window.MKWT_STRATS_META_INTERMISSIONS = stratsMetaIntermissions;
+    return stratsMetaIntermissions;
+  }
+  function getDestinyGroup(start, end){
+    const key = normalizeRouteKey(start, end);
+    const meta = key ? stratsMetaIntermissions?.[key] : null;
+    const group = String(meta?.destiny_group || '').trim();
+    return group || String(end || '').trim();
+  }
+  function isIntermissionRace(race){
+    return race?.raceKind === 'intermission'
+      || race?.race_kind === 'intermission'
+      || (!!race?.intermissionStart && !!race?.intermissionEnd)
+      || (!!race?.intermission_start && !!race?.intermission_end);
+  }
+  function routePartsFromRace(race){
+    const start = String(race?.intermissionStart || race?.intermission_start || '').trim();
+    const end = String(race?.intermissionEnd || race?.intermission_end || '').trim();
+    if(start && end) return { start, end };
+    return parseRouteLabel(race?.track) || { start: '', end: '' };
+  }
+  function displayRaceLabel(race){
+    if(isIntermissionRace(race)){
+      const { start, end } = routePartsFromRace(race);
+      if(start && end) return routeLabel(start, end);
+    }
+    return race?.track || '';
+  }
+  function displayRaceLabelHtml(race){
+    if(isIntermissionRace(race)){
+      const { start, end } = routePartsFromRace(race);
+      if(start && end){
+        const destiny = getDestinyGroup(start, end) || end;
+        return `
+          <div class="routeStack">
+            <div class="routeStackLine"><span class="routeStackLabel">Start</span><span>${escapeHtml(start)}</span></div>
+            <div class="routeStackLine"><span class="routeStackLabel">Destiny</span><span>${escapeHtml(destiny)}</span></div>
+          </div>`;
+      }
+    }
+    return escapeHtml(displayRaceLabel(race));
+  }
+  function raceTypeLabel(race){
+    const parts = [];
+    if(race?.disconnect) parts.push('DC');
+    if(isIntermissionRace(race)) parts.push('Intermission');
+    return parts.length ? parts.join(' / ') : 'Normal';
+  }
+  function raceTypeCellHtml(race){
+    return `<td>${escapeHtml(raceTypeLabel(race))}</td>`;
+  }
+  function readEntrySelection(){
+    if(state.entryMode === 'intermission' && PAGE_CONFIG.allowIntermissionRoutes){
+      const start = $('intermissionStartSelect')?.value || '';
+      const end = $('intermissionEndSelect')?.value || '';
+      if(!start || !end) return { error: 'Please select intermission start and end.' };
+      return {
+        track: routeLabel(start, end),
+        raceKind: 'intermission',
+        intermissionStart: start,
+        intermissionEnd: end,
+      };
+    }
+    const track = $('trackSelect')?.value || '';
+    if(!track) return { error: 'Please select a track.' };
+    return {
+      track,
+      raceKind: 'track',
+      intermissionStart: null,
+      intermissionEnd: null,
+    };
+  }
+  function sortedUnique(list){
+    return Array.from(new Set((list || []).map(v => String(v || '').trim()).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, 'de'));
+  }
+  function optionHtml(value, selected, label){
+    const display = label || value;
+    return `<option value="${escapeHtml(value)}"${value === selected ? ' selected' : ''}>${escapeHtml(display)}</option>`;
+  }
+  function fillRouteSelect(select, placeholder, list, selected, labelForValue){
+    if(!select) return;
+    const values = sortedUnique(list);
+    const safeSelected = selected && values.includes(selected) ? selected : '';
+    select.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>` + values
+      .map(value => optionHtml(value, safeSelected, labelForValue ? labelForValue(value) : value))
+      .join('');
+    select.value = safeSelected;
+  }
+  function buildRouteMaps(){
+    const metaRoutes = Object.values(stratsMetaIntermissions || {})
+      .map(meta => ({ from: meta?.start, to: meta?.destiny }))
+      .filter(route => route.from && route.to);
+    const routes = [...getIntermissionRoutes(), ...metaRoutes];
+    const startToEnds = new Map();
+    const endToStarts = new Map();
+    for(const route of routes){
+      const start = String(route?.from || '').trim();
+      const end = String(route?.to || '').trim();
+      if(!start || !end) continue;
+      if(!startToEnds.has(start)) startToEnds.set(start, new Set());
+      if(!endToStarts.has(end)) endToStarts.set(end, new Set());
+      startToEnds.get(start).add(end);
+      endToStarts.get(end).add(start);
+    }
+    return { startToEnds, endToStarts };
+  }
+  function resetIntermissionRouteFilters(){
+    if(!PAGE_CONFIG.allowIntermissionRoutes) return;
+    const startSel = $('intermissionStartSelect');
+    const endSel = $('intermissionEndSelect');
+    if(!startSel || !endSel) return;
+    const { startToEnds, endToStarts } = buildRouteMaps();
+    const starts = startToEnds.size ? Array.from(startToEnds.keys()) : COURSE_TRACKS;
+    const ends = endToStarts.size ? Array.from(endToStarts.keys()) : COURSE_TRACKS;
+    fillRouteSelect(startSel, 'Select start', starts, '');
+    fillRouteSelect(endSel, 'Select end', ends, '');
+  }
+  function initIntermissionRouteFilters(){
+    if(!PAGE_CONFIG.allowIntermissionRoutes || routeFiltersBound) return;
+    const startSel = $('intermissionStartSelect');
+    const endSel = $('intermissionEndSelect');
+    if(!startSel || !endSel) return;
+    routeFiltersBound = true;
+
+    const { startToEnds, endToStarts } = buildRouteMaps();
+    const allStarts = startToEnds.size ? Array.from(startToEnds.keys()) : COURSE_TRACKS;
+    const allEnds = endToStarts.size ? Array.from(endToStarts.keys()) : COURSE_TRACKS;
+    let syncing = false;
+
+    const fillStarts = (list, selected) => fillRouteSelect(startSel, 'Select start', list, selected);
+    const fillEnds = (list, selected, start) => fillRouteSelect(
+      endSel,
+      'Select end',
+      list,
+      selected,
+      (end) => start ? getDestinyGroup(start, end) : end
+    );
+    const resetBoth = () => {
+      fillStarts(allStarts, '');
+      fillEnds(allEnds, '', '');
+    };
+
+    startSel.addEventListener('change', () => {
+      if(syncing) return;
+      syncing = true;
+      const start = startSel.value;
+      const previousEnd = endSel.value;
+      if(!start){
+        resetBoth();
+      }else{
+        const allowedEnds = Array.from(startToEnds.get(start) || []);
+        fillEnds(allowedEnds, previousEnd, start);
+      }
+      syncing = false;
+    });
+
+    endSel.addEventListener('change', () => {
+      if(syncing) return;
+      syncing = true;
+      const end = endSel.value;
+      const previousStart = startSel.value;
+      if(!end){
+        resetBoth();
+      }else{
+        const allowedStarts = Array.from(endToStarts.get(end) || []);
+        fillStarts(allowedStarts, previousStart);
+        if(startSel.value){
+          fillEnds(Array.from(startToEnds.get(startSel.value) || []), end, startSel.value);
+        }
+      }
+      syncing = false;
+    });
+
+    resetBoth();
+  }
+  function placementRowClass(placement){
+    const place = Number(placement);
+    if(place === 1) return 'raceRow raceRow--gold';
+    if(place === 2) return 'raceRow raceRow--silver';
+    if(place === 3) return 'raceRow raceRow--bronze';
+    return 'raceRow raceRow--dark';
+  }
+  function raceRowClass(race){
+    const classes = [placementRowClass(race?.placement)];
+    if(race?.disconnect) classes.push('raceRow--dc');
+    return classes.join(' ');
+  }
+  function placementChartFill(placement){
+    const place = Number(placement);
+    if(place === 1) return 'rgba(255,205,70,.74)';
+    if(place === 2) return 'rgba(210,220,232,.68)';
+    if(place === 3) return 'rgba(205,128,70,.70)';
+    return 'rgba(255,255,255,.13)';
+  }
+  function placementChartBorder(placement){
+    const place = Number(placement);
+    if(place === 1) return 'rgba(255,205,70,1)';
+    if(place === 2) return 'rgba(230,238,248,.95)';
+    if(place === 3) return 'rgba(222,145,82,.95)';
+    return getCss('--border');
   }
   function toneAvgElement(el, avg, hasData){
     if(!el) return;
@@ -130,8 +446,12 @@
     el.classList.add(avg < AVG_GAIN_THRESHOLD ? 'avgBad' : 'avgGood');
     el.title = `Break-even AVG: ${AVG_GAIN_THRESHOLD.toFixed(2)}`;
   }
+  function avgToneClass(avg, hasData){
+    if(!hasData) return '';
+    return avg < AVG_GAIN_THRESHOLD ? 'avgBad' : 'avgGood';
+  }
   function makeFreshMogi(){
-    return { created_at: currentTs(), races: [], totalPoints: 0, disconnects: 0, saved: false };
+    return { created_at: currentTs(), playerCount: PAGE_CONFIG.playerCount, races: [], totalPoints: 0, disconnects: 0, saved: false };
   }
   function isCloud(){
     return cloudMode && loungeClient && loungeSession?.user?.id;
@@ -400,6 +720,9 @@
       cloud_id: row.id,
       race_number: row.race_number,
       track: row.track,
+      raceKind: row.race_kind || (row.intermission_start && row.intermission_end ? 'intermission' : 'track'),
+      intermissionStart: row.intermission_start || null,
+      intermissionEnd: row.intermission_end || null,
       lobbySize: row.lobby_size,
       placement: row.placement,
       points: row.points,
@@ -416,6 +739,7 @@
       created_at: row.created_at,
       completed_at: row.completed_at,
       updated_at: row.updated_at,
+      playerCount: row.player_count || PAGE_CONFIG.playerCount,
       races: localRaces,
       totalPoints: row.total_points,
       disconnects: row.disconnects,
@@ -428,6 +752,9 @@
       user_id: loungeSession.user.id,
       race_number: raceNumber,
       track: race.track,
+      race_kind: race.raceKind || 'track',
+      intermission_start: race.intermissionStart || null,
+      intermission_end: race.intermissionEnd || null,
       lobby_size: race.lobbySize,
       placement: race.placement,
       points: race.points,
@@ -452,14 +779,15 @@
 
     const { data: mogis, error: mogiError } = await loungeClient
       .from('lounge_mogis')
-      .select('id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects')
+      .select('id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects, player_count')
       .eq('user_id', uid)
+      .eq('player_count', PAGE_CONFIG.playerCount)
       .order('created_at', { ascending: false });
     if (mogiError) throw mogiError;
 
     const { data: races, error: raceError } = await loungeClient
       .from('lounge_races')
-      .select('id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at')
+      .select('id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at')
       .eq('user_id', uid)
       .order('race_number', { ascending: true });
     if (raceError) throw raceError;
@@ -490,11 +818,12 @@
       .insert({
         user_id: loungeSession.user.id,
         status: 'active',
+        player_count: PAGE_CONFIG.playerCount,
         race_count: 0,
         total_points: 0,
         disconnects: 0,
       })
-      .select('id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects')
+      .select('id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects, player_count')
       .single();
     if (error) throw error;
     state.current = dbMogiToLocal(data, []);
@@ -516,12 +845,12 @@
   }
   function updatePlacementOptions(){
     const sel = $('placementSelect');
-    const lobby = Number(state.lobbySize) || 12;
+    if(!sel) return;
+    const lobby = currentLobbySize();
     const prev = Number(sel.value || 0);
     sel.innerHTML = '<option value="">Select placement</option>' + Array.from({length:lobby}, (_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
     if(prev && prev <= lobby) sel.value = String(prev);
-    $('scorePreview').textContent = `Points: ${SCORE_MAP[lobby].join(' / ')}`;
-    document.querySelectorAll('#lobbyGroup .navAction').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.lobby) === lobby));
+    updateEntryTagButtons();
   }
   function renderCurrent(){
     const races = state.current.races || [];
@@ -538,14 +867,17 @@
     $('sumRemain').textContent = String(Math.max(0, 12 - races.length));
     const saveBtn = $('btnSaveRace');
     const dcBtn = $('btnDisconnect');
+    const tagButtons = document.querySelectorAll('[data-lobby-tag], #btnDisconnect');
     if(saveBtn){
       saveBtn.textContent = isComplete ? 'Confirm Mogi' : 'Track';
       saveBtn.title = isComplete ? 'Open the result confirmation again' : '';
     }
-    if(dcBtn){
-      dcBtn.disabled = isComplete;
-      dcBtn.title = isComplete ? 'Confirm this Mogi before adding another race' : '';
-    }
+    tagButtons.forEach((btn) => {
+      btn.disabled = isComplete;
+      if(isComplete) btn.title = 'Confirm this Mogi before changing race tags';
+      else if(btn !== dcBtn) btn.removeAttribute('title');
+    });
+    if(!isComplete && dcBtn) updateEntryTagButtons();
 
     const body = $('currentMogiBody');
     if(!races.length){
@@ -553,13 +885,13 @@
       return;
     }
     body.innerHTML = races.map((r, idx) => `
-      <tr>
+      <tr class="${raceRowClass(r)}">
         <td>${idx+1}</td>
-        <td>${escapeHtml(r.track)}</td>
+        <td>${displayRaceLabelHtml(r)}</td>
         <td>${r.lobbySize}p</td>
         <td>${r.placement ?? '–'}</td>
         <td>${r.points}</td>
-        <td>${r.disconnect ? '<span class="badge">DC</span>' : 'Normal'}</td>
+        ${raceTypeCellHtml(r)}
       </tr>`).join('');
   }
   
@@ -602,17 +934,81 @@
     }
     refresh();
   }
+  function trackChartTitle(mode = state.trackChartMode){
+    if(mode === 'im_destiny') return 'Intermission Destiny';
+    if(mode === 'im_routes') return 'Intermission Separated';
+    return 'Tracks';
+  }
+  function updateTrackModeButtons(){
+    const map = {
+      tracks: 'btnPerfTracks',
+      im_destiny: 'btnPerfImDestiny',
+      im_routes: 'btnPerfImRoutes'
+    };
+    Object.entries(map).forEach(([mode, id]) => {
+      const btn = $(id);
+      if(!btn) return;
+      const active = state.trackChartMode === mode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+  function setTrackChartMode(mode){
+    if(mode !== 'tracks' && !PAGE_CONFIG.allowIntermissionRoutes) mode = 'tracks';
+    if(!['tracks', 'im_destiny', 'im_routes'].includes(mode)) mode = 'tracks';
+    state.trackChartMode = mode;
+    state.lastSelectedTrack = null;
+    refresh();
+  }
+  function updatePlacementModeButtons(){
+    const map = {
+      all: 'btnPlacementAll',
+      tracks: 'btnPlacementTracks',
+      intermission: 'btnPlacementIntermission'
+    };
+    Object.entries(map).forEach(([mode, id]) => {
+      const btn = $(id);
+      if(!btn) return;
+      const active = state.placementMode === mode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+  function setPlacementMode(mode){
+    if(mode !== 'all' && !PAGE_CONFIG.allowIntermissionRoutes) mode = 'all';
+    if(!['all', 'tracks', 'intermission'].includes(mode)) mode = 'all';
+    state.placementMode = mode;
+    refresh();
+  }
 
-function aggregateTrackStats(){
-    const bucket = new Map(TRACKS.map(t => [t, []]));
+  function shouldIncludeRaceForMode(race, mode){
+    const im = isIntermissionRace(race);
+    if(mode === 'tracks') return !im;
+    if(mode === 'intermission' || mode === 'im_destiny' || mode === 'im_routes') return im;
+    return true;
+  }
+  function racePerformanceLabel(race, mode){
+    if(mode === 'im_destiny'){
+      const { start, end } = routePartsFromRace(race);
+      return start && end ? getDestinyGroup(start, end) : displayRaceLabel(race);
+    }
+    if(mode === 'im_routes') return displayRaceLabel(race);
+    return race?.track || displayRaceLabel(race);
+  }
+  function aggregateTrackStats(mode = 'tracks'){
+    const seedTracks = mode === 'tracks' ? COURSE_TRACKS : [];
+    const bucket = new Map(seedTracks.map(t => [t, []]));
     for(const session of state.sessions){
       for(const race of (session.races || [])){
         if(race.disconnect) continue;
-        if(!bucket.has(race.track)) bucket.set(race.track, []);
-        bucket.get(race.track).push(Number(race.points || 0));
+        if(!shouldIncludeRaceForMode(race, mode)) continue;
+        const label = racePerformanceLabel(race, mode);
+        if(!label) continue;
+        if(!bucket.has(label)) bucket.set(label, []);
+        bucket.get(label).push(Number(race.points || 0));
       }
     }
-    return TRACKS.map(track => {
+    return Array.from(bucket.keys()).map(track => {
       const vals = bucket.get(track) || [];
       const count = vals.length;
       const sum = vals.reduce((a,b)=>a+b,0);
@@ -623,18 +1019,38 @@ function aggregateTrackStats(){
       };
     });
   }
-  function aggregatePlacementStats(){
-    const counts = Array.from({ length: 12 }, (_, i) => ({ placement: i + 1, count: 0 }));
+  function aggregatePlacementStats(mode = 'all'){
+    const maxPlacement = PAGE_CONFIG.playerCount;
+    const counts = Array.from({ length: maxPlacement }, (_, i) => ({ placement: i + 1, count: 0 }));
     for(const session of state.sessions){
       for(const race of (session.races || [])){
         if(race.disconnect) continue;
+        if(!shouldIncludeRaceForMode(race, mode)) continue;
         const placement = Number(race.placement);
-        if(Number.isInteger(placement) && placement >= 1 && placement <= 12) {
+        if(Number.isInteger(placement) && placement >= 1 && placement <= maxPlacement) {
           counts[placement - 1].count += 1;
         }
       }
     }
     return counts;
+  }
+  function aggregateTypeDistribution(){
+    const rows = {
+      tracks: { label: 'Tracks', count: 0, sum: 0 },
+      intermission: { label: 'Intermission', count: 0, sum: 0 }
+    };
+    for(const session of state.sessions){
+      for(const race of (session.races || [])){
+        if(race.disconnect) continue;
+        const key = isIntermissionRace(race) ? 'intermission' : 'tracks';
+        rows[key].count += 1;
+        rows[key].sum += Number(race.points || 0);
+      }
+    }
+    return [rows.tracks, rows.intermission].map(row => ({
+      ...row,
+      avg: row.count ? row.sum / row.count : 0
+    }));
   }
   function renderTrackInsight(trackName){
     state.lastSelectedTrack = trackName || null;
@@ -642,14 +1058,14 @@ function aggregateTrackStats(){
     if(!el) return;
     const stat = state.lastTrackStats.find(s => s.track === trackName);
     if(!stat){
-      el.innerHTML = '<div class="muted">Click on a track bar to see AVG points and times played.</div>';
+      el.innerHTML = '<div class="muted">Click on a bar to see AVG points and times played.</div>';
       return;
     }
     el.innerHTML = `
       <div class="trackInsightHeader">
         <div>
           <div class="trackInsightTitle">${escapeHtml(stat.track)}</div>
-          <div class="muted">Track details from saved Mogis</div>
+          <div class="muted">${escapeHtml(trackChartTitle())} details from saved Mogis</div>
         </div>
       </div>
       <div class="trackInsightGrid">
@@ -780,18 +1196,20 @@ function aggregateTrackStats(){
     });
   }
   function renderChart(stats){
-    const sortedStats = sortTrackStats(stats);
+    const ctx = $('chartTrackAvg');
+    if(!ctx) return;
+    const sortedStats = sortTrackStats(stats).slice(0, 30);
     state.lastTrackStats = sortedStats;
     updateSortButtons();
+    updateTrackModeButtons();
     const labels = sortedStats.map(s => s.track);
     const values = sortedStats.map(s => Number(s.avg.toFixed(2)));
     const colors = sortedStats.map(s => s.avg >= AVG_GAIN_THRESHOLD ? 'rgba(77,163,25,0.85)' : 'rgba(255,80,80,0.85)');
     const borders = sortedStats.map(s => s.avg >= AVG_GAIN_THRESHOLD ? 'rgb(77,163,25)' : 'rgb(255,80,80)');
-    const ctx = $('chartTrackAvg');
     if(state.chart) state.chart.destroy();
     state.chart = new Chart(ctx, {
       type: 'bar',
-      data: { labels, datasets: [{ label: 'Average points', data: values, backgroundColor: colors, borderColor: borders, borderWidth: 1 }] },
+      data: { labels, datasets: [{ label: `Average points (${trackChartTitle()})`, data: values, backgroundColor: colors, borderColor: borders, borderWidth: 1 }] },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -808,7 +1226,7 @@ function aggregateTrackStats(){
                 const stat = sortedStats[ctx.dataIndex];
                 const avg = Number(stat?.avg || 0).toFixed(2);
                 const count = Number(stat?.count || 0);
-                return [`AVG points: ${avg}`, `Played: ${count}`];
+                return [`${trackChartTitle()}`, `AVG points: ${avg}`, `Played: ${count}`];
               }
             }
           }
@@ -825,14 +1243,24 @@ function aggregateTrackStats(){
   function renderPlacementChart(stats){
     const ctx = $('chartPlacementDist');
     if(!ctx) return;
+    updatePlacementModeButtons();
     if(state.placementChart) state.placementChart.destroy();
     const labels = stats.map(s => String(s.placement));
     const values = stats.map(s => s.count);
+    const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
+    const fills = stats.map(s => placementChartFill(s.placement));
+    const borders = stats.map(s => placementChartBorder(s.placement));
     state.placementChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
-        datasets: [{ label: 'Placements', data: values, borderWidth: 1 }]
+        datasets: [{
+          label: 'Placements',
+          data: values,
+          backgroundColor: fills,
+          borderColor: borders,
+          borderWidth: 1
+        }]
       },
       options: {
         responsive: true,
@@ -845,12 +1273,69 @@ function aggregateTrackStats(){
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.parsed.y || 0} races`
+              label: (ctx) => {
+                const count = Number(ctx.parsed.y || 0);
+                const chance = total ? (count / total * 100).toFixed(1) : '0.0';
+                return [
+                  `${count} races`,
+                  `Chance: ${chance}% (${count} / ${total} tracked races)`
+                ];
+              }
             }
           }
         }
       }
     });
+  }
+  function renderTypePieChart(rows){
+    const ctx = $('chartTypePie');
+    const info = $('typePieInfo');
+    if(!ctx) return;
+    const dataRows = rows || aggregateTypeDistribution();
+    const values = dataRows.map(row => row.count);
+    const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
+    const colors = ['rgba(77,163,25,.82)', 'rgba(58,116,215,.82)'];
+    const borders = ['rgb(77,163,25)', 'rgb(58,116,215)'];
+    if(state.typePieChart) state.typePieChart.destroy();
+    state.typePieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: dataRows.map(row => row.label),
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderColor: borders,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: getCss('--text') } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const row = dataRows[ctx.dataIndex];
+                const count = Number(row?.count || 0);
+                const chance = total ? (count / total * 100).toFixed(1) : '0.0';
+                const avg = count ? Number(row.avg || 0).toFixed(2) : '-';
+                return [`${count} races (${chance}%)`, `AVG points: ${avg}`];
+              }
+            }
+          }
+        }
+      }
+    });
+    if(info){
+      const pieces = dataRows.map(row => {
+        const avg = row.count ? Number(row.avg || 0).toFixed(2) : '-';
+        return `<div class="statBox"><div class="statLabel">${escapeHtml(row.label)}</div><div class="statValue">${row.count}</div><div class="muted">AVG ${avg} points</div></div>`;
+      });
+      info.innerHTML = total
+        ? `<div class="trackInsightGrid">${pieces.join('')}</div>`
+        : '<div class="muted">No saved track or intermission races yet.</div>';
+    }
   }
   function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#fff'; }
 
@@ -874,8 +1359,16 @@ function aggregateTrackStats(){
     const raceCountEl = $('heroRaceCount');
     const dcCountEl = $('heroDcCount');
     if(mogiCountEl) mogiCountEl.textContent = String(mogiCount);
-    if(avgEl) avgEl.textContent = avgMogi.toFixed(2);
-    toneAvgElement(avgEl, avgMogi, raceCount > 0);
+    if(avgEl){
+      const hasAvg = raceCount > 0;
+      const mogiAvg = avgMogi * 12;
+      const tone = avgToneClass(avgMogi, hasAvg);
+      avgEl.classList.remove('avgGood', 'avgBad');
+      avgEl.innerHTML = hasAvg
+        ? `<span class="${tone}">${avgMogi.toFixed(2)}</span><span class="avgDivider">/</span><span class="${tone}">${mogiAvg.toFixed(0)}</span>`
+        : '<span>0.00</span><span class="avgDivider">/</span><span>0</span>';
+      avgEl.title = hasAvg ? `Track AVG ${avgMogi.toFixed(2)} | Mogi AVG ${mogiAvg.toFixed(0)}` : '';
+    }
     if(raceCountEl) raceCountEl.textContent = String(raceCount);
     if(dcCountEl) dcCountEl.textContent = String(dcCount);
     if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : 'Not enough data';
@@ -884,12 +1377,14 @@ function aggregateTrackStats(){
   function refresh(){
     computeMkcentralMatches();
     renderCurrent();
-    const stats = aggregateTrackStats();
-    renderHeroSummary(stats);
+    const heroStats = aggregateTrackStats('tracks');
+    const chartStats = aggregateTrackStats(state.trackChartMode);
+    renderHeroSummary(heroStats);
     renderSessions();
-    renderChart(stats);
-    renderPlacementChart(aggregatePlacementStats());
-    renderTrackInsight(state.lastSelectedTrack && stats.some(s => s.track === state.lastSelectedTrack) ? state.lastSelectedTrack : null);
+    renderChart(chartStats);
+    renderPlacementChart(aggregatePlacementStats(state.placementMode));
+    renderTypePieChart(aggregateTypeDistribution());
+    renderTrackInsight(state.lastSelectedTrack && chartStats.some(s => s.track === state.lastSelectedTrack) ? state.lastSelectedTrack : null);
     persist();
   }
   function renderMogiResultDialog(){
@@ -907,13 +1402,13 @@ function aggregateTrackStats(){
     if(metaEl) metaEl.textContent = `${races.length} races · ${statAvg} AVG · ${dcs} DCs`;
     if(rowsEl) {
       rowsEl.innerHTML = races.map((race, idx) => `
-        <tr>
+        <tr class="${raceRowClass(race)}">
           <td>${idx + 1}</td>
-          <td>${escapeHtml(race.track)}</td>
+          <td>${displayRaceLabelHtml(race)}</td>
           <td>${race.lobbySize}p</td>
           <td>${race.placement ?? '–'}</td>
           <td>${race.points}</td>
-          <td>${race.disconnect ? '<span class="badge">DC</span>' : 'Normal'}</td>
+          ${raceTypeCellHtml(race)}
         </tr>`).join('');
     }
   }
@@ -962,22 +1457,26 @@ function aggregateTrackStats(){
       console.error(e);
     }
   }
-  async function saveRace({disconnect=false}){
+  async function saveRace(){
     try {
       if((state.current.races || []).length >= 12){
         setStatus('This Mogi has 12 races. Confirm the result before starting another race.', true);
         openMogiResultDialog();
         return;
       }
-      const track = $('trackSelect').value;
+      const entry = readEntrySelection();
+      if(entry.error){ setStatus(entry.error, false); return; }
       const placement = Number($('placementSelect').value || 0);
-      const lobbySize = Number(state.lobbySize || 12);
-      if(!track){ setStatus('Please select a track.', false); return; }
+      const lobbySize = currentLobbySize();
+      const disconnect = !!state.entryDisconnect;
       if(!placement){ setStatus('Please select a placement.', false); return; }
       const points = getPoints(lobbySize, placement);
       if(points == null){ setStatus('Invalid placement for this lobby size.', false); return; }
       const race = {
-        track,
+        track: entry.track,
+        raceKind: entry.raceKind,
+        intermissionStart: entry.intermissionStart,
+        intermissionEnd: entry.intermissionEnd,
         lobbySize,
         placement,
         points,
@@ -992,7 +1491,7 @@ function aggregateTrackStats(){
         const { data, error } = await loungeClient
           .from('lounge_races')
           .insert(raceToDbPayload(race, mogiId, raceNumber))
-          .select('id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at')
+          .select('id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at')
           .single();
         if (error) throw error;
         state.current.races.push(dbRaceToLocal(data));
@@ -1001,7 +1500,13 @@ function aggregateTrackStats(){
         state.current.races.push(race);
       }
 
-      $('trackSelect').value = '';
+      if($('trackSelect')) $('trackSelect').value = '';
+      if($('intermissionStartSelect')) $('intermissionStartSelect').value = '';
+      if($('intermissionEndSelect')) $('intermissionEndSelect').value = '';
+      resetIntermissionRouteFilters();
+      state.lobbySize = PAGE_CONFIG.playerCount;
+      state.entryDisconnect = false;
+      updatePlacementOptions();
       $('placementSelect').value = '';
       setStatus(disconnect ? 'Race tracked with DC tag. Stats ignore DC races.' : 'Race tracked.', true);
       refresh();
@@ -1063,13 +1568,16 @@ function aggregateTrackStats(){
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function buildTrackOptions(selected){
-    return TRACKS.map(track => `<option value="${escapeHtml(track)}"${track === selected ? ' selected' : ''}>${escapeHtml(track)}</option>`).join('');
+    const options = TRACKS.slice();
+    if(selected && !options.includes(selected)) options.unshift(selected);
+    return options.map(track => `<option value="${escapeHtml(track)}"${track === selected ? ' selected' : ''}>${escapeHtml(track)}</option>`).join('');
   }
   function buildLobbyOptions(selected){
-    return [12,11,10].map(size => `<option value="${size}"${Number(selected) === size ? ' selected' : ''}>${size}p</option>`).join('');
+    const sizes = PAGE_CONFIG.allowLobbyTags ? [12,11,10] : [PAGE_CONFIG.playerCount];
+    return sizes.map(size => `<option value="${size}"${Number(selected) === size ? ' selected' : ''}>${size}p</option>`).join('');
   }
   function buildPlacementOptionsForLobby(lobbySize, placement){
-    const max = Number(lobbySize) || 12;
+    const max = Number(lobbySize) || PAGE_CONFIG.playerCount;
     const opts = ['<option value="">Select</option>'];
     for(let i = 1; i <= max; i += 1){
       opts.push(`<option value="${i}"${Number(placement) === i ? ' selected' : ''}>${i}</option>`);
@@ -1078,20 +1586,20 @@ function aggregateTrackStats(){
   }
   function renderSessionViewRows(races){
     return (races || []).map((r, i) => `
-        <tr>
+        <tr class="${raceRowClass(r)}">
           <td>${i + 1}</td>
-          <td>${escapeHtml(r.track)}</td>
+          <td>${displayRaceLabelHtml(r)}</td>
           <td>${r.lobbySize}p</td>
           <td>${r.placement ?? '–'}</td>
           <td>${r.points}</td>
-          <td>${r.disconnect ? '<span class="badge">DC</span>' : 'Normal'}</td>
+          ${raceTypeCellHtml(r)}
         </tr>`).join('');
   }
   function renderSessionEditRows(races){
     return (races || []).map((r, i) => `
-      <tr data-edit-row="${i}">
+      <tr class="${raceRowClass(r)}" data-edit-row="${i}">
         <td>${i + 1}</td>
-        <td><select class="sessionEditSelect" data-edit-track>${buildTrackOptions(r.track)}</select></td>
+        <td><select class="sessionEditSelect" data-edit-track>${buildTrackOptions(displayRaceLabel(r))}</select></td>
         <td><select class="sessionEditSelect" data-edit-lobby>${buildLobbyOptions(r.lobbySize)}</select></td>
         <td><select class="sessionEditSelect" data-edit-placement>${buildPlacementOptionsForLobby(r.lobbySize, r.placement)}</select></td>
         <td class="muted" data-edit-points>${Number(r.points || 0)}</td>
@@ -1109,7 +1617,7 @@ function aggregateTrackStats(){
     const placementSel = row.querySelector('[data-edit-placement]');
     const typeSel = row.querySelector('[data-edit-type]');
     const pointsCell = row.querySelector('[data-edit-points]');
-    const lobby = Number(lobbySel?.value || 12);
+    const lobby = Number(lobbySel?.value || PAGE_CONFIG.playerCount);
     const prevPlacement = Number(placementSel?.value || 0);
     if(placementSel){
       placementSel.innerHTML = buildPlacementOptionsForLobby(lobby, prevPlacement);
@@ -1119,6 +1627,7 @@ function aggregateTrackStats(){
     const p = getPoints(lobby, placement);
     const points = p == null ? '–' : p;
     if(pointsCell) pointsCell.textContent = String(points);
+    row.className = [placementRowClass(placement), typeSel?.value === 'disconnect' ? 'raceRow--dc' : ''].filter(Boolean).join(' ');
   }
   function startEditMogi(index){
     state.editingSessionIndex = index;
@@ -1138,7 +1647,7 @@ function aggregateTrackStats(){
     const races = [];
     for(const row of rows){
       const track = row.querySelector('[data-edit-track]')?.value || '';
-      const lobbySize = Number(row.querySelector('[data-edit-lobby]')?.value || 12);
+      const lobbySize = Number(row.querySelector('[data-edit-lobby]')?.value || PAGE_CONFIG.playerCount);
       const type = row.querySelector('[data-edit-type]')?.value || 'normal';
       const disconnect = type === 'disconnect';
       const placement = Number(row.querySelector('[data-edit-placement]')?.value || 0);
@@ -1146,9 +1655,14 @@ function aggregateTrackStats(){
       if(!placement){ setStatus('Each race needs a placement.', false); return; }
       const points = getPoints(lobbySize, placement);
       if(points == null){ setStatus('One edited race has an invalid placement.', false); return; }
+      const sourceRace = session.races[Number(row.getAttribute('data-edit-row'))] || {};
+      const route = parseRouteLabel(track);
       races.push({
-        ...session.races[Number(row.getAttribute('data-edit-row'))],
+        ...sourceRace,
         track,
+        raceKind: route ? 'intermission' : 'track',
+        intermissionStart: route?.start || null,
+        intermissionEnd: route?.end || null,
         lobbySize,
         placement,
         points,
@@ -1170,7 +1684,7 @@ function aggregateTrackStats(){
           const { data, error: insertError } = await loungeClient
             .from('lounge_races')
             .insert(payload)
-            .select('id, mogi_id, race_number, track, lobby_size, placement, points, disconnect, created_at, updated_at');
+            .select('id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at');
           if (insertError) throw insertError;
           races.splice(0, races.length, ...(data || []).map(dbRaceToLocal).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)));
         }
@@ -1192,14 +1706,18 @@ function aggregateTrackStats(){
   function bind(){
     if (isBound) return;
     isBound = true;
-    document.querySelectorAll('#lobbyGroup .navAction').forEach(btn => btn.addEventListener('click', () => {
-      state.lobbySize = Number(btn.dataset.lobby || 12);
-      updatePlacementOptions();
-    }));
+    document.querySelectorAll('[data-lobby-tag]').forEach(btn => btn.addEventListener('click', () => setLobbyTag(btn.dataset.lobbyTag)));
+    document.querySelectorAll('[data-entry-mode]').forEach(btn => btn.addEventListener('click', () => setEntryMode(btn.dataset.entryMode)));
     $('btnSortPerformance')?.addEventListener('click', () => setTrackSort('avg'));
     $('btnSortPlayed')?.addEventListener('click', () => setTrackSort('count'));
-    $('btnSaveRace').addEventListener('click', () => saveRace({disconnect:false}));
-    $('btnDisconnect').addEventListener('click', () => saveRace({disconnect:true}));
+    $('btnPerfTracks')?.addEventListener('click', () => setTrackChartMode('tracks'));
+    $('btnPerfImDestiny')?.addEventListener('click', () => setTrackChartMode('im_destiny'));
+    $('btnPerfImRoutes')?.addEventListener('click', () => setTrackChartMode('im_routes'));
+    $('btnPlacementAll')?.addEventListener('click', () => setPlacementMode('all'));
+    $('btnPlacementTracks')?.addEventListener('click', () => setPlacementMode('tracks'));
+    $('btnPlacementIntermission')?.addEventListener('click', () => setPlacementMode('intermission'));
+    $('btnSaveRace').addEventListener('click', () => saveRace());
+    $('btnDisconnect').addEventListener('click', () => toggleDisconnectTag());
     $('btnUndo').addEventListener('click', undoLast);
     $('btnConfirmMogiResult')?.addEventListener('click', confirmMogiResult);
     $('btnKeepMogiResult')?.addEventListener('click', () => {
@@ -1219,7 +1737,7 @@ function aggregateTrackStats(){
       if (typeof window.mkwtRequireAuth === 'function') {
         let authHandled = false;
         await window.mkwtRequireAuth({
-          pageName: 'lounge.html',
+          pageName: PAGE_CONFIG.pageName,
           allowGuest: true,
           tryBackupRestore: true,
           onAccount: async (session, client) => {
@@ -1256,6 +1774,9 @@ function aggregateTrackStats(){
       setStatus('Cloud lounge unavailable. Local mode loaded.', false);
       console.error(e);
     }
+    if(PAGE_CONFIG.allowIntermissionRoutes) await loadStratsMeta();
+    setEntryMode('track');
+    initIntermissionRouteFilters();
     updatePlacementOptions();
     bind();
     refresh();

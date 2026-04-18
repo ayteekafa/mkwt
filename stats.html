@@ -45,11 +45,21 @@
 <nav class="nav">
 <div class="navInner">
 <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
-<a class="navLink" href="tracker.html">Tracker</a>
-<a class="navLink" href="stats.html">Stats</a>
-<a class="navLink" href="sessions.html">Sessions</a>
-<a class="navLink" href="lounge.html">Lounge 12p</a>
-<a class="navLink" href="lounge-stats.html">Lounge Stats</a>
+<div class="navDropdown">
+<button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
+<div class="navDropdownMenu">
+<a class="navDropdownItem" href="tracker.html">World Wides</a>
+<a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+<a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+</div>
+</div>
+<div class="navDropdown">
+<button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
+<div class="navDropdownMenu">
+<a class="navDropdownItem active" href="stats.html">World Wide Stats</a>
+<a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+</div>
+</div>
 <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>

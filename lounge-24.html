@@ -14,9 +14,9 @@
 <link href="tracker.css" rel="stylesheet"/>
 <link href="stats.css" rel="stylesheet"/>
 <link href="lounge.css" rel="stylesheet"/>
-<title>MKWT – Lounge 12p</title>
+<title>MKWT - Lounge 24p</title>
 </head>
-<body data-lounge-player-count="12" data-lounge-storage-suffix="12" data-lounge-title="Lounge 12p" data-lounge-lobby-tags="true" data-lounge-page-name="lounge.html">
+<body data-lounge-player-count="24" data-lounge-storage-suffix="24" data-lounge-title="Lounge 24p" data-lounge-allow-intermission="true" data-lounge-lobby-tags="false" data-lounge-page-name="lounge-24.html">
 <noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript.</p></div></noscript>
 <nav class="nav">
   <div class="navInner">
@@ -25,8 +25,8 @@
       <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
       <div class="navDropdownMenu">
         <a class="navDropdownItem" href="tracker.html">World Wides</a>
-        <a class="navDropdownItem active" href="lounge.html">Lounge 12p</a>
-        <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+        <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+        <a class="navDropdownItem active" href="lounge-24.html">Lounge 24p</a>
       </div>
     </div>
     <div class="navDropdown">
@@ -43,8 +43,8 @@
   <section class="card profileCard">
     <div class="profileTop">
       <div>
-        <h2 style="margin:0 0 6px 0;">Lounge 12p Tracker <span class="byAytee">by Aytee</span></h2>
-        <div class="muted" id="userInfo">Lounge 12p</div>
+        <h2 style="margin:0 0 6px 0;">Lounge 24p Tracker <span class="byAytee">by Aytee</span></h2>
+        <div class="muted" id="userInfo">Lounge 24p</div>
       </div>
     </div>
     <div aria-label="Lounge quick stats" class="statGrid loungeHeroStats">
@@ -66,9 +66,9 @@
       </div>
     </div>
     <div class="bestTrackLine">
-      <div class="bestTrackLabel">Best Track</div>
-      <div class="bestTrackName" id="heroBestTrackName">–</div>
-      <div class="bestTrackMeta" id="heroBestTrackMeta">–</div>
+      <div class="bestTrackLabel">Best Entry</div>
+      <div class="bestTrackName" id="heroBestTrackName">-</div>
+      <div class="bestTrackMeta" id="heroBestTrackMeta">-</div>
     </div>
     <div id="status" class="muted hidden"></div>
   </section>
@@ -76,18 +76,61 @@
   <section class="card cardSection">
     <div class="sectionHead sectionHead--split">
       <div>
-        <h3>Track Mogi</h3>
+        <h3>24p Mogi</h3>
       </div>
     </div>
 
     <div class="controlSurface">
       <div class="entryPanel">
-        <div class="formGrid">
+        <div aria-label="Entry mode" class="modeToggle loungeModeToggle" role="tablist">
+          <button aria-selected="true" class="modeBtn isActive" data-entry-mode="track" type="button">Track</button>
+          <button aria-selected="false" class="modeBtn" data-entry-mode="intermission" type="button">Intermission</button>
+        </div>
+
+        <div class="formGrid formGrid--single" id="trackEntryFields">
           <label>
             <span>Track</span>
             <select id="trackSelect">
               <option value="">Select track</option>
-              <option value="Intermission">Intermission</option>
+              <option value="Acorn Heights">Acorn Heights</option>
+              <option value="Airship Fortress">Airship Fortress</option>
+              <option value="Boo Cinema">Boo Cinema</option>
+              <option value="Bowser's Castle">Bowser's Castle</option>
+              <option value="Cheep Cheep Falls">Cheep Cheep Falls</option>
+              <option value="Choco Mountain">Choco Mountain</option>
+              <option value="Crown City">Crown City</option>
+              <option value="Dandelion Depths">Dandelion Depths</option>
+              <option value="Desert Hills">Desert Hills</option>
+              <option value="Dino Dino Jungle">Dino Dino Jungle</option>
+              <option value="DK Pass">DK Pass</option>
+              <option value="DK Spaceport">DK Spaceport</option>
+              <option value="Dry Bones Burnout">Dry Bones Burnout</option>
+              <option value="Faraway Oasis">Faraway Oasis</option>
+              <option value="Great ? Block Ruins">Great ? Block Ruins</option>
+              <option value="Koopa Troopa Beach">Koopa Troopa Beach</option>
+              <option value="Mario Circuit">Mario Circuit</option>
+              <option value="Mario Bros. Circuit">Mario Bros. Circuit</option>
+              <option value="Moo Moo Meadows">Moo Moo Meadows</option>
+              <option value="Peach Beach">Peach Beach</option>
+              <option value="Peach Stadium">Peach Stadium</option>
+              <option value="Rainbow Road">Rainbow Road</option>
+              <option value="Salty Salty Speedway">Salty Salty Speedway</option>
+              <option value="Shy Guy Bazaar">Shy Guy Bazaar</option>
+              <option value="Sky-High Sundae">Sky-High Sundae</option>
+              <option value="Starview Peak">Starview Peak</option>
+              <option value="Toad's Factory">Toad's Factory</option>
+              <option value="Wario Shipyard">Wario Shipyard</option>
+              <option value="Wario Stadium">Wario Stadium</option>
+              <option value="Whistlestop Summit">Whistlestop Summit</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="formGrid" id="intermissionEntryFields" hidden>
+          <label>
+            <span>Intermission start</span>
+            <select id="intermissionStartSelect">
+              <option value="">Select start</option>
               <option value="Acorn Heights">Acorn Heights</option>
               <option value="Airship Fortress">Airship Fortress</option>
               <option value="Boo Cinema">Boo Cinema</option>
@@ -121,16 +164,53 @@
             </select>
           </label>
           <label>
+            <span>Intermission end</span>
+            <select id="intermissionEndSelect">
+              <option value="">Select end</option>
+              <option value="Acorn Heights">Acorn Heights</option>
+              <option value="Airship Fortress">Airship Fortress</option>
+              <option value="Boo Cinema">Boo Cinema</option>
+              <option value="Bowser's Castle">Bowser's Castle</option>
+              <option value="Cheep Cheep Falls">Cheep Cheep Falls</option>
+              <option value="Choco Mountain">Choco Mountain</option>
+              <option value="Crown City">Crown City</option>
+              <option value="Dandelion Depths">Dandelion Depths</option>
+              <option value="Desert Hills">Desert Hills</option>
+              <option value="Dino Dino Jungle">Dino Dino Jungle</option>
+              <option value="DK Pass">DK Pass</option>
+              <option value="DK Spaceport">DK Spaceport</option>
+              <option value="Dry Bones Burnout">Dry Bones Burnout</option>
+              <option value="Faraway Oasis">Faraway Oasis</option>
+              <option value="Great ? Block Ruins">Great ? Block Ruins</option>
+              <option value="Koopa Troopa Beach">Koopa Troopa Beach</option>
+              <option value="Mario Circuit">Mario Circuit</option>
+              <option value="Mario Bros. Circuit">Mario Bros. Circuit</option>
+              <option value="Moo Moo Meadows">Moo Moo Meadows</option>
+              <option value="Peach Beach">Peach Beach</option>
+              <option value="Peach Stadium">Peach Stadium</option>
+              <option value="Rainbow Road">Rainbow Road</option>
+              <option value="Salty Salty Speedway">Salty Salty Speedway</option>
+              <option value="Shy Guy Bazaar">Shy Guy Bazaar</option>
+              <option value="Sky-High Sundae">Sky-High Sundae</option>
+              <option value="Starview Peak">Starview Peak</option>
+              <option value="Toad's Factory">Toad's Factory</option>
+              <option value="Wario Shipyard">Wario Shipyard</option>
+              <option value="Wario Stadium">Wario Stadium</option>
+              <option value="Whistlestop Summit">Whistlestop Summit</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="formGrid formGrid--single loungePlacementGrid">
+          <label>
             <span>Placement</span>
             <select id="placementSelect"></select>
           </label>
         </div>
 
-        <div class="actionStrip" aria-label="Race actions">
+        <div class="actionStrip actionStrip--24" aria-label="Race actions">
           <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Track</button>
-          <div class="tagStrip" aria-label="Race tags">
-            <button id="btnLobby11" class="navAction actionStripBtn tagToggle" data-lobby-tag="11" type="button" aria-pressed="false">11p</button>
-            <button id="btnLobby10" class="navAction actionStripBtn tagToggle" data-lobby-tag="10" type="button" aria-pressed="false">10p</button>
+          <div class="tagStrip tagStrip--single" aria-label="Race tags">
             <button id="btnDisconnect" class="navAction actionStripBtn tagToggle" type="button" aria-pressed="false">DC</button>
           </div>
           <button id="btnUndo" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last">&#8630;</button>
@@ -149,11 +229,10 @@
     <details class="foldCard" open>
       <summary>
         <span>Current races</span>
-        
       </summary>
       <div class="tableWrap">
         <table>
-          <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+          <thead><tr><th>#</th><th>Track / Route</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
           <tbody id="currentMogiBody"><tr><td colspan="6" class="muted">No races tracked yet.</td></tr></tbody>
         </table>
       </div>
@@ -163,17 +242,24 @@
   <section class="card cardSection">
     <div class="sectionHead">
       <div>
-        <h3>Track Performance</h3>
+        <h3>Track / Intermission Performance</h3>
       </div>
-      <div class="segRow sortRow" id="trackSortGroup">
-        <button id="btnSortPerformance" class="navAction active" type="button">Performance ↓</button>
-        <button id="btnSortPlayed" class="navAction" type="button">Most played</button>
+      <div class="chartControlStack">
+        <div class="segRow modeRow" id="trackModeGroup">
+          <button id="btnPerfTracks" class="navAction active" type="button" aria-pressed="true">Tracks</button>
+          <button id="btnPerfImDestiny" class="navAction" type="button" aria-pressed="false">Intermission Destiny</button>
+          <button id="btnPerfImRoutes" class="navAction" type="button" aria-pressed="false">Intermission Separated</button>
+        </div>
+        <div class="segRow sortRow" id="trackSortGroup">
+          <button id="btnSortPerformance" class="navAction active" type="button">Performance</button>
+          <button id="btnSortPlayed" class="navAction" type="button">Most played</button>
+        </div>
       </div>
     </div>
     <div class="chartShell">
       <div class="chartWrap chartWrapC2"><canvas id="chartTrackAvg"></canvas></div>
       <div class="trackInsight" id="trackInsight">
-        <div class="muted">Click on a track bar to see AVG points and times played.</div>
+        <div class="muted">Click on a bar to see AVG points and times played.</div>
       </div>
     </div>
     <div class="placementChartBlock">
@@ -181,23 +267,39 @@
         <div>
           <h3>Placement Distribution</h3>
         </div>
+        <div class="segRow modeRow" id="placementModeGroup">
+          <button id="btnPlacementAll" class="navAction active" type="button" aria-pressed="true">All</button>
+          <button id="btnPlacementTracks" class="navAction" type="button" aria-pressed="false">Tracks</button>
+          <button id="btnPlacementIntermission" class="navAction" type="button" aria-pressed="false">Intermission</button>
+        </div>
       </div>
       <div class="chartWrap chartWrapPlacement"><canvas id="chartPlacementDist"></canvas></div>
+    </div>
+    <div class="typePieBlock">
+      <div class="sectionHead placementChartHead">
+        <div>
+          <h3>Track / Intermission Distribution</h3>
+        </div>
+      </div>
+      <div class="chartWrap chartWrapPie"><canvas id="chartTypePie"></canvas></div>
+      <div class="trackInsight" id="typePieInfo">
+        <div class="muted">Track and intermission split appears after saved races.</div>
+      </div>
     </div>
   </section>
 
   <section class="card cardSection">
     <div class="sectionHead">
       <div>
-        <h3>Saved Mogi Sessions</h3>
+        <h3>Saved 24p Mogis</h3>
       </div>
     </div>
     <div id="sessionList" class="sessionListCompact"><div class="muted">No saved Mogis yet.</div></div>
     <div class="paginationRow" id="sessionPaginationRow">
       <div class="muted" id="sessionPageInfo">Page 1</div>
       <div class="paginationActions">
-        <button class="navAction navAction--sm" id="btnSessionPrev" type="button">← Prev</button>
-        <button class="navAction navAction--sm" id="btnSessionNext" type="button">Next →</button>
+        <button class="navAction navAction--sm" id="btnSessionPrev" type="button">Prev</button>
+        <button class="navAction navAction--sm" id="btnSessionNext" type="button">Next</button>
       </div>
     </div>
   </section>
@@ -216,7 +318,7 @@
     </div>
     <div class="tableWrap mogiResultTableWrap">
       <table>
-        <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+        <thead><tr><th>#</th><th>Track / Route</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
         <tbody id="mogiResultRows"></tbody>
       </table>
     </div>
@@ -226,6 +328,7 @@
     </div>
   </div>
 </dialog>
+<script src="tracker_intermission.js"></script>
 <script src="lounge.js"></script>
 </body>
 </html>

@@ -19,6 +19,8 @@
 .surfaceBlock--grow{flex:1 1 240px}
 .entryPanel{padding:16px;border:1px solid var(--border);border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,.01)), var(--card-2)}
 .formGrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(120px,1fr);gap:12px;align-items:end}
+.formGrid--single{grid-template-columns:minmax(0,1fr)}
+.loungePlacementGrid{margin-top:12px}
 .formGrid label{min-width:0}
 .formGrid select{min-width:0}
 label span{display:block;margin-bottom:6px;color:var(--muted);font-size:13px;font-weight:700}
@@ -28,25 +30,49 @@ select:focus{box-shadow:var(--ring);border-color:var(--primary)}
 .segRow{display:flex;gap:8px;flex-wrap:wrap}
 .segRow--compact .navAction{min-width:72px}
 .sortRow{margin-left:auto}
-.actionStrip{display:grid;grid-template-columns:minmax(0,2fr) minmax(92px,1fr) 52px;gap:10px;margin-top:14px;align-items:stretch}
+.chartControlStack{display:flex;flex-direction:column;gap:8px;align-items:flex-end;margin-left:auto}
+.chartControlStack .sortRow{margin-left:0}
+.modeRow .navAction{min-width:86px}
+.actionStrip{display:grid;grid-template-columns:minmax(0,2fr) minmax(250px,1fr) 52px;gap:10px;margin-top:14px;align-items:stretch}
+.actionStrip--24{grid-template-columns:minmax(0,2fr) minmax(160px,220px) 80px}
 .actionStripBtn{width:100%;justify-content:center;display:inline-flex;align-items:center}
 .actionStripBtn--icon{font-size:20px;padding-inline:0}
+.tagStrip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0}
+.tagStrip--single{grid-template-columns:minmax(0,1fr)}
+.tagToggle{position:relative;padding-right:32px}
+.tagToggle::after{content:"";position:absolute;right:10px;top:50%;width:14px;height:14px;border-radius:999px;transform:translateY(-50%);border:1px solid var(--border);background:var(--bg);box-shadow:inset 0 0 0 3px rgba(255,255,255,.035)}
+.tagToggle.active::after{background:var(--primary-text);border-color:rgba(0,0,0,.18);box-shadow:0 0 0 3px rgba(255,255,255,.22)}
+.tagToggle[aria-pressed="true"]{box-shadow:var(--ring)}
 .mogiSummary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-.scoreLine{padding-left:2px}
 .tableWrap{overflow:auto}
-table{width:100%;border-collapse:collapse}
-th,td{padding:11px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+table{width:100%;border-collapse:separate;border-spacing:0 7px}
+th,td{padding:11px 12px;border-bottom:0;text-align:left;vertical-align:top}
 thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+tbody tr.raceRow td{background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)), var(--card-2);border:0;font-weight:700}
+tbody tr.raceRow td:first-child{border-radius:8px 0 0 8px}
+tbody tr.raceRow td:last-child{border-radius:0 8px 8px 0}
+tbody tr.raceRow--gold td{background:linear-gradient(180deg, rgba(255,205,70,.28), rgba(255,205,70,.08)), var(--card-2)}
+tbody tr.raceRow--silver td{background:linear-gradient(180deg, rgba(210,220,232,.26), rgba(210,220,232,.08)), var(--card-2)}
+tbody tr.raceRow--bronze td{background:linear-gradient(180deg, rgba(205,128,70,.27), rgba(205,128,70,.08)), var(--card-2)}
+tbody tr.raceRow--dark td{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)), var(--card-2)}
+tbody tr.raceRow--dc td{background:linear-gradient(180deg, rgba(108,24,34,.34) 0%, rgba(108,24,34,.15) 36%, rgba(255,255,255,.014) 100%), var(--card-2);border-color:var(--border);color:#ffdce0}
+.routeStack{display:flex;flex-direction:column;gap:4px;line-height:1.2}
+.routeStackLine{display:flex;gap:8px;align-items:baseline;min-width:0}
+.routeStackLabel{min-width:52px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:900}
 .navAction{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card-2);color:var(--text);cursor:pointer}
 .navAction.active{background:var(--primary);color:var(--primary-text);border-color:var(--primary)}
-.navLink.active{background:var(--primary);color:var(--primary-text);border-radius:10px;padding:8px 12px}
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--card-2)}
 .statValue.avgGood{color:#4da319;text-shadow:0 0 12px rgba(77,163,25,.28)}
 .statValue.avgBad{color:#ff5050;text-shadow:0 0 12px rgba(255,80,80,.24)}
+.statValue .avgGood{color:#4da319;text-shadow:0 0 12px rgba(77,163,25,.28)}
+.statValue .avgBad{color:#ff5050;text-shadow:0 0 12px rgba(255,80,80,.24)}
+.avgDivider{display:inline-block;margin:0 6px;color:var(--muted)}
 .chartShell{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .placementChartBlock{margin-top:20px}
 .placementChartHead{margin-bottom:10px}
 .chartWrapPlacement{height:320px}
+.typePieBlock{margin-top:20px}
+.chartWrapPie{height:280px}
 .trackInsight{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card-2)}
 .trackInsightTitle{font-size:18px;font-weight:800;margin-bottom:4px}
 .trackInsightGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
@@ -78,9 +104,13 @@ thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(
 @media (max-width:640px){
   .sectionHead{margin-bottom:14px}
   .formGrid{grid-template-columns:minmax(0,2fr) minmax(96px,1fr);gap:10px}
-  .actionStrip{grid-template-columns:minmax(0,2fr) minmax(78px,1fr) 52px}
+  .actionStrip{grid-template-columns:1fr;gap:9px}
+  .tagStrip{grid-template-columns:repeat(3,minmax(0,1fr))}
   .sortRow{width:100%}
   .sortRow .navAction{flex:1 1 0}
+  .chartControlStack{width:100%;align-items:stretch}
+  .chartControlStack .segRow{width:100%}
+  .chartControlStack .navAction{flex:1 1 0}
   .trackInsightGrid{grid-template-columns:1fr}
   .sessionCardHead{flex-direction:column}
 }
@@ -94,6 +124,7 @@ thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(
 .sessionEditSelect{width:100%;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
 .sessionEditActions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .sessionDetails[hidden]{display:none !important}
+[hidden]{display:none !important}
 .sessionActions .navAction[disabled]{opacity:.6;cursor:default}
 .mogiResultDialog{width:min(860px,calc(100vw - 28px));border:1px solid var(--border);border-radius:16px;padding:0;background:var(--card);color:var(--text);box-shadow:var(--shadow)}
 .mogiResultDialog::backdrop{background:var(--backdrop)}

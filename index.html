@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 
   <title>MKWT - Mario Kart World Tracker, Lounge 12p, and MKCentral Stats</title>
-  <meta name="description" content="MKWT lets you track VR matches, sessions, Lounge 12p mogis, and MKCentral Season 2 / 12p stats in one clean Mario Kart World app." />
+  <meta name="description" content="MKWT lets you track VR matches, sessions, Lounge mogis, and MKCentral Lounge stats in one clean Mario Kart World app." />
 
   <link rel="canonical" href="https://mkwt.app/" />
   <meta name="theme-color" content="#07080a" />
@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
 
   <meta property="og:title" content="MKWT - Mario Kart World Tracker" />
-  <meta property="og:description" content="Track VR matches, Lounge 12p mogis, and MKCentral Season 2 / 12p stats in one place." />
+  <meta property="og:description" content="Track VR matches, Lounge mogis, and MKCentral Lounge stats in one place." />
   <meta property="og:image" content="https://mkwt.app/og-card.png" />
   <meta property="og:url" content="https://mkwt.app/" />
   <meta property="og:type" content="website" />
@@ -54,11 +54,21 @@
   <div class="navInner">
     <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
     <a class="navLink active" href="index.html">Home</a>
-    <a class="navLink" href="tracker.html">Tracker</a>
-    <a class="navLink" href="stats.html">Stats</a>
-    <a class="navLink" href="sessions.html">Sessions</a>
-    <a class="navLink" href="lounge.html">Lounge 12p</a>
-    <a class="navLink" href="lounge-stats.html">Lounge Stats</a>
+    <div class="navDropdown">
+      <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
+      <div class="navDropdownMenu">
+        <a class="navDropdownItem" href="tracker.html">World Wides</a>
+        <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+        <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+      </div>
+    </div>
+    <div class="navDropdown">
+      <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
+      <div class="navDropdownMenu">
+        <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
+        <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+      </div>
+    </div>
     <a class="navLink" href="about.html">About</a>
     <div class="navSpacer"></div>
     <a class="navAction" href="login.html">Login</a>
@@ -76,7 +86,7 @@
           <h1>Track VR, Lounge 12p, and MKCentral history in one place.</h1>
           <p class="homeLead">
             Log ranked matches, review sessions, measure track and intermission performance, save Lounge 12p mogis race by race,
-            and pull your Season 2 / 12p MKCentral stats into local charts.
+            and pull your MKCentral Lounge stats into local charts.
           </p>
         </div>
       </div>
@@ -106,7 +116,7 @@
         <div class="homeHighlight">
           <div class="homeHighlightLabel">Lounge Stats</div>
           <div class="homeHighlightValue">MKCentral sync</div>
-          <p>Pull Season 2 / 12p history, daily play time, MMR trends, and last 50 average MMR.</p>
+          <p>Pull MKCentral history, daily play time, MMR trends, and last 50 average MMR.</p>
         </div>
       </div>
     </div>
@@ -157,7 +167,7 @@
       <p class="eyebrow">Lounge Stats</p>
       <h2>Bring MKCentral Season 2 history into MKWT.</h2>
       <p>
-        Save your MKCentral player ID in Settings, sync Season 2 / 12p results, and view local charts for MMR trend, daily play
+        Save your MKCentral player ID in Settings, sync Lounge results, and view local charts for MMR trend, daily play
         time, average MMR over the last 50 mogis, and estimated season hours.
       </p>
       <div class="homeFeatureMeta">Account mode keeps your player ID in the cloud. Guest mode keeps it local.</div>

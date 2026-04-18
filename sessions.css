@@ -18,3 +18,25 @@
       .sessTitle{ font-size:15px; }
       .sessGrid{ max-width: 100%; }
     }
+
+html[data-embed="sessions"],
+html[data-embed="sessions"] body{
+  background: transparent;
+  min-height: 100%;
+}
+html[data-embed="sessions"] .nav{
+  display:none;
+}
+html[data-embed="sessions"] .wrap{
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:12px;
+}
+html[data-embed="sessions"] .card{
+  border-radius:8px;
+  box-shadow:none;
+}
+html[data-embed="sessions"] .wrap > .card:first-child{
+  display:none;
+}

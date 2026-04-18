@@ -130,10 +130,114 @@
 
     /* ===== Mobile Match Cards (clean, centered) ===== */
     .matchListScroll{ overflow:auto; max-height:520px; }
+    .matchListHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
 
     /* Desktop: show table, hide cards */
     .matchTableWrap{ display:block; }
     .matchCards{ display:none; }
+
+    .matchTableWrap table{
+      border-collapse: separate;
+      border-spacing: 0 8px;
+      border-radius: 0;
+      overflow: visible;
+    }
+    .matchTableWrap thead th{
+      padding: 8px 12px 10px;
+      border-bottom: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .matchTableWrap #rows td{
+      padding: 14px 12px;
+      border-bottom: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+        var(--card-2);
+      color: var(--text);
+      font-weight: 800;
+      vertical-align: middle;
+    }
+    .matchTableWrap #rows tr:hover td{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035)),
+        var(--card-2);
+    }
+    .matchTableWrap #rows tr.trackerRow--gold td{
+      background:
+        linear-gradient(180deg, rgba(255,205,70,0.28), rgba(255,205,70,0.08)),
+        var(--card-2);
+    }
+    .matchTableWrap #rows tr.trackerRow--silver td{
+      background:
+        linear-gradient(180deg, rgba(210,220,232,0.26), rgba(210,220,232,0.08)),
+        var(--card-2);
+    }
+    .matchTableWrap #rows tr.trackerRow--bronze td{
+      background:
+        linear-gradient(180deg, rgba(205,128,70,0.27), rgba(205,128,70,0.08)),
+        var(--card-2);
+    }
+    .matchTableWrap #rows tr.trackerRow--gold:hover td{
+      background:
+        linear-gradient(180deg, rgba(255,205,70,0.36), rgba(255,205,70,0.12)),
+        var(--card-2);
+    }
+    .matchTableWrap #rows tr.trackerRow--silver:hover td{
+      background:
+        linear-gradient(180deg, rgba(210,220,232,0.34), rgba(210,220,232,0.12)),
+        var(--card-2);
+    }
+    .matchTableWrap #rows tr.trackerRow--bronze:hover td{
+      background:
+        linear-gradient(180deg, rgba(205,128,70,0.35), rgba(205,128,70,0.12)),
+        var(--card-2);
+    }
+    .matchTableWrap #rows td:first-child{ border-radius: 8px 0 0 8px; }
+    .matchTableWrap #rows td:last-child{ border-radius: 0 8px 8px 0; }
+    .matchTableWrap #rows td:only-child{ border-radius: 8px; }
+    .matchTableWrap #rows td[colspan]{
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .sessionsDialog{
+      width:min(1180px, 96vw);
+      height:min(880px, 90vh);
+      max-height:90vh;
+      overflow:hidden;
+    }
+    .sessionsDialogHeader{
+      padding:14px 16px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .sessionsDialogTitle{
+      font-weight:900;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .sessionsFrame{
+      width:100%;
+      height:calc(100% - 70px);
+      border:0;
+      display:block;
+      background:var(--bg);
+    }
 
     /* Match card */
     .mcard{
@@ -328,6 +432,18 @@
       .matchCards{ display:flex; }
       .matchListScroll{ max-height:none; overflow:visible; }
       .mcard{ padding:14px 48px 14px 48px; }
+      .sessionsDialog{
+        width:100vw;
+        height:100dvh;
+        max-height:100dvh;
+        border-radius:0;
+      }
+      .sessionsDialogHeader{
+        padding:12px;
+      }
+      .sessionsFrame{
+        height:calc(100% - 66px);
+      }
 
       /* Mobile card color: match top nav */
       .mcard{

@@ -44,12 +44,22 @@
 <nav class="nav">
 <div class="navInner">
 <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
-<a class="navLink" href="tracker.html">Tracker</a>
-<a class="navLink" href="stats.html">Stats</a>
-<a class="navLink" href="sessions.html">Sessions</a>
-<a class="navLink" href="lounge.html">Lounge 12p</a>
-<a class="navLink" href="lounge-stats.html">Lounge Stats</a>
-<a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
+<div class="navDropdown">
+<button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
+<div class="navDropdownMenu">
+<a class="navDropdownItem" href="tracker.html">World Wides</a>
+<a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+<a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+</div>
+</div>
+<div class="navDropdown">
+<button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
+<div class="navDropdownMenu">
+<a class="navDropdownItem" href="stats.html">World Wide Stats</a>
+<a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+</div>
+</div>
+<a aria-label="Settings" class="navLink navIcon active" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>
 <!-- ===== CONTENT ===== -->
@@ -124,17 +134,6 @@
 <button class="btn2" id="btnEditSettings" type="button">Edit</button>
 <button class="btn" disabled id="btnSaveSettings" type="button">Save</button>
 <button class="btn2" disabled id="btnCancelSettings" type="button">Cancel</button>
-</div>
-
-<hr class="divider"/>
-
-<div class="section-header">
-  <h3 class="m-0">MKCentral</h3>
-  <button aria-label="Info" class="mcard__infoBtn" data-info="mkcentral" title="Info" type="button">i</button>
-</div>
-<div class="muted mt-10" style="font-size:12px; opacity:.85;">Used by Lounge Stats. Saved to your cloud profile when logged in, or locally in guest mode. Pulled events stay local in this app.</div>
-<div class="mt-12">
-  <a class="btn2" href="lounge-stats.html">Open Lounge Stats</a>
 </div>
 
 <hr class="divider"/>

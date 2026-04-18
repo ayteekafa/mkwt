@@ -182,8 +182,6 @@ const INFO_TEXT = {
     "Choose a visual style for the whole app. The selected theme is stored locally and applied across tracker, stats, sessions, and settings.",
   account:
     "Changing your password is only available for logged-in accounts. Guest mode has no account credentials, so there is no password to change.",
-  mkcentral:
-    "Stores your MKCentral player ID in your account profile when logged in, or locally on this device in guest mode. Lounge Stats uses it to pull Season 2 / 12 player events into a separate local cache without mixing them into your MKWT tracker data.",
   contact:
     "Want a free VIP account or have ideas to improve the website? Feel free to contact me on Discord."
 };
@@ -197,7 +195,6 @@ window.MKWT?.bindInfoOverlay?.({
     minVrFilter: { title: 'Info', body: INFO_TEXT.minVrFilter },
     theme: { title: 'Info', body: INFO_TEXT.theme },
     account: { title: 'Info', body: INFO_TEXT.account },
-    mkcentral: { title: 'Info', body: INFO_TEXT.mkcentral },
     contact: { title: 'Info', body: INFO_TEXT.contact }
   }
 });
