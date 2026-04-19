@@ -77,8 +77,10 @@
 .mkcScopeChoice span{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .mkcDialogActions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 .mkcEmpty{grid-column:1 / -1;border:1px dashed var(--border);border-radius:8px;background:var(--card);padding:18px;color:var(--muted)}
+.mkcMmrGrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.85fr);gap:14px}
 .mkcChartWrap{height:420px;position:relative}
 .mkcChartWrapSmall{height:300px}
+.mkcChartWrapMmr{height:330px}
 .mkcSubChartHead{margin:22px 0 10px}
 .mkcSubChartHead h4{margin:0 0 6px;font-size:18px}
 .mkcTwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -96,6 +98,7 @@
   .mkcActionRow{justify-content:flex-start;flex-wrap:wrap}
   .mkcHeaderUpdate{align-items:flex-start}
   .mkcGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mkcMmrGrid{grid-template-columns:1fr}
   .mkcTwo{grid-template-columns:1fr}
 }
 

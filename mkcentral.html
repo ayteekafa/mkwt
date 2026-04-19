@@ -84,6 +84,28 @@
     </div>
   </dialog>
 
+  <section class="mkcMmrGrid">
+    <div class="card">
+      <div class="sectionHead">
+        <div>
+          <h3>MMR Verlauf</h3>
+          <div class="muted">Chronological event order from locally saved MKCentral events.</div>
+        </div>
+      </div>
+      <div class="mkcChartWrap mkcChartWrapMmr"><canvas id="chartMkcMmr"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="sectionHead">
+        <div>
+          <h3>Weekly Average MMR</h3>
+          <div class="muted">Paused weeks keep the previous week's MMR.</div>
+        </div>
+      </div>
+      <div class="mkcChartWrap mkcChartWrapMmr"><canvas id="chartMkcWeeklyMmr"></canvas></div>
+    </div>
+  </section>
+
   <section class="card">
     <div class="sectionHead">
       <div>
@@ -92,21 +114,6 @@
       </div>
     </div>
     <div class="mkcChartWrap"><canvas id="chartMkcDelta"></canvas></div>
-  </section>
-
-  <section class="card">
-    <div class="sectionHead">
-      <div>
-        <h3>MMR Verlauf</h3>
-        <div class="muted">Chronological event order from locally saved MKCentral events.</div>
-      </div>
-    </div>
-    <div class="mkcChartWrap mkcChartWrapSmall"><canvas id="chartMkcMmr"></canvas></div>
-    <div class="mkcSubChartHead">
-      <h4>Weekly Average MMR</h4>
-      <div class="muted">Average MMR per week. Paused weeks keep the previous week's MMR.</div>
-    </div>
-    <div class="mkcChartWrap mkcChartWrapSmall"><canvas id="chartMkcWeeklyMmr"></canvas></div>
   </section>
 
   <section class="mkcTwo">
