@@ -36,6 +36,105 @@
   let PROFILE = null;
   let matchesAsc = [];
 
+  function statText(id, fallback = "-"){
+    const value = String($(id)?.textContent || "").trim();
+    return value || fallback;
+  }
+
+  function setStatsReportEnabled(enabled){
+    const btn = $("btnDownloadStatsImage");
+    if(btn) btn.disabled = !enabled;
+  }
+
+  function signedNumber(value, decimals = 1){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return "-";
+    return (n >= 0 ? "+" : "") + n.toFixed(decimals);
+  }
+
+  function bestTrackForReport(){
+    const groups = new Map();
+    for(const match of matchesAsc || []){
+      const track = String(match?.track || "").trim();
+      const intermission = String(match?.intermission || "").trim();
+      const delta = Number(match?.vr_change);
+      if(!track || intermission || !Number.isFinite(delta)) continue;
+      const row = groups.get(track) || { track, sum: 0, count: 0 };
+      row.sum += delta;
+      row.count += 1;
+      groups.set(track, row);
+    }
+    let best = null;
+    for(const row of groups.values()){
+      const avg = row.count ? row.sum / row.count : null;
+      if(avg == null) continue;
+      if(!best || avg > best.avg || (avg === best.avg && row.count > best.count)){
+        best = { track: row.track, avg, count: row.count };
+      }
+    }
+    return best;
+  }
+
+  function buildStatsReportItems(){
+    const peakVr = matchesAsc
+      .map((match) => Number(match?.vr_after))
+      .filter(Number.isFinite)
+      .reduce((max, value) => Math.max(max, value), Number(statText("currentVr").replace(/,/g, "")) || 0);
+    const bestTrack = bestTrackForReport();
+    return [
+      { label: "Current VR", value: statText("currentVr") },
+      { label: "Peak VR", value: peakVr ? peakVr.toLocaleString("en-US") : "-" },
+      { label: "Avg VR", value: statText("avgVrWindow") },
+      { label: "Matches", value: statText("matchCount") },
+      {
+        label: "Best Track",
+        value: bestTrack?.track || "-",
+        meta: bestTrack ? `${signedNumber(bestTrack.avg)} VR avg | ${bestTrack.count} ${bestTrack.count === 1 ? "run" : "runs"}` : "3-lap only",
+      },
+    ];
+  }
+
+  async function downloadStatsReport(){
+    if(!matchesAsc.length) return;
+    const btn = $("btnDownloadStatsImage");
+    const previous = btn?.textContent || "Download image";
+    try{
+      if(!window.MKWTReport?.downloadImage) throw new Error("Report exporter unavailable.");
+      if(btn){
+        btn.disabled = true;
+        btn.textContent = "Preparing...";
+      }
+      await window.MKWTReport.downloadImage({
+        title: "MKWT World Wide Stats",
+        subtitle: `Matches: ${statText("matchCount")} | Current VR: ${statText("currentVr")}`,
+        filename: `mkwt-world-wide-stats-${new Date().toISOString().slice(0,10)}.jpg`,
+        layout: "worldWideQuad",
+        stats: buildStatsReportItems(),
+        charts: [
+          { title: "VR History", canvasId: "chartVr" },
+          { title: "Performance", canvasId: "chartPerf" },
+          { title: "Weekly VR", canvasId: "chartWeekly" },
+        ],
+        width: 2500,
+        quadRowHeight: 560,
+        quality: 0.86,
+      });
+      setStatus("Image report downloaded.", true);
+    }catch(e){
+      setStatus("Image export failed: " + (e?.message || e), false);
+    }finally{
+      if(btn){
+        btn.textContent = previous;
+        btn.disabled = !matchesAsc.length;
+      }
+    }
+  }
+
+  function bindStatsReport(){
+    $("btnDownloadStatsImage")?.addEventListener("click", downloadStatsReport);
+    setStatsReportEnabled(false);
+  }
+
   let STRATS_META_INTERMISSIONS = null;
 
   // ========= Global Settings =========
@@ -1758,14 +1857,17 @@ function renderBuckets(){
 
       if (matchesAsc.length === 0) {
   $("matchCount").textContent = "0";
+  setStatsReportEnabled(false);
   buildCharts([]); // zeigt leeres Chart mit Default-Range 3000–11000
   setStatus("No matches yet.", false);
   return;
 }
 
       buildCharts(matchesAsc);
+      setStatsReportEnabled(true);
       setStatus("✅ Done.", true);
     } catch (e) {
+      setStatsReportEnabled(false);
       setStatus("Error: " + (e?.message || e), false);
       setDebug(e?.stack || "");
     }
@@ -1774,6 +1876,7 @@ function renderBuckets(){
 
   // Start
   (async () => {
+    bindStatsReport();
     // Guest mode is allowed: continue even without a session.
     await requireAuth();
     await refreshAll();

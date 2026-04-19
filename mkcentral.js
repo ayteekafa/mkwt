@@ -56,6 +56,7 @@
   let pendingScope = { ...DEFAULT_SCOPE };
   let scopeOptionsCache = null;
   let isUpdating = false;
+  let lastRenderedPayload = null;
   const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 
   function rankDef(name, min){
@@ -1143,6 +1144,79 @@
     bindScoreTabs();
   }
 
+  function setMkcReportEnabled(enabled){
+    const btn = $("btnDownloadMkcImage");
+    if(btn) btn.disabled = !enabled;
+  }
+
+  function rankName(value){
+    return getMkworldRank(value)?.name || "";
+  }
+
+  function scoreValue(event){
+    const score = finiteNumber(event?.table_score);
+    return score == null ? "-" : fmtNumber(score);
+  }
+
+  function buildMkcReportItems(payload){
+    const derived = calcDerived(payload.events || [], payload.profile || {}, payload.summary || {});
+    return [
+      { label: "Current MMR", value: fmtNumber(derived.currentMmr), meta: rankName(derived.currentMmr) },
+      { label: "Peak MMR", value: fmtNumber(derived.peakMmr), meta: rankName(derived.peakMmr) },
+      { label: "Avg Last 50", value: fmtNumber(derived.last50MmrAvg), meta: `${derived.last50Count} events | ${rankName(derived.last50MmrAvg)}` },
+      { label: "Events", value: fmtNumber(derived.eventCount), meta: `${fmtDurationMinutes(derived.seasonMinutes)} season` },
+      { label: "Avg Gain", value: fmtSigned(derived.avgGain, 2), meta: "per event", color: derived.avgGain >= 0 ? "#4da319" : "#ff5050" },
+      { label: "Winrate", value: fmtPct(derived.winrate), meta: `${derived.wins} W / ${derived.losses} L` },
+      { label: "Avg Score", value: fmtNumber(derived.officialAvgScore, 1), meta: "official MKCentral" },
+      { label: "Best Gain", value: fmtDelta(derived.bestEvent?.mmr_delta), meta: derived.bestEvent?.event || "", color: "#4da319" },
+      { label: "Worst Gain", value: fmtDelta(derived.worstEvent?.mmr_delta), meta: derived.worstEvent?.event || "", color: "#ff5050" },
+      { label: "High pts", value: scoreValue(derived.highestScoreEvent), meta: derived.highestScoreEvent?.event || "" },
+      { label: "Low pts", value: scoreValue(derived.lowestScoreEvent), meta: derived.lowestScoreEvent?.event || "" },
+    ];
+  }
+
+  async function downloadMkcReport(){
+    const payload = lastRenderedPayload;
+    if(!payload || !Array.isArray(payload.events) || !payload.events.length) return;
+    const btn = $("btnDownloadMkcImage");
+    const previous = btn?.textContent || "Download image";
+    try{
+      if(!window.MKWTReport?.downloadImage) throw new Error("Report exporter unavailable.");
+      if(btn){
+        btn.disabled = true;
+        btn.textContent = "Preparing...";
+      }
+      await window.MKWTReport.downloadImage({
+        title: "MKWT Lounge Stats",
+        subtitle: `${payload.playerName || "MKCentral Player"} | ${scopeLabel(activeScope)} | ${payload.events.length} events`,
+        filename: `mkwt-lounge-stats-${scopeStorageSuffix(activeScope)}-${new Date().toISOString().slice(0,10)}.jpg`,
+        stats: buildMkcReportItems(payload),
+        charts: [
+          { title: "MMR History", canvasId: "chartMkcMmr" },
+          { title: "Weekly Average MMR", canvasId: "chartMkcWeeklyMmr" },
+          { title: "Daily Play Time", canvasId: "chartMkcDelta" },
+        ],
+        width: 2500,
+        columns: 3,
+        chartHeight: 500,
+        quality: 0.86,
+      });
+      setStatus("Image report downloaded.", true);
+    }catch(e){
+      setStatus("Image export failed: " + (e?.message || e), false);
+    }finally{
+      if(btn){
+        btn.textContent = previous;
+        btn.disabled = !(lastRenderedPayload?.events || []).length;
+      }
+    }
+  }
+
+  function bindMkcReport(){
+    $("btnDownloadMkcImage")?.addEventListener("click", downloadMkcReport);
+    setMkcReportEnabled(false);
+  }
+
   function renderGroupTable(id, rows){
     const body = $(id);
     if(!body) return;
@@ -1538,6 +1612,8 @@
   function render(payload){
     setScopeDisplay();
     if(!payload || !Array.isArray(payload.events) || !payload.events.length){
+      lastRenderedPayload = payload || null;
+      setMkcReportEnabled(false);
       const nameEl = $("mkcPlayerNameDisplay");
       if(nameEl){
         nameEl.textContent = payload?.playerName || "MKCentral Player";
@@ -1559,12 +1635,14 @@
       nameEl.textContent = payload.playerName || "MKCentral Player";
       nameEl.classList.remove("isEmpty");
     }
+    lastRenderedPayload = payload;
     setLastUpdateDisplay(payload.updated_at);
     renderCards(payload);
     renderGroupTable("mkcTypeRows", groupedRows(payload.events, "format"));
     renderGroupTable("mkcTierRows", groupedRows(payload.events, "tier"));
     renderEvents(payload.events);
     renderCharts(payload.events);
+    setMkcReportEnabled(true);
   }
 
   async function loadInitialPlayerRef(){
@@ -1703,6 +1781,7 @@
   }
 
   async function init(){
+    bindMkcReport();
     activeScope = readScope();
     pendingScope = normalizeScope(activeScope);
     setScopeDisplay();
