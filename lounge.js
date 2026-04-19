@@ -322,6 +322,55 @@
       .map(value => optionHtml(value, safeSelected, labelForValue ? labelForValue(value) : value))
       .join('');
     select.value = safeSelected;
+    updatePlayedOptionHints();
+  }
+  function currentTrackSet(){
+    const races = state.current?.races || [];
+    return new Set(races
+      .filter(race => !isIntermissionRace(race))
+      .map(race => String(race?.track || '').trim())
+      .filter(Boolean));
+  }
+  function currentIntermissionDestinySet(start){
+    const routeStart = String(start || '').trim();
+    if(!routeStart) return new Set();
+    const races = state.current?.races || [];
+    return new Set(races
+      .filter(isIntermissionRace)
+      .map(routePartsFromRace)
+      .filter(route => route.start === routeStart)
+      .map(route => route.end)
+      .filter(Boolean));
+  }
+  function markPlayedOptions(select, usedValues){
+    if(!select) return;
+    const selected = String(select.value || '');
+    const used = usedValues instanceof Set ? usedValues : new Set();
+    Array.from(select.options || []).forEach((option) => {
+      const value = String(option.value || '').trim();
+      if(!option.dataset.baseLabel) option.dataset.baseLabel = option.textContent || '';
+      const isUsed = !!value && used.has(value) && value !== selected;
+      option.classList.toggle('loungeOptionUsed', isUsed);
+      option.disabled = isUsed;
+      option.textContent = isUsed ? `${option.dataset.baseLabel} - played` : option.dataset.baseLabel;
+    });
+  }
+  function updatePlayedOptionHints(){
+    markPlayedOptions($('trackSelect'), currentTrackSet());
+    if(PAGE_CONFIG.allowIntermissionRoutes){
+      markPlayedOptions($('intermissionEndSelect'), currentIntermissionDestinySet($('intermissionStartSelect')?.value || ''));
+    }
+  }
+  function entryAlreadyUsed(entry){
+    const races = state.current?.races || [];
+    if(entry?.raceKind === 'intermission'){
+      return races.some((race) => {
+        if(!isIntermissionRace(race)) return false;
+        const route = routePartsFromRace(race);
+        return route.start === entry.intermissionStart && route.end === entry.intermissionEnd;
+      });
+    }
+    return races.some((race) => !isIntermissionRace(race) && String(race?.track || '') === String(entry?.track || ''));
   }
   function buildRouteMaps(){
     const metaRoutes = Object.values(stratsMetaIntermissions || {})
@@ -389,6 +438,7 @@
         fillEnds(allowedEnds, previousEnd, start);
       }
       syncing = false;
+      updatePlayedOptionHints();
     });
 
     endSel.addEventListener('change', () => {
@@ -406,6 +456,7 @@
         }
       }
       syncing = false;
+      updatePlayedOptionHints();
     });
 
     resetBoth();
@@ -878,6 +929,7 @@
       else if(btn !== dcBtn) btn.removeAttribute('title');
     });
     if(!isComplete && dcBtn) updateEntryTagButtons();
+    updatePlayedOptionHints();
 
     const body = $('currentMogiBody');
     if(!races.length){
@@ -1347,6 +1399,11 @@
     const dcCount = sessions.reduce((sum, session) => sum + (session.races || []).filter(r => r.disconnect).length, 0);
     const totalPoints = statRaces.reduce((sum, race) => sum + Number(race.points || 0), 0);
     const avgMogi = raceCount ? (totalPoints / raceCount) : 0;
+    const sessionPointTotals = sessions
+      .map(sessionTotalPoints)
+      .filter(points => Number.isFinite(points));
+    const highestPoints = sessionPointTotals.length ? Math.max(...sessionPointTotals) : null;
+    const lowestPoints = sessionPointTotals.length ? Math.min(...sessionPointTotals) : null;
     const bestTrack = (stats || []).filter(s => s.count >= 5).sort((a,b) => {
       const diff = b.avg - a.avg;
       if(diff !== 0) return diff;
@@ -1358,6 +1415,8 @@
     const avgEl = $('heroMogiAvg');
     const raceCountEl = $('heroRaceCount');
     const dcCountEl = $('heroDcCount');
+    const highestEl = $('heroHighestPoints');
+    const lowestEl = $('heroLowestPoints');
     if(mogiCountEl) mogiCountEl.textContent = String(mogiCount);
     if(avgEl){
       const hasAvg = raceCount > 0;
@@ -1371,6 +1430,8 @@
     }
     if(raceCountEl) raceCountEl.textContent = String(raceCount);
     if(dcCountEl) dcCountEl.textContent = String(dcCount);
+    if(highestEl) highestEl.textContent = highestPoints == null ? '-' : String(highestPoints);
+    if(lowestEl) lowestEl.textContent = lowestPoints == null ? '-' : String(lowestPoints);
     if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : 'Not enough data';
     if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'Best Track starts after 5 plays on one track.';
   }
@@ -1466,6 +1527,14 @@
       }
       const entry = readEntrySelection();
       if(entry.error){ setStatus(entry.error, false); return; }
+      if(entryAlreadyUsed(entry)){
+        setStatus(entry.raceKind === 'intermission'
+          ? 'This intermission route was already used in this Mogi.'
+          : 'This track was already used in this Mogi.',
+          false);
+        updatePlayedOptionHints();
+        return;
+      }
       const placement = Number($('placementSelect').value || 0);
       const lobbySize = currentLobbySize();
       const disconnect = !!state.entryDisconnect;
@@ -1504,6 +1573,7 @@
       if($('intermissionStartSelect')) $('intermissionStartSelect').value = '';
       if($('intermissionEndSelect')) $('intermissionEndSelect').value = '';
       resetIntermissionRouteFilters();
+      updatePlayedOptionHints();
       state.lobbySize = PAGE_CONFIG.playerCount;
       state.entryDisconnect = false;
       updatePlacementOptions();

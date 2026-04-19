@@ -26,6 +26,8 @@
 label span{display:block;margin-bottom:6px;color:var(--muted);font-size:13px;font-weight:700}
 select,input,button{font:inherit}
 select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card-2);color:var(--text);outline:none}
+select option.loungeOptionUsed{background:#10141b;color:#667386}
+select option.loungeOptionUsed:disabled{background:#10141b;color:#667386}
 select:focus{box-shadow:var(--ring);border-color:var(--primary)}
 .segRow{display:flex;gap:8px;flex-wrap:wrap}
 .segRow--compact .navAction{min-width:72px}
@@ -140,19 +142,14 @@ tbody tr.raceRow--dc td{background:linear-gradient(180deg, rgba(108,24,34,.34) 0
 }
 
 
-/* tracker-style lounge header */
-.loungeHeroStats{grid-template-columns:repeat(2,minmax(0,1fr));max-width:560px;margin:12px auto 0}
-.profileCard #status{margin-top:12px}
-@media (max-width:480px){
-  .loungeHeroStats{gap:7px}
-}
-
-
 /* tracker-matched lounge header */
-.loungeHeroStats{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none;margin-top:12px}
+.loungeHeroStats{grid-template-columns:repeat(6,minmax(0,1fr));max-width:none;margin-top:12px}
 .profileCard #userInfo{text-align:center}
 .profileCard #status{margin-top:12px;min-height:0}
 .profileCard .bestTrackLine{margin-top:12px}
-@media (max-width:640px){
-  .loungeHeroStats{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+@media (max-width:760px){
+  .loungeHeroStats{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+}
+@media (max-width:480px){
+  .loungeHeroStats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 }

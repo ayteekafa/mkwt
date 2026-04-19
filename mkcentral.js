@@ -850,6 +850,9 @@
     const last30Winrate = winrateStats(last30);
     const bestEvent = statEvents.slice().sort((a, b) => Number(b.mmr_delta) - Number(a.mmr_delta))[0] || null;
     const worstEvent = statEvents.slice().sort((a, b) => Number(a.mmr_delta) - Number(b.mmr_delta))[0] || null;
+    const scoreEvents = statEvents.filter((event) => finiteNumber(event.table_score) != null);
+    const highestScoreEvent = scoreEvents.slice().sort((a, b) => finiteNumber(b.table_score) - finiteNumber(a.table_score))[0] || null;
+    const lowestScoreEvent = scoreEvents.slice().sort((a, b) => finiteNumber(a.table_score) - finiteNumber(b.table_score))[0] || null;
 
     return {
       eventCount: statEvents.length,
@@ -875,6 +878,8 @@
       seasonMinutes: statEvents.length * AVG_MOGI_MINUTES,
       bestEvent,
       worstEvent,
+      highestScoreEvent,
+      lowestScoreEvent,
       officialEvents: parseNumber(summary?.["Events Played"]),
       officialAvgScore: parseNumber(summary?.["Average Score"]) ?? avgScore(statEvents),
       officialAvgScoreNoSq: parseNumber(summary?.["Average Score (No SQ)"]),
@@ -950,7 +955,7 @@
     </div>`;
   }
 
-  function eventComboCard(bestEvent, worstEvent){
+  function eventComboCard(bestEvent, worstEvent, highestScoreEvent, lowestScoreEvent){
     const row = (label, event) => {
       const delta = event ? fmtDelta(event.mmr_delta) : "-";
       return `<div class="mkcEventComboRow">
@@ -961,11 +966,20 @@
         </div>
       </div>`;
     };
+    const point = (label, event) => {
+      const score = finiteNumber(event?.table_score);
+      const title = event?.event ? ` title="${escapeHtml(event.event)}"` : "";
+      return `<span class="mkcEventPoint"${title}><span>${escapeHtml(label)}</span><b>${escapeHtml(score == null ? "-" : fmtNumber(score))}</b></span>`;
+    };
     return `<div class="mkcStat mkcEventCombo">
-      <div class="mkcStatLabel">Best / Worst Event</div>
+      <div class="mkcStatLabel">Best / Worst Gain</div>
       <div class="mkcEventComboRows">
         ${row("Best", bestEvent)}
         ${row("Worst", worstEvent)}
+      </div>
+      <div class="mkcEventPointsMini">
+        ${point("High pts", highestScoreEvent)}
+        ${point("Low pts", lowestScoreEvent)}
       </div>
     </div>`;
   }
@@ -1123,7 +1137,7 @@
       activityCard(derived),
       avgGainCard(derived),
       winrateCard(derived),
-      eventComboCard(derived.bestEvent, derived.worstEvent),
+      eventComboCard(derived.bestEvent, derived.worstEvent, derived.highestScoreEvent, derived.lowestScoreEvent),
       avgScoreCard(derived),
     ].join("");
     bindScoreTabs();
