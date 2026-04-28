@@ -1,3 +1,8 @@
+.aboutWrap{
+  padding-top:28px;
+  padding-bottom:40px;
+}
+
 .aboutHero{
   padding:22px 22px 18px;
 }
@@ -13,12 +18,41 @@
   max-width:760px;
 }
 
-.aboutHeroActions{
+.aboutHeroMeta{
   display:flex;
   align-items:center;
   justify-content:flex-end;
   gap:10px;
   flex-wrap:wrap;
+  max-width:360px;
+}
+
+.aboutMetaPill{
+  padding:9px 12px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:999px;
+  background:rgba(10,12,16,.56);
+  color:var(--text);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+
+.aboutHeroActions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+
+.aboutContinue{
+  min-width:210px;
+  justify-content:center;
+}
+
+.aboutContact{
+  text-decoration:none;
 }
 
 .aboutSection{
@@ -72,6 +106,9 @@
 }
 
 @media (max-width: 760px){
+  .aboutWrap{
+    padding-top:18px;
+  }
   .aboutHero{
     padding:18px;
   }
@@ -81,6 +118,10 @@
   }
   .aboutHeroActions{
     justify-content:center;
+  }
+  .aboutHeroMeta{
+    justify-content:center;
+    max-width:none;
   }
   .aboutSection{
     padding:18px;

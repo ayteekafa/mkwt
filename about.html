@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 
   <title>About MKWT - Mario Kart World Tracker</title>
-  <meta name="description" content="Learn what MKWT can track in Mario Kart World: match logging, VR changes, sessions, intermission routes, stats & charts. Guest mode and Account mode explained." />
+  <meta name="description" content="Understand how MKWT is structured: what each area does, what syncs to your account, and how Guest mode differs from Account mode." />
 
   <link rel="canonical" href="https://mkwt.app/about.html" />
   <meta name="theme-color" content="#07080a" />
@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
 
   <meta property="og:title" content="About MKWT - Mario Kart World Tracker" />
-  <meta property="og:description" content="Features, modes (Guest vs Account), and what MKWT tracks." />
+  <meta property="og:description" content="What each MKWT area does, what syncs, and how Guest vs Account works." />
   <meta property="og:image" content="https://mkwt.app/og-card.png" />
   <meta property="og:url" content="https://mkwt.app/about.html" />
   <meta property="og:type" content="website" />
@@ -30,47 +30,27 @@
 </head>
 <body>
 <noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
-  <nav class="nav">
-    <div class="navInner">
-      <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
-      <a class="navLink" href="index.html">Home</a>
-      <div class="navDropdown">
-        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
-        <div class="navDropdownMenu">
-          <a class="navDropdownItem" href="tracker.html">World Wides</a>
-          <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
-          <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
-          <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
-        </div>
-      </div>
-      <a class="navLink" href="combo-builder.html">Combo Builder</a>
-      <div class="navDropdown">
-        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
-        <div class="navDropdownMenu">
-          <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
-          <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
-        </div>
-      </div>
-      <a class="navLink active" href="about.html">About</a>
-      <div class="navSpacer"></div>
-      <a class="navAction" href="login.html">Login</a>
-      <a class="navAction active" data-guest-link="true" href="tracker.html">Try as Guest</a>
-    </div>
-  </nav>
-  <main class="wrap">
+  <main class="wrap landingWrap aboutWrap">
     <section class="card profileCard aboutHero">
       <div class="profileTop aboutHeroTop">
         <div class="aboutHeroCopy">
           <p class="eyebrow">About</p>
           <h1 class="heroTitle">About MKWT</h1>
           <p class="muted heroSubtitle">
-            MKWT is a <strong>Mario Kart World tracker</strong> for logging matches and reviewing performance over time.
-            If you're looking for an <strong>MK World tracker</strong> to track VR changes, sessions, and stats, MKWT keeps everything in one place.
+            The index is now the clean entry screen. This page is the quieter reference for what each MKWT area does,
+            what stays local, and what syncs to your account across devices.
           </p>
+          <div class="aboutHeroActions">
+            <a class="navAction active landingContinue aboutContinue" href="login.html">Continue</a>
+            <a class="navAction aboutContact" href="https://discord.com/users/335049995055267840" target="_blank" rel="noopener noreferrer">Contact on Discord</a>
+          </div>
         </div>
-        <div class="aboutHeroActions toplinks">
-          <a class="navAction active" href="login.html">Login / Start</a>
-          <a class="navAction" data-guest-link="true" href="tracker.html">Open as Guest</a>
+        <div class="aboutHeroMeta">
+          <span class="aboutMetaPill">World Wides</span>
+          <span class="aboutMetaPill">Lounge 12p + 24p</span>
+          <span class="aboutMetaPill">Time Trial</span>
+          <span class="aboutMetaPill">Combo Builder</span>
+          <span class="aboutMetaPill">Stats + Sync</span>
         </div>
       </div>
     </section>
@@ -78,31 +58,54 @@
     <section class="card cardSection aboutSection">
       <div class="aboutGrid">
         <article class="aboutBlock">
-          <h2 class="sectionTitle">What you can track</h2>
+          <h2 class="sectionTitle">Where each area belongs</h2>
           <ul>
-            <li><strong>Matches</strong>: track / intermission, route, opponents, placement, and VR after.</li>
-            <li><strong>VR changes</strong>: gains and losses per match, with helpful summaries.</li>
-            <li><strong>Sessions</strong>: see progress blocks and how your VR moved across a set of games.</li>
-            <li><strong>Stats & charts</strong>: distributions, win rates, averages, and performance by track/intermission.</li>
+            <li><strong>World Wide Tracker</strong>: quick 3-lap and intermission logging, VR changes, and recent matches.</li>
+            <li><strong>Lounge</strong>: race-by-race mogi tracking for 12p and 24p, including intermission handling.</li>
+            <li><strong>Time Trial</strong>: PB storage against current world records.</li>
+            <li><strong>Combo Builder</strong>: hidden-stat totals and direct combo comparison.</li>
+            <li><strong>Stats / Lounge Stats</strong>: the deeper chart and review layer, separate from fast logging.</li>
           </ul>
         </article>
 
         <article class="aboutBlock">
           <h2 class="sectionTitle">Guest vs Account</h2>
           <ul>
-            <li><strong>Guest mode</strong> stores data locally in your browser (no cloud).</li>
-            <li><strong>Account mode</strong> uses Supabase cloud to sync your matches across devices.</li>
-            <li>Some settings may be limited in Guest mode by design.</li>
+            <li><strong>Guest mode</strong> stays local in your browser and is locked to <strong>Dendo Denim</strong>.</li>
+            <li><strong>Account mode</strong> stores your profile in the cloud and follows you across devices.</li>
+            <li><strong>Theme choice</strong> now syncs with your account, so logging in on another device keeps your selected look.</li>
+            <li>Guest is still useful for trying MKWT quickly without creating an account.</li>
+          </ul>
+        </article>
+
+        <article class="aboutBlock">
+          <h2 class="sectionTitle">What syncs now</h2>
+          <ul>
+            <li><strong>Profile basics</strong>: nickname and current VR.</li>
+            <li><strong>World Wide matches</strong>: your tracked match history and review data.</li>
+            <li><strong>Lounge data</strong>: saved mogis, race rows, and MKCentral-linked review context.</li>
+            <li><strong>Theme preference</strong>: your chosen account theme follows your next login.</li>
+          </ul>
+        </article>
+
+        <article class="aboutBlock">
+          <h2 class="sectionTitle">What stays local</h2>
+          <ul>
+            <li><strong>Guest data</strong> never leaves the browser.</li>
+            <li><strong>Fresh experiments</strong> in Guest are good for quick tests without touching account history.</li>
+            <li><strong>Device-specific feel</strong> like temporary cache or browser-only state can still differ until saved or synced.</li>
           </ul>
         </article>
 
         <article class="aboutBlock aboutBlock--full">
           <h2 class="sectionTitle">FAQ</h2>
           <div class="aboutFaq">
-            <p><strong>Does MKWT require an account?</strong> No. You can try it as Guest. For syncing across devices, use an account.</p>
+            <p><strong>Do I need an account to use MKWT?</strong> No. Guest still works, but account mode is the better long-term option if you want sync and cleaner continuity.</p>
+            <p><strong>Why move bigger charts out of some tracker pages?</strong> To keep the trackers faster and cleaner while putting the heavier analysis into Stats and Lounge Stats.</p>
+            <p><strong>Does MKWT sync everything instantly?</strong> Account data and theme preference sync through the cloud once saved; Guest remains browser-local by design.</p>
             <p><strong>Is MKWT affiliated with Nintendo?</strong> No.</p>
           </div>
-          <p class="small">Last updated: 2026-02-16</p>
+          <p class="small">Last updated: 2026-04-28</p>
         </article>
       </div>
     </section>
