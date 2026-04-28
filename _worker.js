@@ -6,6 +6,11 @@ const JSON_HEADERS = {
 const PRODUCTION_HOST = "mkwt.app";
 const CANONICAL_REDIRECT_HOST = "www.mkwt.app";
 const HSTS_VALUE = "max-age=31536000; includeSubDomains; preload";
+const LEGACY_ASSET_PREFIXES = [
+  ["/Track Icons MKW Transparent/", "/assets/track-icons/transparent/"],
+  ["/Track Icons MKW/", "/assets/track-icons/boxed/"],
+  ["/combo-icons/", "/assets/combo-icons/"],
+];
 
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -26,6 +31,18 @@ function redirectToCanonical(url) {
 
 function shouldAttachHsts(url) {
   return url.protocol === "https:" && (url.hostname === PRODUCTION_HOST || url.hostname === CANONICAL_REDIRECT_HOST);
+}
+
+function rewriteLegacyAssetUrl(url) {
+  const decodedPath = decodeURIComponent(url.pathname || "");
+  for (const [legacyPrefix, modernPrefix] of LEGACY_ASSET_PREFIXES) {
+    if (decodedPath.startsWith(legacyPrefix)) {
+      const next = new URL(url.toString());
+      next.pathname = `${modernPrefix}${decodedPath.slice(legacyPrefix.length)}`;
+      return next;
+    }
+  }
+  return null;
 }
 
 function withSecurityHeaders(response, requestUrl) {
@@ -239,6 +256,12 @@ export default {
 
     if (shouldRedirectToCanonical(url)) {
       return withSecurityHeaders(redirectToCanonical(url), url);
+    }
+
+    const legacyAssetUrl = rewriteLegacyAssetUrl(url);
+    if (legacyAssetUrl) {
+      const rewrittenRequest = new Request(legacyAssetUrl.toString(), request);
+      return withSecurityHeaders(await env.ASSETS.fetch(rewrittenRequest), legacyAssetUrl);
     }
 
     if (url.pathname === "/api/mkcentral-player") {

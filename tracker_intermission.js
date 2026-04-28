@@ -116,7 +116,7 @@ function fillTrackSelectFromList(selectEl, placeholder, list){
   if (isStartSelect && suggested && sorted.includes(suggested)){
     const o = document.createElement('option');
     o.value = suggested;
-    opt.textContent = `Suggested: ${suggested}`;
+    o.textContent = `Suggested: ${suggested}`;
     o.dataset.suggested = '1';
     selectEl.appendChild(o);
   }
