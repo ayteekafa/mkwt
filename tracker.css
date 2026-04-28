@@ -79,6 +79,7 @@
       text-overflow:ellipsis;
       max-width: 100%;
     }
+    #matchCard > .modeToggle{ margin-top:16px; }
 
     /* Match form actions: Clear far left, Save far right */
     .matchFormActions{
@@ -129,7 +130,7 @@
   
 
     /* ===== Mobile Match Cards (clean, centered) ===== */
-    .matchListScroll{ overflow:auto; max-height:520px; }
+    .matchListScroll{ overflow:visible; max-height:none; }
     .matchListHead{
       display:flex;
       align-items:center;
@@ -140,7 +141,7 @@
     }
 
     /* Desktop: show table, hide cards */
-    .matchTableWrap{ display:block; }
+    .matchTableWrap{ display:block; overflow:visible; }
     .matchCards{ display:none; }
 
     .matchTableWrap table{
@@ -148,6 +149,19 @@
       border-spacing: 0 8px;
       border-radius: 0;
       overflow: visible;
+    }
+    #listCard.cardSection{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.008)),
+        linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 58%),
+        var(--card);
+    }
+    .matchTableWrap #rows tr{
+      height:96px;
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 26%),
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+        var(--card-2);
     }
     .matchTableWrap thead th{
       padding: 8px 12px 10px;
@@ -159,49 +173,158 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
+    .matchTableWrap thead th:nth-child(4),
+    .matchTableWrap thead th:nth-child(5),
+    .matchTableWrap thead th:nth-child(6),
+    .matchTableWrap thead th:nth-child(7),
+    .matchTableWrap thead th:nth-child(8){
+      text-align:center;
+    }
     .matchTableWrap #rows td{
-      padding: 14px 12px;
+      padding: 12px 12px;
       border-bottom: 0;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
-        var(--card-2);
+      background: transparent;
       color: var(--text);
       font-weight: 800;
       vertical-align: middle;
+      font-variant-numeric: tabular-nums;
     }
-    .matchTableWrap #rows tr:hover td{
+    .matchTableWrap #rows td:nth-child(4),
+    .matchTableWrap #rows td:nth-child(5),
+    .matchTableWrap #rows td:nth-child(6),
+    .matchTableWrap #rows td:nth-child(7){
+      text-align:center;
+    }
+    .matchTableWrap #rows td:nth-child(4){ min-width:108px; }
+    .matchTableWrap #rows td:nth-child(5){ min-width:112px; }
+    .matchTableWrap #rows td:nth-child(6),
+    .matchTableWrap #rows td:nth-child(7){ min-width:70px; }
+    .matchTableWrap #rows td.ok{
+      color: var(--chart-positive-stroke);
+      font-weight: 900;
+    }
+    .matchTableWrap #rows td.bad{
+      color: var(--chart-negative-stroke);
+      font-weight: 900;
+    }
+    .matchTracksCell{
+      width:180px;
+    }
+    .matchActionsCell{
+      width:118px;
+      text-align:right;
+    }
+    .matchActionGroup{
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:flex-end;
+      gap:6px;
+      width:100%;
+    }
+    .matchActionGroup .iconBtn{
+      min-width:88px;
+      min-height:30px;
+      padding:5px 10px;
+      font-size:12px;
+      border-radius:10px;
+      justify-content:center;
+    }
+    .matchTracksVisual{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      min-height:56px;
+      width:100%;
+      min-width:0;
+    }
+    .matchTracksVisual--single{
+      justify-content:center;
+    }
+    .matchTracksVisual--route{
+      width:fit-content;
+      max-width:100%;
+      margin-inline:auto;
+    }
+    .matchTracksNode{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:52px;
+      height:52px;
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+    .matchTracksNode--destiny{
+      margin-left:2px;
+    }
+    .matchTrackIcon,
+    .matchTracksNode .mcard__routeIconFallback{
+      width:52px;
+      height:52px;
+    }
+    .matchTrackIcon{
+      transform:scale(1.14);
+      transform-origin:center;
+    }
+    .matchTracksArrow{
+      width:20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      line-height:1;
+      color:var(--muted);
+      opacity:.92;
+      flex:0 0 auto;
+    }
+    .matchTableWrap #rows tr:hover{
       background:
+        linear-gradient(90deg, color-mix(in srgb, var(--primary) 12%, transparent) 0%, transparent 30%),
         linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035)),
         var(--card-2);
     }
-    .matchTableWrap #rows tr.trackerRow--gold td{
+    .matchTableWrap #rows tr.trackerRow--gold{
       background:
-        linear-gradient(180deg, rgba(255,205,70,0.28), rgba(255,205,70,0.08)),
+        radial-gradient(circle at -18% 50%, rgba(255,205,70,0.24) 0%, rgba(255,205,70,0.14) 16%, rgba(255,205,70,0.05) 25%, transparent 33%),
+        radial-gradient(circle at -2% 50%, rgba(255,205,70,0.12) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
         var(--card-2);
     }
-    .matchTableWrap #rows tr.trackerRow--silver td{
+    .matchTableWrap #rows tr.trackerRow--silver{
       background:
-        linear-gradient(180deg, rgba(210,220,232,0.26), rgba(210,220,232,0.08)),
+        radial-gradient(circle at -18% 50%, rgba(210,220,232,0.22) 0%, rgba(210,220,232,0.12) 16%, rgba(210,220,232,0.045) 25%, transparent 33%),
+        radial-gradient(circle at -2% 50%, rgba(210,220,232,0.11) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
         var(--card-2);
     }
-    .matchTableWrap #rows tr.trackerRow--bronze td{
+    .matchTableWrap #rows tr.trackerRow--bronze{
       background:
-        linear-gradient(180deg, rgba(205,128,70,0.27), rgba(205,128,70,0.08)),
+        radial-gradient(circle at -18% 50%, rgba(205,128,70,0.22) 0%, rgba(205,128,70,0.12) 16%, rgba(205,128,70,0.045) 25%, transparent 33%),
+        radial-gradient(circle at -2% 50%, rgba(205,128,70,0.11) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
         var(--card-2);
     }
-    .matchTableWrap #rows tr.trackerRow--gold:hover td{
+    .matchTableWrap #rows tr.trackerRow--gold:hover{
       background:
-        linear-gradient(180deg, rgba(255,205,70,0.36), rgba(255,205,70,0.12)),
+        radial-gradient(circle at -18% 50%, rgba(255,205,70,0.30) 0%, rgba(255,205,70,0.16) 16%, rgba(255,205,70,0.06) 25%, transparent 33%),
+        radial-gradient(circle at -2% 50%, rgba(255,205,70,0.16) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035)),
         var(--card-2);
     }
-    .matchTableWrap #rows tr.trackerRow--silver:hover td{
+    .matchTableWrap #rows tr.trackerRow--silver:hover{
       background:
-        linear-gradient(180deg, rgba(210,220,232,0.34), rgba(210,220,232,0.12)),
+        radial-gradient(circle at -18% 50%, rgba(210,220,232,0.28) 0%, rgba(210,220,232,0.15) 16%, rgba(210,220,232,0.055) 25%, transparent 33%),
+        radial-gradient(circle at -2% 50%, rgba(210,220,232,0.15) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035)),
         var(--card-2);
     }
-    .matchTableWrap #rows tr.trackerRow--bronze:hover td{
+    .matchTableWrap #rows tr.trackerRow--bronze:hover{
       background:
-        linear-gradient(180deg, rgba(205,128,70,0.35), rgba(205,128,70,0.12)),
+        radial-gradient(circle at -18% 50%, rgba(205,128,70,0.28) 0%, rgba(205,128,70,0.15) 16%, rgba(205,128,70,0.055) 25%, transparent 33%),
+        radial-gradient(circle at -2% 50%, rgba(205,128,70,0.15) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035)),
         var(--card-2);
     }
     .matchTableWrap #rows td:first-child{ border-radius: 8px 0 0 8px; }
@@ -243,14 +366,44 @@
     .mcard{
       position:relative;
       border-radius:16px;
-      background: var(--card);
+      background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 48%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
+        linear-gradient(90deg, color-mix(in srgb, var(--primary) 9%, transparent) 0%, transparent 34%),
+        var(--card);
       border:1px solid var(--border);
       backdrop-filter: blur(8px);
-      padding:14px 50px 14px 50px; /* reserve for meta + actions */
-      min-height:74px;
+      padding:14px 76px 14px 14px; /* reserve for actions */
+      min-height:118px;
       min-width:0;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.18);
     }
-.mcard--im{ min-height:92px; }
+.mcard--im{ min-height:126px; }
+
+    .mcard.trackerRow--gold{
+      border-color: rgba(255,205,70,0.34);
+      background:
+        radial-gradient(circle at -18% 50%, rgba(255,205,70,0.24) 0%, rgba(255,205,70,0.13) 18%, rgba(255,205,70,0.05) 27%, transparent 35%),
+        radial-gradient(circle at -2% 50%, rgba(255,205,70,0.12) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
+        var(--card);
+    }
+    .mcard.trackerRow--silver{
+      border-color: rgba(210,220,232,0.34);
+      background:
+        radial-gradient(circle at -18% 50%, rgba(210,220,232,0.22) 0%, rgba(210,220,232,0.12) 18%, rgba(210,220,232,0.05) 27%, transparent 35%),
+        radial-gradient(circle at -2% 50%, rgba(210,220,232,0.11) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
+        var(--card);
+    }
+    .mcard.trackerRow--bronze{
+      border-color: rgba(205,128,70,0.34);
+      background:
+        radial-gradient(circle at -18% 50%, rgba(205,128,70,0.22) 0%, rgba(205,128,70,0.12) 18%, rgba(205,128,70,0.05) 27%, transparent 35%),
+        radial-gradient(circle at -2% 50%, rgba(205,128,70,0.11) 0%, transparent 14%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
+        var(--card);
+    }
 
     .matchCards{
       flex-direction:column;
@@ -317,49 +470,81 @@
       align-items:center;
       justify-content:center;
       text-align:center;
-      gap:6px;
+      gap:10px;
+      width:100%;
       min-width:0;
+      min-height:90px;
     }
 
-    .mcard__track{
-      font-weight:950;
-      line-height:1.05;
-      font-size: clamp(14px, 4.2vw, 18px);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      padding:0 6px;
+    .mcard__route{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      width:fit-content;
       max-width:100%;
+      margin-inline:auto;
+      min-height:54px;
     }
 
+    .mcard__route--im{
+      justify-content:center;
+      gap:10px;
+      padding-right:0;
+    }
 
-/* Intermission: show start/end stacked with arrow */
-.mcard__track--im{
-  white-space:normal;
-  overflow:visible;
-  text-overflow:clip;
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  align-items:center;
-  padding:0 6px;
-  max-width:100%;
-}
-.mcard__track--im .imLine{
-  font-weight:950;
-  line-height:1.05;
-  font-size: clamp(13px, 4.0vw, 17px);
-  max-width:100%;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.mcard__track--im .imArrow{
-  font-size:12px;
-  opacity:0.55;
-  line-height:1;
-  margin:1px 0;
-}
+    .mcard__routeNode{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex:0 0 auto;
+      width:56px;
+      height:56px;
+      overflow:hidden;
+    }
+
+    .mcard__routeNode--destiny{
+      margin-left:2px;
+    }
+
+    .mcard__routeIcon,
+    .mcard__routeIconFallback{
+      width:56px;
+      height:56px;
+      display:block;
+      object-fit:contain;
+      filter:drop-shadow(0 6px 14px rgba(0,0,0,.26));
+    }
+
+    .mcard__routeIcon{
+      background:transparent;
+      transform:scale(1.12);
+      transform-origin:center;
+    }
+
+    .mcard__routeIconFallback{
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)), var(--hover);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      font-weight:950;
+      letter-spacing:.04em;
+    }
+
+    .mcard__routeArrow{
+      width:20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      line-height:1;
+      color: var(--muted);
+      opacity:0.92;
+      flex:0 0 auto;
+    }
 
 /* Optional extra info under VR */
 .mcard__extra{
@@ -398,30 +583,43 @@
       font-weight:900;
       opacity:0.95;
     }
-    .mcard__vrDelta--pos{ color: rgba(124,255,178,0.95); }
-    .mcard__vrDelta--neg{ color: rgba(255,124,124,0.95); }
+    .mcard__vrDelta--pos{ color: var(--chart-positive-stroke); }
+    .mcard__vrDelta--neg{ color: var(--chart-negative-stroke); }
 
     .mcard__actions{
       position:absolute;
       right:10px;
-      bottom:10px;
+      top:50%;
+      transform:translateY(-50%);
       display:flex;
-      gap:6px;
+      flex-direction:column;
+      gap:8px;
     }
     .mcard__btn{
-      width:26px;
-      height:26px;
+      min-width:58px;
+      height:28px;
       border-radius:10px;
       border:1px solid var(--border);
-      background: var(--hover);
-      color: var(--text);
+      background: var(--action-edit-fill);
+      color: var(--action-edit-text);
       font-size:12px;
       line-height:1;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:0;
-      opacity:0.70;
+      padding:0 10px;
+      opacity:0.88;
+      font-weight:900;
+    }
+    .mcard__btn[data-action="edit"]{
+      border-color: var(--action-edit-border);
+      background: var(--action-edit-fill);
+      color: var(--action-edit-text);
+    }
+    .mcard__btn[data-action="del"]{
+      border-color: var(--action-delete-border);
+      background: var(--action-delete-fill);
+      color: var(--action-delete-text);
     }
     .mcard__btn:active{ transform:translateY(1px); opacity:0.95; }
     .mcard:focus-within .mcard__btn{ opacity:0.95; }
@@ -431,7 +629,7 @@
       .matchTableWrap{ display:none; }
       .matchCards{ display:flex; }
       .matchListScroll{ max-height:none; overflow:visible; }
-      .mcard{ padding:14px 48px 14px 48px; }
+      .mcard{ padding:14px 76px 14px 12px; }
       .sessionsDialog{
         width:100vw;
         height:100dvh;
@@ -447,7 +645,11 @@
 
       /* Mobile card color: match top nav */
       .mcard{
-        background: var(--card);
+        background:
+          radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 15%, transparent), transparent 50%),
+          linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)),
+          linear-gradient(90deg, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 34%),
+          var(--card);
         border: 1px solid var(--border);
         backdrop-filter: blur(10px);
       }
@@ -464,16 +666,44 @@
         border: 1px solid var(--border);
       }
       .mcard__meta{ font-size:9px; }
+      .mcard__routeNode,
+      .mcard__routeIcon,
+      .mcard__routeIconFallback{
+        width:52px;
+        height:52px;
+      }
+      .mcard__route{
+        gap:8px;
+      }
+      .mcard__routeIcon{
+        transform:scale(1.1);
+      }
+      .mcard__btn{
+        min-width:54px;
+        height:28px;
+        font-size:11px;
+      }
     }
 
     /* subtle "by Aytee" brand */
-    .brand .byAytee,
-    h2 .byAytee{
+    .brand .byAytee{
       font-weight:700;
       opacity:.55;
-      font-size:.72em;
+      font-size:.64em;
       letter-spacing:.2px;
       margin-left:6px;
+      text-transform:none;
+      white-space:nowrap;
+    }
+    .heroTitle .byAytee,
+    .sectionTitle .byAytee{
+      display:block;
+      margin:8px 0 0;
+      font-weight:700;
+      opacity:.5;
+      font-size:.34em;
+      line-height:1.1;
+      letter-spacing:.06em;
       text-transform:none;
       white-space:nowrap;
     }

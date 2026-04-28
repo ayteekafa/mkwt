@@ -1,4 +1,4 @@
-/* MKWT Central Theme
+﻿/* MKWT Central Theme
    - One place for width, colors, spacing, cards, tables, nav, buttons.
    - Change variables in :root and everything updates across b/settings/stats.
 */
@@ -49,6 +49,46 @@
   --primary-strong: rgba(56,110,207,0.85);
   --chart-muted: rgba(255,255,255,0.55);
   --chart-zero-line: rgba(255,255,255,0.85);
+
+  /* Shared surfaces */
+  --surface-panel:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 2.6%, transparent), rgba(255,255,255,.012)),
+    var(--card-2);
+  --surface-panel-accent:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 2.8%, transparent), rgba(255,255,255,.012)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 9%, transparent), transparent 62%),
+    var(--card-2);
+  --surface-dialog:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 2.8%, transparent), rgba(255,255,255,.014)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, transparent), transparent 58%),
+    var(--card);
+
+  /* Shared action button colors */
+  --action-edit-fill: rgba(255,255,255,.04);
+  --action-edit-border: rgba(56,110,207,.26);
+  --action-edit-text: var(--text);
+  --action-delete-fill: rgba(255,59,48,.14);
+  --action-delete-border: rgba(255,59,48,.32);
+  --action-delete-text: #ffd7d7;
+
+  /* Shared chart palette */
+  --chart-line-primary: rgb(77,163,255);
+  --chart-line-primary-fill: rgba(77,163,255,.16);
+  --chart-line-secondary: rgba(255,255,255,.90);
+  --chart-line-secondary-fill: rgba(255,255,255,.15);
+  --chart-positive-fill: rgba(60,190,120,.85);
+  --chart-positive-stroke: rgb(60,190,120);
+  --chart-negative-fill: rgba(255,80,80,.85);
+  --chart-negative-stroke: rgb(255,80,80);
+  --chart-neutral-fill: rgba(140,140,140,.25);
+  --chart-neutral-stroke: rgba(140,140,140,.50);
+  --chart-split-a-fill: rgba(78,124,255,.82);
+  --chart-split-a-stroke: rgb(78,124,255);
+  --chart-split-b-fill: rgba(255,186,77,.80);
+  --chart-split-b-stroke: rgb(255,186,77);
+  --chart-break-even: rgba(255,180,0,.85);
+  --chart-break-even-text: rgba(255,180,0,.90);
+  --chart-separator: rgba(43,108,255,.45);
 
   --link: #7dd3fc;
   --infoBtn-bg: rgba(255,255,255,0.06);
@@ -119,6 +159,23 @@
   --primary-strong: rgba(37,99,235,0.70);
   --chart-muted: rgba(15,23,42,0.60);
   --chart-zero-line: rgba(15,23,42,0.35);
+  --action-edit-fill: rgba(2,6,23,.035);
+  --action-edit-border: rgba(37,99,235,.24);
+  --action-edit-text: #0b1220;
+  --action-delete-fill: rgba(220,38,38,.08);
+  --action-delete-border: rgba(220,38,38,.24);
+  --action-delete-text: #991b1b;
+  --chart-line-primary: rgb(37,99,235);
+  --chart-line-primary-fill: rgba(37,99,235,.14);
+  --chart-line-secondary: rgba(15,23,42,.82);
+  --chart-line-secondary-fill: rgba(15,23,42,.10);
+  --chart-split-a-fill: rgba(37,99,235,.82);
+  --chart-split-a-stroke: rgb(37,99,235);
+  --chart-split-b-fill: rgba(217,119,6,.76);
+  --chart-split-b-stroke: rgb(217,119,6);
+  --chart-break-even: rgba(180,83,9,.88);
+  --chart-break-even-text: rgba(146,64,14,.92);
+  --chart-separator: rgba(37,99,235,.30);
 }
 
 
@@ -147,6 +204,23 @@
   --ring: 0 0 0 3px rgba(47,111,255,.22);
 
   --link: #93c5fd;
+  --action-edit-fill: rgba(47,111,255,.11);
+  --action-edit-border: rgba(47,111,255,.28);
+  --action-edit-text: #ffffff;
+  --action-delete-fill: rgba(239,68,68,.16);
+  --action-delete-border: rgba(239,68,68,.32);
+  --action-delete-text: #ffe2e2;
+  --chart-line-primary: rgb(147,197,253);
+  --chart-line-primary-fill: rgba(147,197,253,.16);
+  --chart-line-secondary: rgba(255,255,255,.88);
+  --chart-line-secondary-fill: rgba(255,255,255,.14);
+  --chart-split-a-fill: rgba(47,111,255,.80);
+  --chart-split-a-stroke: rgb(47,111,255);
+  --chart-split-b-fill: rgba(239,68,68,.76);
+  --chart-split-b-stroke: rgb(239,68,68);
+  --chart-break-even: rgba(147,197,253,.86);
+  --chart-break-even-text: rgba(191,219,254,.92);
+  --chart-separator: rgba(147,197,253,.30);
 
   --infoBtn-bg: rgba(47,111,255,0.14);
   --infoBtn-border: rgba(47,111,255,0.35);
@@ -189,6 +263,23 @@
   --ring: 0 0 0 3px rgba(34,197,94,.22);
 
   --link: #86efac;
+  --action-edit-fill: rgba(34,197,94,.12);
+  --action-edit-border: rgba(34,197,94,.30);
+  --action-edit-text: #ffffff;
+  --action-delete-fill: rgba(255,59,48,.16);
+  --action-delete-border: rgba(255,59,48,.30);
+  --action-delete-text: #ffe3e3;
+  --chart-line-primary: rgb(134,239,172);
+  --chart-line-primary-fill: rgba(134,239,172,.18);
+  --chart-line-secondary: rgba(250,252,255,.86);
+  --chart-line-secondary-fill: rgba(250,252,255,.14);
+  --chart-split-a-fill: rgba(134,239,172,.78);
+  --chart-split-a-stroke: rgb(134,239,172);
+  --chart-split-b-fill: rgba(250,204,21,.78);
+  --chart-split-b-stroke: rgb(250,204,21);
+  --chart-break-even: rgba(250,204,21,.86);
+  --chart-break-even-text: rgba(254,240,138,.92);
+  --chart-separator: rgba(134,239,172,.28);
 
   --infoBtn-bg: rgba(34,197,94,0.14);
   --infoBtn-border: rgba(34,197,94,0.35);
@@ -230,6 +321,23 @@
   --ring: 0 0 0 3px rgba(255,59,48,.20);
 
   --link: #fecaca;
+  --action-edit-fill: rgba(47,111,255,.12);
+  --action-edit-border: rgba(47,111,255,.28);
+  --action-edit-text: #ffffff;
+  --action-delete-fill: rgba(255,59,48,.18);
+  --action-delete-border: rgba(255,59,48,.34);
+  --action-delete-text: #ffe1e1;
+  --chart-line-primary: rgb(147,197,253);
+  --chart-line-primary-fill: rgba(147,197,253,.17);
+  --chart-line-secondary: rgba(255,255,255,.86);
+  --chart-line-secondary-fill: rgba(255,255,255,.14);
+  --chart-split-a-fill: rgba(147,197,253,.80);
+  --chart-split-a-stroke: rgb(147,197,253);
+  --chart-split-b-fill: rgba(255,138,118,.78);
+  --chart-split-b-stroke: rgb(255,138,118);
+  --chart-break-even: rgba(255,138,118,.86);
+  --chart-break-even-text: rgba(254,202,202,.92);
+  --chart-separator: rgba(147,197,253,.28);
 
   --infoBtn-bg: rgba(255,59,48,0.14);
   --infoBtn-border: rgba(255,59,48,0.33);
@@ -249,19 +357,23 @@
 /* Base */
 *, *::before, *::after { box-sizing: border-box; }
 
-/* >>> HIER <<< */
+/* Base */
 html {
   height: 100%;
-  overflow-y: scroll;        /* Fix für Breiten-Verschiebung */
-  scrollbar-gutter: stable;    background: var(--bg);
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  background: var(--bg);
   color: var(--text);
-/* modern, falls unterstützt */
 }
 
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: var(--bg);
+  font-family: "Segoe UI Variable Text", "Segoe UI", Inter, Arial, sans-serif;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 3%, transparent), transparent 180px),
+    linear-gradient(120deg, color-mix(in srgb, var(--primary) 13%, transparent) 0%, transparent 30%),
+    linear-gradient(240deg, color-mix(in srgb, var(--link) 10%, transparent) 0%, transparent 22%),
+    var(--bg);
   color: var(--text);
   min-height: 100%;
 }
@@ -271,16 +383,19 @@ a{ color: var(--link); text-decoration:none; }
 /* Layout container */
 .wrap{
   max-width: var(--page-width);
-  margin: 24px auto;
+  margin: 22px auto 36px;
   padding: 0 var(--page-pad);
 }
 
 /* Cards */
 .card{
-  background: var(--card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 2.4%, transparent), transparent 38%),
+    var(--card);
+  border:1px solid color-mix(in srgb, var(--border) 92%, transparent);
   border-radius: var(--radius);
   padding: 16px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.02);
   margin-bottom: 16px;
 }
 
@@ -304,14 +419,290 @@ a{ color: var(--link); text-decoration:none; }
 .field{ display:flex; flex-direction:column; gap:6px; }
 label.muted{ display:block; margin:0; }
 
+/* Shared tracker/page typography */
+.heroTitle{
+  margin:0;
+  font-size:clamp(28px, 4vw, 46px);
+  line-height:1.04;
+  letter-spacing:-0.03em;
+  font-weight:950;
+}
+.sectionTitle{
+  margin:0;
+  font-size:clamp(22px, 2.8vw, 30px);
+  line-height:1.08;
+  letter-spacing:-0.02em;
+  font-weight:900;
+}
+.heroSubtitle{
+  line-height:1.5;
+  max-width:760px;
+}
+
+/* Shared tracker page shell */
+.card.profileCard,
+.card.cardSection,
+.card.ttEntriesCard,
+.card.comboSection,
+.card.comboHero,
+.statsWrap > .card,
+.mkcWrap > .card{
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 2.8%, transparent), rgba(255,255,255,.01)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 56%),
+    var(--card);
+}
+.profileCard .profileTop,
+.comboHero .comboHeroTop,
+.profileCard .timeTrialTop{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:16px;
+  text-align:center;
+}
+.profileCard .profileTop > div,
+.profileCard .timeTrialHeroCopy,
+.comboHero .comboHeroCopy{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  max-width:760px;
+}
+.profileCard .profileTop > div > .muted,
+.profileCard .timeTrialHeroCopy > .muted,
+.comboHero .comboHeroCopy > .muted{
+  line-height:1.5;
+}
+.profileCard .timeTrialHeroActions,
+.comboHero .comboHeroActions{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.card.cardSection .sectionHead,
+.ttEntriesCard .timeTrialSectionHead,
+.comboSection .comboSectionHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+.card.cardSection .sectionHead > div:first-child,
+.ttEntriesCard .timeTrialSectionCopy,
+.comboSection .comboSectionHead > div:first-child{
+  min-width:0;
+  max-width:760px;
+}
+.card.cardSection .sectionHead .muted,
+.ttEntriesCard .timeTrialSectionCopy .muted,
+.comboSection .comboSectionHead .muted{
+  line-height:1.45;
+}
+.card.cardSection .sectionHeadActions,
+.ttEntriesCard .ttEntryFilters,
+.comboSection .comboSectionActions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* Shared chart chrome */
+.chartHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 12px 0;
+}
+.chartHeader h3{
+  margin:0;
+  line-height:1.12;
+}
+.chartHeaderLead{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  flex-wrap:wrap;
+}
+.chartHeaderLead--stacked{
+  align-items:flex-start;
+  justify-content:space-between;
+  flex:1 1 auto;
+}
+.chartHeaderMeta{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+  line-height:1.35;
+}
+.chartHeaderActions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  margin-left:auto;
+}
+.chartFilter{
+  position:relative;
+}
+.chartFilterBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-width:150px;
+  padding:9px 12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--surface-panel);
+  color:var(--text);
+  cursor:pointer;
+  box-shadow:var(--shadow);
+}
+.chartFilterBtn[aria-expanded="true"]{
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 68%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), rgba(255,255,255,.02)),
+    var(--surface-panel);
+}
+.chartFilterGlyph{
+  width:18px;
+  height:18px;
+  display:grid;
+  gap:3px;
+  flex:0 0 auto;
+}
+.chartFilterGlyph span{
+  display:block;
+  height:3px;
+  border-radius:999px;
+  background:linear-gradient(90deg, var(--chart-split-a-stroke), var(--chart-split-b-stroke));
+}
+.chartFilterGlyph span:nth-child(1){ width:100%; }
+.chartFilterGlyph span:nth-child(2){ width:72%; }
+.chartFilterGlyph span:nth-child(3){ width:46%; }
+.chartFilterValue{
+  font-size:13px;
+  font-weight:800;
+  line-height:1.15;
+  text-align:left;
+}
+.chartFilterMenu{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  min-width:220px;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--surface-dialog);
+  box-shadow:var(--shadow);
+  z-index:40;
+}
+.chartFilterSection{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.chartFilterSection + .chartFilterSection{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+.chartFilterItem{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  padding:9px 10px;
+  border-radius:10px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:700;
+}
+.chartFilterItem:hover{
+  background:color-mix(in srgb, var(--text) 4%, transparent);
+}
+.chartFilterItem.active{
+  background:color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent);
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 46%, var(--border));
+}
+.chartFilterItemMeta{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  min-width:18px;
+  text-align:right;
+}
+.compareAction{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:2px;
+  min-width:0;
+  max-width:240px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid color-mix(in srgb, var(--chart-split-a-stroke) 48%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 14%, transparent)),
+    var(--surface-panel);
+  color:var(--text);
+  box-shadow:0 8px 18px rgba(0,0,0,.14);
+  cursor:pointer;
+}
+.compareAction--sm{
+  padding:7px 10px;
+}
+.compareAction.active{
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 70%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 24%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 18%, transparent)),
+    var(--surface-panel);
+}
+.compareAction__eyebrow{
+  font-size:9px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:800;
+}
+.compareAction__label{
+  font-size:12px;
+  line-height:1.15;
+  font-weight:900;
+}
+
 /* Form controls */
 input, select{
   width:100%;
-  padding:10px;
-  border-radius:8px;
+  padding:12px 14px;
+  min-height:48px;
+  border-radius:12px;
   border:1px solid var(--border);
-  background: var(--bg);
+  background: var(--card-2);
   color: var(--text);
+  font-weight:700;
+  transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 input:focus, select:focus{
   outline: none;
@@ -383,6 +774,101 @@ tr:hover td{ background: var(--hover); }
 .iconBtn:hover{ filter:brightness(1.1); }
 .iconBtn.danger, .iconDanger{ border-color:#7a3a3a; }
 
+/* Shared inset surfaces used across tracker-family pages */
+.profileCard .statBox,
+.profileCard .bestTrackLine,
+.cardSection .entryPanel,
+.cardSection .trackInsight,
+.card .td3Card,
+.card .modeCompareNote,
+.card .mkcStat,
+.card .mkcOverviewMetric,
+.card .mkcHeaderUpdate,
+.card .mkcEmpty,
+.card .mkcOverviewMmrCell,
+.ttEntriesCard .ttEntryCard,
+.ttDialog .ttWrInfoItem,
+.ttDialog .ttWrInfoComboLead,
+.ttDialog .ttComboInfoLead,
+.comboSection .cbCurrentCombo,
+.comboSection .cbMetaChip,
+.comboSection .cbStatGroup,
+.comboSection .cbRefCard,
+.comboSection .cbFilterGroup,
+.ttDialog .cbSimilarCard,
+.cardSection .sessionCard{
+  border-radius:14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+/* Shared small action buttons */
+.card .iconBtn,
+.matchTableWrap .iconBtn,
+.matchCards .mcard__btn,
+.ttEntryGrid .ttActionBtn,
+.ttDialog .ttDialogClose,
+.sessionActions [data-session-edit],
+.sessionActions [data-session-delete]{
+  min-height:36px;
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background: var(--action-edit-fill);
+  color: var(--action-edit-text);
+  font-weight:800;
+  transition:border-color .16s ease, background .16s ease, transform .12s ease, opacity .16s ease;
+}
+.card .iconBtn:hover,
+.matchTableWrap .iconBtn:hover,
+.matchCards .mcard__btn:hover,
+.ttEntryGrid .ttActionBtn:hover,
+.ttDialog .ttDialogClose:hover,
+.sessionActions [data-session-edit]:hover,
+.sessionActions [data-session-delete]:hover{
+  border-color:var(--action-edit-border);
+  background:var(--hover);
+}
+.card .iconBtn.danger,
+.matchTableWrap .iconBtn.danger,
+.matchCards .mcard__btn[data-action="del"],
+.ttEntryGrid .ttDeleteBtn,
+.sessionActions [data-session-delete]{
+  border-color:var(--action-delete-border);
+  background:var(--action-delete-fill);
+  color:var(--action-delete-text);
+}
+.card .iconBtn.danger:hover,
+.matchTableWrap .iconBtn.danger:hover,
+.matchCards .mcard__btn[data-action="del"]:hover,
+.ttEntryGrid .ttDeleteBtn:hover,
+.sessionActions [data-session-delete]:hover{
+  border-color:color-mix(in srgb, var(--danger) 54%, transparent);
+  background:color-mix(in srgb, var(--danger) 22%, transparent);
+}
+
+/* Shared info buttons */
+.card .infoBtn,
+.card .stratBtn,
+.matchCards .mcard__infoBtn,
+.ttEntryGrid .ttInfoBtn,
+.comboSection .cbInfoBtn,
+.ttDialog .ttInfoBtn{
+  border-radius:999px;
+  border:1px solid var(--infoBtn-border);
+  background:var(--infoBtn-bg);
+  color:var(--infoBtn-text);
+  transition:border-color .16s ease, background .16s ease, transform .12s ease;
+}
+.card .infoBtn:hover,
+.card .stratBtn:hover,
+.matchCards .mcard__infoBtn:hover,
+.ttEntryGrid .ttInfoBtn:hover,
+.comboSection .cbInfoBtn:hover,
+.ttDialog .ttInfoBtn:hover{
+  border-color:var(--primary);
+  background:var(--hover);
+}
+
 /* Dialog */
 dialog{
   border:none;
@@ -410,15 +896,61 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
   background: transparent !important;
 }
 
+@media (max-width: 520px){
+  .chartHeader{
+    align-items:flex-start;
+  }
+  .chartHeaderActions{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px 10px;
+    align-items:start;
+  }
+  .chartHeaderActions .compareAction{
+    grid-column:1;
+    width:100%;
+    max-width:none;
+  }
+  .chartFilter{
+    grid-column:1;
+  }
+  .chartFilterBtn{
+    min-width:0;
+    width:100%;
+  }
+  .chartHeaderActions .mcard__infoBtn{
+    grid-column:2;
+    grid-row:1 / span 2;
+    align-self:center;
+    justify-self:end;
+  }
+  .chartFilterMenu{
+    left:0;
+    right:auto;
+    width:min(280px, calc(100vw - 56px));
+  }
+}
+
 /* Topbar (stats header) */
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.pageInfoLines{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px 14px;
+}
+.pageInfoLines .muted{ line-height:1.45; }
+.profileCard .pageInfoLines{ justify-content:center; }
 
 /* ===== Navigation (unified) ===== */
 .nav{
   position:sticky;
   top:0;
   z-index:50;
-  background: var(--nav-bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 2%, transparent), transparent 100%),
+    var(--nav-bg);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
   box-shadow: var(--nav-shadow);
@@ -439,13 +971,24 @@ canvas{ background: var(--card-2); border-radius: var(--radius); }
 .brand{ font-weight:900; letter-spacing:.3px; margin-right:6px; color: var(--accent-white); }
 
 /* subtle "by Aytee" brand (used in navbar + headers) */
-.brand .byAytee,
-h2 .byAytee{
+.brand .byAytee{
   font-weight:700;
   opacity:.55;
-  font-size:.72em;
+  font-size:.64em;
   letter-spacing:.2px;
   margin-left:6px;
+  text-transform:none;
+  white-space:nowrap;
+}
+.heroTitle .byAytee,
+.sectionTitle .byAytee{
+  display:block;
+  margin:8px 0 0;
+  font-weight:700;
+  opacity:.5;
+  font-size:.34em;
+  line-height:1.1;
+  letter-spacing:.06em;
   text-transform:none;
   white-space:nowrap;
 }
@@ -564,6 +1107,13 @@ h2 .byAytee{
   :root{ --page-pad: 12px; }
 
   .wrap{ margin: 16px auto; padding: 0 var(--page-pad); }
+  .heroTitle{ font-size:clamp(24px, 7vw, 34px); }
+  .sectionTitle{ font-size:clamp(20px, 5vw, 24px); }
+  .card.cardSection .sectionHead,
+  .ttEntriesCard .timeTrialSectionHead,
+  .comboSection .comboSectionHead{
+    margin-bottom:14px;
+  }
 
   /* Mobile: give every card a themed outline */
   .card{ border: 1px solid var(--border); }
@@ -685,16 +1235,16 @@ h2 .byAytee{
 
   /* ===== Mobile Card Icons for Opponents & Placement ===== */
 
-  /* Opponents: ♟ */
+  /* Opponents: â™Ÿ */
   #listCard table tbody td:nth-child(7)::before{
-    content: "♟ ";
+    content: "â™Ÿ ";
     opacity: .85;
     margin-right: 2px;
   }
 
-  /* Placement: ♕ */
+  /* Placement: â™• */
   #listCard table tbody td:nth-child(8)::before{
-    content: "♕ ";
+    content: "â™• ";
     opacity: .85;
     margin-right: 2px;
   }
@@ -757,7 +1307,7 @@ h2 .byAytee{
     white-space: nowrap;
   }
 
-  /* VR Δ (right, under VR after) */
+  /* VR Î” (right, under VR after) */
   #listCard table tbody td:nth-child(5){
     grid-column: 2;
     grid-row: 2;
@@ -916,6 +1466,25 @@ td:last-child{
   --toggle-active-bg: rgba(255,95,184,0.24);
   --toggle-active-text: #ffffff;
 
+  --action-edit-fill: rgba(255,95,184,0.12);
+  --action-edit-border: rgba(255,95,184,0.30);
+  --action-edit-text: #ffffff;
+  --action-delete-fill: rgba(255,59,59,0.18);
+  --action-delete-border: rgba(255,59,59,0.34);
+  --action-delete-text: #ffe2ec;
+
+  --chart-line-primary: rgb(255,121,199);
+  --chart-line-primary-fill: rgba(255,121,199,.16);
+  --chart-line-secondary: rgba(255,255,255,.88);
+  --chart-line-secondary-fill: rgba(255,255,255,.14);
+  --chart-split-a-fill: rgba(255,95,184,.78);
+  --chart-split-a-stroke: rgb(255,95,184);
+  --chart-split-b-fill: rgba(200,76,255,.76);
+  --chart-split-b-stroke: rgb(200,76,255);
+  --chart-break-even: rgba(255,200,106,.88);
+  --chart-break-even-text: rgba(255,220,164,.92);
+  --chart-separator: rgba(200,76,255,.28);
+
   --backdrop: rgba(10,6,18,0.60);
 
   /* Segmented mode buttons (Intermission / 3-Lap) */
@@ -928,7 +1497,7 @@ td:last-child{
 }
 
 :root[data-theme="rose"]{
-  /* Rosa Reinweiß: soft white with rose tint */
+  /* Rosa ReinweiÃŸ: soft white with rose tint */
   --bg: #f7f0f4;
   --card: #ffffff;
   --card-2: #fff6fb;
@@ -955,6 +1524,25 @@ td:last-child{
   --toggle-text: rgba(11,18,32,0.90);
   --toggle-active-bg: rgba(236,72,153,0.14);
   --toggle-active-text: #0b1220;
+
+  --action-edit-fill: rgba(236,72,153,0.08);
+  --action-edit-border: rgba(236,72,153,0.24);
+  --action-edit-text: #0b1220;
+  --action-delete-fill: rgba(220,38,38,0.08);
+  --action-delete-border: rgba(220,38,38,0.24);
+  --action-delete-text: #991b1b;
+
+  --chart-line-primary: rgb(236,72,153);
+  --chart-line-primary-fill: rgba(236,72,153,.14);
+  --chart-line-secondary: rgba(11,18,32,.82);
+  --chart-line-secondary-fill: rgba(11,18,32,.10);
+  --chart-split-a-fill: rgba(236,72,153,.74);
+  --chart-split-a-stroke: rgb(236,72,153);
+  --chart-split-b-fill: rgba(190,24,93,.72);
+  --chart-split-b-stroke: rgb(190,24,93);
+  --chart-break-even: rgba(190,24,93,.82);
+  --chart-break-even-text: rgba(157,23,77,.92);
+  --chart-separator: rgba(236,72,153,.26);
 
   --backdrop: rgba(255,255,255,0.72);
 
@@ -997,3 +1585,4 @@ td:last-child{
 .divider{ margin:16px 0; border:none; border-top:1px solid var(--border); }
 .section-header{ display:flex; align-items:center; gap:8px; margin:0 0 10px 0; }
 .hint{ margin-top:6px; font-size:12px; opacity:.85; }
+

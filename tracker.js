@@ -1,4 +1,4 @@
-  function setStatus(msg, ok=false){
+﻿  function setStatus(msg, ok=false){
     const has = !!(msg && String(msg).trim());
     if (window.MKWT?.setStatus) window.MKWT.setStatus($status, has ? String(msg) : '', ok);
     if ($status) $status.classList.toggle('hidden', !has);
@@ -28,8 +28,8 @@
   }
 
 
-  // ========= VR Δ <-> VR nach Match Sync =========
-  // ========= Edit VR Δ <-> new total VR Sync =========
+  // ========= VR change <-> VR nach Match Sync =========
+  // ========= Edit VR change <-> new total VR Sync =========
   let _syncingEditVr = false;
 
   function getEditBaseVr(){
@@ -105,6 +105,12 @@ function escapeHtml(s){
   }[c]));
 }
 
+let trackIconPaths = new Map();
+
+function cleanTrackText(value){
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
 function placementBannerClass(placement){
   const place = Number(placement);
   if (place === 1) return "trackerRow--gold";
@@ -125,10 +131,48 @@ const TRACKS = [
   "Whistlestop Summit"
 ];
 
+function canonicalTrackName(value){
+  const raw = cleanTrackText(value);
+  const exact = TRACKS.find((name) => name === raw);
+  if (exact) return exact;
+  const ci = TRACKS.find((name) => name.toLowerCase() === raw.toLowerCase());
+  return ci || raw;
+}
+
+function trackAbbrev(trackName){
+  const words = canonicalTrackName(trackName).split(/\s+/).filter(Boolean);
+  return words.slice(0, 3).map((word) => word[0]).join("") || "?";
+}
+
+async function loadTrackIconMap() {
+  try {
+    const response = await fetch("track_icon_map.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const map = new Map();
+    for (const [trackName, iconPath] of Object.entries(payload || {})) {
+      const cleanPath = cleanTrackText(iconPath);
+      if (!cleanPath) continue;
+      map.set(canonicalTrackName(trackName), encodeURI(cleanPath));
+    }
+    trackIconPaths = map;
+  } catch (e) {
+    trackIconPaths = new Map();
+  }
+}
+
+function trackIconMarkup(trackName, extraClass = "") {
+  const iconPath = trackIconPaths.get(canonicalTrackName(trackName));
+  if (iconPath) {
+    return `<img class="mcard__routeIcon ${escapeHtml(extraClass)}" src="${escapeHtml(iconPath)}" alt="${escapeHtml(trackName)}" title="${escapeHtml(trackName)}" loading="lazy" decoding="async" />`;
+  }
+  return `<div class="mcard__routeIconFallback ${escapeHtml(extraClass)}" title="${escapeHtml(trackName)}">${escapeHtml(trackAbbrev(trackName))}</div>`;
+}
+
 // All Intermission combinations (Start -> End). Used to filter the dropdowns.
 // NOTE: keep spelling identical to TRACKS.
 
-  // ========= Supabase (FIX: localStorage + sessionStorage unterstützen) =========
+  // ========= Supabase (FIX: support localStorage + sessionStorage) =========
 
 
   // Backup session tokens for iOS PWA/Safari edge-cases where the Supabase
@@ -176,7 +220,7 @@ const TRACKS = [
         SESSION = session;
         try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
         try{ applyThemeForMode('account'); }catch(e){}
-        $("userInfo").textContent = "Profile: –";
+        $("userInfo").textContent = "Profile: -";
         try{ setNavAuthButton("account"); }catch(e){}
       },
       onGuest: async () => {
@@ -208,12 +252,12 @@ async function createProfile() {
       // Guest profile is stored locally (no Supabase write)
       if (isGuest() || !supabaseClient || !SESSION?.user?.id) {
         saveGuestProfile({ nickname, current_vr, created_at: new Date().toISOString() });
-        setStatus("✅ Guest profile saved.", true);
+        setStatus("Guest profile saved.", true);
         await refreshAll();
         return;
       }
 
-      setStatus("Creating profile…", true);
+      setStatus("Creating profile...", true);
 
       const { error } = await supabaseClient.from("profiles").insert({
         id: SESSION.user.id,
@@ -227,7 +271,7 @@ async function createProfile() {
         return;
       }
 
-      setStatus("✅ Profile created.", true);
+      setStatus("Profile created.", true);
       await refreshAll();
     } finally {
       btn.disabled = false;
@@ -257,9 +301,9 @@ async function getMatchesCount() {
 }
 
 async function loadMatches() {
-  $rows.innerHTML = `<tr><td colspan="10" class="muted">Loading…</td></tr>`;
+  $rows.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
   const $cards = $("matchCards");
-  if ($cards) $cards.innerHTML = `<div class="muted">Loading…</div>`;
+  if ($cards) $cards.innerHTML = `<div class="muted">Loading...</div>`;
 
   // Count nur holen wenn noch nicht da
   if (totalMatches == null) {
@@ -305,7 +349,7 @@ async function loadMatches() {
   if (error) {
     setStatus("Failed to load matches: " + error.message, false);
     setDebug(JSON.stringify(error, null, 2));
-    $rows.innerHTML = `<tr><td colspan="10" class="muted">Error loading.</td></tr>`;
+    $rows.innerHTML = `<tr><td colspan="8" class="muted">Error loading.</td></tr>`;
     if ($cards) $cards.innerHTML = `<div class="muted">Error loading.</div>`;
     return;
   }
@@ -333,7 +377,7 @@ async function loadMatches() {
   } catch(e) {}
 
   if (!data || data.length === 0) {
-    $rows.innerHTML = `<tr><td colspan="10" class="muted">No matches yet.</td></tr>`;
+    $rows.innerHTML = `<tr><td colspan="8" class="muted">No matches yet.</td></tr>`;
     if ($cards) $cards.innerHTML = `<div class="muted">No matches yet.</div>`;
     $("pageInfo").textContent = "Page 1";
     $("btnPrev").disabled = true;
@@ -352,12 +396,17 @@ async function loadMatches() {
       const intermission = (r.intermission ?? "") ? String(r.intermission) : "";
       const track = (r.track ?? "") ? String(r.track) : "";
       const isIntermission = !!intermission;
-      const intermissionCellHtml = isIntermission
-        ? `<div class="intermission-stack"><div class="label">Start</div><div class="value">${escapeHtml(intermission)}</div><div class="label">End</div><div class="value">${escapeHtml(track)}</div></div>`
-        : `<span class="intermission-placeholder">—</span>`;
-      const trackCellHtml = isIntermission
-        ? `<span class="track-placeholder">—</span>`
-        : escapeHtml(track || '—');
+      const startName = intermission || "-";
+      const endName = track || "-";
+      const tracksCellHtml = isIntermission
+        ? `<div class="matchTracksVisual matchTracksVisual--route" title="${escapeHtml(startName)} > ${escapeHtml(endName)}">
+             <div class="matchTracksNode" title="${escapeHtml(startName)}">${trackIconMarkup(startName, "matchTrackIcon")}</div>
+             <div class="matchTracksArrow" aria-hidden="true">&rarr;</div>
+             <div class="matchTracksNode matchTracksNode--destiny" title="${escapeHtml(endName)}">${trackIconMarkup(endName, "matchTrackIcon")}</div>
+           </div>`
+        : `<div class="matchTracksVisual matchTracksVisual--single" title="${escapeHtml(endName)}">
+             <div class="matchTracksNode" title="${escapeHtml(endName)}">${trackIconMarkup(endName, "matchTrackIcon")}</div>
+           </div>`;
       const delta = Number(r.vr_change || 0);
       const vrAfter = (r.vr_after ?? null);
       const vrNow = (vrAfter == null ? "" : Number(vrAfter));
@@ -367,20 +416,21 @@ async function loadMatches() {
       const perfStr = opp ? perf.toFixed(2) : "";
       const canDelete = (currentPage === 1 && idx === 0); // only newest match can be deleted
       return `
-        <tr class="${placementBannerClass(place)}">
-          <td>${matchNo}</td>
-          <td>${created}</td>
-          <td>${intermissionCellHtml}</td>
-          <td>${trackCellHtml}</td>
-          <td class="${delta>=0?'ok':'bad'}">${delta}</td>
-          <td>${vrNow}</td>
-          <td>${opp||""}</td>
-          <td>${place||""}</td>
-          <td>
-            <button class="iconBtn" title="Bearbeiten" data-action="edit" data-id="${r.id}">✏️</button>
-            ${canDelete ? `<button class="iconBtn danger" title="Delete" data-action="del" data-id="${r.id}">🗑️</button>` : ""}
-          </td>
-        </tr>`;
+          <tr class="${placementBannerClass(place)}">
+            <td>${matchNo}</td>
+            <td>${created}</td>
+            <td class="matchTracksCell">${tracksCellHtml}</td>
+            <td class="${delta>0?'ok':'bad'}">${delta}</td>
+            <td>${vrNow}</td>
+            <td>${opp||""}</td>
+            <td>${place||""}</td>
+            <td class="matchActionsCell">
+              <div class="matchActionGroup">
+                <button class="iconBtn" title="Edit" data-action="edit" data-id="${r.id}">Edit</button>
+                ${canDelete ? `<button class="iconBtn danger" title="Delete" data-action="del" data-id="${r.id}">Delete</button>` : ""}
+              </div>
+            </td>
+          </tr>`;
     
 }).join("");
 
@@ -394,21 +444,23 @@ async function loadMatches() {
       const track = (r.track ?? "") ? String(r.track) : "";
       const isIntermission = !!intermission;
 
-const startName = intermission || "—";
-const endName = track || "—";
+const startName = intermission || "-";
+const endName = track || "-";
 
 const trackHtml = isIntermission
-  ? `<div class="mcard__track--im" title="${escapeHtml(startName)} → ${escapeHtml(endName)}">
-       <div class="imLine" title="${escapeHtml(startName)}">${escapeHtml(startName)}</div>
-       <div class="imArrow">→</div>
-       <div class="imLine" title="${escapeHtml(endName)}">${escapeHtml(endName)}</div>
+  ? `<div class="mcard__route mcard__route--im" title="${escapeHtml(startName)} > ${escapeHtml(endName)}">
+       <div class="mcard__routeNode" title="${escapeHtml(startName)}">${trackIconMarkup(startName)}</div>
+       <div class="mcard__routeArrow" aria-hidden="true">&rarr;</div>
+       <div class="mcard__routeNode mcard__routeNode--destiny" title="${escapeHtml(endName)}">${trackIconMarkup(endName)}</div>
      </div>`
-  : `<div class="mcard__track" title="${escapeHtml(endName)}">${escapeHtml(endName)}</div>`;
+  : `<div class="mcard__route" title="${escapeHtml(endName)}">
+       <div class="mcard__routeNode" title="${escapeHtml(endName)}">${trackIconMarkup(endName)}</div>
+     </div>`;
       const delta = Number(r.vr_change || 0);
       const vrAfter = (r.vr_after ?? null);
-      const vrNow = (vrAfter == null ? "—" : String(Number(vrAfter)));
+      const vrNow = (vrAfter == null ? "-" : String(Number(vrAfter)));
       const deltaStr = (delta > 0 ? `+${delta}` : `${delta}`);
-      const deltaCls = delta >= 0 ? "mcard__vrDelta--pos" : "mcard__vrDelta--neg";
+      const deltaCls = delta > 0 ? "mcard__vrDelta--pos" : "mcard__vrDelta--neg";
       const canDelete = (currentPage === 1 && idx === 0);
 
       const hasPlace = (r.placement != null && r.placement !== "" && Number(r.placement) > 0);
@@ -419,7 +471,7 @@ const trackHtml = isIntermission
       const infoBtnHtml = `<button class="mcard__infoBtn" title="Info" data-action="info">i</button>`;
 
       const infoLine = (hasPlace && hasOpp)
-        ? `<span class="infoLine"><strong>Place</strong>: ${escapeHtml(String(r.placement))} <span class="sep">•</span> <strong>Opp</strong>: ${escapeHtml(String(r.opponents))}</span>`
+        ? `<span class="infoLine"><strong>Place</strong>: ${escapeHtml(String(r.placement))} <span class="sep">.</span> <strong>Opp</strong>: ${escapeHtml(String(r.opponents))}</span>`
         : (hasPlace
             ? `<span class="infoLine"><strong>Place</strong>: ${escapeHtml(String(r.placement))}</span>`
             : `<span class="infoLine"><strong>Opp</strong>: ${escapeHtml(String(r.opponents))}</span>`
@@ -427,12 +479,12 @@ const trackHtml = isIntermission
 
       const infoPopHtml = `
         <div class="mcard__infoPop" hidden>
-          <div class="row"><span class="infoLine"><strong>Date</strong>: ${escapeHtml(createdShort || "—")}</span></div>
+          <div class="row"><span class="infoLine"><strong>Date</strong>: ${escapeHtml(createdShort || "-")}</span></div>
           ${ (hasPlace || hasOpp) ? `<div class="row">${infoLine}</div>` : `` }
         </div>`;
 
       return `
-        <div class="mcard ${isIntermission ? "mcard--im" : ""}" data-match-id="${r.id}">
+        <div class="mcard ${isIntermission ? "mcard--im" : ""} ${placementBannerClass(r.placement)}" data-match-id="${r.id}">
           <div class="mcard__meta mcard__meta--tl"><span>#${matchNo}</span>${infoBtnHtml}</div>
           ${infoPopHtml}
 
@@ -445,15 +497,15 @@ const trackHtml = isIntermission
           </div>
 
           <div class="mcard__actions">
-            <button class="mcard__btn" title="Edit" data-action="edit" data-id="${r.id}">✎</button>
-            ${canDelete ? `<button class="mcard__btn" title="Delete" data-action="del" data-id="${r.id}">🗑</button>` : ``}
+            <button class="mcard__btn" title="Edit" data-action="edit" data-id="${r.id}">Edit</button>
+            ${canDelete ? `<button class="mcard__btn" title="Delete" data-action="del" data-id="${r.id}">Delete</button>` : ``}
           </div>
         </div>`;
     }).join("");
   }
 
 
-  // Klick-Handler für Edit & Delete (Table)
+  // Click handlers for Edit & Delete (table)
   $rows.querySelectorAll("button[data-action]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-id");
@@ -512,13 +564,13 @@ const opponentsRaw = $("opponents").value;
 
         if (!track) { setStatus("Please select a track.", false); return; }
     if (mode === "intermission" && !intermission) { setStatus("Please select an intermission start.", false); return; }
-      if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR Δ or the VR after the match.", false); return; }
+      if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR change or the VR after the match.", false); return; }
 
       let opponents = null;
       if (opponentsRaw !== "") {
         opponents = parseInt(opponentsRaw, 10);
         if (!Number.isFinite(opponents) || opponents < 1 || opponents > 23) {
-          setStatus("Opponents must be 1–23.", false);
+          setStatus("Opponents must be 1-23.", false);
           return;
         }
       }
@@ -527,12 +579,12 @@ const opponentsRaw = $("opponents").value;
       if (placementRaw !== "") {
         placement = parseInt(placementRaw, 10);
         if (!Number.isFinite(placement) || placement < 1 || placement > 24) {
-          setStatus("Placement must be 1–24.", false);
+          setStatus("Placement must be 1-24.", false);
           return;
         }
       }
 
-      setStatus("Saving match…", true);
+      setStatus("Saving match...", true);
 
       const baseVr = (PROFILE?.current_vr ?? 8500);
       let vr_after;
@@ -540,7 +592,7 @@ const opponentsRaw = $("opponents").value;
       if (Number.isFinite(vr_after_in)) {
         vr_after = vr_after_in;
         vr_change = vr_after - baseVr;
-        // Sync UI, falls beides gefüllt war
+        // Sync UI if both fields were filled
         try { if ($("vrChange")) $("vrChange").value = String(vr_change); } catch(e) {}
       } else {
         vr_change = vr_change_in;
@@ -611,7 +663,7 @@ let insErr = null;
       const newVr = vr_after;
 
       if (isGuest()) {
-        setStatus("✅ Match saved (Guest).", true);
+        setStatus("Match saved (Guest).", true);
       } else {
         const { error: upErr } = await supabaseClient
           .from("profiles")
@@ -619,10 +671,10 @@ let insErr = null;
           .eq("id", SESSION.user.id);
 
         if (upErr) {
-          setStatus("⚠️ Match saved, but VR update failed: " + upErr.message, false);
+          setStatus("Warning: match saved, but VR update failed: " + upErr.message, false);
           setDebug(JSON.stringify(upErr, null, 2));
         } else {
-          setStatus("✅ Match saved. VR updated.", true);
+          setStatus("Match saved. VR updated.", true);
         }
       }
 
@@ -635,7 +687,7 @@ let insErr = null;
 
   async function loadProfile() {
     PROFILE = null;
-    $("statCurrentVr").textContent = "–";
+    $("statCurrentVr").textContent = "-";
 
     // Guest mode: no Supabase client/session. Load local guest profile (or require setup).
     if (isGuest() || !supabaseClient || !SESSION?.user?.id) {
@@ -647,7 +699,7 @@ let insErr = null;
       }
       PROFILE = gp;
       try { $("userInfo").textContent = "Guest: " + (gp.nickname || "Guest"); } catch(e) {}
-      try { $("statCurrentVr").textContent = String(gp.current_vr ?? "–"); } catch(e) {}
+      try { $("statCurrentVr").textContent = String(gp.current_vr ?? "-"); } catch(e) {}
 
       // full header stats from guest matches (same as account features)
       try {
@@ -677,28 +729,28 @@ let insErr = null;
     PROFILE = data;
     
   // Anzeige im Header: Nickname
-  try { $("userInfo").textContent = "Profile: " + (PROFILE?.nickname || "–"); } catch(e) {}
-$("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
+  try { $("userInfo").textContent = "Profile: " + (PROFILE?.nickname || "-"); } catch(e) {}
+$("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
     try { await updateProfileQuickStats(); } catch(e) {}
   }
 
   
   // ========= Profile Quick Stats (Header Card) =========
   function fmtNum(n){
-    if (!Number.isFinite(n)) return "–";
+    if (!Number.isFinite(n)) return "-";
     // keep it gamer-clean (no decimals for VR)
     return String(Math.round(n));
   }
   function fmtSigned(n, decimals=1){
-    if (!Number.isFinite(n)) return "–";
-    const sign = (n > 0) ? "+" : (n < 0) ? "−" : "";
+    if (!Number.isFinite(n)) return "-";
+    const sign = (n > 0) ? "+" : (n < 0) ? "-" : "";
     const v = Math.abs(n).toFixed(decimals);
     return sign + v;
   }
 
   function fmtSignedInt(n){
-    if (!Number.isFinite(n)) return "–";
-    const sign = (n > 0) ? "+" : (n < 0) ? "−" : "";
+    if (!Number.isFinite(n)) return "-";
+    const sign = (n > 0) ? "+" : (n < 0) ? "-" : "";
     return sign + String(Math.abs(Math.round(n)));
   }
 
@@ -805,13 +857,13 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
         if (!best || a > best.avg) best = { track, avg: a, count };
       }
       if (!best){
-        $("bestTrackName").textContent = "–";
-        $("bestTrackMeta").textContent = "–";
+        $("bestTrackName").textContent = "-";
+        $("bestTrackMeta").textContent = "-";
       } else {
         const avgTxt = fmtSigned(best.avg, 1) + " VR avg";
         const runsTxt = best.count === 1 ? "1 run" : `${best.count} runs`;
         $("bestTrackName").textContent = best.track;
-        $("bestTrackMeta").textContent = `${avgTxt} • ${runsTxt}`;
+        $("bestTrackMeta").textContent = `${avgTxt} . ${runsTxt}`;
       }
 
       // Streaks & extremes (ALL-TIME across all tracked matches)
@@ -831,15 +883,15 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     }catch(e){
       // keep stable
       try{
-        $("statHighestVr").textContent = "–";
-        $("statAvg50Vr").textContent = "–";
-        $("statMatchCount").textContent = "–";
-        $("bestTrackName").textContent = "–";
-        $("bestTrackMeta").textContent = "–";
-        $("statWinStreak").textContent = "–";
-        $("statLoseStreak").textContent = "–";
-        $("statMaxGain").textContent = "–";
-        $("statMaxLoss").textContent = "–";
+        $("statHighestVr").textContent = "-";
+        $("statAvg50Vr").textContent = "-";
+        $("statMatchCount").textContent = "-";
+        $("bestTrackName").textContent = "-";
+        $("bestTrackMeta").textContent = "-";
+        $("statWinStreak").textContent = "-";
+        $("statLoseStreak").textContent = "-";
+        $("statMaxGain").textContent = "-";
+        $("statMaxLoss").textContent = "-";
       }catch(_){ }
     }
   }
@@ -876,7 +928,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     const [resCount, resHighest, resLastMonth] = await Promise.all([qCount, qHighest, qLastMonth]);
 
     if (resCount.error) throw resCount.error;
-    $("statMatchCount").textContent = (typeof resCount.count === "number") ? String(resCount.count) : "–";
+    $("statMatchCount").textContent = (typeof resCount.count === "number") ? String(resCount.count) : "-";
 
     if (resHighest.error) throw resHighest.error;
     const highest = Number(resHighest.data?.[0]?.vr_after);
@@ -887,7 +939,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     const avg = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length) : NaN;
     $("statAvg50Vr").textContent = fmtNum(avg);
 
-    // Best Track (3-Lap only): highest average VR Δ
+    // Best Track (3-Lap only): highest average VR change
     // For performance we use the most recent 2000 3-lap matches (single request).
     const { data: lapData, error: lapErr } = await supabaseClient
       .from("matches")
@@ -918,17 +970,17 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
     }
 
     if (!best){
-      $("bestTrackName").textContent = "–";
-      $("bestTrackMeta").textContent = "–";
-      try { $("statWinStreak").textContent = "–"; } catch(_){ }
-      try { $("statLoseStreak").textContent = "–"; } catch(_){ }
-      try { $("statMaxGain").textContent = "–"; } catch(_){ }
-      try { $("statMaxLoss").textContent = "–"; } catch(_){ }
+      $("bestTrackName").textContent = "-";
+      $("bestTrackMeta").textContent = "-";
+      try { $("statWinStreak").textContent = "-"; } catch(_){ }
+      try { $("statLoseStreak").textContent = "-"; } catch(_){ }
+      try { $("statMaxGain").textContent = "-"; } catch(_){ }
+      try { $("statMaxLoss").textContent = "-"; } catch(_){ }
     } else {
       const avgTxt = fmtSigned(best.avg, 1) + " VR avg";
       const runsTxt = best.count === 1 ? "1 run" : `${best.count} runs`;
       $("bestTrackName").textContent = best.track;
-      $("bestTrackMeta").textContent = `${avgTxt} • ${runsTxt}`;
+      $("bestTrackMeta").textContent = `${avgTxt} . ${runsTxt}`;
     }
 
     // Win/Lose streak (ALL-TIME longest) + Max gain/loss (all-time)
@@ -966,11 +1018,11 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
   } catch(e){
     // keep UI stable if stats query fails
     try{
-      $("statHighestVr").textContent = "–";
-      $("statAvg50Vr").textContent = "–";
-      $("statMatchCount").textContent = "–";
-      $("bestTrackName").textContent = "–";
-      $("bestTrackMeta").textContent = "–";
+      $("statHighestVr").textContent = "-";
+      $("statAvg50Vr").textContent = "-";
+      $("statMatchCount").textContent = "-";
+      $("bestTrackName").textContent = "-";
+      $("bestTrackMeta").textContent = "-";
     } catch(_){}
     setDebug("Header stats error: " + (e?.message || e));
   }
@@ -991,7 +1043,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
       show($("matchCard"), false);
       show($("listCard"), false);
       // removed ready pill
-      $("statCurrentVr").textContent = "–";
+      $("statCurrentVr").textContent = "-";
       return;
     }
 
@@ -1001,7 +1053,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
 
     // removed ready pill
 
-    $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "–");
+    $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
     // IMPORTANT: Don't run cloud header stats in Guest mode.
     // In Guest, compute header stats from localStorage matches.
     if (isGuest()) {
@@ -1043,7 +1095,7 @@ async function openEditDialog(id) {
     }
 
     $("editMeta").textContent =
-      "ID: " + EDIT_ROW.id + " • " +
+      "ID: " + EDIT_ROW.id + " . " +
       (EDIT_ROW.created_at ? new Date(EDIT_ROW.created_at).toLocaleString() : "");
 
     $("editIntermission").value = "";
@@ -1130,13 +1182,13 @@ async function saveEditDialog(){
 
     if (!track) { setStatus("Please select a track.", false); return; }
     if (mode === "intermission" && !intermission) { setStatus("Please select an intermission start.", false); return; }
-    if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR Δ or the new total VR.", false); return; }
+    if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR change or the new total VR.", false); return; }
 
     let opponents = null;
     if (opponentsRaw !== "") {
       opponents = parseInt(opponentsRaw, 10);
       if (!Number.isFinite(opponents) || opponents < 1 || opponents > 23) {
-        setStatus("Opponents must be 1–23.", false);
+        setStatus("Opponents must be 1-23.", false);
         return;
       }
     }
@@ -1145,7 +1197,7 @@ async function saveEditDialog(){
     if (placementRaw !== "") {
       placement = parseInt(placementRaw, 10);
       if (!Number.isFinite(placement) || placement < 1 || placement > 24) {
-        setStatus("Placement must be 1–24.", false);
+        setStatus("Placement must be 1-24.", false);
         return;
       }
     }
@@ -1169,9 +1221,9 @@ async function saveEditDialog(){
     const oldVr = (EDIT_ROW.vr_change ?? 0);
     const deltaVr = vr_change - oldVr; // profile VR adjustment
 
-    setStatus("Saving changes…", true);
+    setStatus("Saving changes...", true);
 
-    // 1) Match updaten + updated row zurückholen (wichtig: array!)
+    // 1) Update match + fetch updated row again (important: array)
     let updatedRows = null, upMatchErr = null;
     if (isGuest()) {
       const ok = guestUpdateMatch(EDIT_ROW.id, { intermission, track, vr_change, vr_after, opponents, placement });
@@ -1213,7 +1265,7 @@ async function saveEditDialog(){
         .eq("id", SESSION.user.id);
 
       if (upProfErr) {
-        setStatus("⚠️ Match updated, but profile VR sync failed: " + upProfErr.message, false);
+        setStatus("Warning: match updated, but profile VR sync failed: " + upProfErr.message, false);
         setDebug(JSON.stringify(upProfErr, null, 2));
         closeDlg();
         await refreshAll();
@@ -1221,7 +1273,7 @@ async function saveEditDialog(){
       }
     }
 
-    setStatus("✅ Changes saved.", true);
+    setStatus("Changes saved.", true);
     closeDlg();
     await refreshAll();
 
@@ -1239,18 +1291,18 @@ async function deleteMatch(id){
     if (!row) { setStatus("Match not found.", false); return; }
 
     const ok = confirm(
-      `Delete match?\n\nTrack: ${row.track}\nVR Δ: ${row.vr_change}\nZeit: ${row.created_at ? new Date(row.created_at).toLocaleString() : ""}`
+      `Delete match?\n\nTrack: ${row.track}\nVR change: ${row.vr_change}\nTime: ${row.created_at ? new Date(row.created_at).toLocaleString() : ""}`
     );
     if (!ok) return;
 
-    setStatus("Deleting match…", true);
+    setStatus("Deleting match...", true);
 
     if (isGuest()) {
       const okDel = guestDeleteMatch(id);
       if (!okDel) { setStatus("Delete failed: match not found.", false); return; }
 	      // Guest mode ends here (no Supabase writes)
 	      totalMatches = null;
-	      setStatus("✅ Match deleted.", true);
+	      setStatus("Match deleted.", true);
 	      await refreshAll();
 	      return;
     } else {
@@ -1278,10 +1330,10 @@ async function deleteMatch(id){
       .eq("id", SESSION.user.id);
 
     if (upProfErr) {
-      setStatus("⚠️ Match deleted, but profile VR sync failed: " + upProfErr.message, false);
+      setStatus("Warning: match deleted, but profile VR sync failed: " + upProfErr.message, false);
       setDebug(JSON.stringify(upProfErr, null, 2));
     } else {
-      setStatus("✅ Match deleted. VR adjusted.", true);
+      setStatus("Match deleted. VR adjusted.", true);
     }
 
     // Make Suggestion update feel instant:
@@ -1366,7 +1418,7 @@ function setupSessionsDialog(){
   });
 
     $("btnNext")?.addEventListener("click", async () => {
-  // wenn wir totalMatches kennen, nicht über maxPage hinaus
+  // If we know totalMatches, do not move beyond maxPage
   if (totalMatches != null) {
     const maxPage = Math.max(1, Math.ceil(totalMatches / PAGE_SIZE));
     if (currentPage >= maxPage) return;
@@ -1380,7 +1432,7 @@ function setupSessionsDialog(){
     $("btnCancelDlg")?.addEventListener("click", closeDlg);
     $("btnSaveDlg")?.addEventListener("click", saveEditDialog);
 
-    // Optional: ESC / Klick auf Backdrop -> schließt Dialog
+    // Optional: ESC / backdrop click closes dialog
     $("editDlg")?.addEventListener("cancel", (e) => { e.preventDefault(); closeDlg(); });
 
     function fixDatalistReopen(inputId) {
@@ -1388,24 +1440,25 @@ function setupSessionsDialog(){
     if (!el) return;
 
     el.addEventListener("focus", () => {
-        // Kurz leeren → Browser vergisst den Filter
+        // Kurz leeren > Browser vergisst den Filter
         const v = el.value;
         el.value = "";
         requestAnimationFrame(() => el.value = v);
     });
     }
 
-    // Für beide Felder aktivieren
+    // Enable for both fields
     fixDatalistReopen("editPlacement");
     fixDatalistReopen("editOpponents");
 
   // Start
   (async () => {
     try {
-      setDebug("App starting…");
+      setDebug("App starting...");
 
-    // Selects (Intermission/Track + Edit-Dialog) befüllen
+    // Populate selects (Intermission/Track + edit dialog)
     initSelects();
+    await loadTrackIconMap();
 
     // Guest mode is allowed: continue even without a session.
     await requireAuth();
@@ -1424,7 +1477,7 @@ function setupSessionsDialog(){
           if ((count || 0) === 0) {
             const ok = confirm(`Import your Guest data into this account?\n\nGuest matches found: ${guest.length}\n\nOK = Import & clear Guest data\nCancel = Keep Guest data locally`);
             if (ok) {
-              setStatus("Importing Guest data…", true);
+              setStatus("Importing Guest data...", true);
               const batchSize = 500;
               let inserted = 0;
               for (let i=0; i<guest.length; i+=batchSize) {
@@ -1443,7 +1496,7 @@ function setupSessionsDialog(){
                 inserted += batch.length;
               }
               saveGuestMatches([]); // clear guest after import to avoid duplicates
-              setStatus(`✅ Imported ${inserted} matches from Guest.`, true);
+              setStatus(`Imported ${inserted} matches from Guest.`, true);
               await refreshAll();
             }
           }
@@ -1573,7 +1626,7 @@ function setupSessionsDialog(){
 	      const end = (trackSel && trackSel.value) ? trackSel.value : '';
 	      // Intermission needs BOTH start + end.
 	      if (start && end){
-	        const key = `${start}→${end}`;
+	        const key = `${start}>${end}`;
 	        const t = STRATS && STRATS.INTERMISSIONS && STRATS.INTERMISSIONS[key];
 	        return t || `coming soon [${firstChar(start)}:${firstChar(end)}]`;
 	      }
@@ -1776,7 +1829,7 @@ function setupSessionsDialog(){
       vr.addEventListener("input", () => setNegButtonState(negBtn, vr));
     }
 
-    // Edit dialog: same negative toggle for VR Δ
+    // Edit dialog: same negative toggle for VR change
     const editVr = document.getElementById("editVrChange");
     const editNegBtn = document.getElementById("editVrSignToggle");
     if (editNegBtn && editVr) {

@@ -8,17 +8,15 @@
 <meta content="#07080a" name="theme-color"/>
 <meta charset="utf-8"/>
 <script src="mkwt_bootstrap.js"></script>
-<title>MKWT – Mario Kart World Match Tracker</title>
+<title>MKWT - Mario Kart World Match Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
-<!-- Cloudflare Turnstile (CAPTCHA) -->
-<script async="" defer="" src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
 <script src="mkwt_page_helpers.js"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
 <link href="login.css" rel="stylesheet"/>
 
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   
@@ -27,13 +25,13 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
   <meta property="og:url" content="https://www.mkwt.app/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta name="twitter:title" content="MKWT - Mario Kart World Match Tracker">
   <meta name="twitter:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta name="twitter:image" content="https://www.mkwt.app/og-card.png">
 
@@ -50,33 +48,30 @@
         VIP accounts are invite-only. You can also continue as Guest.
       </div>
 
-      <div class="field">
-        <label>Email</label>
-        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" />
-      </div>
+      <form id="loginForm">
+        <div class="field">
+          <label>Email</label>
+          <input id="email" type="email" autocomplete="email" placeholder="you@example.com" />
+        </div>
 
-      <div class="field">
-        <label>Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
-      </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="password" type="password" autocomplete="current-password" placeholder="........" />
+        </div>
 
-      <div class="rememberRow">
-        <label class="checkWrap" for="stay">
-          <input id="stay" type="checkbox" />
-          <span class="checkUI" aria-hidden="true"></span>
-          <span class="checkLabel">Stay signed in</span>
-        </label>
-      </div>
+        <div class="rememberRow">
+          <label class="checkWrap" for="stay">
+            <input id="stay" type="checkbox" />
+            <span class="checkUI" aria-hidden="true"></span>
+            <span class="checkLabel">Stay signed in</span>
+          </label>
+        </div>
 
-      <div style="margin-top:12px;">
-        <div id="captchaBox"></div>
-        <div class="muted" style="font-size:12px; margin-top:6px; text-align:center;">Complete the captcha to log in.</div>
-      </div>
-
-      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-        <button class="btn" id="btnLogin" type="button" style="flex:1; min-width:160px;">Log in</button>
-        <button class="btn2" id="btnGuest" type="button" style="flex:1; min-width:160px;">Continue as Guest</button>
-      </div>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+          <button class="btn" id="btnLogin" type="submit" style="flex:1; min-width:160px;">Log in</button>
+          <button class="btn2" id="btnGuest" type="button" style="flex:1; min-width:160px;">Continue as Guest</button>
+        </div>
+      </form>
 
       <div class="muted" id="status" style="min-height:20px; margin-top:10px;"></div>
     </div>

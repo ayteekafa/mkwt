@@ -27,8 +27,10 @@
         <a class="navDropdownItem" href="tracker.html">World Wides</a>
         <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
         <a class="navDropdownItem active" href="lounge-24.html">Lounge 24p</a>
+        <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
       </div>
     </div>
+    <a class="navLink" href="combo-builder.html">Combo Builder</a>
     <div class="navDropdown">
       <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
       <div class="navDropdownMenu">
@@ -43,8 +45,8 @@
   <section class="card profileCard">
     <div class="profileTop">
       <div>
-        <h2 style="margin:0 0 6px 0;">Lounge 24p Tracker <span class="byAytee">by Aytee</span></h2>
-        <div class="muted" id="userInfo">Lounge 24p</div>
+        <h2 class="heroTitle">Lounge 24p Tracker <span class="byAytee">by Aytee</span></h2>
+        <div class="muted heroSubtitle" id="userInfo">Lounge 24p</div>
       </div>
     </div>
     <div aria-label="Lounge quick stats" class="statGrid loungeHeroStats">
@@ -84,7 +86,10 @@
   <section class="card cardSection">
     <div class="sectionHead sectionHead--split">
       <div>
-        <h3>24p Mogi</h3>
+        <h3 class="sectionTitle">24p Mogi</h3>
+      </div>
+      <div class="sectionHeadActions">
+        <button class="infoBtn" id="btnTrackSuggestions" type="button" title="Suggested tracks" aria-label="Suggested tracks">?</button>
       </div>
     </div>
 
@@ -240,61 +245,27 @@
       </summary>
       <div class="tableWrap">
         <table>
-          <thead><tr><th>#</th><th>Track / Route</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
-          <tbody id="currentMogiBody"><tr><td colspan="6" class="muted">No races tracked yet.</td></tr></tbody>
+          <thead><tr><th>#</th><th>Track / Route</th><th>Place / Pts</th><th>Lobby / Tag</th></tr></thead>
+          <tbody id="currentMogiBody"><tr><td colspan="4" class="muted">No races tracked yet.</td></tr></tbody>
         </table>
       </div>
     </details>
   </section>
-
-  <section class="card cardSection">
-    <div class="sectionHead">
-      <div>
-        <h3>Track / Intermission Performance</h3>
-      </div>
-      <div class="chartControlStack">
-        <div class="segRow modeRow" id="trackModeGroup">
-          <button id="btnPerfTracks" class="navAction active" type="button" aria-pressed="true">Tracks</button>
-          <button id="btnPerfImDestiny" class="navAction" type="button" aria-pressed="false">Intermission Destiny</button>
-          <button id="btnPerfImRoutes" class="navAction" type="button" aria-pressed="false">Intermission Separated</button>
-        </div>
-        <div class="segRow sortRow" id="trackSortGroup">
-          <button id="btnSortPerformance" class="navAction active" type="button">Performance</button>
-          <button id="btnSortPlayed" class="navAction" type="button">Most played</button>
-        </div>
-      </div>
-    </div>
-    <div class="chartShell">
-      <div class="chartWrap chartWrapC2"><canvas id="chartTrackAvg"></canvas></div>
-      <div class="trackInsight" id="trackInsight">
-        <div class="muted">Click on a bar to see AVG points and times played.</div>
-      </div>
-    </div>
-    <div class="placementChartBlock">
-      <div class="sectionHead placementChartHead">
+  <dialog class="compareDialog" id="trackSuggestionDialog">
+    <div class="compareDialogPanel suggestDialogPanel">
+      <div class="compareDialogHead">
         <div>
-          <h3>Placement Distribution</h3>
+          <div class="compareDialogEyebrow">Track Suggestions</div>
+          <h3>Suggested Tracks</h3>
+          <div class="muted compareDialogMeta" id="trackSuggestionMeta">Top remaining 3-lap picks from Lounge performance.</div>
         </div>
-        <div class="segRow modeRow" id="placementModeGroup">
-          <button id="btnPlacementAll" class="navAction active" type="button" aria-pressed="true">All</button>
-          <button id="btnPlacementTracks" class="navAction" type="button" aria-pressed="false">Tracks</button>
-          <button id="btnPlacementIntermission" class="navAction" type="button" aria-pressed="false">Intermission</button>
-        </div>
+        <button class="navAction" id="btnCloseTrackSuggestions" type="button">Close</button>
       </div>
-      <div class="chartWrap chartWrapPlacement"><canvas id="chartPlacementDist"></canvas></div>
-    </div>
-    <div class="typePieBlock">
-      <div class="sectionHead placementChartHead">
-        <div>
-          <h3>Track / Intermission Distribution</h3>
-        </div>
-      </div>
-      <div class="chartWrap chartWrapPie"><canvas id="chartTypePie"></canvas></div>
-      <div class="trackInsight" id="typePieInfo">
-        <div class="muted">Track and intermission split appears after saved races.</div>
+      <div class="suggestTrackGrid" id="trackSuggestionGrid">
+        <div class="muted">No suggestions yet.</div>
       </div>
     </div>
-  </section>
+  </dialog>
 
   <section class="card cardSection">
     <div class="sectionHead">
@@ -326,7 +297,7 @@
     </div>
     <div class="tableWrap mogiResultTableWrap">
       <table>
-        <thead><tr><th>#</th><th>Track / Route</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+        <thead><tr><th>#</th><th>Track / Route</th><th>Place / Pts</th><th>Lobby / Tag</th></tr></thead>
         <tbody id="mogiResultRows"></tbody>
       </table>
     </div>
@@ -337,6 +308,7 @@
   </div>
 </dialog>
 <script src="tracker_intermission.js"></script>
+<script src="mkwt_mode_compare.js"></script>
 <script src="lounge.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿const $ = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
 const statusEls = Array.from(document.querySelectorAll('[data-status="shared"]'));
 function setStatus(t, ok=true){ window.MKWT?.setStatus?.(statusEls, t, ok); }
 const STORAGE_KEYS = window.MKWT?.storageKeys || { theme:'mkwt_theme', minVrFilter:'mkwt_min_vr_filter', lastMode:'mkwt_last_mode' };
@@ -232,7 +232,7 @@ async function requireAuth(){
     onGuest: async () => {
       window.supabaseClient = null;
       window.SESSION = null;
-      setTopInfo({emailText:"Guest mode (local)", currentVrText:"â€“", matchCountText:"â€“"});
+      setTopInfo({emailText:"Guest mode (local)", currentVrText:"-", matchCountText:"-"});
       try{ setNavAuthButton("guest"); }catch(e){}
     }
   });
@@ -247,7 +247,7 @@ async function loadProfile(){
     $("settingsVr").value = (gp?.current_vr ?? "");
     loadMkcentralSetting();
     const count = guestCount();
-    setTopInfo({ emailText: "Guest mode (local)", currentVrText: String(gp?.current_vr ?? "â€“"), matchCountText: String(count) });
+    setTopInfo({ emailText: "Guest mode (local)", currentVrText: String(gp?.current_vr ?? "-"), matchCountText: String(count) });
     setStatus("Guest mode (saved locally)");
     return;
   }
@@ -281,7 +281,7 @@ async function loadProfile(){
 
   // Top card: Current VR + Matches count
   try{
-    setTopInfo({ currentVrText: String(data?.current_vr ?? "â€“") });
+    setTopInfo({ currentVrText: String(data?.current_vr ?? "-") });
     const { count } = await supabaseClient
       .from("matches")
       .select("id", { count: "exact", head: true })
@@ -367,9 +367,7 @@ $("btnChangePassword").onclick = () => {
   openPwModal();
 };
 
-$("pwCancel").onclick = closePwModal;
-$("pwClose").onclick = closePwModal;
-$("pwConfirm").onclick = async () => {
+async function submitPasswordChange() {
   const p1 = String($("pwNew").value || "");
   const p2 = String($("pwConfirmInput").value || "");
 
@@ -385,19 +383,26 @@ $("pwConfirm").onclick = async () => {
   }
 
   try{
-    $("pwStatus").textContent = "Updating passwordâ€¦";
+    $("pwStatus").textContent = "Updating password...";
     const { error } = await supabaseClient.auth.updateUser({ password: p1 });
     if(error){ $("pwStatus").textContent = error.message; return; }
     $("pwNew").value = "";
     $("pwConfirmInput").value = "";
-    $("pwStatus").textContent = "âœ… Password updated.";
-    setStatus("âœ… Password updated.");
+    $("pwStatus").textContent = "Password updated.";
+    setStatus("Password updated.");
     // Close after a short moment
     setTimeout(closePwModal, 600);
   }catch(e){
     $("pwStatus").textContent = "Password update failed: " + (e?.message || e);
   }
-};
+}
+
+$("pwCancel").onclick = closePwModal;
+$("pwClose").onclick = closePwModal;
+$("pwForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await submitPasswordChange();
+});
 
 function openPwModal(){
   $("pwOverlay").hidden = false;

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 <meta name="theme-color" content="#07080a"/><script src="mkwt_bootstrap.js"></script>
-<title>MKWT – App</title>
+<title>MKWT - World Wide Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
 <script src="mkwt_page_helpers.js"></script>
@@ -16,7 +16,7 @@
 
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   
@@ -26,13 +26,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   
-  <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
   <meta property="og:url" content="https://www.mkwt.app/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta name="twitter:title" content="MKWT - Mario Kart World Match Tracker">
   <meta name="twitter:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta name="twitter:image" content="https://www.mkwt.app/og-card.png">
 
@@ -48,8 +48,10 @@
 <a class="navDropdownItem active" href="tracker.html">World Wides</a>
 <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
 <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+<a class="navDropdownItem" href="time-trial.html">Time Trial</a>
 </div>
 </div>
+<a class="navLink" href="combo-builder.html">Combo Builder</a>
 <div class="navDropdown">
 <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
 <div class="navDropdownMenu">
@@ -64,62 +66,62 @@
 <div class="card profileCard">
 <div class="profileTop">
 <div>
-<h2 style="margin:0 0 6px 0;">World Wide Tracker <span class="byAytee">by Aytee</span></h2>
-<div class="muted" id="userInfo">Loading session…</div>
+<h2 class="heroTitle">World Wide Tracker <span class="byAytee">by Aytee</span></h2>
+<div class="muted heroSubtitle" id="userInfo">Loading session...</div>
 </div>
 </div>
 <div aria-label="Profile quick stats" class="statGrid">
 <div class="statBox">
 <div class="statLabel">Current</div>
-<div class="statValue" id="statCurrentVr">–</div>
+<div class="statValue" id="statCurrentVr">-</div>
 </div>
 <div class="statBox">
 <div class="statLabel">Peak</div>
-<div class="statValue" id="statHighestVr">–</div>
+<div class="statValue" id="statHighestVr">-</div>
 </div>
 <div class="statBox">
 <div class="statLabel">Average</div>
-<div class="statValue" id="statAvg50Vr">–</div>
+<div class="statValue" id="statAvg50Vr">-</div>
 </div>
 <div class="statBox">
 <div class="statLabel">Matches</div>
-<div class="statValue" id="statMatchCount">–</div>
+<div class="statValue" id="statMatchCount">-</div>
 </div>
 <div class="statBox">
 <div class="statLabel">W-Streak</div>
-<div class="statValue" id="statWinStreak">–</div>
+<div class="statValue" id="statWinStreak">-</div>
 </div>
 <div class="statBox">
 <div class="statLabel">L-Streak</div>
-<div class="statValue" id="statLoseStreak">–</div>
+<div class="statValue" id="statLoseStreak">-</div>
 </div>
 <div class="statBox">
 <div class="statLabel">Max Gain</div>
-<div class="statValue" id="statMaxGain">–</div>
+<div class="statValue" id="statMaxGain">-</div>
 </div>
 <div class="statBox">
-<div class="statLabel">MAX Loss</div>
-<div class="statValue" id="statMaxLoss">–</div>
+<div class="statLabel">Max Loss</div>
+<div class="statValue" id="statMaxLoss">-</div>
 </div>
 </div>
 <div class="bestTrackLine">
 <div class="bestTrackLabel">Best Track</div>
-<div class="bestTrackName" id="bestTrackName">–</div>
-<div class="bestTrackMeta" id="bestTrackMeta">–</div>
+<div class="bestTrackName" id="bestTrackName">-</div>
+<div class="bestTrackMeta" id="bestTrackMeta">-</div>
 </div>
 <div class="muted hidden" id="status"></div>
 <div class="muted hidden" id="debug"></div>
 </div>
 <!-- SETUP (only on first login when no profile exists) -->
-<div class="card hidden" id="setupCard">
-<h3 style="margin-top:0;">Create profile (one time)</h3>
+<div class="card cardSection hidden" id="setupCard">
+<h3 class="sectionTitle">Create profile (one time)</h3>
 <div class="row">
 <div class="field">
 <label class="muted">Nickname</label>
 <input id="setupNickname" placeholder="e.g. Nickname"/>
 </div>
 <div class="field">
-<label class="muted">current VR</label>
+<label class="muted">Current VR</label>
 <input id="setupVr" inputmode="numeric" placeholder="e.g. 8500" type="number"/>
 <div class="muted"></div>
 </div>
@@ -131,8 +133,8 @@
 <!-- SETTINGS (always available when a profile exists) -->
 <!-- settingsCard removed (moved to settings.html) -->
 <!-- MATCH INPUT -->
-<div class="card hidden" id="matchCard">
-<h3 style="margin-top:0;">Match Tracker</h3>
+<div class="card cardSection hidden" id="matchCard">
+<h3 class="sectionTitle">Match Tracker</h3>
 <!-- Mode toggle: Intermission vs 3-Lap -->
 <div aria-label="Match mode" class="modeToggle" role="tablist">
 <button aria-selected="true" class="modeBtn isActive" data-mode="intermission" type="button">Intermission</button>
@@ -216,9 +218,9 @@
 </div>
 <div class="row compactRow">
 <div class="field">
-<label class="muted">VR Δ</label>
+<label class="muted">VR change</label>
 <div class="vr-delta-wrap">
-<button aria-label="Toggle negative" class="vr-sign" id="vrSignToggle" type="button">−</button>
+<button aria-label="Toggle negative" class="vr-sign" id="vrSignToggle" type="button">-</button>
 <input id="vrChange" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="text"/>
 </div>
 </div>
@@ -231,12 +233,12 @@
 <div class="field">
 <label class="muted">Opponents</label>
 <select id="opponents">
-<option value="">—</option>
-<optgroup label="Popular (15–23)">
+<option value="">-</option>
+<optgroup label="Popular (15-23)">
 <option>15</option><option>16</option><option>17</option><option>18</option><option>19</option>
 <option>20</option><option>21</option><option>22</option><option>23</option>
 </optgroup>
-<optgroup label="All (1–23)">
+<optgroup label="All (1-23)">
 <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
 <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
 <option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
@@ -247,7 +249,7 @@
 <div class="field">
 <label class="muted">Placement</label>
 <select id="placement">
-<option value="">—</option>
+<option value="">-</option>
 <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
 <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
 <option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
@@ -261,7 +263,7 @@
 </div>
 </div>
 <!-- MATCH LIST -->
-<div class="card hidden" id="listCard">
+<div class="card cardSection hidden" id="listCard">
 <div class="matchListHead">
 <h3 style="margin:0;">Recent matches</h3>
 <button class="btn2" id="btnShowSessions" type="button">Show Sessions</button>
@@ -275,9 +277,8 @@
 <tr>
 <th>Match #</th>
 <th>Created</th>
-<th>Intermission</th>
-<th>Track</th>
-<th>VR Δ</th>
+<th>Tracks</th>
+<th>VR change</th>
 <th>VR after</th>
 <th>Opp</th>
 <th>Place</th>
@@ -285,7 +286,7 @@
 </tr>
 </thead>
 <tbody id="rows">
-<tr><td class="muted" colspan="10">Loading…</td></tr>
+<tr><td class="muted" colspan="8">Loading...</td></tr>
 </tbody>
 </table>
 </div>
@@ -293,8 +294,8 @@
 <div class="row" style="align-items:center; margin-top:10px;">
 <div class="muted" id="pageInfo">Page 1</div>
 <div style="display:flex; gap:10px; justify-content:flex-end;">
-<button class="btn2" id="btnPrev">← Prev</button>
-<button class="btn2" id="btnNext">Next →</button>
+<button class="btn2" id="btnPrev">Prev</button>
+<button class="btn2" id="btnNext">Next</button>
 </div>
 </div>
 </div>
@@ -316,9 +317,9 @@
       flex-wrap:wrap; align-items:center;">
 <div>
 <div style="font-weight:800;">Edit match</div>
-<div class="muted" id="editMeta">—</div>
+<div class="muted" id="editMeta">-</div>
 </div>
-<button class="btn2" id="btnCloseDlg">✕</button>
+<button class="btn2" id="btnCloseDlg" type="button">Close</button>
 </div>
 <div style="padding:16px;">
 <div class="modeToggleRow">
@@ -337,9 +338,9 @@
 </div>
 <div class="row compactRow">
 <div class="field">
-<label class="muted">VR Δ</label>
+<label class="muted">VR change</label>
 <div class="vr-delta-wrap">
-<button aria-label="Toggle negative" class="vr-sign" id="editVrSignToggle" type="button">−</button>
+<button aria-label="Toggle negative" class="vr-sign" id="editVrSignToggle" type="button">-</button>
 <input id="editVrChange" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" type="text">
 </input></div>
 </div>
@@ -350,7 +351,7 @@
 </input></div>
 <div class="field">
 <label class="muted">total opponents</label>
-<input id="editOpponents" inputmode="numeric" list="editOppList" max="23" min="1" placeholder="1–23" type="number"/>
+<input id="editOpponents" inputmode="numeric" list="editOppList" max="23" min="1" placeholder="1-23" type="number"/>
 <datalist id="editOppList">
 <option value="8"></option>
 <option value="12"></option>
@@ -363,8 +364,8 @@
 </datalist>
 </div>
 <div class="field">
-<label class="muted">Placement (1–24)</label>
-<input id="editPlacement" inputmode="numeric" list="editPlaceList" max="24" min="1" placeholder="1–24" type="number"/>
+<label class="muted">Placement (1-24)</label>
+<input id="editPlacement" inputmode="numeric" list="editPlaceList" max="24" min="1" placeholder="1-24" type="number"/>
 <datalist id="editPlaceList">
 <option value="1"></option>
 <option value="2"></option>
@@ -394,7 +395,7 @@
 </div>
 </div>
 <div class="muted" style="margin-top:10px;">
-        Note: Enter VR Δ OR new total VR. Your current VR will be adjusted automatically.
+        Note: Enter VR change OR new total VR. Your current VR will be adjusted automatically.
         </div>
 </div>
 <div style="padding:16px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end;">

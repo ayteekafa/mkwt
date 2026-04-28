@@ -1,0 +1,1076 @@
+.timeTrialTop{
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  text-align:center;
+}
+
+.timeTrialHeroCopy{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  max-width:720px;
+}
+
+.timeTrialHeroCopy > .muted{
+  text-align:center;
+}
+
+.timeTrialHeroActions{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.ttSymbolBtn{
+  min-width:62px;
+  padding-inline:16px;
+}
+
+.ttStatGrid .statBox{
+  min-height:92px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.ttStatMeta{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  line-height:1.25;
+}
+
+.ttEntriesCard{
+  margin-inline:auto;
+}
+
+.timeTrialSectionHead{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+
+.ttEntriesHeadActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.timeTrialSectionCopy{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.timeTrialSectionHead--center{
+  justify-content:center;
+  text-align:center;
+}
+
+.timeTrialSectionHead--center > div{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+
+.timeTrialSectionHead--wrDialog{
+  align-items:center;
+}
+
+.ttEntryGrid{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.ttCategoryFilter{
+  display:flex;
+  align-items:center;
+  min-width:148px;
+  justify-content:flex-end;
+}
+
+.ttCategoryFilter .chartFilterBtn{
+  min-width:148px;
+}
+
+.ttDownloadBtn{
+  min-width:0;
+  padding-inline:14px;
+  white-space:nowrap;
+}
+
+.ttCategoryFilter .chartFilterMenu{
+  min-width:176px;
+}
+
+.ttEntryCard{
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 26%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)),
+    var(--card-2);
+  padding:0;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+}
+
+.ttEntryCard--band-gold{
+  border-color:rgba(223, 182, 88, 0.34);
+  background:
+    radial-gradient(circle at -18% 50%, rgba(255,205,70,0.24) 0%, rgba(255,205,70,0.13) 18%, rgba(255,205,70,0.05) 27%, transparent 35%),
+    radial-gradient(circle at -2% 50%, rgba(255,205,70,0.12) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)),
+    var(--card-2);
+}
+
+.ttEntryCard--band-silver{
+  border-color:rgba(207, 215, 229, 0.34);
+  background:
+    radial-gradient(circle at -18% 50%, rgba(210,220,232,0.22) 0%, rgba(210,220,232,0.12) 18%, rgba(210,220,232,0.05) 27%, transparent 35%),
+    radial-gradient(circle at -2% 50%, rgba(210,220,232,0.11) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)),
+    var(--card-2);
+}
+
+.ttEntryCard--band-bronze{
+  border-color:rgba(211, 158, 120, 0.34);
+  background:
+    radial-gradient(circle at -18% 50%, rgba(205,128,70,0.22) 0%, rgba(205,128,70,0.12) 18%, rgba(205,128,70,0.05) 27%, transparent 35%),
+    radial-gradient(circle at -2% 50%, rgba(205,128,70,0.11) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)),
+    var(--card-2);
+}
+
+.ttEntryRow{
+  display:grid;
+  grid-template-columns:minmax(96px, 0.7fr) minmax(280px, 1.35fr) minmax(150px, 0.85fr) auto;
+  align-items:stretch;
+  min-width:640px;
+}
+
+.ttEntryCell{
+  min-width:0;
+  padding:14px 12px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+}
+
+.ttEntryCell + .ttEntryCell{
+  border-left:0;
+}
+
+.ttEntryCell--main{
+  padding-inline:10px;
+  align-items:center;
+  text-align:center;
+}
+
+.ttEntryCell--action{
+  align-items:flex-end;
+  justify-content:center;
+  padding-inline:16px;
+}
+
+.ttEntryCell--timings{
+  display:grid;
+  grid-template-columns:minmax(0, 1.2fr) minmax(0, 0.9fr);
+  gap:12px;
+}
+
+.ttEntryActionGroup{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:8px;
+}
+
+.ttTrackIconWrap{
+  width:78px;
+  height:78px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.ttTrackIcon{
+  width:78px;
+  height:78px;
+  object-fit:contain;
+  display:block;
+  filter:drop-shadow(0 8px 16px rgba(0,0,0,.28));
+  transform:scale(1.12);
+  transform-origin:center;
+}
+
+.ttTrackIconFallback{
+  width:78px;
+  height:78px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)), var(--hover);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  font-weight:950;
+  letter-spacing:.04em;
+}
+
+.ttTrackLabel{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+.ttTrackLabelIconWrap{
+  width:34px;
+  height:34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  flex:0 0 auto;
+}
+
+.ttTrackIcon--table,
+.ttTrackLabelIconWrap .ttTrackIconFallback{
+  width:34px;
+  height:34px;
+}
+
+.ttTrackIcon--table{
+  transform:scale(1.18);
+}
+
+.ttTrackLabelText{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.ttWrGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+  gap:12px;
+}
+
+.ttWrCard{
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, transparent), transparent 60%),
+    var(--card-2);
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.ttWrCardHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.ttWrTrackLead{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.ttWrTrackVisual{
+  width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  overflow:hidden;
+}
+
+.ttTrackIcon--wrCard,
+.ttWrTrackVisual .ttTrackIconFallback{
+  width:60px;
+  height:60px;
+}
+
+.ttTrackIcon--wrCard{
+  transform:scale(1.14);
+}
+
+.ttWrTrackMeta{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.ttWrTrackName{
+  font-size:18px;
+  font-weight:950;
+  line-height:1.1;
+}
+
+.ttWrTrackSubline{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.ttWrTimeBlock{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+  flex:0 0 auto;
+  text-align:right;
+}
+
+.ttWrCardLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.ttWrCardTime{
+  font-size:22px;
+  font-weight:950;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.ttWrCardBody{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.ttWrMetric{
+  min-width:0;
+  border:1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  border-radius:12px;
+  background:rgba(255,255,255,0.022);
+  padding:10px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.ttWrMetricLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.ttWrMetricValue{
+  font-size:15px;
+  font-weight:900;
+  line-height:1.25;
+  min-width:0;
+}
+
+.ttWrMetricValue--combo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.ttWrComboIcons{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+
+.ttWrComboNames{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.ttTimeStack{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:6px;
+}
+
+.ttTimeStack--setupMobile{
+  display:none;
+}
+
+.ttComboStack{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+}
+
+.ttComboTopRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.ttComboIcons{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+
+.ttComboIcon{
+  width:34px;
+  height:34px;
+  object-fit:contain;
+  display:block;
+  background:transparent;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.2));
+}
+
+.ttComboIconFallback{
+  min-width:34px;
+  height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:950;
+  letter-spacing:.04em;
+}
+
+.ttTimePrimary{
+  font-size:22px;
+  font-weight:950;
+  line-height:1.05;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.ttTimeDiffRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.ttTimeSecondary,
+.ttWrValue{
+  font-size:15px;
+  font-weight:850;
+  line-height:1.1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.ttWrValue{
+  color:var(--muted);
+}
+
+.ttInfoBtn{
+  width:24px;
+  height:24px;
+  min-width:24px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.04);
+  color:var(--text);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  font-weight:950;
+  line-height:1;
+}
+
+.ttInfoBtn:hover{
+  background:rgba(255,255,255,0.08);
+}
+
+.ttInfoBtn--combo{
+  width:22px;
+  height:22px;
+  min-width:22px;
+  font-size:12px;
+}
+
+.ttSetupValue{
+  font-size:15px;
+  font-weight:850;
+  line-height:1.15;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.ttSetupSubValue{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.ttEmptyState{
+  border:1px dashed var(--border);
+  border-radius:14px;
+  padding:32px 18px;
+  color:var(--muted);
+  text-align:center;
+  font-weight:700;
+}
+
+.ttDialog{
+  border:0;
+  padding:0;
+  margin:auto;
+  background:transparent;
+  width:min(720px, calc(100vw - 24px));
+}
+
+.ttDialog--wide{
+  width:min(1180px, calc(100vw - 24px));
+}
+
+.ttDialog::backdrop{
+  background:rgba(0,0,0,0.62);
+}
+
+.ttDialogBox{
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--card);
+  padding:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.35);
+}
+
+.ttDialogHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.ttDialogHead h3{
+  margin:0 0 4px 0;
+  font-size:28px;
+  line-height:1.05;
+}
+
+.ttDialogClose{
+  border:1px solid var(--border);
+  background:var(--hover);
+  color:var(--text);
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:900;
+}
+
+.ttDialogActions{
+  margin-top:16px;
+}
+
+.ttDialogActionGroup{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.ttWrDialogActions{
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-end;
+  gap:10px;
+  margin-left:auto;
+}
+
+.ttFilterField{
+  min-width:170px;
+}
+
+.ttWrInfoGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  align-items:start;
+}
+
+.ttWrInfoItem{
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)), var(--card-2);
+  padding:14px;
+}
+
+.ttWrInfoComboLead{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)), var(--card-2);
+}
+
+.ttWrInfoComboIcons{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+
+.ttWrInfoComboIcons .ttComboIcon,
+.ttWrInfoComboIcons .ttComboIconFallback{
+  width:42px;
+  height:42px;
+}
+
+.ttWrInfoComboNames{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.ttWrInfoComboTitle{
+  font-size:18px;
+  font-weight:950;
+  line-height:1.1;
+}
+
+.ttWrInfoComboMeta{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.3;
+}
+
+.ttWrInfoLabel{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.ttWrInfoValue{
+  font-size:18px;
+  font-weight:900;
+  line-height:1.2;
+}
+
+.ttWrInfoActionGroup{
+  margin-top:16px;
+}
+
+.ttComboInfoLead{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)), var(--card-2);
+  margin-bottom:14px;
+}
+
+.ttComboInfoIcons{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+
+.ttComboInfoIcons .ttComboIcon,
+.ttComboInfoIcons .ttComboIconFallback{
+  width:42px;
+  height:42px;
+}
+
+.ttComboInfoNames{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.ttComboInfoNamesTitle{
+  font-size:18px;
+  font-weight:950;
+  line-height:1.1;
+}
+
+.ttComboInfoNamesMeta{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.3;
+}
+
+.ttComboInfoGrid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+}
+
+.ttComboInfoStat{
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)), var(--card-2);
+  padding:10px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.ttComboInfoStatLabel{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.ttComboInfoStatValue{
+  font-size:16px;
+  font-weight:950;
+  line-height:1.15;
+}
+
+.ttComboInfoStatMeta{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+.ttCategoryChip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:98px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.03);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+}
+
+.ttCategoryChip--shroom{
+  border-color:rgba(255, 197, 61, 0.35);
+  background:rgba(255, 197, 61, 0.12);
+  color:#ffd36f;
+}
+
+.ttCategoryChip--shroomless{
+  border-color:rgba(124, 198, 255, 0.30);
+  background:rgba(124, 198, 255, 0.11);
+  color:#8fd0ff;
+}
+
+.ttDiff{
+  font-weight:950;
+}
+
+.ttDiff--ahead{
+  color:var(--good, #60d394);
+}
+
+.ttDiff--behind{
+  color:var(--bad, #ff6b6b);
+}
+
+.ttDiff--equal{
+  color:var(--text);
+}
+
+.ttDeleteBtn{
+  min-width:auto;
+}
+
+.ttActionBtn{
+  min-width:82px;
+  padding:6px 10px;
+  font-size:12px;
+  border-radius:10px;
+}
+
+@media (max-width: 900px){
+  .ttEntryRow{
+    min-width:680px;
+  }
+}
+
+@media (max-width: 720px){
+  .ttStatGrid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+
+  .ttDialog{
+    width:min(100vw, calc(100vw - 12px));
+  }
+
+  .ttDialogBox{
+    padding:16px;
+  }
+
+  .ttDialogHead{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .ttDialogClose{
+    align-self:flex-end;
+  }
+
+  .ttDialogActions,
+  .matchFormActions.ttDialogActions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .ttDialogActionGroup{
+    width:100%;
+    justify-content:stretch;
+  }
+
+  .ttDialogActionGroup > *{
+    flex:1 1 auto;
+  }
+
+  .timeTrialSectionHead{
+    align-items:stretch;
+  }
+
+  .ttEntriesHeadActions{
+    width:100%;
+  }
+
+  .ttCategoryFilter{
+    width:100%;
+  }
+
+  .ttCategoryFilter .chartFilterBtn{
+    width:100%;
+    min-width:0;
+  }
+
+  .ttCategoryFilter .chartFilterMenu,
+  .ttWrDialogActions{
+    width:100%;
+    margin-left:0;
+  }
+
+  .ttDownloadBtn{
+    width:100%;
+  }
+
+  .ttCategoryFilter .chartFilterMenu{
+    left:0;
+    right:auto;
+  }
+
+  .ttWrDialogActions > *{
+    width:100%;
+  }
+
+  .ttEntryCell{
+    padding:14px 12px;
+  }
+
+  .ttEntryRow{
+    grid-template-columns:minmax(84px, 0.6fr) minmax(250px, 1.3fr) auto;
+    min-width:500px;
+  }
+
+  .ttEntryCell--timings{
+    grid-template-columns:minmax(0, 1.15fr) minmax(0, 0.95fr);
+    gap:8px;
+  }
+
+  .ttTimeStack--wr{
+    display:none;
+  }
+
+  .ttTimeStack--setupMobile{
+    display:flex;
+  }
+
+  .ttEntryCell--setup{
+    display:none;
+  }
+
+  .ttTimePrimary{
+    font-size:18px;
+  }
+
+  .ttTimeSecondary,
+  .ttWrValue,
+  .ttSetupValue{
+    font-size:14px;
+  }
+
+  .ttSetupSubValue{
+    font-size:12px;
+  }
+
+  .ttWrInfoGrid{
+    grid-template-columns:1fr;
+  }
+
+  .ttComboInfoLead{
+    align-items:flex-start;
+  }
+
+  .ttComboInfoGrid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+
+  .ttWrCardHead{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .ttWrTimeBlock{
+    align-items:flex-start;
+    text-align:left;
+  }
+}
+
+@media (max-width: 560px){
+  .ttTrackIconWrap,
+  .ttTrackIcon,
+  .ttTrackIconFallback{
+    width:64px;
+    height:64px;
+  }
+
+  .ttTrackIcon{
+    transform:scale(1.1);
+  }
+
+  .ttTimePrimary{
+    font-size:16px;
+  }
+
+  .ttEntryRow{
+    min-width:470px;
+  }
+
+  .ttEntryCell{
+    padding:12px 10px;
+  }
+
+  .ttEntryCell--timings{
+    gap:6px;
+  }
+
+  .ttComboIcon,
+  .ttComboIconFallback{
+    width:30px;
+    height:30px;
+  }
+
+  .ttComboInfoIcons .ttComboIcon,
+  .ttComboInfoIcons .ttComboIconFallback{
+    width:36px;
+    height:36px;
+  }
+
+  .ttInfoBtn{
+    width:22px;
+    height:22px;
+    min-width:22px;
+    font-size:12px;
+  }
+
+  .ttActionBtn{
+    padding:5px 8px;
+    font-size:11px;
+  }
+
+  .ttComboInfoGrid{
+    grid-template-columns:1fr;
+  }
+
+  .ttWrGrid{
+    grid-template-columns:1fr;
+  }
+
+  .ttWrCard{
+    padding:12px;
+  }
+
+  .ttWrTrackLead{
+    gap:10px;
+  }
+
+  .ttWrTrackVisual,
+  .ttTrackIcon--wrCard,
+  .ttWrTrackVisual .ttTrackIconFallback{
+    width:52px;
+    height:52px;
+  }
+
+  .ttWrCardBody{
+    grid-template-columns:1fr;
+  }
+
+  .ttWrMetricValue--combo{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .ttWrComboNames{
+    white-space:normal;
+  }
+
+}

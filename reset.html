@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
   <meta name="theme-color" content="#07080a"/>
   <script src="mkwt_bootstrap.js"></script>
-  <title>MKWT – Reset Password</title>
+  <title>MKWT - Reset Password</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
   <script src="mkwt_page_helpers.js"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
@@ -15,7 +15,7 @@
 
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   
@@ -24,13 +24,13 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
   <meta property="og:url" content="https://www.mkwt.app/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta name="twitter:title" content="MKWT - Mario Kart World Match Tracker">
   <meta name="twitter:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta name="twitter:image" content="https://www.mkwt.app/og-card.png">
 
@@ -42,17 +42,20 @@
       <div class="logo">MKWT</div>
       <h2>Set a new password</h2>
 
-      <div class="field">
-        <label>New password</label>
-        <input id="p1" type="password" autocomplete="new-password" placeholder="••••••••"/>
-      </div>
-      <div class="field">
-        <label>Confirm new password</label>
-        <input id="p2" type="password" autocomplete="new-password" placeholder="••••••••"/>
-      </div>
+      <form id="resetForm">
+        <input type="email" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
+        <div class="field">
+          <label>New password</label>
+          <input id="p1" type="password" autocomplete="new-password" placeholder="........"/>
+        </div>
+        <div class="field">
+          <label>Confirm new password</label>
+          <input id="p2" type="password" autocomplete="new-password" placeholder="........"/>
+        </div>
 
-      <button class="btn btnWide" id="btnSet" type="button">Update password</button>
-      <div class="status" id="status"></div>
+        <button class="btn btnWide" id="btnSet" type="submit">Update password</button>
+        <div class="status" id="status"></div>
+      </form>
     </div>
   </div>
 

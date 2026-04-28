@@ -37,6 +37,23 @@ async function fetchMkcentralHtml(target) {
   return html;
 }
 
+async function fetchMkwrsHtml(target) {
+  const res = await fetch(target, {
+    headers: {
+      accept: "text/html,application/xhtml+xml",
+      "user-agent": "MKWT Time Trial sync (+https://mkwt.app)",
+    },
+    cf: { cacheTtl: 30, cacheEverything: false },
+  });
+  const html = await res.text();
+  if (!res.ok) {
+    const err = new Error(`MKWorld WRs returned HTTP ${res.status}.`);
+    err.status = res.status;
+    throw err;
+  }
+  return html;
+}
+
 async function handleMkcentralOptions() {
   try {
     const indexHtml = await fetchMkcentralHtml("https://lounge.mkcentral.com/mkworld?season=2&p=12");
@@ -142,6 +159,51 @@ async function handleMkcentralTable(request) {
   }
 }
 
+async function handleTimeTrialIndex() {
+  const target = "https://mkwrs.com/mkworld/";
+  try {
+    const html = await fetchMkwrsHtml(target);
+    return json(200, {
+      ok: true,
+      url: target,
+      fetched_at: new Date().toISOString(),
+      html,
+    });
+  } catch (e) {
+    return json(e?.status || 502, {
+      ok: false,
+      error: e?.message || "Could not fetch MKWorld WR index.",
+      url: target,
+    });
+  }
+}
+
+async function handleTimeTrialTrack(request) {
+  const url = new URL(request.url);
+  const track = String(url.searchParams.get("track") || "").trim();
+
+  if (!track || track.length > 120) {
+    return json(400, { ok: false, error: "Invalid track name." });
+  }
+
+  const target = `https://mkwrs.com/mkworld/display.php?track=${encodeURIComponent(track)}`;
+  try {
+    const html = await fetchMkwrsHtml(target);
+    return json(200, {
+      ok: true,
+      url: target,
+      fetched_at: new Date().toISOString(),
+      html,
+    });
+  } catch (e) {
+    return json(e?.status || 502, {
+      ok: false,
+      error: e?.message || "Could not fetch MKWorld WR track page.",
+      url: target,
+    });
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -156,6 +218,14 @@ export default {
 
     if (url.pathname === "/api/mkcentral-table") {
       return handleMkcentralTable(request);
+    }
+
+    if (url.pathname === "/api/time-trial-index") {
+      return handleTimeTrialIndex();
+    }
+
+    if (url.pathname === "/api/time-trial-track") {
+      return handleTimeTrialTrack(request);
     }
 
     return env.ASSETS.fetch(request);

@@ -1,20 +1,67 @@
-  // ========= UI Helpers =========
+﻿  // ========= UI Helpers =========
   const $ = (id) => document.getElementById(id);
 
-  // ===== Button UI helpers (charts) =====
-  function setActiveButton(btn){
-    try{
-      if(!btn) return;
-      // Prefer a local button group (so Chart 3 tabs + mode buttons don't deactivate each other)
-      const group = btn.closest('[data-btn-group]') || btn.closest('.chartBtns') || btn.parentElement;
-      if(group){ group.querySelectorAll('button').forEach(b=>b.classList.remove('active')); }
-      btn.classList.add('active');
-    }catch(e){ console.warn('[stats] setActiveButton failed', e); }
+  let chartFilterBindingsReady = false;
+  function closeChartFilterMenus(exceptRoot = null){
+    document.querySelectorAll(".chartFilter").forEach((root) => {
+      if(exceptRoot && root === exceptRoot) return;
+      const btn = root.querySelector(".chartFilterBtn");
+      const menu = root.querySelector(".chartFilterMenu");
+      if(menu) menu.hidden = true;
+      if(btn) btn.setAttribute("aria-expanded", "false");
+    });
   }
-
-  function setActiveById(btnId){
-    const b = $(btnId);
-    if(b) setActiveButton(b);
+  function bindGlobalChartFilterClosers(){
+    if(chartFilterBindingsReady) return;
+    chartFilterBindingsReady = true;
+    document.addEventListener("click", (event) => {
+      if(event.target.closest(".chartFilter")) return;
+      closeChartFilterMenus();
+    });
+    document.addEventListener("keydown", (event) => {
+      if(event.key === "Escape") closeChartFilterMenus();
+    });
+  }
+  function bindChartFilterToggle(btnId, menuId){
+    const btn = freshButton(btnId);
+    const menu = $(menuId);
+    if(!btn || !menu) return null;
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const root = btn.closest(".chartFilter");
+      const willOpen = menu.hidden;
+      closeChartFilterMenus(root);
+      menu.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    });
+    menu.addEventListener("click", (event) => event.stopPropagation());
+    return btn;
+  }
+  function bindSwipeNavigation(target, { onLeft, onRight, threshold = 56 } = {}){
+    if(!target) return;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    target.addEventListener("touchstart", (event) => {
+      if(event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      tracking = true;
+    }, { passive: true });
+    target.addEventListener("touchend", (event) => {
+      if(!tracking || event.changedTouches.length !== 1) return;
+      tracking = false;
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if(Math.abs(dx) < threshold) return;
+      if(Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      if(dx < 0) onLeft?.();
+      else onRight?.();
+    }, { passive: true });
+    target.addEventListener("touchcancel", () => { tracking = false; }, { passive: true });
   }
   const $status = $("status");
   const $debug = $("debug");
@@ -50,6 +97,11 @@
     const n = Number(value);
     if(!Number.isFinite(n)) return "-";
     return (n >= 0 ? "+" : "") + n.toFixed(decimals);
+  }
+
+  function cssVar(name, fallback){
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
   }
 
   function bestTrackForReport(){
@@ -202,12 +254,12 @@
 
     if (error) throw error;
     PROFILE = data || null;
-    $("currentVr").textContent = String(PROFILE?.current_vr ?? "–");
+    $("currentVr").textContent = String(PROFILE?.current_vr ?? "-");
   }
 
   // ========= Data Fetch =========
   async function getAllMatchesAsc() {
-    // holt alle Matches in Pages (Supabase limit max 1000 pro request ist üblich)
+    // holt alle Matches in Pages (Supabase limit max 1000 pro request ist Ã¼blich)
     const pageSize = 1000;
     let from = 0;
     let all = [];
@@ -317,12 +369,19 @@
   };
 
 // ========= Charts =========
-  let chartVr = null, chartPerf = null, chartPie5 = null, chartItTr = null, chartWeekly = null, chartBuckets = null;
+  let chartVr = null, chartPerf = null, chartPie5 = null, chartItTr = null, chartWeekly = null, chartBuckets = null, chartModeCompareWw = null;
+  let wwCompareOpen = false;
   // Chart 1 window state
   let vrWindowMode = "all";
+  let vrDeckPanel = 0;
+  const VR_HISTORY_MAX_POINTS = 360;
 
   // Chart 5 window state
   let pie5WindowMode = "all";
+  let weeklyModeState = "vravg";
+  let perfModeState = "tracks";
+  let perfSortKeyState = "avg";
+  let perfSortDirState = "desc";
 
   function freshButton(id){
     const btn = $(id);
@@ -333,12 +392,32 @@
   }
 
 function destroyCharts(){
-    chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy(); chartWeekly?.destroy(); chartBuckets?.destroy();
-    chartVr = chartPerf = chartPie5 = chartItTr = chartWeekly = chartBuckets = null;
+    chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy(); chartWeekly?.destroy(); chartBuckets?.destroy(); chartModeCompareWw?.destroy();
+    chartVr = chartPerf = chartPie5 = chartItTr = chartWeekly = chartBuckets = chartModeCompareWw = null;
   }
 
   function buildCharts(matchesAsc) {
     destroyCharts();
+    bindGlobalChartFilterClosers();
+    const chartPalette = {
+      neutralFill: cssVar("--chart-neutral-fill", "rgba(140,140,140,0.25)"),
+      neutralStroke: cssVar("--chart-neutral-stroke", "rgba(140,140,140,0.5)"),
+      positiveFill: cssVar("--chart-positive-fill", "rgba(60,190,120,0.85)"),
+      positiveStroke: cssVar("--chart-positive-stroke", "rgb(60,190,120)"),
+      negativeFill: cssVar("--chart-negative-fill", "rgba(255,80,80,0.85)"),
+      negativeStroke: cssVar("--chart-negative-stroke", "rgb(255,80,80)"),
+      splitAFill: cssVar("--chart-split-a-fill", "rgba(78,124,255,.82)"),
+      splitAStroke: cssVar("--chart-split-a-stroke", "rgb(78,124,255)"),
+      splitBFill: cssVar("--chart-split-b-fill", "rgba(255,186,77,.80)"),
+      splitBStroke: cssVar("--chart-split-b-stroke", "rgb(255,186,77)"),
+      linePrimary: cssVar("--chart-line-primary", "rgb(77,163,255)"),
+      linePrimaryFill: cssVar("--chart-line-primary-fill", "rgba(77,163,255,.16)"),
+      lineSecondary: cssVar("--chart-line-secondary", "rgba(255,255,255,0.90)"),
+      lineSecondaryFill: cssVar("--chart-line-secondary-fill", "rgba(255,255,255,0.15)"),
+      breakEven: cssVar("--chart-break-even", "rgba(255,180,0,0.85)"),
+      breakEvenText: cssVar("--chart-break-even-text", "rgba(255,180,0,0.90)"),
+      separator: cssVar("--chart-separator", "rgba(43,108,255,0.45)"),
+    };
 
     // --- Diagramm 1: VR Verlauf (chronologisch) ---
     // Prefer stored vr_after snapshots if available. This guarantees a 1:1 match with the tracker table.
@@ -381,8 +460,9 @@ function destroyCharts(){
     const labels1Full = labels1;
     const vrSeriesFull = vrSeries;
 
-    // Ø VR für aktuell ausgewähltes Fenster (aus VR-Verlauf berechnet)
+    // Ã˜ VR fÃ¼r aktuell ausgewÃ¤hltes Fenster (aus VR-Verlauf berechnet)
     const vrNumsFull = vrSeriesFull.map(Number).filter(Number.isFinite);
+    let weeklyMode = weeklyModeState;
 
     
     // === Time-based windows (Overall / Last month / Last week) for VR History (Chart 1) ===
@@ -458,6 +538,58 @@ function destroyCharts(){
       return { indices, labels: labels1Full, vr: vrSeriesFull, matches: matchesAsc };
     }
 
+    function prepareVrDisplayWindow(mode){
+      const raw = getVrWindow(mode);
+      const count = raw?.vr?.length || 0;
+      if(!count) return { ...raw, sampled: false, pointRanges: [] };
+      const pointRanges = raw.indices.map((globalIdx, localIdx) => ({
+        count: 1,
+        startLocal: localIdx,
+        endLocal: localIdx,
+        startGlobal: globalIdx,
+        endGlobal: globalIdx
+      }));
+      if(mode !== "all" || count <= VR_HISTORY_MAX_POINTS){
+        return { ...raw, sampled: false, pointRanges };
+      }
+
+      const bucketSize = Math.ceil(count / VR_HISTORY_MAX_POINTS);
+      const labels = [];
+      const vr = [];
+      const indices = [];
+      const matches = [];
+      const sampledRanges = [];
+
+      for(let start = 0; start < count; start += bucketSize){
+        const end = Math.min(count, start + bucketSize) - 1;
+        const slice = raw.vr.slice(start, end + 1).map(Number).filter(Number.isFinite);
+        if(!slice.length) continue;
+        const avg = slice.reduce((a, v) => a + v, 0) / slice.length;
+        labels.push(raw.labels[end]);
+        vr.push(Number(avg.toFixed(2)));
+        indices.push(raw.indices[end]);
+        matches.push(raw.matches[end]);
+        sampledRanges.push({
+          count: end - start + 1,
+          startLocal: start,
+          endLocal: end,
+          startGlobal: raw.indices[start],
+          endGlobal: raw.indices[end]
+        });
+      }
+
+      return {
+        indices,
+        labels,
+        vr,
+        matches,
+        sampled: true,
+        bucketSize,
+        rawCount: count,
+        pointRanges: sampledRanges
+      };
+    }
+
     function computeAvgForWindow(mode){
       const w = getVrWindow(mode);
       const arr = (w?.vr || []).map(Number).filter(Number.isFinite);
@@ -469,7 +601,7 @@ function destroyCharts(){
       const el = $("avgVrWindow");
       if (!el) return;
       const avg = computeAvgForWindow(mode);
-      el.textContent = (avg == null || !Number.isFinite(Number(avg))) ? "–" : Number(avg).toFixed(1);
+      el.textContent = (avg == null || !Number.isFinite(Number(avg))) ? "-" : Number(avg).toFixed(1);
     }
 function computeStepAverage10(vrArr, forcedBucketSize){
       const steps = 10;
@@ -538,16 +670,55 @@ function computeStepAverage10(vrArr, forcedBucketSize){
 
     function renderVrChart(mode){
       const canvas = $("chartVr");
-      if (!canvas) { console.warn("[stats] chartVr canvas missing – skip Chart 1"); return; }
+      if (!canvas) { console.warn("[stats] chartVr canvas missing - skip Chart 1"); return; }
 
-      const w = getVrWindow(mode);
-      if (!w.vr.length) { console.warn("[stats] no VR data – skip Chart 1"); return; }
+      const w = prepareVrDisplayWindow(mode);
+      if (!w.vr.length) { console.warn("[stats] no VR data - skip Chart 1"); return; }
 
       // Step/treppe line: always 10 segments over the *filtered* window (10% buckets), same logic as before.
       const stepLine = computeStepAverage10(w.vr);
 
       const { autoMin, autoMax } = computeAutoY(w.vr);
       const idxMap = w.indices || [];
+      const rangeMap = w.pointRanges || [];
+      const vrDatasetLabel = w.sampled ? "VR (sampled)" : "VR";
+
+      const tooltipTitleForVr = (items) => {
+        const it = items?.[0];
+        if (!it) return "";
+        const localIdx = Math.max(0, Number(it.dataIndex));
+        const range = rangeMap[localIdx];
+        if(w.sampled && range && range.count > 1){
+          return `Matches ${range.startGlobal + 1}-${range.endGlobal + 1}`;
+        }
+        const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
+        const m = matchesAsc[globalIdx];
+        const dt = m?.created_at ? new Date(m.created_at) : null;
+        const when = dt && !isNaN(dt) ? dt.toLocaleString() : "";
+        return "Match " + String(globalIdx + 1) + (when ? (" . " + when) : "");
+      };
+
+      const tooltipLabelForVr = (ctx) => {
+        const lbl = ctx.dataset?.label || "";
+        if (lbl === "Step Avg") {
+          const y = Number(ctx.parsed.y);
+          return "Step Avg: " + (Number.isFinite(y) ? y.toFixed(1) : "-");
+        }
+        const localIdx = Math.max(0, Number(ctx.dataIndex));
+        const range = rangeMap[localIdx];
+        if(w.sampled && range && range.count > 1){
+          const y = Number(ctx.parsed.y);
+          return [
+            "VR Avg: " + (Number.isFinite(y) ? y.toFixed(1) : "-"),
+            `Sampled from ${range.count} matches`
+          ];
+        }
+        const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
+        const m = matchesAsc[globalIdx];
+        const t = (m?.intermission ? (String(m.intermission) + " > " + String(m.track || "")) : String(m?.track || ""));
+        const afterTxt = Number.isFinite(Number(m?.vr_after)) ? (" (vr_after)") : "";
+        return "VR: " + Number(ctx.parsed.y).toFixed(0) + afterTxt + (t ? (" . " + t) : "");
+      };
 
       if (!chartVr){
         chartVr = new Chart(canvas, {
@@ -555,8 +726,28 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           data: {
             labels: w.labels,
             datasets: [
-              { label: "VR", data: w.vr, tension: 0.15, pointRadius: 0, pointHitRadius: 12, borderWidth: 1 },
-              { label: "Step Avg", data: stepLine, tension: 0, pointRadius: 0, pointHitRadius: 12, borderDash: [6,6], stepped: "after", borderWidth: 3 }
+              {
+                label: vrDatasetLabel,
+                data: w.vr,
+                tension: 0.15,
+                pointRadius: 0,
+                pointHitRadius: 12,
+                borderWidth: 1.5,
+                borderColor: chartPalette.linePrimary,
+                backgroundColor: chartPalette.linePrimaryFill
+              },
+              {
+                label: "Step Avg",
+                data: stepLine,
+                tension: 0,
+                pointRadius: 0,
+                pointHitRadius: 12,
+                borderDash: [6,6],
+                stepped: "after",
+                borderWidth: 3,
+                borderColor: chartPalette.lineSecondary,
+                backgroundColor: chartPalette.lineSecondaryFill
+              }
             ]
           },
           options: {
@@ -567,29 +758,8 @@ function computeStepAverage10(vrArr, forcedBucketSize){
             plugins: {
               tooltip: {
                 callbacks: {
-                  title: (items) => {
-                    const it = items?.[0];
-                    if (!it) return "";
-                    const localIdx = Math.max(0, Number(it.dataIndex));
-                    const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
-                    const m = matchesAsc[globalIdx];
-                    const dt = m?.created_at ? new Date(m.created_at) : null;
-                    const when = dt && !isNaN(dt) ? dt.toLocaleString() : "";
-                    return "Match " + String(globalIdx + 1) + (when ? (" • " + when) : "");
-                  },
-                  label: (ctx) => {
-                    const lbl = ctx.dataset?.label || "";
-                    if (lbl === "Step Avg") {
-                      const y = Number(ctx.parsed.y);
-                      return "Step Avg: " + (Number.isFinite(y) ? y.toFixed(1) : "–");
-                    }
-                    const localIdx = Math.max(0, Number(ctx.dataIndex));
-                    const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
-                    const m = matchesAsc[globalIdx];
-                    const t = (m?.intermission ? (String(m.intermission) + " → " + String(m.track || "")) : String(m?.track || ""));
-                    const afterTxt = Number.isFinite(Number(m?.vr_after)) ? (" (vr_after)") : "";
-                    return "VR: " + Number(ctx.parsed.y).toFixed(0) + afterTxt + (t ? (" • " + t) : "");
-                  }
+                  title: tooltipTitleForVr,
+                  label: tooltipLabelForVr
                 }
               }
             }
@@ -598,47 +768,90 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       } else {
         chartVr.data.labels = w.labels;
         chartVr.data.datasets[0].data = w.vr;
+        chartVr.data.datasets[0].label = vrDatasetLabel;
         chartVr.data.datasets[1].data = stepLine;
         chartVr.options.scales.y.min = autoMin;
         chartVr.options.scales.y.max = autoMax;
 
         // update tooltip mapping for this window
-        chartVr.options.plugins.tooltip.callbacks.title = (items) => {
-          const it = items?.[0];
-          if (!it) return "";
-          const localIdx = Math.max(0, Number(it.dataIndex));
-          const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
-          const m = matchesAsc[globalIdx];
-          const dt = m?.created_at ? new Date(m.created_at) : null;
-          const when = dt && !isNaN(dt) ? dt.toLocaleString() : "";
-          return "Match " + String(globalIdx + 1) + (when ? (" • " + when) : "");
-        };
-        chartVr.options.plugins.tooltip.callbacks.label = (ctx) => {
-          const lbl = ctx.dataset?.label || "";
-          if (lbl === "Step Avg") {
-            const y = Number(ctx.parsed.y);
-            return "Step Avg: " + (Number.isFinite(y) ? y.toFixed(1) : "–");
-          }
-          const localIdx = Math.max(0, Number(ctx.dataIndex));
-          const globalIdx = (idxMap[localIdx] != null) ? idxMap[localIdx] : localIdx;
-          const m = matchesAsc[globalIdx];
-          const t = (m?.intermission ? (String(m.intermission) + " → " + String(m.track || "")) : String(m?.track || ""));
-          const afterTxt = Number.isFinite(Number(m?.vr_after)) ? (" (vr_after)") : "";
-          return "VR: " + Number(ctx.parsed.y).toFixed(0) + afterTxt + (t ? (" • " + t) : "");
-        };
+        chartVr.options.plugins.tooltip.callbacks.title = tooltipTitleForVr;
+        chartVr.options.plugins.tooltip.callbacks.label = tooltipLabelForVr;
         chartVr.update();
       }
     }
 
+    const $vrDeckTitle = $("vrDeckTitle");
+    const $vrDeckMeta = $("vrDeckMeta");
+    const $vrDeckTrack = $("vrDeckTrack");
+    const $vrDeckInfo = $("btnVrDeckInfo");
+    const $vrDeckValue = $("vrDeckFilterValue");
+
+    const weeklyModeLabel = (mode) => mode === "gains" ? "VR Gain Avg" : "VR Average";
+    const vrWindowLabel = (mode) => mode === "month" ? "Last month" : mode === "week" ? "Last week" : "Overall";
+
+    function updateVrDeckFilterItems(){
+      const vrMap = { all: "optVrAll", month: "optVrMonth", week: "optVrWeek" };
+      Object.entries(vrMap).forEach(([mode, id]) => {
+        const item = $(id);
+        if(item) item.classList.toggle("active", vrDeckPanel === 0 && vrWindowMode === mode);
+      });
+      const weeklyMap = { vravg: "optWeeklyVrAvg", gains: "optWeeklyGains" };
+      Object.entries(weeklyMap).forEach(([mode, id]) => {
+        const item = $(id);
+        if(item) item.classList.toggle("active", vrDeckPanel === 1 && weeklyMode === mode);
+      });
+    }
+
+    function updateVrDeckUi(){
+      if($vrDeckTrack){
+        $vrDeckTrack.style.transform = vrDeckPanel === 1 ? "translateX(-50%)" : "translateX(0%)";
+      }
+      document.querySelectorAll("[data-vr-panel]").forEach((btn) => {
+        btn.classList.toggle("active", Number(btn.dataset.vrPanel) === vrDeckPanel);
+      });
+      document.querySelectorAll("[data-vr-filter-set]").forEach((section) => {
+        const name = section.getAttribute("data-vr-filter-set");
+        section.hidden = (vrDeckPanel === 0 ? "vr" : "weekly") !== name;
+      });
+      if(vrDeckPanel === 0){
+        if($vrDeckTitle) $vrDeckTitle.textContent = "VR History";
+        if($vrDeckMeta) $vrDeckMeta.textContent = "Swipe left for weekly view";
+        if($vrDeckInfo) $vrDeckInfo.dataset.info = "vrHistory";
+        if($vrDeckValue) $vrDeckValue.textContent = vrWindowLabel(vrWindowMode || "all");
+      } else {
+        if($vrDeckTitle) $vrDeckTitle.textContent = "VR History (Weekly)";
+        if($vrDeckMeta) $vrDeckMeta.textContent = "Swipe right for raw history";
+        if($vrDeckInfo) $vrDeckInfo.dataset.info = "weekly";
+        if($vrDeckValue) $vrDeckValue.textContent = weeklyModeLabel(weeklyMode);
+      }
+      updateVrDeckFilterItems();
+    }
+
+    function setVrDeckPanel(panel){
+      vrDeckPanel = Math.max(0, Math.min(1, Number(panel) || 0));
+      updateVrDeckUi();
+    }
+
+    const setMode = (mode) => {
+      vrWindowMode = mode;
+      renderVrChart(mode);
+      updateAvgVrUI(mode);
+      updateVrDeckUi();
+    };
     renderVrChart(vrWindowMode || "all");
     updateAvgVrUI(vrWindowMode || "all");
-    setTimeout(function(){ setActiveById((vrWindowMode==="month")?"btnVr100":(vrWindowMode==="week")?"btnVr50":"btnVrAll"); }, 0);
-    setActiveById((vrWindowMode==="month")?"btnVr100":(vrWindowMode==="week")?"btnVr50":"btnVrAll");
-
-    const setMode = (mode) => { vrWindowMode = mode; renderVrChart(mode); updateAvgVrUI(mode); };
-    freshButton("btnVrAll")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("all"); });
-    freshButton("btnVr100")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("month"); });
-    freshButton("btnVr50")?.addEventListener("click", (e) => { setActiveButton(e.target); setMode("week"); });
+    bindChartFilterToggle("btnVrDeckFilter", "menuVrDeckFilter");
+    freshButton("optVrAll")?.addEventListener("click", () => { setVrDeckPanel(0); setMode("all"); closeChartFilterMenus(); });
+    freshButton("optVrMonth")?.addEventListener("click", () => { setVrDeckPanel(0); setMode("month"); closeChartFilterMenus(); });
+    freshButton("optVrWeek")?.addEventListener("click", () => { setVrDeckPanel(0); setMode("week"); closeChartFilterMenus(); });
+    document.querySelectorAll("[data-vr-panel]").forEach((btn) => {
+      btn.addEventListener("click", () => setVrDeckPanel(btn.dataset.vrPanel));
+    });
+    bindSwipeNavigation($("vrDeckViewport"), {
+      onLeft: () => { if(vrDeckPanel < 1) setVrDeckPanel(vrDeckPanel + 1); },
+      onRight: () => { if(vrDeckPanel > 0) setVrDeckPanel(vrDeckPanel - 1); }
+    });
+    updateVrDeckUi();
 
     
     // --- Performance (Unified): Tracks + Intermission (Destiny / Separated) ---
@@ -669,7 +882,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     for (const m of onlyIM){
       const start = String(m.intermission ?? "").trim();
       const end = String(m.track ?? "").trim();
-      const route = (start && end) ? (start + " → " + end) : start;
+      const route = (start && end) ? (start + " > " + end) : start;
       const delta = Number(m.vr_change);
       if(!start || !end) continue;
 
@@ -690,7 +903,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       const s = String(start||"").trim();
       const e = String(end||"").trim();
       if(!s || !e) return "";
-      return `${s}→${e}`; // matches META keys
+      return `${s}>${e}`; // matches META keys
     }
     function getDestinyGroup(start, end){
       const k = normalizeRouteKey(start, end);
@@ -789,37 +1002,85 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     const perfCanvas = $("chartPerf");
     const $perfSel = $("perfSelected");
 
-    let perfMode = "tracks";     // tracks | im_destiny | im_routes
-    let perfSortKey = "avg";     // avg | win | count | alpha
-    let perfSortDir = "desc";    // desc | asc
+    let perfMode = perfModeState;     // tracks | im_destiny | im_routes
+    let perfSortKey = perfSortKeyState;     // avg | win | count | alpha
+    let perfSortDir = perfSortDirState;    // desc | asc
     let perfRowsLast = [];
+    const perfModeLabelMap = {
+      tracks: "Tracks",
+      im_destiny: "Intermission Destiny",
+      im_routes: "Intermission Separated"
+    };
+    const perfSortLabelMap = {
+      avg: "Average VR gain",
+      win: "Win rate",
+      count: "Times played",
+      alpha: "A-Z"
+    };
+    const perfModeOrder = ["tracks", "im_destiny", "im_routes"];
 
-    function setPerfMode(mode, btn){
+    function perfSortLabel(){
+      const dir = perfSortDir === "desc" ? "↓" : "↑";
+      return `${perfSortLabelMap[perfSortKey] || "Average VR gain"} ${dir}`;
+    }
+
+    function updatePerfUi(){
+      const meta = $("perfModeMeta");
+      if(meta) meta.textContent = `${perfModeLabelMap[perfMode] || "Tracks"} • swipe for other modes`;
+      const filterValue = $("perfFilterValue");
+      if(filterValue) filterValue.textContent = perfSortLabel();
+      document.querySelectorAll("[data-perf-mode]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.perfMode === perfMode);
+      });
+      document.querySelectorAll("#menuPerfFilter .chartFilterItem").forEach((item) => {
+        const key = item.dataset.key;
+        const active = key === perfSortKey;
+        item.classList.toggle("active", active);
+        const metaEl = item.querySelector(".chartFilterItemMeta");
+        if(metaEl) metaEl.textContent = active ? (perfSortDir === "desc" ? "↓" : "↑") : "";
+      });
+    }
+
+    function setPerfMode(mode){
+      if(!perfModeOrder.includes(mode)) return;
       perfMode = mode;
-      if(btn) setActiveButton(btn);
+      perfModeState = mode;
+      updatePerfUi();
       renderPerfChart();
     }
 
-    function setPerfSort(key, btn){
+    function setPerfSort(key){
       if (perfSortKey === key) {
         perfSortDir = (perfSortDir === "desc") ? "asc" : "desc";
       } else {
         perfSortKey = key;
         perfSortDir = (key === "alpha") ? "asc" : "desc";
       }
-      if(btn) setActiveButton(btn);
+      perfSortKeyState = perfSortKey;
+      perfSortDirState = perfSortDir;
+      updatePerfUi();
       renderPerfChart();
     }
 
     function bindPerfButtons(){
-      freshButton("btnPerfTracks")?.addEventListener("click", (e)=> setPerfMode("tracks", e.target));
-      freshButton("btnPerfImDestiny")?.addEventListener("click", (e)=> setPerfMode("im_destiny", e.target));
-      freshButton("btnPerfImRoutes")?.addEventListener("click", (e)=> setPerfMode("im_routes", e.target));
-
-      freshButton("btnC2SortAvg")?.addEventListener("click", (e) => setPerfSort("avg", e.target));
-      freshButton("btnC2SortWin")?.addEventListener("click", (e) => setPerfSort("win", e.target));
-      freshButton("btnC2SortCount")?.addEventListener("click", (e) => setPerfSort("count", e.target));
-      freshButton("btnC2SortAlpha")?.addEventListener("click", (e) => setPerfSort("alpha", e.target));
+      bindChartFilterToggle("btnPerfFilter", "menuPerfFilter");
+      freshButton("optPerfAvg")?.addEventListener("click", () => { setPerfSort("avg"); closeChartFilterMenus(); });
+      freshButton("optPerfWin")?.addEventListener("click", () => { setPerfSort("win"); closeChartFilterMenus(); });
+      freshButton("optPerfCount")?.addEventListener("click", () => { setPerfSort("count"); closeChartFilterMenus(); });
+      freshButton("optPerfAlpha")?.addEventListener("click", () => { setPerfSort("alpha"); closeChartFilterMenus(); });
+      document.querySelectorAll("[data-perf-mode]").forEach((btn) => {
+        btn.addEventListener("click", () => setPerfMode(btn.dataset.perfMode));
+      });
+      bindSwipeNavigation($("perfSwipeSurface"), {
+        onLeft: () => {
+          const idx = perfModeOrder.indexOf(perfMode);
+          if(idx < perfModeOrder.length - 1) setPerfMode(perfModeOrder[idx + 1]);
+        },
+        onRight: () => {
+          const idx = perfModeOrder.indexOf(perfMode);
+          if(idx > 0) setPerfMode(perfModeOrder[idx - 1]);
+        }
+      });
     }
 
     function updatePerfSelectedByIndex(i){
@@ -829,13 +1090,13 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         return;
       }
       const r = perfRowsLast[i];
-      const wrTxt = (r.win == null) ? "–" : (Number(r.win).toFixed(1) + "%");
-      $perfSel.textContent = `${r.label}  •  Avg VR Δ: ${Number(r.avg).toFixed(2)} (matches: ${r.count})  •  Win rate: ${wrTxt}`;
+      const wrTxt = (r.win == null) ? "-" : (Number(r.win).toFixed(1) + "%");
+      $perfSel.textContent = `${r.label}  .  Avg VR change: ${Number(r.avg).toFixed(2)} (matches: ${r.count})  .  Win rate: ${wrTxt}`;
     }
 
     function renderPerfChart(){
       if(!perfCanvas){
-        console.warn("[stats] chartPerf canvas missing – skip Performance chart");
+        console.warn("[stats] chartPerf canvas missing - skip Performance chart");
         return;
       }
 
@@ -845,15 +1106,15 @@ function computeStepAverage10(vrArr, forcedBucketSize){
 
       if(perfMode === "tracks"){
         baseRows = rowsFromTrackGroups();
-        title = "Ø VR Δ (Tracks)";
+        title = "Avg VR change (Tracks)";
         cap = null; // show all
       } else if(perfMode === "im_destiny"){
         baseRows = rowsFromImMap(destinyGroups);
-        title = "Ø VR Δ (Intermission Destiny)";
+        title = "Avg VR change (Intermission Destiny)";
         cap = 40;
       } else {
         baseRows = rowsFromImMap(imGroups);
-        title = "Ø VR Δ (Intermission Separated)";
+        title = "Avg VR change (Intermission Separated)";
         cap = 40;
       }
 
@@ -871,13 +1132,13 @@ function computeStepAverage10(vrArr, forcedBucketSize){
 
       const bg = dataArr.map(v => {
         const n = Number(v);
-        if (!Number.isFinite(n)) return "rgba(140,140,140,0.25)";
-        return n < 0 ? "rgba(255,80,80,0.85)" : "rgba(60,190,120,0.85)";
+        if (!Number.isFinite(n)) return chartPalette.neutralFill;
+        return n < 0 ? chartPalette.negativeFill : chartPalette.positiveFill;
       });
       const br = dataArr.map(v => {
         const n = Number(v);
-        if (!Number.isFinite(n)) return "rgba(140,140,140,0.5)";
-        return n < 0 ? "rgb(255,80,80)" : "rgb(60,190,120)";
+        if (!Number.isFinite(n)) return chartPalette.neutralStroke;
+        return n < 0 ? chartPalette.negativeStroke : chartPalette.positiveStroke;
       });
 
       try { chartPerf?.destroy(); } catch {}
@@ -912,9 +1173,9 @@ function computeStepAverage10(vrArr, forcedBucketSize){
                 title: (items) => items?.[0]?.label ? items[0].label : "",
                 label: (ctx) => {
                   const r = perfRowsLast[ctx.dataIndex];
-                  const wrTxt = (r.win == null) ? "–" : (Number(r.win).toFixed(1) + "%");
+                  const wrTxt = (r.win == null) ? "-" : (Number(r.win).toFixed(1) + "%");
                   return [
-                    `Avg VR Δ: ${Number(r.avg).toFixed(2)} (matches: ${r.count})`,
+                    `Avg VR change: ${Number(r.avg).toFixed(2)} (matches: ${r.count})`,
                     `Win rate: ${wrTxt}`
                   ];
                 }
@@ -927,18 +1188,218 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       updatePerfSelectedByIndex(null);
     }
 
+    const perfCompareCanvas = $("chartModeCompareWw");
+    const $wwCompareDialog = $("wwCompareDialog");
+    const $wwComparePanel = $("wwComparePanel");
+    const $wwCompareMeta = $("wwCompareMeta");
+    const $wwCompareNotes = $("wwCompareNotes");
+
+    function updateWwCompareButton(){
+      const btn = $("btnCompareLounge");
+      if(!btn) return;
+      btn.classList.toggle("active", wwCompareOpen);
+    }
+
+    function closeWwCompareDialog(){
+      wwCompareOpen = false;
+      updateWwCompareButton();
+      if($wwCompareDialog?.open) $wwCompareDialog.close();
+    }
+
+    function renderWwCompareNotes(compareRows, secondaryLabel){
+      if(!$wwCompareNotes) return;
+      $wwCompareNotes.innerHTML = "";
+      const notes = window.MKWTModeCompare?.buildComparisonNotes?.(compareRows, {
+        primaryLabel: "World Wides",
+        secondaryLabel,
+        gapThreshold: 10,
+        limit: 6,
+      }) || [];
+      if(!notes.length){
+        const div = document.createElement("div");
+        div.className = "modeCompareNote muted";
+        div.textContent = "No major outliers right now. Shared maps look fairly balanced between both modes.";
+        $wwCompareNotes.appendChild(div);
+        return;
+      }
+      for(const note of notes){
+        const div = document.createElement("div");
+        div.className = "modeCompareNote";
+        const strong = document.createElement("b");
+        strong.textContent = note.track;
+        div.appendChild(strong);
+        div.appendChild(document.createTextNode(`: ${note.text.replace(`${note.track}: `, "")}`));
+        $wwCompareNotes.appendChild(div);
+      }
+    }
+
+    async function renderWwCompareChart(){
+      if(!$wwComparePanel || !$wwCompareMeta || !perfCompareCanvas) return;
+      if($wwCompareDialog && !$wwCompareDialog.open){
+        try{ $wwCompareDialog.showModal(); }catch{}
+      }
+      if(!window.MKWTModeCompare){
+        $wwCompareMeta.textContent = "Comparison helper unavailable.";
+        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
+        try{ chartModeCompareWw?.destroy(); }catch{}
+        chartModeCompareWw = null;
+        return;
+      }
+
+      const worldRows = window.MKWTModeCompare.aggregateWorldWideTrackRows(matchesAsc);
+      if(!worldRows.length){
+        $wwCompareMeta.textContent = "Track comparison needs World Wide races with placement data.";
+        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
+        try{ chartModeCompareWw?.destroy(); }catch{}
+        chartModeCompareWw = null;
+        return;
+      }
+
+      const loungeLabel = "Lounge 12p";
+      $wwCompareMeta.textContent = `Loading ${loungeLabel} comparison...`;
+      const loungeRows = await window.MKWTModeCompare.loadLoungeTrackRowsByPlayerCount({
+        playerCount: 12,
+        isGuest: isGuest(),
+        supabaseClient,
+        session: SESSION,
+      });
+      if(!loungeRows?.length){
+        $wwCompareMeta.textContent = `No saved ${loungeLabel} track data found yet. Track a few ${loungeLabel} races first.`;
+        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
+        try{ chartModeCompareWw?.destroy(); }catch{}
+        chartModeCompareWw = null;
+        return;
+      }
+
+      const compareRows = window.MKWTModeCompare.buildRankComparisonRows(worldRows, loungeRows, {
+        primaryLabel: "World Wides",
+        secondaryLabel: loungeLabel,
+        limit: 30,
+        minCount: 10,
+      });
+      if(!compareRows.length){
+        $wwCompareMeta.textContent = `No shared tracks yet with at least 10 plays in both World Wides and ${loungeLabel}.`;
+        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
+        try{ chartModeCompareWw?.destroy(); }catch{}
+        chartModeCompareWw = null;
+        return;
+      }
+
+      const labels = compareRows.map((row) => row.track);
+      const worldData = compareRows.map((row) => Number(row.primaryPoints || 0));
+      const loungeCompareData = compareRows.map((row) => Number(row.secondaryPoints || 0));
+      const maxPoints = Math.max(6, compareRows.length * 2);
+
+      try{ chartModeCompareWw?.destroy(); }catch{}
+      chartModeCompareWw = new Chart(perfCompareCanvas, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "World Wides",
+              data: worldData,
+              backgroundColor: chartPalette.splitAFill,
+              borderColor: chartPalette.splitAStroke,
+              borderWidth: 1,
+            },
+            {
+              label: loungeLabel,
+              data: loungeCompareData,
+              backgroundColor: chartPalette.splitBFill,
+              borderColor: chartPalette.splitBStroke,
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: "y",
+          interaction: { mode: "nearest", axis: "y", intersect: true },
+          scales: {
+            x: {
+              min: 0,
+              max: maxPoints,
+              stacked: true,
+              ticks: { callback: (value) => `${Number(value).toFixed(0)} pts` },
+              title: { display: true, text: "Hidden rank-point sum" },
+            },
+            y: { ticks: { autoSkip: false }, stacked: true },
+          },
+          plugins: {
+            legend: { display: true },
+            tooltip: {
+              callbacks: {
+                title: (items) => items?.[0]?.label || "",
+                label: (ctx) => {
+                  const row = compareRows[ctx.dataIndex];
+                  if(!row) return "";
+                  if(ctx.datasetIndex === 0){
+                    return `World Wides: ${row.primaryPoints} pts (rank #${row.primaryRank}, avg VR change ${row.primary.toFixed(2)}, ${row.primaryCount} matches)`;
+                  }
+                  return `${loungeLabel}: ${row.secondaryPoints} pts (rank #${row.secondaryRank}, avg pts ${row.secondary.toFixed(2)}, ${row.secondaryCount} races)`;
+                },
+                footer: (items) => {
+                  const row = compareRows[items?.[0]?.dataIndex];
+                  if(!row) return "";
+                  const stronger = row.pointGap >= 0 ? "World Wides" : loungeLabel;
+                  return `Total: ${row.totalPoints} pts | Gap: ${Math.abs(row.pointGap)} in favor of ${stronger}`;
+                },
+              },
+            },
+          },
+        },
+      });
+
+      renderWwCompareNotes(compareRows, loungeLabel);
+      $wwCompareMeta.textContent = `${window.MKWTModeCompare.comparisonMetaText("World Wides", loungeLabel, compareRows.length, 10)} Sorted by combined rank points.`;
+    }
+
     // Defaults
-    setActiveById("btnPerfTracks");
-    setActiveById("btnC2SortAvg");
     bindPerfButtons();
+    updatePerfUi();
     renderPerfChart();
+    updateWwCompareButton();
+    const $closeWwCompare = freshButton("btnCloseWwCompare");
+    if($wwCompareDialog){
+      $wwCompareDialog.onclose = () => {
+        wwCompareOpen = false;
+        updateWwCompareButton();
+      };
+      $wwCompareDialog.oncancel = () => {
+        wwCompareOpen = false;
+        updateWwCompareButton();
+      };
+    }
+    $closeWwCompare?.addEventListener("click", closeWwCompareDialog);
+    freshButton("btnCompareLounge")?.addEventListener("click", async () => {
+      if($wwCompareDialog?.open){
+        closeWwCompareDialog();
+        return;
+      }
+      wwCompareOpen = true;
+      updateWwCompareButton();
+      try{
+        await renderWwCompareChart();
+      }catch(err){
+        console.error("[stats] compare chart failed", err);
+        if($wwCompareMeta) $wwCompareMeta.textContent = "Comparison failed. Please try again.";
+      }
+    });
+    if(wwCompareOpen){
+      renderWwCompareChart().catch((err) => {
+        console.error("[stats] compare chart failed", err);
+        if($wwCompareMeta) $wwCompareMeta.textContent = "Comparison failed. Please try again.";
+      });
+    }
 
 
 // --- Diagramm 5: Track Distribution (Pie) + Avg gain / Winrate --- 
     try{
       const pieCanvas = $("chartPie5");
       if(!pieCanvas){
-        console.warn("[stats] chartPie5 canvas missing – skip Chart 5");
+        console.warn("[stats] chartPie5 canvas missing - skip Chart 5");
       } else {
         const pickPie5Window = () => {
           if(pie5WindowMode === "month") return filterMatchesByDays(30);
@@ -988,24 +1449,29 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           const wrTr = calcWinratePct(trMatches);
           const wrIm = calcWinratePct(imMatches);
 
-          $("c5AvgAll").textContent = (avgAll == null) ? "–" : (avgAll >= 0 ? "+" : "") + avgAll.toFixed(1);
-          $("c5WinAll").textContent = (wrAll == null) ? "–" : wrAll.toFixed(1) + "%";
+          $("c5AvgAll").textContent = (avgAll == null) ? "-" : (avgAll >= 0 ? "+" : "") + avgAll.toFixed(1);
+          $("c5WinAll").textContent = (wrAll == null) ? "-" : wrAll.toFixed(1) + "%";
 
-          $("c5AvgTrack").textContent = (avgTr == null) ? "–" : (avgTr >= 0 ? "+" : "") + avgTr.toFixed(1);
-          $("c5AvgIm").textContent = (avgIm == null) ? "–" : (avgIm >= 0 ? "+" : "") + avgIm.toFixed(1);
+          $("c5AvgTrack").textContent = (avgTr == null) ? "-" : (avgTr >= 0 ? "+" : "") + avgTr.toFixed(1);
+          $("c5AvgIm").textContent = (avgIm == null) ? "-" : (avgIm >= 0 ? "+" : "") + avgIm.toFixed(1);
 
-          $("c5WinTrack").textContent = (wrTr == null) ? "–" : wrTr.toFixed(1) + "%";
-          $("c5WinIm").textContent = (wrIm == null) ? "–" : wrIm.toFixed(1) + "%";
+          $("c5WinTrack").textContent = (wrTr == null) ? "-" : wrTr.toFixed(1) + "%";
+          $("c5WinIm").textContent = (wrIm == null) ? "-" : wrIm.toFixed(1) + "%";
+          const trShare = total ? (trCount / total * 100) : null;
+          const imShare = total ? (imCount / total * 100) : null;
+          if($("c5ShareAll")) $("c5ShareAll").textContent = total ? `${total} matches` : "-";
+          if($("c5ShareTrack")) $("c5ShareTrack").textContent = trShare == null ? "-" : `${trShare.toFixed(1)}% share`;
+          if($("c5ShareIm")) $("c5ShareIm").textContent = imShare == null ? "-" : `${imShare.toFixed(1)}% share`;
 
           // Pie
           if(!total){
             try{ chartPie5?.destroy(); }catch{}
             chartPie5 = null;
-            console.warn("[stats] no data for Chart 5 pie – skip");
+            console.warn("[stats] no data for Chart 5 pie - skip");
             return;
           }
           if (typeof Chart === "undefined") {
-            console.warn("[stats] Chart.js not loaded – skip Chart 5");
+            console.warn("[stats] Chart.js not loaded - skip Chart 5");
             return;
           }
 
@@ -1016,8 +1482,8 @@ function computeStepAverage10(vrArr, forcedBucketSize){
               labels: ["Intermission", "Tracks"],
               datasets: [{
                 data: [imCount, trCount],
-                backgroundColor: ["rgba(77,163,255,0.85)", "rgba(255,92,92,0.85)"],
-                borderColor: ["rgb(77,163,255)", "rgb(255,92,92)"],
+                backgroundColor: [chartPalette.splitBFill, chartPalette.splitAFill],
+                borderColor: [chartPalette.splitBStroke, chartPalette.splitAStroke],
                 borderWidth: 1
               }]
             },
@@ -1025,16 +1491,6 @@ function computeStepAverage10(vrArr, forcedBucketSize){
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                datalabels: {
-                  display: true,
-                  formatter: (value, ctx) => {
-                    const data = (ctx.chart?.data?.datasets?.[0]?.data || []).map(n => Number(n) || 0);
-                    const tot = data.reduce((a,b)=>a+b,0) || 1;
-                    const pct = (Number(value)||0) / tot * 100;
-                    return pct.toFixed(1) + "%";
-                  },
-                  font: { weight: "700" }
-                },
                 tooltip: {
                   callbacks: {
                     label: (ctx) => {
@@ -1046,23 +1502,31 @@ function computeStepAverage10(vrArr, forcedBucketSize){
                 },
                 legend: { position: "bottom" }
               }
-            }
+            },
+            plugins: [piePercentLabelsPlugin]
           });
         };
 
-        const setPie5Window = (mode, btn) => {
+        const setPie5Window = (mode) => {
           pie5WindowMode = mode;
-          if(btn) setActiveButton(btn);
+          const pieMeta = $("pieFilterMeta");
+          const pieValue = $("pieFilterValue");
+          const labels = { all: "Overall", month: "Last month", week: "Last week" };
+          document.querySelectorAll("#menuPieFilter .chartFilterItem").forEach((item) => {
+            item.classList.toggle("active", item.dataset.value === mode);
+          });
+          if(pieMeta) pieMeta.textContent = labels[mode] || "Overall";
+          if(pieValue) pieValue.textContent = labels[mode] || "Overall";
           renderChart5();
         };
 
-        freshButton("btnPie5All")?.addEventListener("click", (e)=> setPie5Window("all", e.target));
-        freshButton("btnPie5100")?.addEventListener("click", (e)=> setPie5Window("month", e.target));
-        freshButton("btnPie550")?.addEventListener("click", (e)=> setPie5Window("week", e.target));
+        bindChartFilterToggle("btnPieFilter", "menuPieFilter");
+        freshButton("optPieAll")?.addEventListener("click", ()=> { setPie5Window("all"); closeChartFilterMenus(); });
+        freshButton("optPieMonth")?.addEventListener("click", ()=> { setPie5Window("month"); closeChartFilterMenus(); });
+        freshButton("optPieWeek")?.addEventListener("click", ()=> { setPie5Window("week"); closeChartFilterMenus(); });
 
         // Default
-        setActiveById((pie5WindowMode==="month")?"btnPie5100":(pie5WindowMode==="week")?"btnPie550":"btnPie5All");
-        renderChart5();
+        setPie5Window(pie5WindowMode || "all");
       }
     }catch(err){
       console.warn("[stats] Chart 5 failed", err);
@@ -1071,7 +1535,6 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     try{
       const c6 = $("chartWeekly");
       if (c6) {
-        let weeklyMode = "vravg"; // "vravg" | "gains"
         let c6Pinned = null;
 
         function isoWeekKeyUTC(d){
@@ -1199,7 +1662,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
             meta.push({
               weekKey: wk,
               weekLabel,
-              range: (start && end) ? (fmtDateUTC(start) + "–" + fmtDateUTC(end)) : wk,
+              range: (start && end) ? (fmtDateUTC(start) + "-" + fmtDateUTC(end)) : wk,
               matches: matchesCount,
               sessions,
               avgPerSession
@@ -1219,7 +1682,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
             return;
           }
           const m = weeklyData.meta[index];
-          hint.textContent = `${m.weekLabel} (${m.range}) • Played ${m.matches} matches • Sessions ${m.sessions} (${m.avgPerSession.toFixed(1)} / session)`;
+          hint.textContent = `${m.weekLabel} (${m.range}) . Played ${m.matches} matches . Sessions ${m.sessions} (${m.avgPerSession.toFixed(1)} / session)`;
         }
 
         function c6Datasets(){
@@ -1227,12 +1690,26 @@ function computeStepAverage10(vrArr, forcedBucketSize){
             return [{
               label: "VR Average",
               data: weeklyData.vrAvgArr,
+              backgroundColor: chartPalette.splitAFill,
+              borderColor: chartPalette.splitAStroke,
               borderWidth: 0
             }];
           }
           return [
-            { label: "Track avg Δ", data: weeklyData.trackAvgArr, borderWidth: 0 },
-            { label: "Intermission avg Δ", data: weeklyData.imAvgArr, borderWidth: 0 }
+            {
+              label: "Track avg change",
+              data: weeklyData.trackAvgArr,
+              backgroundColor: chartPalette.splitAFill,
+              borderColor: chartPalette.splitAStroke,
+              borderWidth: 0
+            },
+            {
+              label: "Intermission avg change",
+              data: weeklyData.imAvgArr,
+              backgroundColor: chartPalette.splitBFill,
+              borderColor: chartPalette.splitBStroke,
+              borderWidth: 0
+            }
           ];
         }
 
@@ -1260,7 +1737,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
                     title: (items) => {
                       const i = items?.[0]?.dataIndex;
                       const m = weeklyData.meta[i];
-                      return m ? (m.weekLabel + " • " + m.range) : "";
+                      return m ? (m.weekLabel + " . " + m.range) : "";
                     },
                     afterBody: (items) => {
                       const i = items?.[0]?.dataIndex;
@@ -1268,7 +1745,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
                       if(!m) return "";
                       return [
                         "Played " + m.matches + " times this week",
-                        "Sessions: " + m.sessions + " • " + m.avgPerSession.toFixed(1) + " matches / session"
+                        "Sessions: " + m.sessions + " . " + m.avgPerSession.toFixed(1) + " matches / session"
                       ];
                     }
                   }
@@ -1289,17 +1766,15 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           setC6Hint(c6Pinned);
         }
 
-        function setWeeklyMode(mode, btn){
+        function setWeeklyMode(mode){
           weeklyMode = mode;
-          if(btn) setActiveButton(btn);
+          weeklyModeState = mode;
           buildChart();
+          updateVrDeckUi();
         }
+        freshButton("optWeeklyVrAvg")?.addEventListener("click", () => { setVrDeckPanel(1); setWeeklyMode("vravg"); closeChartFilterMenus(); });
+        freshButton("optWeeklyGains")?.addEventListener("click", () => { setVrDeckPanel(1); setWeeklyMode("gains"); closeChartFilterMenus(); });
 
-        freshButton("btnWkVrAvg")?.addEventListener("click", (e)=> setWeeklyMode("vravg", e.target));
-        freshButton("btnWkGains")?.addEventListener("click", (e)=> setWeeklyMode("gains", e.target));
-
-        // default
-        setActiveById("btnWkVrAvg");
         buildChart();
       }
     }catch(err){
@@ -1379,7 +1854,7 @@ function buildBuckets(center){
     { key:"R5", min:c+4*step+1, max:c+5*step }
   ];
   buckets.forEach(b=>{
-    b.label = `${b.min}–${b.max}`;
+    b.label = `${b.min}-${b.max}`;
   });
   return buckets;
 }
@@ -1594,7 +2069,7 @@ const breakEvenXPlugin = {
       ctx.moveTo(px, ca.top);
       ctx.lineTo(px, ca.bottom);
       ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(255,180,0,0.85)";
+      ctx.strokeStyle = chartPalette.breakEven;
       ctx.setLineDash([8,6]);
       ctx.stroke();
 
@@ -1602,7 +2077,7 @@ const breakEvenXPlugin = {
       const labelY = (y0 >= ca.top && y0 <= ca.bottom) ? (y0 - 6) : (ca.bottom - 6);
       ctx.setLineDash([]);
       ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillStyle = "rgba(255,180,0,0.90)";
+      ctx.fillStyle = chartPalette.breakEvenText;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillText("Track-only expected VR", px, Math.max(ca.top + 14, labelY));
@@ -1622,7 +2097,7 @@ const bucketSeparatorsPlugin = {
             const ctx = chart.ctx;
             ctx.save();
             ctx.lineWidth = 2;
-            ctx.strokeStyle = "rgba(43,108,255,0.45)";
+            ctx.strokeStyle = chartPalette.separator;
             ctx.setLineDash([2,4]);
             // draw boundaries between every adjacent tick
             const nTicks = chart.data.labels?.length || 0;
@@ -1655,7 +2130,7 @@ const bucketSeparatorsPlugin = {
       function shortenRangeLabel(lbl){
         try{
           if(typeof lbl !== "string") return lbl;
-          const parts = lbl.split("–");
+          const parts = lbl.split("-");
           if(parts.length !== 2) return lbl;
           const a = parts[0].trim();
           const b = parts[1].trim();
@@ -1666,12 +2141,12 @@ const bucketSeparatorsPlugin = {
           const bShort = (shared.length >= 2 && b.length - shared.length >= 2) ? b.slice(shared.length) : b;
           // keep readability: if bShort is too short, keep last 3 digits
           const bFinal = bShort.length < 2 ? b.slice(-3) : bShort;
-          return `${a}–${bFinal}`;
+          return `${a}-${bFinal}`;
         }catch(e){ return lbl; }
       }
 function renderBuckets(){
         if(!bucketCanvas){
-          console.warn("[stats] chartBuckets canvas missing – skip VR Performance Sweetspot");
+          console.warn("[stats] chartBuckets canvas missing - skip VR Performance Sweetspot");
           return;
         }
 
@@ -1680,8 +2155,8 @@ function renderBuckets(){
         const data = rows.map(r=>modeValue(r));
 
         // simple color coding by sign
-        const bg = data.map(v => (Number(v) < 0 ? "rgba(255,80,80,0.85)" : "rgba(60,190,120,0.85)"));
-        const br = data.map(v => (Number(v) < 0 ? "rgb(255,80,80)" : "rgb(60,190,120)"));
+        const bg = data.map(v => (Number(v) < 0 ? chartPalette.negativeFill : chartPalette.positiveFill));
+        const br = data.map(v => (Number(v) < 0 ? chartPalette.negativeStroke : chartPalette.positiveStroke));
 
         try{ chartBuckets?.destroy(); }catch{}
         chartBuckets = new Chart(bucketCanvas, {
@@ -1702,8 +2177,8 @@ function renderBuckets(){
                 type: "line",
                 label: "Trend",
                 data: data.slice(),
-                borderColor: "rgba(255,255,255,0.90)",
-                backgroundColor: "rgba(255,255,255,0.15)",
+                borderColor: chartPalette.lineSecondary,
+                backgroundColor: chartPalette.lineSecondaryFill,
                 pointRadius: 2,
                 pointHoverRadius: 3,
                 tension: 0.25,
@@ -1739,41 +2214,41 @@ function renderBuckets(){
                     const cVal = (mode === "track") ? base.avgNetTracks : (mode === "im" ? base.avgNetIm : base.avgNetTotal);
                     const delta = (Number.isFinite(val) && Number.isFinite(cVal)) ? (val - cVal) : 0;
                     const deltaStr = (delta >= 0 ? "+" : "") + delta.toFixed(2);
-                    const pctStr = (cVal > 0) ? (delta / cVal * 100).toFixed(1) + "%" : "–";
+                    const pctStr = (cVal > 0) ? (delta / cVal * 100).toFixed(1) + "%" : "-";
                     const modeLabel = (mode === "track") ? "Tracks" : (mode === "im" ? "Intermission" : "Overall");
                     const avgT = (r.avgNetTotal >= 0 ? "+" : "") + r.avgNetTotal.toFixed(2);
                     const avgTr = (r.avgNetTracks >= 0 ? "+" : "") + r.avgNetTracks.toFixed(2);
                     const avgIm = (r.avgNetIm >= 0 ? "+" : "") + r.avgNetIm.toFixed(2);
 
-                    const wrO = (r.winrateOverall == null) ? "–" : r.winrateOverall.toFixed(1) + "%";
-                    const wrTr = (r.winrateTracks == null) ? "–" : r.winrateTracks.toFixed(1) + "%";
-                    const wrIm = (r.winrateIm == null) ? "–" : r.winrateIm.toFixed(1) + "%";
+                    const wrO = (r.winrateOverall == null) ? "-" : r.winrateOverall.toFixed(1) + "%";
+                    const wrTr = (r.winrateTracks == null) ? "-" : r.winrateTracks.toFixed(1) + "%";
+                    const wrIm = (r.winrateIm == null) ? "-" : r.winrateIm.toFixed(1) + "%";
 
                     if(mode === "track"){
                       const c = r.countTr ?? 0;
-                      const wr = (r.winrateTracks == null) ? "–" : r.winrateTracks.toFixed(1) + "%";
+                      const wr = (r.winrateTracks == null) ? "-" : r.winrateTracks.toFixed(1) + "%";
                       const a = (r.avgNetTracks >= 0 ? "+" : "") + r.avgNetTracks.toFixed(2);
                       return [
                         `Matches (Tracks): ${c}`,
-                        `Δ vs Avg-zone (Tracks): ${deltaStr} (${pctStr})`,
+                        `Î” vs Avg-zone (Tracks): ${deltaStr} (${pctStr})`,
                         `Avg Net Gain (Tracks): ${a}`,
                         `Winrate (Tracks): ${wr}`
                       ];
                     }
                     if(mode === "im"){
                       const c = r.countIm ?? 0;
-                      const wr = (r.winrateIm == null) ? "–" : r.winrateIm.toFixed(1) + "%";
+                      const wr = (r.winrateIm == null) ? "-" : r.winrateIm.toFixed(1) + "%";
                       const a = (r.avgNetIm >= 0 ? "+" : "") + r.avgNetIm.toFixed(2);
                       return [
                         `Matches (Intermission): ${c}`,
-                        `Δ vs Avg-zone (Intermission): ${deltaStr} (${pctStr})`,
+                        `Î” vs Avg-zone (Intermission): ${deltaStr} (${pctStr})`,
                         `Avg Net Gain (Intermission): ${a}`,
                         `Winrate (Intermission): ${wr}`
                       ];
                     }
                     return [
                       `Matches: ${r.count}`,
-                      `Δ vs Avg-zone (Overall): ${deltaStr} (${pctStr})`,
+                      `Î” vs Avg-zone (Overall): ${deltaStr} (${pctStr})`,
                       `Avg Net Gain Total: ${avgT}`,
                       `Winrate Overall: ${wrO}`,
                       `Winrate Tracks: ${wrTr}`,
@@ -1801,20 +2276,20 @@ function renderBuckets(){
           const avgT = (r.avgNetTotal >= 0 ? "+" : "") + r.avgNetTotal.toFixed(2);
           const avgTr = (r.avgNetTracks >= 0 ? "+" : "") + r.avgNetTracks.toFixed(2);
           const avgIm = (r.avgNetIm >= 0 ? "+" : "") + r.avgNetIm.toFixed(2);
-          const wrO = (r.winrateOverall == null) ? "–" : r.winrateOverall.toFixed(1) + "%";
-          const wrTr = (r.winrateTracks == null) ? "–" : r.winrateTracks.toFixed(1) + "%";
-          const wrIm = (r.winrateIm == null) ? "–" : r.winrateIm.toFixed(1) + "%";
+          const wrO = (r.winrateOverall == null) ? "-" : r.winrateOverall.toFixed(1) + "%";
+          const wrTr = (r.winrateTracks == null) ? "-" : r.winrateTracks.toFixed(1) + "%";
+          const wrIm = (r.winrateIm == null) ? "-" : r.winrateIm.toFixed(1) + "%";
           const mode = (window.__bucketMode || "overall");
           if(mode === "track"){
-            $bucketSel.textContent = `VR_before ${r.label} • Tracks ${r.countTr||0} matches • AvgNet ${avgTr} • WR ${wrTr}`;
+            $bucketSel.textContent = `VR_before ${r.label} . Tracks ${r.countTr||0} matches . AvgNet ${avgTr} . WR ${wrTr}`;
             return;
           }
           if(mode === "im"){
-            $bucketSel.textContent = `VR_before ${r.label} • Intermission ${r.countIm||0} matches • AvgNet ${avgIm} • WR ${wrIm}`;
+            $bucketSel.textContent = `VR_before ${r.label} . Intermission ${r.countIm||0} matches . AvgNet ${avgIm} . WR ${wrIm}`;
             return;
           }
           $bucketSel.textContent =
-            `VR_before ${r.label} • Matches ${r.count} • AvgNet ${avgT} • WR ${wrO} • TrackAvg ${avgTr} (WR ${wrTr}) • IMAvg ${avgIm} (WR ${wrIm})`;
+            `VR_before ${r.label} . Matches ${r.count} . AvgNet ${avgT} . WR ${wrO} . TrackAvg ${avgTr} (WR ${wrTr}) . IMAvg ${avgIm} (WR ${wrIm})`;
         }
 
         chartBuckets.options.onClick = (evt, els) => {
@@ -1829,18 +2304,23 @@ function renderBuckets(){
 
       function setBucketMode(mode, btn){
         window.__bucketMode = mode;
-        if(btn) setActiveButton(btn);
+        const labels = { overall: "Overall", track: "Track only", im: "Intermission only" };
+        document.querySelectorAll("#menuBucketFilter .chartFilterItem").forEach((item) => {
+          item.classList.toggle("active", item.dataset.value === mode);
+        });
+        if($("bucketFilterMeta")) $("bucketFilterMeta").textContent = labels[mode] || "Overall";
+        if($("bucketFilterValue")) $("bucketFilterValue").textContent = labels[mode] || "Overall";
         renderBuckets();
       }
 
-      freshButton("btnBucketOverall")?.addEventListener("click", (e)=> setBucketMode("overall", e.target));
-      freshButton("btnBucketTrack")?.addEventListener("click", (e)=> setBucketMode("track", e.target));
-      freshButton("btnBucketIm")?.addEventListener("click", (e)=> setBucketMode("im", e.target));
+      bindChartFilterToggle("btnBucketFilter", "menuBucketFilter");
+      freshButton("optBucketOverall")?.addEventListener("click", ()=> { setBucketMode("overall"); closeChartFilterMenus(); });
+      freshButton("optBucketTrack")?.addEventListener("click", ()=> { setBucketMode("track"); closeChartFilterMenus(); });
+      freshButton("optBucketIm")?.addEventListener("click", ()=> { setBucketMode("im"); closeChartFilterMenus(); });
 
       // default active state based on persisted mode
       const m = window.__bucketMode || "overall";
-      setActiveById(m==="track" ? "btnBucketTrack" : m==="im" ? "btnBucketIm" : "btnBucketOverall");
-      renderBuckets();
+      setBucketMode(m);
     }catch(err){
       console.warn("[stats] VR Performance Sweetspot failed", err);
     }
@@ -1848,7 +2328,7 @@ function renderBuckets(){
 }
   async function refreshAll(){
     try {
-      setStatus("Loading data…", true);
+      setStatus("Loading data...", true);
       await loadProfile();
       await loadStratsMeta();
 
@@ -1858,14 +2338,14 @@ function renderBuckets(){
       if (matchesAsc.length === 0) {
   $("matchCount").textContent = "0";
   setStatsReportEnabled(false);
-  buildCharts([]); // zeigt leeres Chart mit Default-Range 3000–11000
+  buildCharts([]); // zeigt leeres Chart mit Default-Range 3000-11000
   setStatus("No matches yet.", false);
   return;
 }
 
       buildCharts(matchesAsc);
       setStatsReportEnabled(true);
-      setStatus("✅ Done.", true);
+      setStatus("Done.", true);
     } catch (e) {
       setStatsReportEnabled(false);
       setStatus("Error: " + (e?.message || e), false);

@@ -1,28 +1,55 @@
-/* =========================================================
-   MKWT Core – Shared logic for tracker, stats, sessions, settings
+﻿/* =========================================================
+   MKWT Core - Shared logic for tracker, stats, sessions, settings
    ========================================================= */
 
 // ========= Constants =========
 const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
+const SUPABASE_PROJECT_REF = "imxlssgtzzdfgdscubdx";
 const GUEST_KEY = "mkwt_guest_matches_v1";
 const BACKUP_KEY_LOCAL = "mkwt_backup_session_local_v1";
 const BACKUP_KEY_SESS  = "mkwt_backup_session_session_v1";
 
-// ========= Supabase client (localStorage + sessionStorage) =========
-function makeClient(storage) {
-  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: {
-      storage,
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    }
-  });
+window.MKWT = window.MKWT || {};
+
+// ========= Supabase client (shared, cached, lazy) =========
+function authStorageForMode(mode){
+  return mode === "session" ? sessionStorage : localStorage;
 }
 
-const clientLocal = makeClient(localStorage);
-const clientSess  = makeClient(sessionStorage);
+function authStorageHasToken(mode){
+  const storage = authStorageForMode(mode);
+  try{
+    for(let i = 0; i < storage.length; i += 1){
+      const key = storage.key(i);
+      if(!key) continue;
+      if(key === `sb-${SUPABASE_PROJECT_REF}-auth-token`) return true;
+      if(key.startsWith(`sb-${SUPABASE_PROJECT_REF}-`) && key.includes("auth-token")) return true;
+    }
+  }catch(e){ /* safe to ignore */ }
+  return false;
+}
+
+function getSupabaseClient({
+  mode = "local",
+  persistSession = true,
+  autoRefreshToken = true,
+  detectSessionInUrl = true,
+} = {}){
+  const cache = window.MKWT._supabaseClients || (window.MKWT._supabaseClients = {});
+  const key = JSON.stringify({ mode, persistSession, autoRefreshToken, detectSessionInUrl });
+  if(cache[key]) return cache[key];
+  const auth = { persistSession, autoRefreshToken, detectSessionInUrl };
+  if(mode === "local" || mode === "session"){
+    auth.storage = authStorageForMode(mode);
+  }
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth });
+  cache[key] = client;
+  return client;
+}
+
+window.MKWT.getSupabaseClient = getSupabaseClient;
+window.MKWT.authStorageHasToken = authStorageHasToken;
 
 function preferredAuthStorage(){
   try{ return (localStorage.getItem('mkwt_auth_storage') || 'local'); }catch(e){ return 'local'; }
@@ -36,7 +63,7 @@ async function tryRestoreFromBackup(){
   const b = readBackup(pref);
   if (!b?.access_token || !b?.refresh_token) return false;
   try{
-    const c = pref === 'session' ? clientSess : clientLocal;
+    const c = getSupabaseClient({ mode: pref === "session" ? "session" : "local" });
     await c.auth.setSession({ access_token: b.access_token, refresh_token: b.refresh_token });
     return true;
   }catch(e){
@@ -91,10 +118,10 @@ function fingerprintMatch(r) {
 }
 
 function maskEmail(email){
-  if(!email) return "–";
+  if(!email) return "-";
   const [local, domain] = email.split("@");
   if(!domain) return email;
-  const vis = local.length <= 2 ? local : local[0] + "•".repeat(Math.min(local.length-2, 4)) + local[local.length-1];
+  const vis = local.length <= 2 ? local : local[0] + ".".repeat(Math.min(local.length-2, 4)) + local[local.length-1];
   return vis + "@" + domain;
 }
 
@@ -147,20 +174,31 @@ async function resolveStoredSession({ tryBackupRestore = false, onDebug = null }
   let session = null;
   let error = null;
 
-  ({ data:{ session }, error } = await clientLocal.auth.getSession());
-  if (error && typeof onDebug === "function") onDebug("getSession(local) error: " + JSON.stringify(error, null, 2));
-  if (session) return { client: clientLocal, session, source: "local" };
+  if (authStorageHasToken("local")) {
+    const clientLocal = getSupabaseClient({ mode: "local" });
+    ({ data:{ session }, error } = await clientLocal.auth.getSession());
+    if (error && typeof onDebug === "function") onDebug("getSession(local) error: " + JSON.stringify(error, null, 2));
+    if (session) return { client: clientLocal, session, source: "local" };
+  }
 
-  ({ data:{ session }, error } = await clientSess.auth.getSession());
-  if (error && typeof onDebug === "function") onDebug("getSession(session) error: " + JSON.stringify(error, null, 2));
-  if (session) return { client: clientSess, session, source: "session" };
+  if (authStorageHasToken("session")) {
+    const clientSess = getSupabaseClient({ mode: "session" });
+    ({ data:{ session }, error } = await clientSess.auth.getSession());
+    if (error && typeof onDebug === "function") onDebug("getSession(session) error: " + JSON.stringify(error, null, 2));
+    if (session) return { client: clientSess, session, source: "session" };
+  }
 
   if (tryBackupRestore && await tryRestoreFromBackup()) {
-    ({ data:{ session } } = await clientLocal.auth.getSession());
-    if (session) return { client: clientLocal, session, source: "backup-local" };
-
-    ({ data:{ session } } = await clientSess.auth.getSession());
-    if (session) return { client: clientSess, session, source: "backup-session" };
+    if (authStorageHasToken("local")) {
+      const clientLocal = getSupabaseClient({ mode: "local" });
+      ({ data:{ session } } = await clientLocal.auth.getSession());
+      if (session) return { client: clientLocal, session, source: "backup-local" };
+    }
+    if (authStorageHasToken("session")) {
+      const clientSess = getSupabaseClient({ mode: "session" });
+      ({ data:{ session } } = await clientSess.auth.getSession());
+      if (session) return { client: clientSess, session, source: "backup-session" };
+    }
   }
 
   return { client: null, session: null, source: null };
@@ -307,7 +345,7 @@ window.mkwtRequireAuth = async function(options = {}){
   if (typeof window.exportBackupJSON !== "function") {
     window.exportBackupJSON = async function(){
       try{
-        if (typeof window.setStatus === "function") window.setStatus("Creating backup…", true);
+        if (typeof window.setStatus === "function") window.setStatus("Creating backup...", true);
         await ensureSession();
         await ensureProfile();
 
@@ -346,7 +384,7 @@ window.mkwtRequireAuth = async function(options = {}){
             matches: guestMatches
           };
           downloadTextFile("mkwt_guest_backup.json", JSON.stringify(backup, null, 2));
-          if (typeof window.setStatus === "function") window.setStatus(`✅ Guest export created (${guestMatches.length} VR matches, ${(Array.isArray(loungeSessions) ? loungeSessions.length : 0)} Lounge Mogis).`, true);
+          if (typeof window.setStatus === "function") window.setStatus(`Guest export created (${guestMatches.length} VR matches, ${(Array.isArray(loungeSessions) ? loungeSessions.length : 0)} Lounge Mogis).`, true);
           return;
         }
 
@@ -406,7 +444,7 @@ window.mkwtRequireAuth = async function(options = {}){
           `mkwt_backup_${String(window.PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
 
         window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
-        if (typeof window.setStatus === "function") window.setStatus(`✅ Backup created (${allMatches.length} VR matches, ${loungeBackup.session_count || 0} Lounge Mogis).`, true);
+        if (typeof window.setStatus === "function") window.setStatus(`Backup created (${allMatches.length} VR matches, ${loungeBackup.session_count || 0} Lounge Mogis).`, true);
       } catch(e){
         if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
         if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
@@ -552,7 +590,7 @@ window.mkwtRequireAuth = async function(options = {}){
           added++;
         }
         saveGuestMatches(current);
-        if (typeof window.setStatus === "function") window.setStatus(`✅ Guest import complete. Added ${added} matches.`, true);
+        if (typeof window.setStatus === "function") window.setStatus(`Guest import complete. Added ${added} matches.`, true);
         try { if (typeof window.refreshAll === "function") window.refreshAll(); } catch(e) {}
         return;
       }
@@ -569,7 +607,7 @@ window.mkwtRequireAuth = async function(options = {}){
       }
 
       if (!backup || backup.app !== "MKWT" || !Array.isArray(backupMatches)) {
-        if (typeof window.setStatus === "function") window.setStatus("❌ This file isn't a valid MKWT backup.", false);
+        if (typeof window.setStatus === "function") window.setStatus("This file is not a valid MKWT backup.", false);
         return;
       }
 
@@ -592,7 +630,7 @@ window.mkwtRequireAuth = async function(options = {}){
       );
       if (!ok) return;
 
-      if (typeof window.setStatus === "function") window.setStatus("Restoring… (VR + Lounge cloud)", true);
+      if (typeof window.setStatus === "function") window.setStatus("Restoring... (VR + Lounge cloud)", true);
 
       // --- Load all existing matches ---
       const existingKeepFp = new Set();
@@ -681,7 +719,7 @@ window.mkwtRequireAuth = async function(options = {}){
       }catch(e){ console.warn(e); }
 
       if (typeof window.setStatus === "function") window.setStatus(
-        `✅ Restore complete. VR Backup: ${uniqueBackup.length} | Deleted: ${deleted} | Inserted: ${inserted} | Lounge Mogis: ${loungeRestored.mogis} | Lounge races: ${loungeRestored.races}. Reloading…`,
+        `Restore complete. VR Backup: ${uniqueBackup.length} | Deleted: ${deleted} | Inserted: ${inserted} | Lounge Mogis: ${loungeRestored.mogis} | Lounge races: ${loungeRestored.races}. Reloading...`,
         true
       );
       setTimeout(()=>location.reload(), 350);
@@ -711,9 +749,8 @@ window.mkwtRequireAuth = async function(options = {}){
     }
 
     async function hardLogout(){
-      try{ await clientLocal?.auth?.signOut?.(); }catch(e){ console.warn(e); }
-      try{ await clientSess?.auth?.signOut?.(); }catch(e){ console.warn(e); }
       try{ await window.supabaseClient?.auth?.signOut?.(); }catch(e){ console.warn(e); }
+      try{ syncSharedSession(null, null); }catch(e){ /* safe to ignore */ }
       clearSupabaseTokens(localStorage);
       clearSupabaseTokens(sessionStorage);
       location.replace("login.html");

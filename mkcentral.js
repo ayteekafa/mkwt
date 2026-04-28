@@ -57,6 +57,56 @@
   let scopeOptionsCache = null;
   let isUpdating = false;
   let lastRenderedPayload = null;
+  const LOUNGE_TRACKS = [
+    "Acorn Heights",
+    "Airship Fortress",
+    "Boo Cinema",
+    "Bowser's Castle",
+    "Cheep Cheep Falls",
+    "Choco Mountain",
+    "Crown City",
+    "Dandelion Depths",
+    "Desert Hills",
+    "Dino Dino Jungle",
+    "DK Pass",
+    "DK Spaceport",
+    "Dry Bones Burnout",
+    "Faraway Oasis",
+    "Great ? Block Ruins",
+    "Koopa Troopa Beach",
+    "Mario Circuit",
+    "Mario Bros. Circuit",
+    "Moo Moo Meadows",
+    "Peach Beach",
+    "Peach Stadium",
+    "Rainbow Road",
+    "Salty Salty Speedway",
+    "Shy Guy Bazaar",
+    "Sky-High Sundae",
+    "Starview Peak",
+    "Toad's Factory",
+    "Wario Shipyard",
+    "Wario Stadium",
+    "Whistlestop Summit",
+  ];
+  const LOUNGE_TRACKER_STORAGE = {
+    "12": "mkwt_lounge_sessions_v1",
+    "24": "mkwt_lounge24_sessions_v1",
+  };
+  const loungeTrackerChartsState = {
+    mode: "12",
+    sessionsByMode: { "12": [], "24": [] },
+    trackSortKey: "avg",
+    trackSortDir: "desc",
+    trackMode: "tracks",
+    placementMode: "all",
+    placementItem: "",
+    lastTrackStats: [],
+    lastSelectedTrack: null,
+    trackChart: null,
+    placementChart: null,
+    intermissionMeta: null,
+  };
   const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 
   function rankDef(name, min){
@@ -165,6 +215,9 @@
   }
 
   function makeSupabaseClient(storage){
+    if (window.MKWT?.getSupabaseClient) {
+      return window.MKWT.getSupabaseClient({ mode: storage === sessionStorage ? "session" : "local" });
+    }
     return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
       auth: {
         storage,
@@ -183,20 +236,27 @@
     }
     if(!window.supabase?.createClient) return { client: null, session: null };
 
-    const localClient = makeSupabaseClient(localStorage);
-    let { data, error } = await localClient.auth.getSession();
-    if(!error && data?.session){
-      supabaseClient = localClient;
-      SESSION = data.session;
-      return { client: supabaseClient, session: SESSION };
+    const hasLocal = window.MKWT?.authStorageHasToken ? window.MKWT.authStorageHasToken("local") : true;
+    const hasSession = window.MKWT?.authStorageHasToken ? window.MKWT.authStorageHasToken("session") : true;
+
+    if (hasLocal) {
+      const localClient = makeSupabaseClient(localStorage);
+      let { data, error } = await localClient.auth.getSession();
+      if(!error && data?.session){
+        supabaseClient = localClient;
+        SESSION = data.session;
+        return { client: supabaseClient, session: SESSION };
+      }
     }
 
-    const sessionClient = makeSupabaseClient(sessionStorage);
-    ({ data, error } = await sessionClient.auth.getSession());
-    if(!error && data?.session){
-      supabaseClient = sessionClient;
-      SESSION = data.session;
-      return { client: supabaseClient, session: SESSION };
+    if (hasSession) {
+      const sessionClient = makeSupabaseClient(sessionStorage);
+      const { data, error } = await sessionClient.auth.getSession();
+      if(!error && data?.session){
+        supabaseClient = sessionClient;
+        SESSION = data.session;
+        return { client: supabaseClient, session: SESSION };
+      }
     }
 
     supabaseClient = null;
@@ -941,18 +1001,62 @@
     </div>`;
   }
 
-  function rankCard(label, mmrValue, meta = ""){
+  function rankCard(label, mmrValue, meta = "", extraClass = ""){
     const rank = getMkworldRank(mmrValue);
     const displayValue = (mmrValue == null || mmrValue === "") ? "-" : fmtNumber(mmrValue);
-    if(!rank) return card(label, displayValue, meta);
+    if(!rank) return card(label, displayValue, meta, "", extraClass);
     const style = `--rank-color:${rank.color};--rank-bg:${rank.bg};`;
-    return `<div class="mkcStat mkcStatRanked" style="${style}">
+    return `<div class="mkcStat mkcStatRanked ${extraClass}" style="${style}">
       <div class="mkcStatTop">
         <div class="mkcStatLabel">${escapeHtml(label)}</div>
         <div class="mkcRankBadge">${escapeHtml(rank.name)}</div>
       </div>
       <div class="mkcStatValue">${escapeHtml(displayValue)}</div>
       <div class="mkcStatMeta">${escapeHtml(meta)}</div>
+    </div>`;
+  }
+
+  function mobileOverviewCard(derived){
+    const rankTone = (value) => {
+      const rank = getMkworldRank(value);
+      return rank ? ` style="--rank-color:${rank.color};--rank-bg:${rank.bg};"` : "";
+    };
+    const mmrCell = (label, value, meta = "") => `
+      <div class="mkcOverviewMmrCell"${rankTone(value)}>
+        <div class="mkcOverviewMmrLabel">${escapeHtml(label)}</div>
+        <div class="mkcOverviewMmrValue">${escapeHtml(value == null ? "-" : fmtNumber(value))}</div>
+        <div class="mkcOverviewMmrMeta">${escapeHtml(meta || rankName(value) || "-")}</div>
+      </div>`;
+    const metric = (label, value, meta = "", valueCls = "") => `
+      <div class="mkcOverviewMetric">
+        <div class="mkcOverviewMetricLabel">${escapeHtml(label)}</div>
+        <div class="mkcOverviewMetricValue ${escapeHtml(valueCls)}">${escapeHtml(value)}</div>
+        <div class="mkcOverviewMetricMeta">${escapeHtml(meta)}</div>
+      </div>`;
+    return `<div class="mkcMobileOverview card">
+      <div class="mkcOverviewHead">
+        <div class="mkcOverviewTitle">Lounge Summary</div>
+        <div class="mkcOverviewSubtitle">${escapeHtml(scopeLabel(activeScope))}</div>
+      </div>
+      <div class="mkcOverviewMmr">
+        ${mmrCell("Current", derived.currentMmr, `Start ${fmtNumber(derived.startMmr)}`)}
+        ${mmrCell("Peak", derived.peakMmr, "Peak MMR")}
+        ${mmrCell("Last 50", derived.last50MmrAvg, `${derived.last50Count} events avg`)}
+      </div>
+      <div class="mkcOverviewMetrics">
+        ${metric("Events", fmtNumber(derived.eventCount), derived.officialEvents ? `Official ${fmtNumber(derived.officialEvents)}` : "Local synced")}
+        ${metric("Season Hours", fmtDurationMinutes(derived.seasonMinutes), `${derived.eventCount} mogis x ${AVG_MOGI_MINUTES}m`)}
+        ${metric("Avg Gain", derived.avgGain == null ? "-" : fmtSigned(derived.avgGain), `${derived.eventCount} events | all`, gainClass(derived.avgGain))}
+        ${metric("Total Gain", fmtDelta(derived.totalGain), "Merged local history", gainClass(derived.totalGain))}
+        ${metric("Winrate", derived.winrate == null ? "-" : fmtPct(derived.winrate), `${derived.wins} W / ${derived.losses} L / ${derived.neutral} even`)}
+        ${metric("Avg Score", derived.officialAvgScore == null ? "-" : fmtNumber(derived.officialAvgScore, 1), derived.avgScoreCounts.all ? `${derived.avgScoreCounts.all} scored events` : "Official MKCentral")}
+      </div>
+      <div class="mkcOverviewMetrics mkcOverviewMetricsTight">
+        ${metric("Best Gain", fmtDelta(derived.bestEvent?.mmr_delta), derived.bestEvent?.event || "-", gainClass(derived.bestEvent?.mmr_delta))}
+        ${metric("Worst Gain", fmtDelta(derived.worstEvent?.mmr_delta), derived.worstEvent?.event || "-", gainClass(derived.worstEvent?.mmr_delta))}
+        ${metric("High pts", scoreValue(derived.highestScoreEvent), derived.highestScoreEvent?.event || "-")}
+        ${metric("Low pts", scoreValue(derived.lowestScoreEvent), derived.lowestScoreEvent?.event || "-")}
+      </div>
     </div>`;
   }
 
@@ -972,7 +1076,7 @@
       const title = event?.event ? ` title="${escapeHtml(event.event)}"` : "";
       return `<span class="mkcEventPoint"${title}><span>${escapeHtml(label)}</span><b>${escapeHtml(score == null ? "-" : fmtNumber(score))}</b></span>`;
     };
-    return `<div class="mkcStat mkcEventCombo">
+    return `<div class="mkcStat mkcEventCombo mkcStatCompactMobile mkcStatDesktopOnly">
       <div class="mkcStatLabel">Best / Worst Gain</div>
       <div class="mkcEventComboRows">
         ${row("Best", bestEvent)}
@@ -987,7 +1091,7 @@
 
   function activityCard(derived){
     const officialText = derived.officialEvents ? `Official: ${fmtNumber(derived.officialEvents)}` : "Local synced";
-    return `<div class="mkcStat mkcEventCombo">
+    return `<div class="mkcStat mkcEventCombo mkcStatCompactMobile mkcStatDesktopOnly">
       <div class="mkcStatLabel">Events / Season Hours</div>
       <div class="mkcEventComboRows">
         <div class="mkcEventComboRow">
@@ -1034,7 +1138,7 @@
       const valueText = option.value == null ? "-" : fmtNumber(option.value, 1);
       return `<button class="mkcScoreTab${index === 0 ? " active" : ""}" type="button" data-value="${escapeHtml(valueText)}" data-meta="${escapeHtml(option.meta)}">${escapeHtml(option.label)}</button>`;
     }).join("");
-    return `<div class="mkcStat mkcScoreStat">
+    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile mkcStatDesktopOnly">
       <div class="mkcStatTop">
         <div class="mkcStatLabel">Avg Score</div>
         <div class="mkcScoreTabs">${buttons}</div>
@@ -1078,7 +1182,7 @@
       const valueText = formatGainValue(option);
       return `<button class="mkcScoreTab${index === 0 ? " active" : ""}" type="button" data-value="${escapeHtml(valueText)}" data-meta="${escapeHtml(option.meta)}" data-value-class="${escapeHtml(gainClass(option.value))}">${escapeHtml(option.label)}</button>`;
     }).join("");
-    return `<div class="mkcStat mkcScoreStat">
+    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile mkcStatDesktopOnly">
       <div class="mkcStatTop">
         <div class="mkcStatLabel">Avg Gain</div>
         <div class="mkcScoreTabs">${buttons}</div>
@@ -1100,7 +1204,7 @@
       const valueText = option.value == null ? "-" : fmtPct(option.value);
       return `<button class="mkcScoreTab${index === 0 ? " active" : ""}" type="button" data-value="${escapeHtml(valueText)}" data-meta="${escapeHtml(option.meta)}">${escapeHtml(option.label)}</button>`;
     }).join("");
-    return `<div class="mkcStat mkcScoreStat">
+    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile mkcStatDesktopOnly">
       <div class="mkcStatTop">
         <div class="mkcStatLabel">Winrate</div>
         <div class="mkcScoreTabs">${buttons}</div>
@@ -1132,9 +1236,10 @@
     if(!cards) return;
     const derived = calcDerived(payload.events || [], payload.profile || {}, payload.summary || {});
     cards.innerHTML = [
-      rankCard("Current MMR", derived.currentMmr, `Start est. ${fmtNumber(derived.startMmr)}`),
-      rankCard("Peak MMR", derived.peakMmr, "Official if available"),
-      rankCard("Avg Last 50", derived.last50MmrAvg, `${derived.last50Count} events | average MMR`),
+      mobileOverviewCard(derived),
+      rankCard("Current MMR", derived.currentMmr, `Start est. ${fmtNumber(derived.startMmr)}`, "mkcStatMmrTop mkcStatDesktopOnly"),
+      rankCard("Peak MMR", derived.peakMmr, "Official if available", "mkcStatMmrTop mkcStatDesktopOnly"),
+      rankCard("Avg Last 50", derived.last50MmrAvg, `${derived.last50Count} events | average MMR`, "mkcStatMmrTop mkcStatDesktopOnly"),
       activityCard(derived),
       avgGainCard(derived),
       winrateCard(derived),
@@ -1160,16 +1265,18 @@
 
   function buildMkcReportItems(payload){
     const derived = calcDerived(payload.events || [], payload.profile || {}, payload.summary || {});
+    const positiveColor = cssVar("--chart-positive-stroke", "#4da319");
+    const negativeColor = cssVar("--chart-negative-stroke", "#ff5050");
     return [
       { label: "Current MMR", value: fmtNumber(derived.currentMmr), meta: rankName(derived.currentMmr) },
       { label: "Peak MMR", value: fmtNumber(derived.peakMmr), meta: rankName(derived.peakMmr) },
       { label: "Avg Last 50", value: fmtNumber(derived.last50MmrAvg), meta: `${derived.last50Count} events | ${rankName(derived.last50MmrAvg)}` },
       { label: "Events", value: fmtNumber(derived.eventCount), meta: `${fmtDurationMinutes(derived.seasonMinutes)} season` },
-      { label: "Avg Gain", value: fmtSigned(derived.avgGain, 2), meta: "per event", color: derived.avgGain >= 0 ? "#4da319" : "#ff5050" },
+      { label: "Avg Gain", value: fmtSigned(derived.avgGain, 2), meta: "per event", color: derived.avgGain >= 0 ? positiveColor : negativeColor },
       { label: "Winrate", value: fmtPct(derived.winrate), meta: `${derived.wins} W / ${derived.losses} L` },
       { label: "Avg Score", value: fmtNumber(derived.officialAvgScore, 1), meta: "official MKCentral" },
-      { label: "Best Gain", value: fmtDelta(derived.bestEvent?.mmr_delta), meta: derived.bestEvent?.event || "", color: "#4da319" },
-      { label: "Worst Gain", value: fmtDelta(derived.worstEvent?.mmr_delta), meta: derived.worstEvent?.event || "", color: "#ff5050" },
+      { label: "Best Gain", value: fmtDelta(derived.bestEvent?.mmr_delta), meta: derived.bestEvent?.event || "", color: positiveColor },
+      { label: "Worst Gain", value: fmtDelta(derived.worstEvent?.mmr_delta), meta: derived.worstEvent?.event || "", color: negativeColor },
       { label: "High pts", value: scoreValue(derived.highestScoreEvent), meta: derived.highestScoreEvent?.event || "" },
       { label: "Low pts", value: scoreValue(derived.lowestScoreEvent), meta: derived.lowestScoreEvent?.event || "" },
     ];
@@ -1289,12 +1396,341 @@
   }
 
   function colorWithAlpha(hex, alpha){
-    const raw = String(hex || "").trim().replace("#", "");
+    const source = String(hex || "").trim();
+    const rgbMatch = source.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if(rgbMatch){
+      return `rgba(${rgbMatch[1]},${rgbMatch[2]},${rgbMatch[3]},${alpha})`;
+    }
+    const raw = source.replace("#", "");
     if(!/^[0-9a-f]{6}$/i.test(raw)) return `rgba(255,255,255,${alpha})`;
     const r = parseInt(raw.slice(0, 2), 16);
     const g = parseInt(raw.slice(2, 4), 16);
     const b = parseInt(raw.slice(4, 6), 16);
     return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function loungeTrackerModeLabel(mode = loungeTrackerChartsState.mode){
+    return String(mode) === "24" ? "Lounge 24p" : "Lounge 12p";
+  }
+
+  function loungeTrackerPlayerCount(mode = loungeTrackerChartsState.mode){
+    return String(mode) === "24" ? 24 : 12;
+  }
+
+  function loungeTrackerAllowsIntermission(mode = loungeTrackerChartsState.mode){
+    return String(mode) === "24";
+  }
+
+  function loungeTrackerAvgThreshold(mode = loungeTrackerChartsState.mode){
+    return String(mode) === "24" ? 6 : 6.83;
+  }
+
+  function loungeTrackerStorageKey(mode = loungeTrackerChartsState.mode){
+    return LOUNGE_TRACKER_STORAGE[String(mode)] || LOUNGE_TRACKER_STORAGE["12"];
+  }
+
+  function loungeTrackerRouteLabel(start, end){
+    return `${start} -> ${end}`;
+  }
+
+  function parseLoungeTrackerRoute(value){
+    const match = String(value || "").match(/^\s*(.*?)\s*->\s*(.*?)\s*$/);
+    if(!match) return null;
+    const start = cleanText(match[1]);
+    const end = cleanText(match[2]);
+    return start && end ? { start, end } : null;
+  }
+
+  function isLoungeTrackerIntermissionRace(race){
+    return race?.raceKind === "intermission"
+      || race?.race_kind === "intermission"
+      || (!!race?.intermissionStart && !!race?.intermissionEnd)
+      || (!!race?.intermission_start && !!race?.intermission_end);
+  }
+
+  function loungeTrackerRouteParts(race){
+    const start = cleanText(race?.intermissionStart || race?.intermission_start || "");
+    const end = cleanText(race?.intermissionEnd || race?.intermission_end || "");
+    if(start && end) return { start, end };
+    return parseLoungeTrackerRoute(race?.track) || { start: "", end: "" };
+  }
+
+  async function loadLoungeTrackerIntermissionMeta(){
+    if(loungeTrackerChartsState.intermissionMeta) return loungeTrackerChartsState.intermissionMeta;
+    try{
+      const res = await fetch("strats.json", { cache: "no-cache" });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      loungeTrackerChartsState.intermissionMeta = json?.META?.INTERMISSIONS || {};
+    }catch(e){
+      console.warn("Lounge Stats intermission meta failed to load:", e);
+      loungeTrackerChartsState.intermissionMeta = {};
+    }
+    return loungeTrackerChartsState.intermissionMeta;
+  }
+
+  function loungeTrackerDestinyGroup(start, end){
+    const key = start && end ? `${start} -> ${end}` : "";
+    const meta = key ? loungeTrackerChartsState.intermissionMeta?.[key] : null;
+    const group = cleanText(meta?.destiny_group || "");
+    return group || cleanText(end || "");
+  }
+
+  function loungeTrackerShouldIncludeRace(race, mode){
+    const isIntermission = isLoungeTrackerIntermissionRace(race);
+    if(mode === "tracks") return !isIntermission;
+    if(mode === "intermission" || mode === "im_destiny" || mode === "im_routes") return isIntermission;
+    return true;
+  }
+
+  function loungeTrackerPerformanceLabel(race, mode){
+    if(mode === "im_destiny"){
+      const { start, end } = loungeTrackerRouteParts(race);
+      return start && end ? loungeTrackerDestinyGroup(start, end) : cleanText(race?.track || "");
+    }
+    if(mode === "im_routes"){
+      const { start, end } = loungeTrackerRouteParts(race);
+      return start && end ? loungeTrackerRouteLabel(start, end) : cleanText(race?.track || "");
+    }
+    return cleanText(race?.track || "");
+  }
+
+  function normalizeLoungeTrackerRace(race, playerCount){
+    const route = parseLoungeTrackerRoute(race?.track);
+    return {
+      id: race?.id || "",
+      track: cleanText(race?.track || ""),
+      raceKind: cleanText(race?.raceKind || race?.race_kind || (route ? "intermission" : "track")) || "track",
+      intermissionStart: cleanText(race?.intermissionStart || race?.intermission_start || route?.start || ""),
+      intermissionEnd: cleanText(race?.intermissionEnd || race?.intermission_end || route?.end || ""),
+      lobbySize: finiteNumber(race?.lobbySize ?? race?.lobby_size) ?? playerCount,
+      placement: finiteNumber(race?.placement),
+      points: finiteNumber(race?.points) ?? 0,
+      disconnect: !!race?.disconnect,
+      created_at: normalizeIsoTime(race?.created_at || ""),
+    };
+  }
+
+  function normalizeLoungeTrackerSession(session, playerCount){
+    const races = Array.isArray(session?.races) ? session.races.map((race) => normalizeLoungeTrackerRace(race, playerCount)) : [];
+    return {
+      id: session?.id || "",
+      created_at: normalizeIsoTime(session?.created_at || ""),
+      completed_at: normalizeIsoTime(session?.completed_at || ""),
+      updated_at: normalizeIsoTime(session?.updated_at || ""),
+      playerCount,
+      races,
+    };
+  }
+
+  function dbLoungeTrackerRaceToLocal(row, playerCount){
+    return normalizeLoungeTrackerRace({
+      id: row.id,
+      track: row.track,
+      race_kind: row.race_kind,
+      intermission_start: row.intermission_start,
+      intermission_end: row.intermission_end,
+      lobby_size: row.lobby_size,
+      placement: row.placement,
+      points: row.points,
+      disconnect: row.disconnect,
+      created_at: row.created_at,
+    }, playerCount);
+  }
+
+  function dbLoungeTrackerMogiToLocal(row, races, playerCount){
+    return normalizeLoungeTrackerSession({
+      id: row.id,
+      created_at: row.created_at,
+      completed_at: row.completed_at,
+      updated_at: row.updated_at,
+      races: (races || []).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)).map((race) => dbLoungeTrackerRaceToLocal(race, playerCount)),
+    }, playerCount);
+  }
+
+  function readStoredLoungeTrackerSessions(mode){
+    const playerCount = loungeTrackerPlayerCount(mode);
+    const raw = readJson(loungeTrackerStorageKey(mode), []);
+    return Array.isArray(raw) ? raw.map((session) => normalizeLoungeTrackerSession(session, playerCount)) : [];
+  }
+
+  async function fetchCloudLoungeTrackerSessions(mode){
+    const resolved = await resolveSession();
+    if(!resolved.client || !resolved.session?.user?.id) return null;
+    const uid = resolved.session.user.id;
+    const playerCount = loungeTrackerPlayerCount(mode);
+
+    const { data: mogis, error: mogiError } = await resolved.client
+      .from("lounge_mogis")
+      .select("id, created_at, completed_at, updated_at, status, player_count")
+      .eq("user_id", uid)
+      .eq("player_count", playerCount)
+      .eq("status", "completed")
+      .order("created_at", { ascending: false });
+    if(mogiError) throw mogiError;
+    if(!(mogis || []).length) return [];
+
+    const { data: races, error: raceError } = await resolved.client
+      .from("lounge_races")
+      .select("id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at")
+      .eq("user_id", uid)
+      .in("mogi_id", mogis.map((mogi) => mogi.id))
+      .order("race_number", { ascending: true });
+    if(raceError) throw raceError;
+
+    const racesByMogi = new Map();
+    for(const race of races || []){
+      if(!racesByMogi.has(race.mogi_id)) racesByMogi.set(race.mogi_id, []);
+      racesByMogi.get(race.mogi_id).push(race);
+    }
+
+    return (mogis || []).map((mogi) => dbLoungeTrackerMogiToLocal(mogi, racesByMogi.get(mogi.id), playerCount));
+  }
+
+  async function loadLoungeTrackerSessions(mode){
+    const localSessions = readStoredLoungeTrackerSessions(mode);
+    try{
+      const cloudSessions = await fetchCloudLoungeTrackerSessions(mode);
+      if(Array.isArray(cloudSessions) && cloudSessions.length) return cloudSessions;
+    }catch(e){
+      console.warn(`Lounge Stats ${loungeTrackerModeLabel(mode)} cloud session load failed:`, e);
+    }
+    return localSessions;
+  }
+
+  function getLoungeTrackerSessions(mode = loungeTrackerChartsState.mode){
+    return loungeTrackerChartsState.sessionsByMode[String(mode)] || [];
+  }
+
+  function aggregateLoungeTrackerTrackStats(mode = loungeTrackerChartsState.trackMode, loungeMode = loungeTrackerChartsState.mode){
+    const bucket = new Map((mode === "tracks" ? LOUNGE_TRACKS : []).map((track) => [track, []]));
+    for(const session of getLoungeTrackerSessions(loungeMode)){
+      for(const race of (session.races || [])){
+        if(race.disconnect) continue;
+        if(!loungeTrackerShouldIncludeRace(race, mode)) continue;
+        const label = loungeTrackerPerformanceLabel(race, mode);
+        if(!label) continue;
+        if(!bucket.has(label)) bucket.set(label, []);
+        bucket.get(label).push(Number(race.points || 0));
+      }
+    }
+    return Array.from(bucket.keys()).map((track) => {
+      const values = bucket.get(track) || [];
+      const count = values.length;
+      const sum = values.reduce((acc, value) => acc + Number(value || 0), 0);
+      return {
+        track,
+        avg: count ? sum / count : 0,
+        count,
+      };
+    });
+  }
+
+  function aggregateLoungeTrackerPlacementStats(mode = loungeTrackerChartsState.placementMode, loungeMode = loungeTrackerChartsState.mode, selectedLabel = loungeTrackerChartsState.placementItem){
+    const effectiveMode = loungeTrackerEffectivePlacementMode(mode, loungeMode);
+    const maxPlacement = loungeTrackerPlayerCount(loungeMode);
+    const counts = Array.from({ length: maxPlacement }, (_, index) => ({ placement: index + 1, count: 0 }));
+    for(const session of getLoungeTrackerSessions(loungeMode)){
+      for(const race of (session.races || [])){
+        if(race.disconnect) continue;
+        if(!loungeTrackerShouldIncludeRace(race, effectiveMode)) continue;
+        if(selectedLabel){
+          const label = loungeTrackerPlacementRaceLabel(race, effectiveMode, loungeMode);
+          if(label !== selectedLabel) continue;
+        }
+        const placement = Number(race.placement);
+        if(Number.isInteger(placement) && placement >= 1 && placement <= maxPlacement){
+          counts[placement - 1].count += 1;
+        }
+      }
+    }
+    return counts;
+  }
+
+  function sortLoungeTrackerTrackStats(stats){
+    const rows = stats.slice();
+    const mul = loungeTrackerChartsState.trackSortDir === "asc" ? 1 : -1;
+    rows.sort((a, b) => {
+      if(loungeTrackerChartsState.trackSortKey === "count"){
+        const countDiff = a.count - b.count;
+        if(countDiff !== 0) return mul * countDiff;
+        const avgDiff = a.avg - b.avg;
+        if(avgDiff !== 0) return mul * avgDiff;
+        return a.track.localeCompare(b.track, "de");
+      }
+      const avgDiff = a.avg - b.avg;
+      if(avgDiff !== 0) return mul * avgDiff;
+      const countDiff = a.count - b.count;
+      if(countDiff !== 0) return mul * countDiff;
+      return a.track.localeCompare(b.track, "de");
+    });
+    return rows;
+  }
+
+  function loungeTrackerTrackModeLabel(mode = loungeTrackerChartsState.trackMode){
+    if(mode === "im_destiny") return "Intermission Destiny";
+    if(mode === "im_routes") return "Intermission Separated";
+    return "Tracks";
+  }
+
+  function loungeTrackerPlacementModeLabel(mode = loungeTrackerChartsState.placementMode){
+    if(mode === "tracks") return "Tracks";
+    if(mode === "intermission") return "Intermission";
+    return "All";
+  }
+
+  function loungeTrackerEffectivePlacementMode(mode = loungeTrackerChartsState.placementMode, loungeMode = loungeTrackerChartsState.mode){
+    return loungeTrackerAllowsIntermission(loungeMode)
+      ? (["all", "tracks", "intermission"].includes(mode) ? mode : "all")
+      : "tracks";
+  }
+
+  function loungeTrackerPlacementItemType(mode = loungeTrackerChartsState.placementMode, loungeMode = loungeTrackerChartsState.mode){
+    return loungeTrackerEffectivePlacementMode(mode, loungeMode) === "intermission" ? "routes" : "tracks";
+  }
+
+  function loungeTrackerPlacementItemLabel(type = loungeTrackerPlacementItemType(), value = loungeTrackerChartsState.placementItem){
+    const clean = cleanText(value || "");
+    if(clean) return clean;
+    return type === "routes" ? "All routes" : "All tracks";
+  }
+
+  function loungeTrackerPlacementRaceLabel(race, mode = loungeTrackerChartsState.placementMode, loungeMode = loungeTrackerChartsState.mode){
+    const effectiveMode = loungeTrackerEffectivePlacementMode(mode, loungeMode);
+    if(effectiveMode === "intermission"){
+      const { start, end } = loungeTrackerRouteParts(race);
+      return start && end ? loungeTrackerRouteLabel(start, end) : cleanText(race?.track || "");
+    }
+    return cleanText(race?.track || "");
+  }
+
+  function collectLoungeTrackerPlacementItems(mode = loungeTrackerChartsState.placementMode, loungeMode = loungeTrackerChartsState.mode){
+    const effectiveMode = loungeTrackerEffectivePlacementMode(mode, loungeMode);
+    const type = loungeTrackerPlacementItemType(mode, loungeMode);
+    const counts = new Map();
+    const order = type === "tracks" ? [...LOUNGE_TRACKS] : [];
+    for(const session of getLoungeTrackerSessions(loungeMode)){
+      for(const race of (session.races || [])){
+        if(race.disconnect) continue;
+        if(!loungeTrackerShouldIncludeRace(race, effectiveMode)) continue;
+        const label = loungeTrackerPlacementRaceLabel(race, effectiveMode, loungeMode);
+        if(!label) continue;
+        counts.set(label, (counts.get(label) || 0) + 1);
+        if(type === "routes" && !order.includes(label)) order.push(label);
+      }
+    }
+    const labels = order.filter((label) => counts.has(label));
+    if(type === "routes"){
+      labels.sort((a, b) => a.localeCompare(b, "de"));
+    }
+    return labels.map((label) => ({ label, count: counts.get(label) || 0 }));
+  }
+
+  function destroyLoungeTrackerCharts(){
+    loungeTrackerChartsState.trackChart?.destroy();
+    loungeTrackerChartsState.placementChart?.destroy();
+    loungeTrackerChartsState.trackChart = null;
+    loungeTrackerChartsState.placementChart = null;
   }
 
   function rankChartBorder(value){
@@ -1471,8 +1907,8 @@
         datasets: [{
           label: "Daily Play Time",
           data: dailyHours,
-          backgroundColor: "rgba(78,124,255,.82)",
-          borderColor: "rgb(78,124,255)",
+          backgroundColor: cssVar("--chart-split-a-fill", "rgba(78,124,255,.82)"),
+          borderColor: cssVar("--chart-split-a-stroke", "rgb(78,124,255)"),
           borderWidth: 1,
         }],
       },
@@ -1606,6 +2042,460 @@
           },
         },
       });
+    }
+  }
+
+  function updateLoungeTrackerModeButtons(){
+    const is24 = loungeTrackerChartsState.mode === "24";
+    const effectivePlacementMode = loungeTrackerEffectivePlacementMode();
+    const modeValue = $("mkcLoungeModeFilterValue");
+    if(modeValue) modeValue.textContent = loungeTrackerModeLabel();
+    document.querySelectorAll("[data-mkc-lounge-mode]").forEach((button) => {
+      const active = button.getAttribute("data-mkc-lounge-mode") === loungeTrackerChartsState.mode;
+      button.classList.toggle("active", active);
+    });
+
+    const pager = $("mkcLoungeTrackPager");
+    if(pager) pager.hidden = !is24;
+
+    const placementFilterRoot = $("mkcLoungePlacementFilterRoot");
+    if(placementFilterRoot) placementFilterRoot.hidden = !is24;
+
+    const trackMeta = $("mkcLoungeTrackModeMeta");
+    if(trackMeta) trackMeta.textContent = loungeTrackerTrackModeLabel();
+
+    const placementMeta = $("mkcLoungePlacementMeta");
+    if(placementMeta) {
+      placementMeta.textContent = effectivePlacementMode === "intermission" ? "Intermission" : effectivePlacementMode === "all" ? "All" : "Tracks";
+    }
+
+    document.querySelectorAll("[data-mkc-track-mode]").forEach((button) => {
+      const active = button.getAttribute("data-mkc-track-mode") === loungeTrackerChartsState.trackMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    const trackSortLabel = loungeTrackerChartsState.trackSortKey === "count" ? "Most played" : "Performance";
+    const trackSortArrow = loungeTrackerChartsState.trackSortDir === "desc" ? "v" : "^";
+    const trackFilterValue = $("mkcLoungeTrackFilterValue");
+    if(trackFilterValue) trackFilterValue.textContent = `${trackSortLabel} ${trackSortArrow}`;
+    [
+      ["avg", $("optMkcLoungeTrackSortAvg")],
+      ["count", $("optMkcLoungeTrackSortCount")],
+    ].forEach(([key, button]) => {
+      if(!button) return;
+      const active = loungeTrackerChartsState.trackSortKey === key;
+      button.classList.toggle("active", active);
+      const meta = button.querySelector(".mkcTrackerFilterMeta");
+      if(meta) meta.textContent = active ? trackSortArrow : "";
+    });
+
+    const placementFilterValue = $("mkcLoungePlacementFilterValue");
+    if(placementFilterValue) placementFilterValue.textContent = loungeTrackerPlacementModeLabel();
+    document.querySelectorAll("[data-mkc-placement-mode]").forEach((button) => {
+      const active = button.getAttribute("data-mkc-placement-mode") === loungeTrackerChartsState.placementMode;
+      button.classList.toggle("active", active);
+    });
+
+    const placementItemFilterValue = $("mkcLoungePlacementItemFilterValue");
+    if(placementItemFilterValue) {
+      placementItemFilterValue.textContent = loungeTrackerPlacementItemLabel();
+    }
+    const placementItemFilterRoot = $("mkcLoungePlacementItemFilterRoot");
+    if(placementItemFilterRoot) {
+      placementItemFilterRoot.hidden = is24 && effectivePlacementMode === "all";
+    }
+  }
+
+  function closeLoungeTrackerMenus(){
+    [
+      ["btnMkcLoungeModeFilter", "menuMkcLoungeModeFilter"],
+      ["btnMkcLoungeTrackFilter", "menuMkcLoungeTrackFilter"],
+      ["btnMkcLoungePlacementFilter", "menuMkcLoungePlacementFilter"],
+      ["btnMkcLoungePlacementItemFilter", "menuMkcLoungePlacementItemFilter"],
+    ].forEach(([buttonId, menuId]) => {
+      const button = $(buttonId);
+      const menu = $(menuId);
+      if(button) button.setAttribute("aria-expanded", "false");
+      if(menu) menu.hidden = true;
+    });
+  }
+
+  function toggleLoungeTrackerMenu(buttonId, menuId){
+    const button = $(buttonId);
+    const menu = $(menuId);
+    if(!button || !menu) return;
+    const nextOpen = menu.hidden;
+    closeLoungeTrackerMenus();
+    menu.hidden = !nextOpen;
+    button.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+  }
+
+  function renderLoungeTrackerInsight(trackName){
+    loungeTrackerChartsState.lastSelectedTrack = trackName || null;
+    const el = $("mkcLoungeTrackInsight");
+    if(!el) return;
+    const stat = loungeTrackerChartsState.lastTrackStats.find((entry) => entry.track === trackName);
+    if(!stat){
+      el.innerHTML = '<div class="muted">Click on a bar to see AVG points and times played.</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div class="mkcTrackerInsightTitle">${escapeHtml(stat.track)}</div>
+      <div class="mkcTrackerInsightMeta">${escapeHtml(loungeTrackerTrackModeLabel())} details from saved ${escapeHtml(loungeTrackerModeLabel())} Mogis</div>
+      <div class="mkcTrackerInsightGrid">
+        <div class="mkcTrackerInsightStat">
+          <span class="mkcTrackerInsightLabel">AVG points</span>
+          <span class="mkcTrackerInsightValue">${stat.count ? stat.avg.toFixed(2) : "-"}</span>
+        </div>
+        <div class="mkcTrackerInsightStat">
+          <span class="mkcTrackerInsightLabel">Times played</span>
+          <span class="mkcTrackerInsightValue">${stat.count}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderLoungeTrackerPlacementInsight(message, selectedLabel = ""){
+    const el = $("mkcLoungePlacementInsight");
+    if(!el) return;
+    if(message){
+      el.innerHTML = `<div class="muted">${escapeHtml(message)}</div>`;
+      return;
+    }
+    const effectiveMode = loungeTrackerEffectivePlacementMode();
+    if(effectiveMode === "all"){
+      el.innerHTML = `<div class="muted">${escapeHtml(`All saved races in ${loungeTrackerModeLabel()} Mogis.`)}</div>`;
+      return;
+    }
+    const type = loungeTrackerPlacementItemType();
+    const label = selectedLabel
+      ? `${selectedLabel} placements in saved ${loungeTrackerModeLabel()} Mogis`
+      : `${type === "routes" ? "All intermission routes" : "All tracks"} in saved ${loungeTrackerModeLabel()} Mogis`;
+    el.innerHTML = `<div class="muted">${escapeHtml(label)}</div>`;
+  }
+
+  function renderLoungeTrackerTrackChart(stats){
+    const canvas = $("chartMkcLoungeTrack");
+    if(!canvas || typeof Chart === "undefined") return;
+    const sortedStats = sortLoungeTrackerTrackStats(stats).slice(0, 30);
+    loungeTrackerChartsState.lastTrackStats = sortedStats;
+    if(!sortedStats.length){
+      loungeTrackerChartsState.trackChart?.destroy();
+      loungeTrackerChartsState.trackChart = null;
+      renderLoungeTrackerInsight(null);
+      const emptyMode = loungeTrackerTrackModeLabel();
+      const insight = $("mkcLoungeTrackInsight");
+      if(insight){
+        insight.innerHTML = `<div class="muted">No saved ${escapeHtml(emptyMode)} data found yet for ${escapeHtml(loungeTrackerModeLabel())}.</div>`;
+      }
+      return;
+    }
+
+    const positiveStroke = cssVar("--chart-positive-stroke", "#4da319");
+    const negativeStroke = cssVar("--chart-negative-stroke", "#ff5050");
+    const neutralStroke = cssVar("--chart-split-a-stroke", "#4e7cff");
+    const positiveFill = colorWithAlpha(positiveStroke, 0.78);
+    const negativeFill = colorWithAlpha(negativeStroke, 0.76);
+    const neutralFill = colorWithAlpha(neutralStroke, 0.58);
+    const threshold = loungeTrackerAvgThreshold();
+
+    const labels = sortedStats.map((row) => row.track);
+    const values = sortedStats.map((row) => Number(row.avg.toFixed(2)));
+    const fills = sortedStats.map((row) => row.count === 0 ? neutralFill : row.avg >= threshold ? positiveFill : negativeFill);
+    const borders = sortedStats.map((row) => row.count === 0 ? neutralStroke : row.avg >= threshold ? positiveStroke : negativeStroke);
+
+    loungeTrackerChartsState.trackChart?.destroy();
+    loungeTrackerChartsState.trackChart = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: `Average points (${loungeTrackerTrackModeLabel()})`,
+          data: values,
+          backgroundColor: fills,
+          borderColor: borders,
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: "y",
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: 15,
+            ticks: { color: cssVar("--text", "#fff") },
+            grid: { color: cssVar("--border", "rgba(255,255,255,.18)") },
+          },
+          y: {
+            ticks: { color: cssVar("--text", "#fff"), autoSkip: false },
+            grid: { display: false },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const row = sortedStats[ctx.dataIndex];
+                return [
+                  `${loungeTrackerTrackModeLabel()}`,
+                  `AVG points: ${Number(row?.avg || 0).toFixed(2)}`,
+                  `Played: ${Number(row?.count || 0)}`,
+                ];
+              },
+            },
+          },
+        },
+        onClick: (_, elements) => {
+          if(!elements?.length) return;
+          const selected = labels[elements[0].index];
+          renderLoungeTrackerInsight(selected);
+        },
+      },
+    });
+  }
+
+  function loungePlacementFill(placement){
+    const place = Number(placement);
+    if(place === 1) return "rgba(255,205,70,.74)";
+    if(place === 2) return "rgba(210,220,232,.68)";
+    if(place === 3) return "rgba(205,128,70,.70)";
+    return colorWithAlpha(cssVar("--chart-split-a-stroke", "#4e7cff"), 0.58);
+  }
+
+  function loungePlacementBorder(placement){
+    const place = Number(placement);
+    if(place === 1) return "rgba(255,205,70,1)";
+    if(place === 2) return "rgba(230,238,248,.95)";
+    if(place === 3) return "rgba(222,145,82,.95)";
+    return cssVar("--chart-split-a-stroke", "#4e7cff");
+  }
+
+  function renderLoungeTrackerPlacementChart(stats){
+    const canvas = $("chartMkcLoungePlacement");
+    if(!canvas || typeof Chart === "undefined") return;
+    if(!stats.some((row) => Number(row.count || 0) > 0)){
+      loungeTrackerChartsState.placementChart?.destroy();
+      loungeTrackerChartsState.placementChart = null;
+      renderLoungeTrackerPlacementInsight(`No saved placement data found for ${loungeTrackerPlacementItemLabel()} in ${loungeTrackerModeLabel()}.`);
+      return;
+    }
+    renderLoungeTrackerPlacementInsight("", loungeTrackerChartsState.placementItem);
+    const labels = stats.map((row) => String(row.placement));
+    const values = stats.map((row) => Number(row.count || 0));
+    const total = values.reduce((sum, value) => sum + value, 0);
+
+    loungeTrackerChartsState.placementChart?.destroy();
+    loungeTrackerChartsState.placementChart = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Placements",
+          data: values,
+          backgroundColor: stats.map((row) => loungePlacementFill(row.placement)),
+          borderColor: stats.map((row) => loungePlacementBorder(row.placement)),
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: { display: true, text: "Placement", color: cssVar("--muted", "#aab2c5") },
+            ticks: { color: cssVar("--text", "#fff") },
+            grid: { display: false },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: cssVar("--text", "#fff"), precision: 0 },
+            grid: { color: cssVar("--border", "rgba(255,255,255,.18)") },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const count = Number(ctx.parsed.y || 0);
+                const chance = total ? ((count / total) * 100).toFixed(1) : "0.0";
+                return [
+                  `${count} races`,
+                  `Chance: ${chance}% (${count} / ${total} tracked races)`,
+                ];
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function renderLoungeTrackerSection(){
+    updateLoungeTrackerModeButtons();
+    const meta = $("mkcLocalTrackerMeta");
+    const sessions = getLoungeTrackerSessions();
+    const races = sessions.flatMap((session) => session.races || []);
+    const nonDcCount = races.filter((race) => !race.disconnect).length;
+    if(meta){
+      meta.textContent = sessions.length
+        ? `${loungeTrackerModeLabel()} from saved tracker Mogis: ${sessions.length} Mogis / ${nonDcCount} non-DC races.`
+        : `No saved ${loungeTrackerModeLabel()} tracker Mogis found yet in this browser/account.`;
+    }
+    if(!sessions.length || !races.length){
+      destroyLoungeTrackerCharts();
+      renderLoungeTrackerInsight(null);
+      renderLoungeTrackerPlacementInsight(`No saved ${loungeTrackerModeLabel()} tracker Mogis found yet in this browser/account.`);
+      return;
+    }
+
+    const trackStats = aggregateLoungeTrackerTrackStats(loungeTrackerChartsState.trackMode, loungeTrackerChartsState.mode);
+    const placementMode = loungeTrackerEffectivePlacementMode(loungeTrackerChartsState.placementMode, loungeTrackerChartsState.mode);
+    const placementItems = collectLoungeTrackerPlacementItems(placementMode, loungeTrackerChartsState.mode);
+    if(loungeTrackerChartsState.placementItem && !placementItems.some((entry) => entry.label === loungeTrackerChartsState.placementItem)){
+      loungeTrackerChartsState.placementItem = "";
+    }
+    const placementItemFilterValue = $("mkcLoungePlacementItemFilterValue");
+    if(placementItemFilterValue){
+      placementItemFilterValue.textContent = loungeTrackerPlacementItemLabel(
+        loungeTrackerPlacementItemType(placementMode, loungeTrackerChartsState.mode),
+        loungeTrackerChartsState.placementItem
+      );
+    }
+    const placementItemMenu = $("menuMkcLoungePlacementItemFilter");
+    if(placementItemMenu){
+      const allLabel = loungeTrackerPlacementItemType(placementMode, loungeTrackerChartsState.mode) === "routes" ? "All routes" : "All tracks";
+      const rows = [
+        `<button class="mkcTrackerFilterItem${!loungeTrackerChartsState.placementItem ? " active" : ""}" data-mkc-placement-item="" type="button"><span>${escapeHtml(allLabel)}</span></button>`,
+        ...placementItems.map((entry) => `<button class="mkcTrackerFilterItem${loungeTrackerChartsState.placementItem === entry.label ? " active" : ""}" data-mkc-placement-item="${escapeHtml(entry.label)}" type="button"><span>${escapeHtml(entry.label)}</span><span class="mkcTrackerFilterMeta">${entry.count}</span></button>`),
+      ];
+      placementItemMenu.innerHTML = rows.join("");
+      placementItemMenu.querySelectorAll("[data-mkc-placement-item]").forEach((button) => {
+        button.addEventListener("click", () => {
+          closeLoungeTrackerMenus();
+          setLoungeTrackerPlacementItem(button.getAttribute("data-mkc-placement-item"));
+        });
+      });
+    }
+    const placementStats = aggregateLoungeTrackerPlacementStats(placementMode, loungeTrackerChartsState.mode, loungeTrackerChartsState.placementItem);
+    renderLoungeTrackerTrackChart(trackStats);
+    renderLoungeTrackerPlacementChart(placementStats);
+    const selectedTrack = loungeTrackerChartsState.lastSelectedTrack;
+    if(selectedTrack && trackStats.some((row) => row.track === selectedTrack)) renderLoungeTrackerInsight(selectedTrack);
+    else renderLoungeTrackerInsight(null);
+  }
+
+  function setLoungeTrackerMode(mode){
+    const next = String(mode) === "24" ? "24" : "12";
+    loungeTrackerChartsState.mode = next;
+    loungeTrackerChartsState.lastSelectedTrack = null;
+    loungeTrackerChartsState.placementItem = "";
+    if(!loungeTrackerAllowsIntermission(next)){
+      loungeTrackerChartsState.trackMode = "tracks";
+      loungeTrackerChartsState.placementMode = "all";
+    }
+    closeLoungeTrackerMenus();
+    renderLoungeTrackerSection();
+  }
+
+  function setLoungeTrackerTrackMode(mode){
+    if(!loungeTrackerAllowsIntermission()) mode = "tracks";
+    if(!["tracks", "im_destiny", "im_routes"].includes(mode)) mode = "tracks";
+    loungeTrackerChartsState.trackMode = mode;
+    loungeTrackerChartsState.lastSelectedTrack = null;
+    renderLoungeTrackerSection();
+  }
+
+  function setLoungeTrackerTrackSort(key){
+    if(loungeTrackerChartsState.trackSortKey === key){
+      loungeTrackerChartsState.trackSortDir = loungeTrackerChartsState.trackSortDir === "desc" ? "asc" : "desc";
+    }else{
+      loungeTrackerChartsState.trackSortKey = key === "count" ? "count" : "avg";
+      loungeTrackerChartsState.trackSortDir = "desc";
+    }
+    renderLoungeTrackerSection();
+  }
+
+  function setLoungeTrackerPlacementMode(mode){
+    if(!loungeTrackerAllowsIntermission()) mode = "all";
+    if(!["all", "tracks", "intermission"].includes(mode)) mode = "all";
+    loungeTrackerChartsState.placementMode = mode;
+    loungeTrackerChartsState.placementItem = "";
+    renderLoungeTrackerSection();
+  }
+
+  function setLoungeTrackerPlacementItem(value){
+    loungeTrackerChartsState.placementItem = cleanText(value || "");
+    renderLoungeTrackerSection();
+  }
+
+  function bindLoungeTrackerControls(){
+    $("btnMkcLoungeModeFilter")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleLoungeTrackerMenu("btnMkcLoungeModeFilter", "menuMkcLoungeModeFilter");
+    });
+    $("btnMkcLoungeTrackFilter")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleLoungeTrackerMenu("btnMkcLoungeTrackFilter", "menuMkcLoungeTrackFilter");
+    });
+    $("btnMkcLoungePlacementFilter")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleLoungeTrackerMenu("btnMkcLoungePlacementFilter", "menuMkcLoungePlacementFilter");
+    });
+    $("btnMkcLoungePlacementItemFilter")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleLoungeTrackerMenu("btnMkcLoungePlacementItemFilter", "menuMkcLoungePlacementItemFilter");
+    });
+    document.querySelectorAll("[data-mkc-lounge-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        closeLoungeTrackerMenus();
+        setLoungeTrackerMode(button.getAttribute("data-mkc-lounge-mode"));
+      });
+    });
+    document.querySelectorAll("[data-mkc-track-sort]").forEach((button) => {
+      button.addEventListener("click", () => {
+        closeLoungeTrackerMenus();
+        setLoungeTrackerTrackSort(button.getAttribute("data-mkc-track-sort"));
+      });
+    });
+    document.querySelectorAll("[data-mkc-track-mode]").forEach((button) => {
+      button.addEventListener("click", () => setLoungeTrackerTrackMode(button.getAttribute("data-mkc-track-mode")));
+    });
+    document.querySelectorAll("[data-mkc-placement-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        closeLoungeTrackerMenus();
+        setLoungeTrackerPlacementMode(button.getAttribute("data-mkc-placement-mode"));
+      });
+    });
+    document.addEventListener("click", (event) => {
+      const modeRoot = $("mkcLoungeModeFilterRoot");
+      const trackRoot = $("mkcLoungeTrackFilterRoot");
+      const placementRoot = $("mkcLoungePlacementFilterRoot");
+      const placementItemRoot = $("mkcLoungePlacementItemFilterRoot");
+      if(modeRoot?.contains(event.target) || trackRoot?.contains(event.target) || placementRoot?.contains(event.target) || placementItemRoot?.contains(event.target)) return;
+      closeLoungeTrackerMenus();
+    });
+  }
+
+  async function loadLoungeTrackerChartData(){
+    try{
+      await loadLoungeTrackerIntermissionMeta();
+      const [sessions12, sessions24] = await Promise.all([
+        loadLoungeTrackerSessions("12"),
+        loadLoungeTrackerSessions("24"),
+      ]);
+      loungeTrackerChartsState.sessionsByMode["12"] = sessions12;
+      loungeTrackerChartsState.sessionsByMode["24"] = sessions24;
+      renderLoungeTrackerSection();
+    }catch(e){
+      console.warn("Lounge tracker chart data failed to load:", e);
+      loungeTrackerChartsState.sessionsByMode["12"] = [];
+      loungeTrackerChartsState.sessionsByMode["24"] = [];
+      renderLoungeTrackerSection();
     }
   }
 
@@ -1782,6 +2672,7 @@
 
   async function init(){
     bindMkcReport();
+    bindLoungeTrackerControls();
     activeScope = readScope();
     pendingScope = normalizeScope(activeScope);
     setScopeDisplay();
@@ -1789,6 +2680,7 @@
     const playerId = setPlayerDisplay(savedRef);
     if(playerId) render(getStoredPayload(playerId, activeScope));
     else render(null);
+    await loadLoungeTrackerChartData();
     $("btnUpdateMkc")?.addEventListener("click", openUpdateDialog);
     $("btnRunMkcUpdate")?.addEventListener("click", async () => {
       closeUpdateDialog();

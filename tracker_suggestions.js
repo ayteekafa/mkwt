@@ -1,4 +1,4 @@
-// ===== Suggestion (next Intermission start) =====
+﻿// ===== Suggestion (next Intermission start) =====
 function getLastSuggestedTrack() {
   try { return localStorage.getItem('mkwt_last_next_start') || ''; } catch(e) { return ''; }
 }
@@ -102,7 +102,7 @@ function applyStartSuggestionOrdering(selectEl){
 // without resetting the user's current selections or the existing filter logic.
 function refreshSuggestionOptionInStartSelect(selectEl){
   // Legacy name kept to avoid touching existing call sites.
-  // Ensures EXACTLY ONE highlighted suggested option (★) at the top (if allowed) without changing values.
+  // Ensures EXACTLY ONE highlighted suggested option (â˜…) at the top (if allowed) without changing values.
   try {
     const isStartSelect = (selectEl?.id === 'intermission' || selectEl?.id === 'editIntermission');
     if (!isStartSelect) return;
@@ -113,8 +113,8 @@ function refreshSuggestionOptionInStartSelect(selectEl){
     // Remove any previous visual markers so old suggestions never linger.
     for (const opt of Array.from(selectEl.querySelectorAll('option'))){
       if (opt.value === '') continue;
-      if (opt.textContent && opt.textContent.startsWith('★ ')) {
-        opt.textContent = opt.textContent.slice(2);
+      if (opt.textContent && opt.textContent.startsWith("Suggested: ")) {
+        opt.textContent = opt.value;
       }
       if (opt.dataset) delete opt.dataset.suggested;
     }
@@ -123,7 +123,7 @@ function refreshSuggestionOptionInStartSelect(selectEl){
     const opt = selectEl.querySelector(`option[value="${CSS.escape(suggested)}"]`);
     if (!opt || !placeholderOpt) return; // not allowed / not present
 
-    opt.textContent = `★ ${suggested}`;
+    opt.textContent = `Suggested: ${suggested}`;
     opt.dataset.suggested = '1';
     if (opt !== placeholderOpt.nextSibling) {
       selectEl.insertBefore(opt, placeholderOpt.nextSibling);

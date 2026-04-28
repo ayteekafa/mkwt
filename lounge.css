@@ -10,6 +10,7 @@
 .cardSection{padding:20px}
 .sectionHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px}
 .sectionHead--split{margin-bottom:18px}
+.sectionHeadActions{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .sectionText{margin-top:8px;max-width:760px;line-height:1.45}
 .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:800}
 .fieldLabel{display:block;margin-bottom:8px;color:var(--muted);font-size:13px;font-weight:700}
@@ -26,8 +27,8 @@
 label span{display:block;margin-bottom:6px;color:var(--muted);font-size:13px;font-weight:700}
 select,input,button{font:inherit}
 select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card-2);color:var(--text);outline:none}
+select optgroup.loungeOptgroupUsed{color:#8592a4;font-style:normal}
 select option.loungeOptionUsed{background:#10141b;color:#667386}
-select option.loungeOptionUsed:disabled{background:#10141b;color:#667386}
 select:focus{box-shadow:var(--ring);border-color:var(--primary)}
 .segRow{display:flex;gap:8px;flex-wrap:wrap}
 .segRow--compact .navAction{min-width:72px}
@@ -50,26 +51,124 @@ select:focus{box-shadow:var(--ring);border-color:var(--primary)}
 table{width:100%;border-collapse:separate;border-spacing:0 7px}
 th,td{padding:11px 12px;border-bottom:0;text-align:left;vertical-align:top}
 thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-tbody tr.raceRow td{background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)), var(--card-2);border:0;font-weight:700}
+tbody tr.raceRow{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 7%, transparent), transparent 58%),
+    var(--card-2);
+}
+tbody tr.raceRow td{background:transparent;border:0;font-weight:700}
 tbody tr.raceRow td:first-child{border-radius:8px 0 0 8px}
 tbody tr.raceRow td:last-child{border-radius:0 8px 8px 0}
-tbody tr.raceRow--gold td{background:linear-gradient(180deg, rgba(255,205,70,.28), rgba(255,205,70,.08)), var(--card-2)}
-tbody tr.raceRow--silver td{background:linear-gradient(180deg, rgba(210,220,232,.26), rgba(210,220,232,.08)), var(--card-2)}
-tbody tr.raceRow--bronze td{background:linear-gradient(180deg, rgba(205,128,70,.27), rgba(205,128,70,.08)), var(--card-2)}
-tbody tr.raceRow--dark td{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)), var(--card-2)}
-tbody tr.raceRow--dc td{background:linear-gradient(180deg, rgba(108,24,34,.34) 0%, rgba(108,24,34,.15) 36%, rgba(255,255,255,.014) 100%), var(--card-2);border-color:var(--border);color:#ffdce0}
+tbody tr.raceRow:hover{
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--primary) 12%, transparent) 0%, transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.035)),
+    var(--card-2);
+}
+tbody tr.raceRow--gold{
+  background:
+    radial-gradient(circle at -18% 50%, rgba(255,205,70,0.24) 0%, rgba(255,205,70,0.14) 16%, rgba(255,205,70,0.05) 25%, transparent 33%),
+    radial-gradient(circle at -2% 50%, rgba(255,205,70,0.12) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--card-2);
+}
+tbody tr.raceRow--silver{
+  background:
+    radial-gradient(circle at -18% 50%, rgba(210,220,232,0.22) 0%, rgba(210,220,232,0.12) 16%, rgba(210,220,232,0.045) 25%, transparent 33%),
+    radial-gradient(circle at -2% 50%, rgba(210,220,232,0.11) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--card-2);
+}
+tbody tr.raceRow--bronze{
+  background:
+    radial-gradient(circle at -18% 50%, rgba(205,128,70,0.22) 0%, rgba(205,128,70,0.12) 16%, rgba(205,128,70,0.045) 25%, transparent 33%),
+    radial-gradient(circle at -2% 50%, rgba(205,128,70,0.11) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--card-2);
+}
+tbody tr.raceRow--gold:hover{
+  background:
+    radial-gradient(circle at -18% 50%, rgba(255,205,70,0.30) 0%, rgba(255,205,70,0.16) 16%, rgba(255,205,70,0.06) 25%, transparent 33%),
+    radial-gradient(circle at -2% 50%, rgba(255,205,70,0.16) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.035)),
+    var(--card-2);
+}
+tbody tr.raceRow--silver:hover{
+  background:
+    radial-gradient(circle at -18% 50%, rgba(210,220,232,0.28) 0%, rgba(210,220,232,0.15) 16%, rgba(210,220,232,0.055) 25%, transparent 33%),
+    radial-gradient(circle at -2% 50%, rgba(210,220,232,0.15) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.035)),
+    var(--card-2);
+}
+tbody tr.raceRow--bronze:hover{
+  background:
+    radial-gradient(circle at -18% 50%, rgba(205,128,70,0.28) 0%, rgba(205,128,70,0.15) 16%, rgba(205,128,70,0.055) 25%, transparent 33%),
+    radial-gradient(circle at -2% 50%, rgba(205,128,70,0.15) 0%, transparent 14%),
+    linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.035)),
+    var(--card-2);
+}
+tbody tr.raceRow--dark{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+    var(--card-2);
+}
+tbody tr.raceRow--dc{
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--danger) 34%, transparent) 0%, color-mix(in srgb, var(--danger) 15%, transparent) 36%, rgba(255,255,255,.014) 100%),
+    var(--card-2);
+  color:color-mix(in srgb, var(--danger-text) 86%, #ffffff);
+}
 .routeStack{display:flex;flex-direction:column;gap:4px;line-height:1.2}
 .routeStackLine{display:flex;gap:8px;align-items:baseline;min-width:0}
 .routeStackLabel{min-width:52px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:900}
+.raceTrackVisual,
+.raceRouteVisual{display:flex;align-items:center;justify-content:center;min-height:58px}
+.raceTrackVisual{width:74px;margin-inline:auto}
+.raceRouteVisual{gap:10px;width:fit-content;max-width:100%;margin-inline:auto}
+.raceRouteNode{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:54px;height:54px;overflow:hidden}
+.raceRouteNode--destiny{margin-left:2px}
+.raceTrackIcon,
+.raceTrackIconFallback{width:54px;height:54px;display:block;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.22))}
+.raceTrackIcon{background:transparent;transform:scale(1.12);transform-origin:center}
+.raceTrackIconFallback{border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)), var(--hover);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:950;letter-spacing:.04em}
+.raceRouteArrow{width:18px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:var(--muted);opacity:.92;flex:0 0 auto}
+.raceMetaCell--entry{text-align:right}
+.raceMetaCell--result{text-align:center}
+.raceCompactMeta{display:inline-flex;flex-direction:column;gap:2px;line-height:1.05;white-space:nowrap}
+.raceCompactMeta--entry{align-items:flex-end}
+.raceCompactMeta--result{align-items:center}
+.raceCompactMeta__main{font-weight:800}
+.raceCompactMeta__sub{color:var(--muted);font-weight:700;font-size:12px}
 .navAction{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card-2);color:var(--text);cursor:pointer}
 .navAction.active{background:var(--primary);color:var(--primary-text);border-color:var(--primary)}
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--card-2)}
-.statValue.avgGood{color:#4da319;text-shadow:0 0 12px rgba(77,163,25,.28)}
-.statValue.avgBad{color:#ff5050;text-shadow:0 0 12px rgba(255,80,80,.24)}
-.statValue .avgGood{color:#4da319;text-shadow:0 0 12px rgba(77,163,25,.28)}
-.statValue .avgBad{color:#ff5050;text-shadow:0 0 12px rgba(255,80,80,.24)}
+.statValue.avgGood{color:var(--chart-positive-stroke);text-shadow:0 0 12px color-mix(in srgb, var(--chart-positive-stroke) 28%, transparent)}
+.statValue.avgBad{color:var(--chart-negative-stroke);text-shadow:0 0 12px color-mix(in srgb, var(--chart-negative-stroke) 24%, transparent)}
+.statValue .avgGood{color:var(--chart-positive-stroke);text-shadow:0 0 12px color-mix(in srgb, var(--chart-positive-stroke) 28%, transparent)}
+.statValue .avgBad{color:var(--chart-negative-stroke);text-shadow:0 0 12px color-mix(in srgb, var(--chart-negative-stroke) 24%, transparent)}
 .avgDivider{display:inline-block;margin:0 6px;color:var(--muted)}
 .chartShell{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.modeComparePanel{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+.compareSectionHead{margin-bottom:10px}
+.modeCompareMeta{line-height:1.45}
+.chartWrapCompare{height:620px}
+.compareAction{display:inline-flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-width:0;max-width:240px;padding:8px 10px;border-radius:10px;border:1px solid color-mix(in srgb, var(--chart-split-a-stroke) 48%, var(--border));background:linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 14%, transparent)),var(--surface-panel);color:var(--text);box-shadow:0 8px 18px rgba(0,0,0,.14);cursor:pointer}
+.compareAction--sm{padding:7px 10px}
+.compareAction.active{border-color:color-mix(in srgb, var(--chart-split-a-stroke) 70%, var(--border));background:linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 24%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 18%, transparent)),var(--surface-panel)}
+.compareAction__eyebrow{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.compareAction__label{font-size:12px;line-height:1.15;font-weight:900}
+.compareDialog{width:min(1180px,calc(100vw - 24px));border:1px solid var(--border);border-radius:16px;padding:0;background:var(--surface-dialog);color:var(--text);box-shadow:var(--shadow)}
+.compareDialog::backdrop{background:var(--backdrop)}
+.compareDialogPanel{padding:18px}
+.compareDialogHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.compareDialogHead h3{margin:0}
+.compareDialogEyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:8px}
+.compareDialogMeta{margin-top:8px}
+.compareDialog .modeComparePanel{margin-top:0;padding-top:0;border-top:none}
+.modeCompareNotes{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.modeCompareNote{padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:var(--surface-panel);line-height:1.45}
+.modeCompareNote b{color:var(--text)}
 .placementChartBlock{margin-top:20px}
 .placementChartHead{margin-bottom:10px}
 .chartWrapPlacement{height:320px}
@@ -78,22 +177,180 @@ tbody tr.raceRow--dc td{background:linear-gradient(180deg, rgba(108,24,34,.34) 0
 .trackInsight{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card-2)}
 .trackInsightTitle{font-size:18px;font-weight:800;margin-bottom:4px}
 .trackInsightGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
-.sessionListCompact{display:flex;flex-direction:column;gap:12px}
-.sessionCard{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--card-2)}
-.sessionCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.sessionTitle{font-size:16px;font-weight:800;margin-bottom:4px}
-.sessionMkcMeta{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:8px 0 6px}
-.sessionMkcMeta span,.sessionMkcMeta a{font-size:12px;line-height:1.2}
-.sessionMkcHint{font-size:12px;line-height:1.35;margin-bottom:6px}
-.sessionMkcLink{text-decoration:none;color:var(--link)}
-.sessionMkcLink:hover{text-decoration:underline}
-.sessionMkcGainGood{color:#4da319;font-weight:800}
-.sessionMkcGainBad{color:#ff5050;font-weight:800}
+.sessionListCompact{display:flex;flex-direction:column;gap:10px}
+.sessionCard{
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:12px 14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 9%, transparent), transparent 58%),
+    var(--card-2);
+  box-shadow:var(--shadow);
+}
+.sessionCardHead{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+  gap:14px;
+}
+.sessionCardMain{min-width:0}
+.sessionTitle{font-size:18px;font-weight:900;line-height:1.1;margin-bottom:6px}
+.sessionMkcBlock{display:flex;flex-direction:column;gap:8px;margin:0 0 10px}
+.sessionMkcTop{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sessionMkcState{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sessionMkcMatched{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 9px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background:color-mix(in srgb, var(--card) 78%, transparent);
+  font-size:11px;
+  line-height:1.1;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted);
+}
+.sessionMkcMeta{display:flex;flex-wrap:wrap;gap:7px 9px;align-items:center;margin:0}
+.sessionMkcDatum{
+  font-size:12px;
+  line-height:1.2;
+  font-weight:800;
+  color:var(--text);
+}
+.sessionMkcTableBtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:30px;
+  padding:6px 11px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--action-edit-border) 92%, transparent);
+  background:color-mix(in srgb, var(--action-edit-fill) 92%, transparent);
+  color:var(--link);
+  font-size:12px;
+  line-height:1.1;
+  font-weight:900;
+  text-decoration:none;
+  white-space:nowrap;
+  transition:border-color .16s ease, transform .16s ease, background .16s ease;
+}
+.sessionMkcTableBtn:hover{
+  border-color:color-mix(in srgb, var(--link) 38%, var(--action-edit-border));
+  background:color-mix(in srgb, var(--action-edit-fill) 78%, transparent);
+  transform:translateY(-1px);
+}
+.sessionMkcGainGood{color:var(--chart-positive-stroke);font-weight:800}
+.sessionMkcGainBad{color:var(--chart-negative-stroke);font-weight:800}
 .sessionMkcGainFlat{color:var(--muted);font-weight:800}
 .infoBtn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer}
-.sessionActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.sessionDetails{margin-top:12px}
-.danger{border-color:#7d2932;color:#ffdfe2}
+.suggestDialogPanel{padding:18px}
+.suggestTrackGrid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:14px;
+}
+.suggestTrackButton{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:98px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 60%),
+    var(--card-2);
+  cursor:pointer;
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.suggestTrackButton:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb, var(--primary) 44%, var(--border));
+  box-shadow:0 10px 20px rgba(0,0,0,.14);
+}
+.suggestTrackButton:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+}
+.suggestTrackIcon{
+  width:70px;
+  height:70px;
+  transform:scale(1.16);
+  transform-origin:center;
+}
+.sessionSummaryMeta{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(72px, max-content));
+  gap:8px;
+  align-items:center;
+}
+.sessionStatPill{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:72px;
+  padding:8px 10px;
+  border:1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius:12px;
+  background:color-mix(in srgb, var(--card) 76%, transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+.sessionStatPill__value{
+  font-size:17px;
+  line-height:1;
+  font-weight:900;
+  color:var(--text);
+}
+.sessionStatPill__label{
+  font-size:11px;
+  line-height:1.1;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.07em;
+  font-weight:800;
+}
+.sessionActions{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-end;
+  justify-content:center;
+  flex-wrap:nowrap;
+  flex:0 0 96px;
+}
+.sessionActions .infoBtn{align-self:flex-end;margin-bottom:2px}
+.sessionActionBtn{
+  min-width:82px;
+  min-height:30px;
+  padding:5px 10px;
+  justify-content:center;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:900;
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:transform .14s ease, opacity .14s ease, background .14s ease, border-color .14s ease, color .14s ease;
+}
+.sessionActionBtn:active{
+  transform:translateY(1px);
+  opacity:.96;
+}
+.sessionActionBtn--edit{
+  background:var(--action-edit-fill);
+  border-color:var(--action-edit-border);
+  color:var(--action-edit-text);
+}
+.sessionActionBtn--delete{
+  background:var(--action-delete-fill);
+  border-color:var(--action-delete-border);
+  color:var(--action-delete-text);
+}
+.sessionDetails{margin-top:10px}
+.danger{border-color:var(--action-delete-border);color:var(--action-delete-text);background:var(--action-delete-fill)}
 .foldCard{margin-top:16px;border:1px solid var(--border);border-radius:16px;background:var(--card-2);overflow:hidden}
 .foldCard summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer;font-weight:700}
 .foldCard summary::-webkit-details-marker{display:none}
@@ -102,6 +359,12 @@ tbody tr.raceRow--dc td{background:linear-gradient(180deg, rgba(108,24,34,.34) 0
 @media (max-width:760px){
   .cardSection,.pageHero{padding:18px}
   .mogiSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .raceTrackVisual{width:68px}
+  .raceRouteVisual{gap:8px}
+  .raceRouteNode,
+  .raceTrackIcon,
+  .raceTrackIconFallback{width:50px;height:50px}
+  .raceTrackIcon{transform:scale(1.08)}
 }
 @media (max-width:640px){
   .sectionHead{margin-bottom:14px}
@@ -113,8 +376,50 @@ tbody tr.raceRow--dc td{background:linear-gradient(180deg, rgba(108,24,34,.34) 0
   .chartControlStack{width:100%;align-items:stretch}
   .chartControlStack .segRow{width:100%}
   .chartControlStack .navAction{flex:1 1 0}
+  .chartHeaderActions .compareAction{width:100%;max-width:none}
+  .compareDialogPanel{padding:14px}
+  .suggestDialogPanel{padding:14px}
+  .suggestTrackGrid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;
+  }
+  .suggestTrackButton{
+    min-height:84px;
+    padding:10px;
+  }
+  .suggestTrackIcon{
+    width:60px;
+    height:60px;
+  }
   .trackInsightGrid{grid-template-columns:1fr}
-  .sessionCardHead{flex-direction:column}
+  .sessionCard{padding:12px}
+  .sessionCardHead{
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  .sessionMkcTop{
+    align-items:flex-start;
+  }
+  .sessionSummaryMeta{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .sessionStatPill{
+    min-width:0;
+    padding:8px 9px;
+  }
+  .sessionActions{
+    flex-direction:row;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    align-items:center;
+    gap:8px;
+    flex:0 0 auto;
+  }
+  .sessionActions .infoBtn{margin-bottom:0}
+  .sessionActionBtn{
+    min-width:82px;
+  }
+  .chartWrapCompare{height:700px}
 }
 
 
@@ -127,7 +432,7 @@ tbody tr.raceRow--dc td{background:linear-gradient(180deg, rgba(108,24,34,.34) 0
 .sessionEditActions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .sessionDetails[hidden]{display:none !important}
 [hidden]{display:none !important}
-.sessionActions .navAction[disabled]{opacity:.6;cursor:default}
+.sessionActionBtn[disabled]{opacity:.6;cursor:default}
 .mogiResultDialog{width:min(860px,calc(100vw - 28px));border:1px solid var(--border);border-radius:16px;padding:0;background:var(--card);color:var(--text);box-shadow:var(--shadow)}
 .mogiResultDialog::backdrop{background:var(--backdrop)}
 .mogiResultPanel{padding:18px}

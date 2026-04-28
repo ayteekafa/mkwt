@@ -1,7 +1,7 @@
-// MKWT Service Worker (Safari-safe)
+﻿// MKWT Service Worker (Safari-safe)
 // Goal: cache static assets for speed/offline Guest, but NEVER serve redirected responses.
 // Also: avoid precaching HTML during install to prevent Safari "redirected response" crash.
-const CACHE = "mkwt-v255"; // bump to force refresh
+const CACHE = "mkwt-v360"; // bump to force refresh
 
 const STATIC_ASSETS = [
   "/mkwt_theme_v3.css",
@@ -10,10 +10,18 @@ const STATIC_ASSETS = [
   "/mkwt_page_helpers.js",
   "/mkwt_public.js",
   "/mkwt_report.js",
+  "/mkwt_mode_compare.js",
   "/tracker.css",
   "/tracker.js",
   "/tracker_suggestions.js",
   "/tracker_intermission.js",
+  "/time-trial.css",
+  "/time-trial.js",
+  "/combo-builder.css",
+  "/combo-builder.js",
+  "/combo_builder_data.json",
+  "/combo_icon_map.json",
+  "/track_icon_map.json",
   "/stats.css",
   "/stats.js",
   "/stats_ui.js",
@@ -46,6 +54,8 @@ const normalizeNavPath = (pathname) => {
   if (p.endsWith(".html")) return p;
   // pretty routes
   if (p === "/tracker") return "/tracker.html";
+  if (p === "/time-trial") return "/time-trial.html";
+  if (p === "/combo-builder") return "/combo-builder.html";
   if (p === "/stats") return "/stats.html";
   if (p === "/sessions") return "/sessions.html";
   if (p === "/lounge-24") return "/lounge-24.html";
@@ -154,3 +164,4 @@ self.addEventListener("fetch", (e) => {
     return res;
   })());
 });
+

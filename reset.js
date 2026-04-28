@@ -3,9 +3,8 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth:{
-    storage: sessionStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession: false,
+    autoRefreshToken: false,
     detectSessionInUrl: true
   }
 });
@@ -37,14 +36,14 @@ async function ensureRecoverySession(){
   return false;
 }
 
-$("btnSet").onclick = async () => {
+async function submitReset(){
   const p1 = String($("p1").value || "");
   const p2 = String($("p2").value || "");
 
   if(p1.length < 6){ setStatus("Password must be at least 6 characters.", false); return; }
   if(p1 !== p2){ setStatus("Passwords do not match.", false); return; }
 
-  setStatus("Updating password…");
+  setStatus("Updating password...");
 
   const ok = await ensureRecoverySession();
   if(!ok){
@@ -55,9 +54,14 @@ $("btnSet").onclick = async () => {
   const { error } = await client.auth.updateUser({ password: p1 });
   if(error){ setStatus(error.message, false); return; }
 
-  setStatus("✅ Password updated. Redirecting to login…");
+  setStatus("Password updated. Redirecting to login...");
   setTimeout(()=>location.replace("login.html"), 900);
-};
+}
+
+$("resetForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await submitReset();
+});
 
 // On load: just show a hint.
 setStatus("Open this page from your reset email link.");

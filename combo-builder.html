@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
+  <meta name="theme-color" content="#07080a" />
+  <script src="mkwt_bootstrap.js"></script>
+  <title>MKWT - Combo Builder</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+  <script src="mkwt_core.js"></script>
+  <script src="mkwt_page_helpers.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link href="mkwt_theme_v3.css" rel="stylesheet" />
+  <link href="tracker.css" rel="stylesheet" />
+  <link href="combo-builder.css" rel="stylesheet" />
+
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <meta
+    name="description"
+    content="Build Mario Kart World character and vehicle combinations, inspect hidden stat totals, and compare coin gain curves against Feather and Heavy references."
+  />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://www.mkwt.app/combo-builder.html" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <meta property="og:title" content="MKWT - Combo Builder" />
+  <meta
+    property="og:description"
+    content="Compare Mario Kart World combo stats and coin curves from the shared stat sheet inside MKWT."
+  />
+  <meta property="og:image" content="https://www.mkwt.app/og-card.png" />
+  <meta property="og:url" content="https://www.mkwt.app/combo-builder.html" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MKWT - Combo Builder" />
+  <meta
+    name="twitter:description"
+    content="Pick a character and vehicle, sum every hidden stat, and compare your coin curve to Feather and Heavy references."
+  />
+  <meta name="twitter:image" content="https://www.mkwt.app/og-card.png" />
+</head>
+<body>
+  <noscript>
+    <div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;">
+      <h2>MKWT requires JavaScript</h2>
+      <p>Please enable JavaScript or disable your adblocker for this site.</p>
+    </div>
+  </noscript>
+
+  <nav class="nav">
+    <div class="navInner">
+      <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="tracker.html">World Wides</a>
+          <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+          <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+          <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
+        </div>
+      </div>
+      <a class="navLink active" href="combo-builder.html">Combo Builder</a>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
+          <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+        </div>
+      </div>
+      <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
+    </div>
+  </nav>
+
+  <div class="wrap comboWrap">
+    <section class="card profileCard comboHero">
+      <div class="profileTop comboHeroTop">
+        <div class="comboHeroCopy">
+          <h2 class="heroTitle">Combo Builder <span class="byAytee">by Aytee</span></h2>
+          <div class="muted heroSubtitle">
+            Build Mario Kart World character + vehicle combos from the shared stat sheet and compare their hidden stat totals.
+          </div>
+          <div class="muted heroSubtitle" id="cbSourceMeta">Loading builder data...</div>
+        </div>
+        <div class="comboHeroActions">
+          <button class="btn2" id="btnResetComboBuilder" type="button">Reset</button>
+        </div>
+      </div>
+      <div class="muted hidden" id="cbStatus"></div>
+    </section>
+
+    <section class="cbBuilderGrid">
+      <div class="card comboSection">
+        <div class="comboSectionHead">
+          <div>
+            <h3 class="sectionTitle">Build</h3>
+            <div class="muted">Character and vehicle names follow the Time Trial list and stay alphabetically sorted.</div>
+          </div>
+          <div class="comboSectionActions">
+            <button class="btn2 comboActionBtn" id="btnOpenComboFilters" type="button">Combo filters</button>
+            <button class="btn2 comboActionBtn" id="btnOpenComboCompare" type="button">Compare combo</button>
+            <button class="btn2 comboActionBtn comboActionBtn--wide" id="btnOpenSimilarCombos" type="button" disabled>Similar combos</button>
+          </div>
+        </div>
+
+        <div class="cbPickerGrid">
+          <label class="cbPicker">
+            <span>Character</span>
+            <select id="cbCharacterSelect"></select>
+          </label>
+          <label class="cbPicker">
+            <span>Vehicle</span>
+            <select id="cbVehicleSelect"></select>
+          </label>
+        </div>
+
+        <div class="cbCurrentCombo" id="cbCurrentCombo">
+          <div class="cbCurrentComboIcons" id="cbCurrentComboIcons">
+            <div class="cbEmpty">Loading combo icons...</div>
+          </div>
+          <div class="cbCurrentComboText">
+            <div class="cbCurrentComboTitle" id="cbCurrentComboTitle">-</div>
+            <div class="cbCurrentComboMeta" id="cbCurrentComboMeta">-</div>
+          </div>
+        </div>
+
+        <div class="cbMetaGrid" id="cbMetaGrid">
+          <div class="cbMetaChip">
+            <span class="cbMetaLabel">Frame</span>
+            <span class="cbMetaValue" id="cbMetaSize">-</span>
+          </div>
+          <div class="cbMetaChip">
+            <span class="cbMetaLabel">Class</span>
+            <span class="cbMetaValue" id="cbMetaClass">-</span>
+          </div>
+          <div class="cbMetaChip">
+            <span class="cbMetaLabel">Spec</span>
+            <span class="cbMetaValue" id="cbMetaSpec">-</span>
+          </div>
+          <div class="cbMetaChip">
+            <span class="cbMetaLabel">Vehicle Type</span>
+            <span class="cbMetaValue" id="cbMetaVehicleType">-</span>
+          </div>
+          <div class="cbMetaChip">
+            <span class="cbMetaLabel">Vehicle Class</span>
+            <span class="cbMetaValue" id="cbMetaVehicleClass">-</span>
+          </div>
+          <div class="cbMetaChip">
+            <span class="cbMetaLabel">Tag</span>
+            <span class="cbMetaValue" id="cbMetaVehicleTag">-</span>
+          </div>
+          <div class="cbMetaChip cbMetaChip--accent">
+            <span class="cbMetaLabel">Stat Total</span>
+            <span class="cbMetaValue" id="cbMetaTotal">-</span>
+          </div>
+          <div class="cbMetaChip cbMetaChip--accent">
+            <span class="cbMetaLabel">Coin Curve</span>
+            <span class="cbMetaValue" id="cbMetaCoinCurve">-</span>
+          </div>
+        </div>
+
+        <div class="cbStatsGroups" id="cbStatsGroups">
+          <div class="cbEmpty">Loading grouped stats...</div>
+        </div>
+      </div>
+
+      <div class="card comboSection">
+        <div class="comboSectionHead">
+          <div>
+            <h3 class="sectionTitle">Coin Curve Compare</h3>
+            <div class="muted">
+              The selected combo stays in the middle. Feather and Heavy references keep your chosen vehicle and swap only the character class.
+            </div>
+          </div>
+        </div>
+
+        <div class="cbChartSummary">
+          <div class="cbRefCard cbRefCard--selected">
+            <div class="cbRefLabel">Selected Combo</div>
+            <div class="cbRefValue" id="cbSelectedCurveValue">-</div>
+            <div class="cbRefMeta" id="cbSelectedCurveMeta">-</div>
+          </div>
+          <div class="cbRefCard cbRefCard--feather">
+            <div class="cbRefLabel">Feather Reference</div>
+            <div class="cbRefValue" id="cbFeatherCurveValue">-</div>
+            <div class="cbRefMeta" id="cbFeatherCurveMeta">-</div>
+          </div>
+          <div class="cbRefCard cbRefCard--heavy">
+            <div class="cbRefLabel">Heavy Reference</div>
+            <div class="cbRefValue" id="cbHeavyCurveValue">-</div>
+            <div class="cbRefMeta" id="cbHeavyCurveMeta">-</div>
+          </div>
+        </div>
+
+        <div class="cbChartWrap">
+          <canvas id="cbCoinChart"></canvas>
+        </div>
+
+        <div class="cbCurveNotes">
+          <div class="cbCurveNote" id="cbCurveNotePrimary">-</div>
+          <div class="cbCurveNote" id="cbCurveNoteSecondary">-</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <dialog class="ttDialog ttDialog--wide" id="cbSimilarDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3 id="cbSimilarTitle">Similar combos</h3>
+          <div class="muted" id="cbSimilarSubtitle">Exact same full stat line as the selected combo.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseSimilarCombos" type="button">Close</button>
+      </div>
+
+      <div class="cbSimilarList" id="cbSimilarList">
+        <div class="cbEmpty">Loading similar combos...</div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="ttDialog ttDialog--wide" id="cbCompareDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3>Compare combos</h3>
+          <div class="muted">Your selected combo stays fixed on the left. Delta shows compare minus selected.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseComboCompare" type="button">Close</button>
+      </div>
+
+      <div class="cbCompareChooser">
+        <label class="cbPicker">
+          <span>Compare character</span>
+          <select id="cbCompareCharacterSelect"></select>
+        </label>
+        <label class="cbPicker">
+          <span>Compare vehicle</span>
+          <select id="cbCompareVehicleSelect"></select>
+        </label>
+      </div>
+
+      <div class="cbCompareHero">
+        <div class="cbCompareComboCard" id="cbCompareCurrentCard"></div>
+        <div class="cbCompareComboCard cbCompareComboCard--target" id="cbCompareTargetCard"></div>
+      </div>
+
+      <div class="cbCompareSummary" id="cbCompareSummary">
+        <div class="cbEmpty">Loading compare summary...</div>
+      </div>
+
+      <div class="cbCompareGroups" id="cbCompareGroups">
+        <div class="cbEmpty">Loading compare stats...</div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="ttDialog" id="cbInvincibilityDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3>Invincibility</h3>
+          <div class="muted">Current combo stun protection on the selected invincibility level.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseInvincibilityDialog" type="button">Close</button>
+      </div>
+
+      <div class="cbInfoGrid">
+        <div class="cbInfoCard">
+          <div class="cbInfoLabel">Current level</div>
+          <div class="cbInfoValue" id="cbInvLevel">-</div>
+        </div>
+        <div class="cbInfoCard">
+          <div class="cbInfoLabel">Current duration</div>
+          <div class="cbInfoValue" id="cbInvFrames">-</div>
+        </div>
+        <div class="cbInfoCard">
+          <div class="cbInfoLabel">In seconds</div>
+          <div class="cbInfoValue" id="cbInvSeconds">-</div>
+        </div>
+      </div>
+
+      <div class="cbCurveNotes">
+        <div class="cbCurveNote">Invincibility now ranges from <b>100 frames</b> at level 0 to <b>184 frames</b> at level 21, scaling by <b>4 frames per level</b>.</div>
+        <div class="cbCurveNote">That is measured at <b>60 FPS</b>, so your combo duration is shown both in frames and seconds. Older versions used a flat <b>120 frames</b> for every combo.</div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="ttDialog ttDialog--wide" id="cbFilterDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3>Combo filters</h3>
+          <div class="muted">Enter minimum stat levels and we will show every combo that reaches them.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseComboFilters" type="button">Close</button>
+      </div>
+
+      <div class="cbFilterLayout">
+        <div class="cbFilterPanel">
+          <div class="cbFilterPanelHead">
+            <div class="cbFilterPanelTitle">Minimum stats</div>
+            <button class="btn2" id="btnClearComboFilters" type="button">Clear</button>
+          </div>
+          <div class="cbFilterGroups" id="cbFilterGroups"></div>
+        </div>
+
+        <div class="cbFilterResults">
+          <div class="cbFilterResultsHead">
+            <div>
+              <div class="cbFilterPanelTitle">Matching combos</div>
+              <div class="muted" id="cbFilterSummary">Add at least one minimum stat to see results.</div>
+            </div>
+          </div>
+          <div class="cbSimilarList" id="cbFilterResultsList">
+            <div class="cbEmpty">Add at least one minimum stat to see results.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="combo-builder.js"></script>
+</body>
+</html>

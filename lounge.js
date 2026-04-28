@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const COURSE_TRACKS = [
     "Acorn Heights","Airship Fortress","Boo Cinema","Bowser's Castle","Cheep Cheep Falls",
     "Choco Mountain","Crown City","Dandelion Depths","Desert Hills","Dino Dino Jungle",
@@ -53,6 +53,8 @@
     placementMode: 'all',
     lastTrackStats: [],
     lastSelectedTrack: null,
+    compareChart: null,
+    showCompareChart: false,
     trackSortKey: 'avg',
     trackSortDir: 'desc',
     sessionPage: 1,
@@ -67,6 +69,8 @@
   let isBound = false;
   let routeFiltersBound = false;
   let stratsMetaIntermissions = null;
+  let trackIconPaths = new Map();
+  let chartFilterBindingsReady = false;
 
   function read(key, fallback){
     try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(e){ return fallback; }
@@ -81,18 +85,76 @@
     el.className = 'muted statusLine ' + (msg ? (ok ? 'ok' : 'bad') : '');
     el.hidden = !msg;
   }
+  function closeChartFilterMenus(exceptRoot = null){
+    document.querySelectorAll('.chartFilter').forEach((root) => {
+      if(exceptRoot && root === exceptRoot) return;
+      const btn = root.querySelector('.chartFilterBtn');
+      const menu = root.querySelector('.chartFilterMenu');
+      if(menu) menu.hidden = true;
+      if(btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+  function bindGlobalChartFilterClosers(){
+    if(chartFilterBindingsReady) return;
+    chartFilterBindingsReady = true;
+    document.addEventListener('click', (event) => {
+      if(event.target.closest('.chartFilter')) return;
+      closeChartFilterMenus();
+    });
+    document.addEventListener('keydown', (event) => {
+      if(event.key === 'Escape') closeChartFilterMenus();
+    });
+  }
+  function bindChartFilterToggle(btnId, menuId){
+    const btn = $(btnId);
+    const menu = $(menuId);
+    if(!btn || !menu) return;
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const root = btn.closest('.chartFilter');
+      const willOpen = menu.hidden;
+      closeChartFilterMenus(root);
+      menu.hidden = !willOpen;
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+    menu.addEventListener('click', (event) => event.stopPropagation());
+  }
+  function bindSwipeNavigation(target, { onLeft, onRight, threshold = 56 } = {}){
+    if(!target) return;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    target.addEventListener('touchstart', (event) => {
+      if(event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      tracking = true;
+    }, { passive: true });
+    target.addEventListener('touchend', (event) => {
+      if(!tracking || event.changedTouches.length !== 1) return;
+      tracking = false;
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if(Math.abs(dx) < threshold || Math.abs(dx) <= Math.abs(dy)) return;
+      if(dx < 0 && typeof onLeft === 'function') onLeft();
+      if(dx > 0 && typeof onRight === 'function') onRight();
+    }, { passive: true });
+  }
   function currentTs(){ return new Date().toISOString(); }
   function fmtDate(iso){
-    try{ return new Date(iso).toLocaleString(); }catch(e){ return iso || '–'; }
+    try{ return new Date(iso).toLocaleString(); }catch(e){ return iso || '-'; }
   }
   function fmtDelta(value){
     const n = Number(value);
-    if(!Number.isFinite(n)) return 'â€“';
+    if(!Number.isFinite(n)) return '-';
     return `${n > 0 ? '+' : ''}${Math.round(n)}`;
   }
   function fmtMmr(value){
     const n = Number(value);
-    if(!Number.isFinite(n)) return 'â€“';
+    if(!Number.isFinite(n)) return '-';
     return n.toLocaleString('en-US');
   }
   function finiteNumber(value){
@@ -201,6 +263,8 @@
     const intermissionFields = $('intermissionEntryFields');
     if(trackFields) trackFields.hidden = state.entryMode !== 'track';
     if(intermissionFields) intermissionFields.hidden = state.entryMode !== 'intermission';
+    updateTrackSuggestionButton();
+    if(state.entryMode !== 'track') closeTrackSuggestionDialog();
   }
   function routeLabel(start, end){
     return `${start} -> ${end}`;
@@ -211,6 +275,47 @@
     const start = match[1].trim();
     const end = match[2].trim();
     return start && end ? { start, end } : null;
+  }
+  function cleanTrackText(value){
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+  function canonicalTrackName(value){
+    const raw = cleanTrackText(value);
+    if(!raw) return '';
+    const lower = raw.toLowerCase();
+    const exact = COURSE_TRACKS.find(track => track.toLowerCase() === lower);
+    if(exact) return exact;
+    const compact = lower.replace(/[^a-z0-9]+/g, '');
+    const fuzzy = COURSE_TRACKS.find((track) => track.toLowerCase().replace(/[^a-z0-9]+/g, '') === compact);
+    return fuzzy || raw;
+  }
+  function trackAbbrev(trackName){
+    const words = canonicalTrackName(trackName).split(/[\s'.?-]+/).filter(Boolean);
+    return (words.slice(0, 2).map(word => word[0]).join('') || '?').toUpperCase();
+  }
+  async function loadTrackIconMap(){
+    try{
+      const res = await fetch('track_icon_map.json', { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      trackIconPaths = new Map(Object.entries(json || {}).map(([key, value]) => [cleanTrackText(key), String(value || '')]));
+    }catch(e){
+      console.warn('[lounge] failed to load track_icon_map.json', e);
+      trackIconPaths = new Map();
+    }
+  }
+  function trackIconMarkup(trackName, extraClass = ''){
+    const canonical = canonicalTrackName(trackName);
+    const iconPath = trackIconPaths.get(canonical) || trackIconPaths.get(cleanTrackText(trackName));
+    const className = `raceTrackIcon${extraClass ? ` ${extraClass}` : ''}`;
+    if(iconPath){
+      return `<img class="${className}" src="${escapeHtml(iconPath)}" alt="${escapeHtml(canonical || trackName || 'Track')}" loading="lazy" decoding="async">`;
+    }
+    return `<span class="raceTrackIconFallback${extraClass ? ` ${extraClass}` : ''}" aria-label="${escapeHtml(canonical || trackName || 'Track')}">${escapeHtml(trackAbbrev(canonical || trackName))}</span>`;
+  }
+  function singleTrackVisualHtml(trackName){
+    const canonical = canonicalTrackName(trackName);
+    return `<div class="raceTrackVisual" title="${escapeHtml(canonical || trackName || '')}">${trackIconMarkup(canonical || trackName)}</div>`;
   }
   function getIntermissionRoutes(){
     try{
@@ -266,24 +371,46 @@
     if(isIntermissionRace(race)){
       const { start, end } = routePartsFromRace(race);
       if(start && end){
-        const destiny = getDestinyGroup(start, end) || end;
         return `
-          <div class="routeStack">
-            <div class="routeStackLine"><span class="routeStackLabel">Start</span><span>${escapeHtml(start)}</span></div>
-            <div class="routeStackLine"><span class="routeStackLabel">Destiny</span><span>${escapeHtml(destiny)}</span></div>
+          <div class="raceRouteVisual" title="${escapeHtml(routeLabel(start, end))}">
+            <div class="raceRouteNode" title="${escapeHtml(start)}">${trackIconMarkup(start)}</div>
+            <div class="raceRouteArrow" aria-hidden="true">&rarr;</div>
+            <div class="raceRouteNode raceRouteNode--destiny" title="${escapeHtml(end)}">${trackIconMarkup(end)}</div>
           </div>`;
       }
     }
-    return escapeHtml(displayRaceLabel(race));
+    return singleTrackVisualHtml(displayRaceLabel(race));
   }
   function raceTypeLabel(race){
     const parts = [];
     if(race?.disconnect) parts.push('DC');
+    if(race?.repick) parts.push('Repick');
     if(isIntermissionRace(race)) parts.push('Intermission');
     return parts.length ? parts.join(' / ') : 'Normal';
   }
   function raceTypeCellHtml(race){
     return `<td>${escapeHtml(raceTypeLabel(race))}</td>`;
+  }
+  function ordinalLabel(value){
+    const n = Number(value);
+    if(!Number.isFinite(n) || n <= 0) return '-';
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if(mod10 === 1 && mod100 !== 11) return `${n}st`;
+    if(mod10 === 2 && mod100 !== 12) return `${n}nd`;
+    if(mod10 === 3 && mod100 !== 13) return `${n}rd`;
+    return `${n}th`;
+  }
+  function raceEntryMetaHtml(race){
+    const lobby = `${Number(race?.lobbySize || PAGE_CONFIG.playerCount)}p`;
+    const type = raceTypeLabel(race);
+    const sub = type === 'Normal' ? '' : type;
+    return `<td class="raceMetaCell raceMetaCell--entry"><span class="raceCompactMeta raceCompactMeta--entry"><span class="raceCompactMeta__main">${escapeHtml(lobby)}</span>${sub ? `<span class="raceCompactMeta__sub">${escapeHtml(sub)}</span>` : ''}</span></td>`;
+  }
+  function raceResultMetaHtml(race){
+    const placement = ordinalLabel(race?.placement);
+    const points = Number(race?.points || 0);
+    return `<td class="raceMetaCell raceMetaCell--result"><span class="raceCompactMeta raceCompactMeta--result"><span class="raceCompactMeta__main">${escapeHtml(placement)}</span><span class="raceCompactMeta__sub">${escapeHtml(String(points))}p</span></span></td>`;
   }
   function readEntrySelection(){
     if(state.entryMode === 'intermission' && PAGE_CONFIG.allowIntermissionRoutes){
@@ -312,7 +439,7 @@
   }
   function optionHtml(value, selected, label){
     const display = label || value;
-    return `<option value="${escapeHtml(value)}"${value === selected ? ' selected' : ''}>${escapeHtml(display)}</option>`;
+    return `<option value="${escapeHtml(value)}"${value === selected ? ' selected' : ''} data-base-label="${escapeHtml(display)}">${escapeHtml(display)}</option>`;
   }
   function fillRouteSelect(select, placeholder, list, selected, labelForValue){
     if(!select) return;
@@ -346,20 +473,109 @@
     if(!select) return;
     const selected = String(select.value || '');
     const used = usedValues instanceof Set ? usedValues : new Set();
-    Array.from(select.options || []).forEach((option) => {
+    const options = Array.from(select.options || []);
+    const placeholderOption = options.find((option) => !String(option.value || '').trim()) || null;
+    const valueOptions = options.filter((option) => String(option.value || '').trim());
+    const available = [];
+    const repicks = [];
+
+    valueOptions.forEach((option) => {
       const value = String(option.value || '').trim();
-      if(!option.dataset.baseLabel) option.dataset.baseLabel = option.textContent || '';
-      const isUsed = !!value && used.has(value) && value !== selected;
-      option.classList.toggle('loungeOptionUsed', isUsed);
-      option.disabled = isUsed;
-      option.textContent = isUsed ? `${option.dataset.baseLabel} - played` : option.dataset.baseLabel;
+      const baseLabel = option.dataset.baseLabel || option.textContent || value;
+      option.dataset.baseLabel = baseLabel;
+      option.textContent = used.has(value) ? `${baseLabel} (Repick)` : baseLabel;
+      option.classList.toggle('loungeOptionUsed', used.has(value));
+      option.selected = value === selected;
+      if(used.has(value)) repicks.push(option);
+      else available.push(option);
     });
+
+    select.innerHTML = '';
+
+    if(placeholderOption){
+      const baseLabel = placeholderOption.dataset.baseLabel || placeholderOption.textContent || '';
+      placeholderOption.dataset.baseLabel = baseLabel;
+      placeholderOption.textContent = baseLabel;
+      placeholderOption.classList.remove('loungeOptionUsed');
+      placeholderOption.selected = !selected;
+      select.appendChild(placeholderOption);
+    }
+
+    available.forEach((option) => select.appendChild(option));
+
+    if(repicks.length){
+      const group = document.createElement('optgroup');
+      group.label = 'Already chosen / Repick';
+      group.className = 'loungeOptgroupUsed';
+      repicks.forEach((option) => group.appendChild(option));
+      select.appendChild(group);
+    }
+
+    select.value = selected;
   }
   function updatePlayedOptionHints(){
     markPlayedOptions($('trackSelect'), currentTrackSet());
     if(PAGE_CONFIG.allowIntermissionRoutes){
       markPlayedOptions($('intermissionEndSelect'), currentIntermissionDestinySet($('intermissionStartSelect')?.value || ''));
     }
+  }
+  function getSuggestedTrackStats(limit = 5){
+    const used = currentTrackSet();
+    return aggregateTrackStats('tracks')
+      .filter((stat) => COURSE_TRACKS.includes(stat.track))
+      .filter((stat) => Number(stat.count || 0) >= 10)
+      .filter((stat) => !used.has(stat.track))
+      .sort((a, b) => {
+        const avgDiff = Number(b.avg || 0) - Number(a.avg || 0);
+        if(avgDiff !== 0) return avgDiff;
+        const countDiff = Number(b.count || 0) - Number(a.count || 0);
+        if(countDiff !== 0) return countDiff;
+        return String(a.track || '').localeCompare(String(b.track || ''), 'de');
+      })
+      .slice(0, limit);
+  }
+  function updateTrackSuggestionButton(){
+    const btn = $('btnTrackSuggestions');
+    if(!btn) return;
+    const show = state.entryMode === 'track';
+    btn.hidden = !show;
+    btn.disabled = !show;
+    btn.title = show ? 'Suggested tracks' : 'Suggestions only apply to 3-lap tracks';
+    btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+  function closeTrackSuggestionDialog(){
+    const dialog = $('trackSuggestionDialog');
+    if(!dialog) return;
+    if(typeof dialog.close === 'function' && dialog.open) dialog.close();
+    else dialog.removeAttribute('open');
+  }
+  function renderTrackSuggestionDialog(){
+    const body = $('trackSuggestionGrid');
+    const meta = $('trackSuggestionMeta');
+    if(!body || !meta) return;
+    if(state.entryMode !== 'track'){
+      meta.textContent = 'Suggestions are only available for 3-lap track picks.';
+      body.innerHTML = '<div class="muted">Switch back to Track mode to see suggested tracks.</div>';
+      return;
+    }
+    const rows = getSuggestedTrackStats(5);
+    meta.textContent = 'Top remaining 3-lap picks from Lounge performance. Minimum 10 saved plays.';
+    if(!rows.length){
+      body.innerHTML = '<div class="muted">No eligible suggested tracks yet.</div>';
+      return;
+    }
+    body.innerHTML = rows.map((stat, index) => `
+      <button class="suggestTrackButton" data-suggest-track="${escapeHtml(stat.track)}" type="button" title="${escapeHtml(`${index + 1}. ${stat.track} - ${stat.avg.toFixed(2)} AVG - ${stat.count} plays`)}" aria-label="${escapeHtml(`${stat.track}, average ${stat.avg.toFixed(2)} points, ${stat.count} plays`)}">
+        ${trackIconMarkup(stat.track, 'suggestTrackIcon')}
+      </button>
+    `).join('');
+  }
+  function openTrackSuggestionDialog(){
+    renderTrackSuggestionDialog();
+    const dialog = $('trackSuggestionDialog');
+    if(!dialog) return;
+    if(typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal();
+    else dialog.setAttribute('open', '');
   }
   function entryAlreadyUsed(entry){
     const races = state.current?.races || [];
@@ -371,6 +587,22 @@
       });
     }
     return races.some((race) => !isIntermissionRace(race) && String(race?.track || '') === String(entry?.track || ''));
+  }
+  function entryKeyForRaceLike(race){
+    if(isIntermissionRace(race) || race?.raceKind === 'intermission'){
+      const route = routePartsFromRace(race);
+      return route.start && route.end ? `intermission|${route.start}|${route.end}` : `intermission|${String(race?.track || '').trim()}`;
+    }
+    return `track|${String(race?.track || '').trim()}`;
+  }
+  function applyAutoRepicks(races){
+    const seen = new Set();
+    return (races || []).map((race) => {
+      const key = entryKeyForRaceLike(race);
+      const repick = seen.has(key);
+      seen.add(key);
+      return { ...race, repick };
+    });
   }
   function buildRouteMaps(){
     const metaRoutes = Object.values(stratsMetaIntermissions || {})
@@ -750,40 +982,46 @@
   function renderSessionMkcentral(match){
     if(!match) return '';
     const bits = [];
-    if(match.format && match.format !== 'Other') bits.push(`<span>${escapeHtml(match.format)}</span>`);
-    if(match.tier && match.tier !== 'Other') bits.push(`<span>Tier ${escapeHtml(match.tier)}</span>`);
-    if(Number.isFinite(match.table_rank)) bits.push(`<span>Place #${escapeHtml(String(match.table_rank))}</span>`);
-    if(Number.isFinite(match.table_score)) bits.push(`<span>${escapeHtml(String(match.table_score))} pts</span>`);
-    if(Number.isFinite(match.mmr_delta)) bits.push(`<span class="${mkcentralGainClass(match.mmr_delta)}">${escapeHtml(fmtDelta(match.mmr_delta))}</span>`);
-    if(Number.isFinite(match.mmr_after)) bits.push(`<span>${escapeHtml(fmtMmr(match.mmr_after))} MMR</span>`);
-    if(match.table_url) bits.push(`<a class="sessionMkcLink" href="${escapeHtml(match.table_url)}" target="_blank" rel="noopener noreferrer">Table</a>`);
+    if(match.format && match.format !== 'Other') bits.push(`<span class="sessionMkcDatum">${escapeHtml(match.format)}</span>`);
+    if(match.tier && match.tier !== 'Other') bits.push(`<span class="sessionMkcDatum">Tier ${escapeHtml(match.tier)}</span>`);
+    if(Number.isFinite(match.table_rank)) bits.push(`<span class="sessionMkcDatum">Place #${escapeHtml(String(match.table_rank))}</span>`);
+    if(Number.isFinite(match.table_score)) bits.push(`<span class="sessionMkcDatum">${escapeHtml(String(match.table_score))} pts</span>`);
+    if(Number.isFinite(match.mmr_delta)) bits.push(`<span class="sessionMkcDatum ${mkcentralGainClass(match.mmr_delta)}">${escapeHtml(fmtDelta(match.mmr_delta))}</span>`);
+    if(Number.isFinite(match.mmr_after)) bits.push(`<span class="sessionMkcDatum">${escapeHtml(fmtMmr(match.mmr_after))} MMR</span>`);
 
     return `
-      <div class="sessionMkcMeta">
-        <span class="badge">MKCentral</span>
-        ${bits.join('')}
-      </div>
-      <div class="sessionMkcHint muted">${escapeHtml(match.confidence_note || `Auto-match ${match.confidence_label}`)}</div>`;
+      <div class="sessionMkcBlock">
+        <div class="sessionMkcTop">
+          <div class="sessionMkcState">
+            <span class="badge">MKCentral</span>
+            <span class="sessionMkcMatched">Matched</span>
+          </div>
+          ${match.table_url ? `<a class="sessionMkcTableBtn" href="${escapeHtml(match.table_url)}" target="_blank" rel="noopener noreferrer">Open table</a>` : ''}
+        </div>
+        ${bits.length ? `<div class="sessionMkcMeta">${bits.join('')}</div>` : ''}
+      </div>`;
   }
   function dbRaceToLocal(row){
+    const dbKind = String(row.race_kind || '');
     return {
       id: row.id,
       cloud_id: row.id,
       race_number: row.race_number,
       track: row.track,
-      raceKind: row.race_kind || (row.intermission_start && row.intermission_end ? 'intermission' : 'track'),
+      raceKind: dbKind || (row.intermission_start && row.intermission_end ? 'intermission' : 'track'),
       intermissionStart: row.intermission_start || null,
       intermissionEnd: row.intermission_end || null,
       lobbySize: row.lobby_size,
       placement: row.placement,
       points: row.points,
       disconnect: !!row.disconnect,
+      repick: false,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
   }
   function dbMogiToLocal(row, races){
-    const localRaces = (races || []).map(dbRaceToLocal).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0));
+    const localRaces = applyAutoRepicks((races || []).map(dbRaceToLocal).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)));
     return {
       id: row.id,
       cloud_id: row.id,
@@ -798,12 +1036,13 @@
     };
   }
   function raceToDbPayload(race, mogiId, raceNumber){
+    const baseKind = race.raceKind === 'intermission' ? 'intermission' : 'track';
     return {
       mogi_id: mogiId,
       user_id: loungeSession.user.id,
       race_number: raceNumber,
       track: race.track,
-      race_kind: race.raceKind || 'track',
+      race_kind: baseKind,
       intermission_start: race.intermissionStart || null,
       intermission_end: race.intermissionEnd || null,
       lobby_size: race.lobbySize,
@@ -814,9 +1053,13 @@
     };
   }
   function loadAll(){
-    state.sessions = read(STORAGE_SESSIONS, []);
+    state.sessions = (read(STORAGE_SESSIONS, []) || []).map((session) => ({
+      ...session,
+      races: applyAutoRepicks(session?.races || [])
+    }));
     state.current = read(STORAGE_CURRENT, null) || makeFreshMogi();
     if (!Array.isArray(state.current.races)) state.current = makeFreshMogi();
+    else state.current.races = applyAutoRepicks(state.current.races || []);
   }
   function persist(){
     if (isCloud()) return;
@@ -930,20 +1173,20 @@
     });
     if(!isComplete && dcBtn) updateEntryTagButtons();
     updatePlayedOptionHints();
+    updateTrackSuggestionButton();
+    if($('trackSuggestionDialog')?.open) renderTrackSuggestionDialog();
 
     const body = $('currentMogiBody');
     if(!races.length){
-      body.innerHTML = '<tr><td colspan="6" class="muted">No races tracked yet.</td></tr>';
+      body.innerHTML = '<tr><td colspan="4" class="muted">No races tracked yet.</td></tr>';
       return;
     }
     body.innerHTML = races.map((r, idx) => `
       <tr class="${raceRowClass(r)}">
         <td>${idx+1}</td>
         <td>${displayRaceLabelHtml(r)}</td>
-        <td>${r.lobbySize}p</td>
-        <td>${r.placement ?? '–'}</td>
-        <td>${r.points}</td>
-        ${raceTypeCellHtml(r)}
+        ${raceResultMetaHtml(r)}
+        ${raceEntryMetaHtml(r)}
       </tr>`).join('');
   }
   
@@ -967,15 +1210,20 @@
     return rows;
   }
   function updateSortButtons(){
-    const perfBtn = $('btnSortPerformance');
-    const playedBtn = $('btnSortPlayed');
-    if(!perfBtn || !playedBtn) return;
-    const perfActive = state.trackSortKey === 'avg';
-    const playedActive = state.trackSortKey === 'count';
-    perfBtn.classList.toggle('active', perfActive);
-    playedBtn.classList.toggle('active', playedActive);
-    perfBtn.textContent = perfActive ? `Performance ${state.trackSortDir === 'desc' ? '↓' : '↑'}` : 'Performance';
-    playedBtn.textContent = playedActive ? `Most played ${state.trackSortDir === 'desc' ? '↓' : '↑'}` : 'Most played';
+    const label = state.trackSortKey === 'count' ? 'Most played' : 'Performance';
+    const arrow = state.trackSortDir === 'desc' ? 'v' : '^';
+    const value = $('trackPerfFilterValue');
+    if(value) value.textContent = `${label} ${arrow}`;
+    [
+      ['avg', $('optTrackSortAvg')],
+      ['count', $('optTrackSortCount')]
+    ].forEach(([key, btn]) => {
+      if(!btn) return;
+      const active = state.trackSortKey === key;
+      btn.classList.toggle('active', active);
+      const meta = btn.querySelector('.chartFilterItemMeta');
+      if(meta) meta.textContent = active ? arrow : '';
+    });
   }
   function setTrackSort(key){
     if(state.trackSortKey === key){
@@ -992,15 +1240,35 @@
     return 'Tracks';
   }
   function updateTrackModeButtons(){
-    const map = {
-      tracks: 'btnPerfTracks',
-      im_destiny: 'btnPerfImDestiny',
-      im_routes: 'btnPerfImRoutes'
-    };
-    Object.entries(map).forEach(([mode, id]) => {
-      const btn = $(id);
-      if(!btn) return;
-      const active = state.trackChartMode === mode;
+    const meta = $('trackModeMeta');
+    if(meta) meta.textContent = trackChartTitle();
+    document.querySelectorAll('[data-track-mode]').forEach((btn) => {
+      const active = btn.dataset.trackMode === state.trackChartMode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+  function cycleTrackChartMode(direction){
+    if(!PAGE_CONFIG.allowIntermissionRoutes) return;
+    const modes = ['tracks', 'im_destiny', 'im_routes'];
+    const index = modes.indexOf(state.trackChartMode);
+    const nextIndex = direction === 'left'
+      ? (index + 1) % modes.length
+      : (index - 1 + modes.length) % modes.length;
+    setTrackChartMode(modes[nextIndex]);
+  }
+  function placementModeLabel(mode = state.placementMode){
+    if(mode === 'tracks') return 'Tracks';
+    if(mode === 'intermission') return 'Intermission';
+    return 'All';
+  }
+  function updatePlacementModeButtons(){
+    const value = $('placementFilterValue');
+    if(value) value.textContent = placementModeLabel();
+    const meta = $('placementModeMeta');
+    if(meta) meta.textContent = placementModeLabel();
+    document.querySelectorAll('[data-placement-mode]').forEach((btn) => {
+      const active = btn.dataset.placementMode === state.placementMode;
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
@@ -1011,20 +1279,6 @@
     state.trackChartMode = mode;
     state.lastSelectedTrack = null;
     refresh();
-  }
-  function updatePlacementModeButtons(){
-    const map = {
-      all: 'btnPlacementAll',
-      tracks: 'btnPlacementTracks',
-      intermission: 'btnPlacementIntermission'
-    };
-    Object.entries(map).forEach(([mode, id]) => {
-      const btn = $(id);
-      if(!btn) return;
-      const active = state.placementMode === mode;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
   }
   function setPlacementMode(mode){
     if(mode !== 'all' && !PAGE_CONFIG.allowIntermissionRoutes) mode = 'all';
@@ -1121,7 +1375,7 @@
         </div>
       </div>
       <div class="trackInsightGrid">
-        <div class="statBox"><div class="statLabel">AVG points</div><div class="statValue">${stat.count ? stat.avg.toFixed(2) : '–'}</div></div>
+        <div class="statBox"><div class="statLabel">AVG points</div><div class="statValue">${stat.count ? stat.avg.toFixed(2) : '-'}</div></div>
         <div class="statBox"><div class="statLabel">Times played</div><div class="statValue">${stat.count}</div></div>
       </div>`;
   }
@@ -1157,6 +1411,7 @@
       const points = sessionTotalPoints(s);
       const count = (s.races || []).length;
       const dcs = (s.races || []).filter(r => r.disconnect).length;
+      const avg = count ? (points / count).toFixed(2) : '0.00';
       const originalIndex = s.__originalIndex;
       const mkcMatch = state.mkcentralMatches[originalIndex] || null;
       const isEditing = state.editingSessionIndex === originalIndex;
@@ -1178,22 +1433,39 @@
         : `
           <div class="tableWrap">
             <table>
-              <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+              <thead><tr><th>#</th><th>Track</th><th>Place / Pts</th><th>Lobby / Tag</th></tr></thead>
               <tbody>${renderSessionViewRows(s.races || [])}</tbody>
             </table>
           </div>`;
       return `
         <div class="sessionCard">
           <div class="sessionCardHead">
-            <div>
+            <div class="sessionCardMain">
               <div class="sessionTitle">${escapeHtml(fmtDate(s.completed_at || s.created_at))}</div>
               ${mkcMatch ? renderSessionMkcentral(mkcMatch) : ''}
-              <div class="muted">${count} races · ${points} points · Avg ${count ? (points/count).toFixed(2) : '0.00'} · DCs ${dcs}</div>
+              <div class="sessionSummaryMeta" aria-label="Session summary">
+                <div class="sessionStatPill">
+                  <span class="sessionStatPill__value">${count}</span>
+                  <span class="sessionStatPill__label">Races</span>
+                </div>
+                <div class="sessionStatPill">
+                  <span class="sessionStatPill__value">${points}</span>
+                  <span class="sessionStatPill__label">Points</span>
+                </div>
+                <div class="sessionStatPill">
+                  <span class="sessionStatPill__value">${avg}</span>
+                  <span class="sessionStatPill__label">Avg</span>
+                </div>
+                <div class="sessionStatPill">
+                  <span class="sessionStatPill__value">${dcs}</span>
+                  <span class="sessionStatPill__label">DCs</span>
+                </div>
+              </div>
             </div>
             <div class="sessionActions">
               <button class="infoBtn" type="button" data-session-toggle="${originalIndex}" aria-expanded="${isOpen ? 'true' : 'false'}" title="Show matches">?</button>
-              <button class="navAction navAction--sm" type="button" data-session-edit="${originalIndex}">${isEditing ? 'Editing' : 'Edit'}</button>
-              <button class="navAction navAction--sm danger" type="button" data-session-delete="${originalIndex}" title="Delete Mogi">Delete</button>
+              <button class="sessionActionBtn sessionActionBtn--edit" type="button" data-session-edit="${originalIndex}">${isEditing ? 'Editing' : 'Edit'}</button>
+              <button class="sessionActionBtn sessionActionBtn--delete" type="button" data-session-delete="${originalIndex}" title="Delete Mogi">Delete</button>
             </div>
           </div>
           <div class="sessionDetails" id="sessionDetails-${originalIndex}"${isOpen ? '' : ' hidden'}>
@@ -1291,6 +1563,169 @@
         }
       }
     });
+  }
+  function updateCompareButton(){
+    const btn = $('btnCompareWorldWide');
+    if(!btn) return;
+    btn.classList.toggle('active', state.showCompareChart);
+  }
+  function closeCompareDialog(){
+    state.showCompareChart = false;
+    updateCompareButton();
+    const dialog = $('loungeCompareDialog');
+    if(dialog?.open) dialog.close();
+  }
+  async function renderModeCompareChart(){
+    const dialog = $('loungeCompareDialog');
+    const panel = $('loungeComparePanel');
+    const meta = $('loungeCompareMeta');
+    const canvas = $('chartModeCompareLounge');
+    const notesWrap = $('loungeCompareNotes');
+    if(!panel || !meta || !canvas) return;
+    if(dialog && !dialog.open){
+      try{ dialog.showModal(); }catch(e){}
+    }
+    if(!window.MKWTModeCompare){
+      meta.textContent = 'Comparison helper unavailable.';
+      if(notesWrap) notesWrap.innerHTML = '';
+      if(state.compareChart) state.compareChart.destroy();
+      state.compareChart = null;
+      return;
+    }
+
+    function renderCompareNotes(compareRows){
+      if(!notesWrap) return;
+      notesWrap.innerHTML = '';
+      const notes = window.MKWTModeCompare?.buildComparisonNotes?.(compareRows, {
+        primaryLabel: PAGE_CONFIG.title,
+        secondaryLabel: 'World Wides',
+        gapThreshold: 10,
+        limit: 6,
+      }) || [];
+      if(!notes.length){
+        const div = document.createElement('div');
+        div.className = 'modeCompareNote muted';
+        div.textContent = 'No major outliers right now. Shared maps look fairly balanced between both modes.';
+        notesWrap.appendChild(div);
+        return;
+      }
+      for(const note of notes){
+        const div = document.createElement('div');
+        div.className = 'modeCompareNote';
+        const strong = document.createElement('b');
+        strong.textContent = note.track;
+        div.appendChild(strong);
+        div.appendChild(document.createTextNode(`: ${note.text.replace(`${note.track}: `, '')}`));
+        notesWrap.appendChild(div);
+      }
+    }
+
+    const loungeRows = window.MKWTModeCompare.aggregateLoungeTrackRowsFromSessions(state.sessions || []);
+    if(!loungeRows.length){
+      meta.textContent = 'No saved Lounge track races yet. Save a few Mogis first.';
+      if(notesWrap) notesWrap.innerHTML = '';
+      if(state.compareChart) state.compareChart.destroy();
+      state.compareChart = null;
+      return;
+    }
+
+    meta.textContent = 'Loading World Wide comparison...';
+    const worldRows = await window.MKWTModeCompare.loadWorldWideTrackRows({
+      isGuest: !isCloud(),
+      supabaseClient: loungeClient,
+      session: loungeSession,
+    });
+    if(!worldRows.length){
+      meta.textContent = 'No World Wide track data with placements found yet.';
+      if(notesWrap) notesWrap.innerHTML = '';
+      if(state.compareChart) state.compareChart.destroy();
+      state.compareChart = null;
+      return;
+    }
+
+    const compareRows = window.MKWTModeCompare.buildRankComparisonRows(loungeRows, worldRows, {
+      primaryLabel: PAGE_CONFIG.title,
+      secondaryLabel: 'World Wides',
+      limit: 30,
+      minCount: 10,
+    });
+    if(!compareRows.length){
+      meta.textContent = `No shared tracks yet with at least 10 plays in both ${PAGE_CONFIG.title} and World Wides.`;
+      if(notesWrap) notesWrap.innerHTML = '';
+      if(state.compareChart) state.compareChart.destroy();
+      state.compareChart = null;
+      return;
+    }
+
+    const labels = compareRows.map(row => row.track);
+    const loungeData = compareRows.map(row => Number(row.primaryPoints || 0));
+    const worldData = compareRows.map(row => Number(row.secondaryPoints || 0));
+    const maxPoints = Math.max(6, compareRows.length * 2);
+
+    if(state.compareChart) state.compareChart.destroy();
+    state.compareChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: PAGE_CONFIG.title,
+            data: loungeData,
+            backgroundColor: 'rgba(77,163,25,.82)',
+            borderColor: 'rgb(77,163,25)',
+            borderWidth: 1
+          },
+          {
+            label: 'World Wides',
+            data: worldData,
+            backgroundColor: 'rgba(78,124,255,.82)',
+            borderColor: 'rgb(78,124,255)',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        interaction: { mode: 'nearest', axis: 'y', intersect: true },
+        scales: {
+          x: {
+            min: 0,
+            max: maxPoints,
+            stacked: true,
+            ticks: { color: getCss('--text'), callback: (value) => `${Number(value).toFixed(0)} pts` },
+            title: { display: true, text: 'Hidden rank-point sum', color: getCss('--muted') }
+          },
+          y: { ticks: { color: getCss('--text'), autoSkip: false }, stacked: true }
+        },
+        plugins: {
+          legend: { display: true, labels: { color: getCss('--text') } },
+          tooltip: {
+            callbacks: {
+              title: (items) => items?.[0]?.label || '',
+              label: (ctx) => {
+                const row = compareRows[ctx.dataIndex];
+                if(!row) return '';
+                if(ctx.datasetIndex === 0){
+                  return `${PAGE_CONFIG.title}: ${row.primaryPoints} pts (rank #${row.primaryRank}, avg pts ${row.primary.toFixed(2)}, ${row.primaryCount} races)`;
+                }
+                return `World Wides: ${row.secondaryPoints} pts (rank #${row.secondaryRank}, avg VR ? ${row.secondary.toFixed(2)}, ${row.secondaryCount} matches)`;
+              },
+              footer: (items) => {
+                const row = compareRows[items?.[0]?.dataIndex];
+                if(!row) return '';
+                const stronger = row.pointGap >= 0 ? PAGE_CONFIG.title : 'World Wides';
+                return `Total: ${row.totalPoints} pts | Gap: ${Math.abs(row.pointGap)} in favor of ${stronger}`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    renderCompareNotes(compareRows);
+    meta.textContent = `${window.MKWTModeCompare.comparisonMetaText(PAGE_CONFIG.title, 'World Wides', compareRows.length, 10)} Sorted by combined rank points.`;
   }
   function renderPlacementChart(stats){
     const ctx = $('chartPlacementDist');
@@ -1433,7 +1868,7 @@
     if(highestEl) highestEl.textContent = highestPoints == null ? '-' : String(highestPoints);
     if(lowestEl) lowestEl.textContent = lowestPoints == null ? '-' : String(lowestPoints);
     if(bestTrackName) bestTrackName.textContent = bestTrack ? bestTrack.track : 'Not enough data';
-    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG · ${bestTrack.count} plays` : 'Best Track starts after 5 plays on one track.';
+    if(bestTrackMeta) bestTrackMeta.textContent = bestTrack ? `${bestTrack.avg.toFixed(2)} AVG - ${bestTrack.count} plays` : 'Best Track starts after 5 plays on one track.';
   }
   function refresh(){
     computeMkcentralMatches();
@@ -1446,6 +1881,14 @@
     renderPlacementChart(aggregatePlacementStats(state.placementMode));
     renderTypePieChart(aggregateTypeDistribution());
     renderTrackInsight(state.lastSelectedTrack && chartStats.some(s => s.track === state.lastSelectedTrack) ? state.lastSelectedTrack : null);
+    updateCompareButton();
+    if(state.showCompareChart){
+      renderModeCompareChart().catch((err) => {
+        console.error('[lounge] compare chart failed', err);
+        const meta = $('loungeCompareMeta');
+        if(meta) meta.textContent = 'Comparison failed. Please try again.';
+      });
+    }
     persist();
   }
   function renderMogiResultDialog(){
@@ -1460,16 +1903,14 @@
     const rowsEl = $('mogiResultRows');
 
     if(totalEl) totalEl.textContent = String(total);
-    if(metaEl) metaEl.textContent = `${races.length} races · ${statAvg} AVG · ${dcs} DCs`;
+    if(metaEl) metaEl.textContent = `${races.length} races - ${statAvg} AVG - ${dcs} DCs`;
     if(rowsEl) {
       rowsEl.innerHTML = races.map((race, idx) => `
         <tr class="${raceRowClass(race)}">
           <td>${idx + 1}</td>
           <td>${displayRaceLabelHtml(race)}</td>
-          <td>${race.lobbySize}p</td>
-          <td>${race.placement ?? '–'}</td>
-          <td>${race.points}</td>
-          ${raceTypeCellHtml(race)}
+          ${raceResultMetaHtml(race)}
+          ${raceEntryMetaHtml(race)}
         </tr>`).join('');
     }
   }
@@ -1527,14 +1968,8 @@
       }
       const entry = readEntrySelection();
       if(entry.error){ setStatus(entry.error, false); return; }
-      if(entryAlreadyUsed(entry)){
-        setStatus(entry.raceKind === 'intermission'
-          ? 'This intermission route was already used in this Mogi.'
-          : 'This track was already used in this Mogi.',
-          false);
-        updatePlayedOptionHints();
-        return;
-      }
+      const duplicateEntry = entryAlreadyUsed(entry);
+      const autoRepick = duplicateEntry;
       const placement = Number($('placementSelect').value || 0);
       const lobbySize = currentLobbySize();
       const disconnect = !!state.entryDisconnect;
@@ -1550,6 +1985,7 @@
         placement,
         points,
         disconnect,
+        repick: autoRepick,
         created_at: currentTs()
       };
 
@@ -1563,10 +1999,10 @@
           .select('id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at')
           .single();
         if (error) throw error;
-        state.current.races.push(dbRaceToLocal(data));
+        state.current.races = applyAutoRepicks([...(state.current.races || []), dbRaceToLocal(data)]);
         await updateCloudMogi(state.current);
       } else {
-        state.current.races.push(race);
+        state.current.races = applyAutoRepicks([...(state.current.races || []), race]);
       }
 
       if($('trackSelect')) $('trackSelect').value = '';
@@ -1578,7 +2014,13 @@
       state.entryDisconnect = false;
       updatePlacementOptions();
       $('placementSelect').value = '';
-      setStatus(disconnect ? 'Race tracked with DC tag. Stats ignore DC races.' : 'Race tracked.', true);
+      setStatus(
+        disconnect && race.repick ? 'Race tracked with DC and Repick tags.' :
+        disconnect ? 'Race tracked with DC tag. Stats ignore DC races.' :
+        race.repick ? 'Race tracked with Repick tag.' :
+        'Race tracked.',
+        true
+      );
       refresh();
       await maybeCompleteMogi();
     } catch(e) {
@@ -1659,10 +2101,8 @@
         <tr class="${raceRowClass(r)}">
           <td>${i + 1}</td>
           <td>${displayRaceLabelHtml(r)}</td>
-          <td>${r.lobbySize}p</td>
-          <td>${r.placement ?? '–'}</td>
-          <td>${r.points}</td>
-          ${raceTypeCellHtml(r)}
+          ${raceResultMetaHtml(r)}
+          ${raceEntryMetaHtml(r)}
         </tr>`).join('');
   }
   function renderSessionEditRows(races){
@@ -1675,7 +2115,7 @@
         <td class="muted" data-edit-points>${Number(r.points || 0)}</td>
         <td>
           <select class="sessionEditSelect" data-edit-type>
-            <option value="normal"${r.disconnect ? '' : ' selected'}>Normal</option>
+            <option value="normal"${!r.disconnect ? ' selected' : ''}>Normal</option>
             <option value="disconnect"${r.disconnect ? ' selected' : ''}>Disconnect</option>
           </select>
         </td>
@@ -1695,9 +2135,9 @@
     }
     const placement = Number(placementSel?.value || 0);
     const p = getPoints(lobby, placement);
-    const points = p == null ? '–' : p;
+    const points = p == null ? '-' : p;
     if(pointsCell) pointsCell.textContent = String(points);
-    row.className = [placementRowClass(placement), typeSel?.value === 'disconnect' ? 'raceRow--dc' : ''].filter(Boolean).join(' ');
+    row.className = [placementRowClass(placement), String(typeSel?.value || '').includes('disconnect') ? 'raceRow--dc' : ''].filter(Boolean).join(' ');
   }
   function startEditMogi(index){
     state.editingSessionIndex = index;
@@ -1719,7 +2159,7 @@
       const track = row.querySelector('[data-edit-track]')?.value || '';
       const lobbySize = Number(row.querySelector('[data-edit-lobby]')?.value || PAGE_CONFIG.playerCount);
       const type = row.querySelector('[data-edit-type]')?.value || 'normal';
-      const disconnect = type === 'disconnect';
+      const disconnect = type.includes('disconnect');
       const placement = Number(row.querySelector('[data-edit-placement]')?.value || 0);
       if(!track){ setStatus('Each race needs a track.', false); return; }
       if(!placement){ setStatus('Each race needs a placement.', false); return; }
@@ -1736,9 +2176,11 @@
         lobbySize,
         placement,
         points,
-        disconnect
+        disconnect,
+        repick: false
       });
     }
+    const normalizedRaces = applyAutoRepicks(races);
     try {
       if (isCloud() && session.cloud_id) {
         setStatus('Saving Mogi to cloud...', true);
@@ -1749,21 +2191,25 @@
           .eq('user_id', loungeSession.user.id);
         if (deleteError) throw deleteError;
 
-        const payload = races.map((race, i) => raceToDbPayload(race, session.cloud_id, i + 1));
+        const payload = normalizedRaces.map((race, i) => raceToDbPayload(race, session.cloud_id, i + 1));
         if (payload.length) {
           const { data, error: insertError } = await loungeClient
             .from('lounge_races')
             .insert(payload)
             .select('id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at');
           if (insertError) throw insertError;
-          races.splice(0, races.length, ...(data || []).map(dbRaceToLocal).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)));
+          normalizedRaces.splice(
+            0,
+            normalizedRaces.length,
+            ...applyAutoRepicks((data || []).map(dbRaceToLocal).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)))
+          );
         }
-        await updateCloudMogi({ ...session, races }, { status: 'completed', completed_at: session.completed_at || currentTs() });
+        await updateCloudMogi({ ...session, races: normalizedRaces }, { status: 'completed', completed_at: session.completed_at || currentTs() });
       }
 
-      session.races = races;
-      session.totalPoints = races.reduce((a, r) => a + Number(r.points || 0), 0);
-      session.disconnects = races.filter(r => r.disconnect).length;
+      session.races = normalizedRaces;
+      session.totalPoints = normalizedRaces.reduce((a, r) => a + Number(r.points || 0), 0);
+      session.disconnects = normalizedRaces.filter(r => r.disconnect).length;
       session.updated_at = currentTs();
       state.editingSessionIndex = null;
       setStatus('Saved Mogi updated.', true);
@@ -1776,19 +2222,82 @@
   function bind(){
     if (isBound) return;
     isBound = true;
-    document.querySelectorAll('[data-lobby-tag]').forEach(btn => btn.addEventListener('click', () => setLobbyTag(btn.dataset.lobbyTag)));
-    document.querySelectorAll('[data-entry-mode]').forEach(btn => btn.addEventListener('click', () => setEntryMode(btn.dataset.entryMode)));
-    $('btnSortPerformance')?.addEventListener('click', () => setTrackSort('avg'));
-    $('btnSortPlayed')?.addEventListener('click', () => setTrackSort('count'));
-    $('btnPerfTracks')?.addEventListener('click', () => setTrackChartMode('tracks'));
-    $('btnPerfImDestiny')?.addEventListener('click', () => setTrackChartMode('im_destiny'));
-    $('btnPerfImRoutes')?.addEventListener('click', () => setTrackChartMode('im_routes'));
-    $('btnPlacementAll')?.addEventListener('click', () => setPlacementMode('all'));
-    $('btnPlacementTracks')?.addEventListener('click', () => setPlacementMode('tracks'));
-    $('btnPlacementIntermission')?.addEventListener('click', () => setPlacementMode('intermission'));
-    $('btnSaveRace').addEventListener('click', () => saveRace());
-    $('btnDisconnect').addEventListener('click', () => toggleDisconnectTag());
-    $('btnUndo').addEventListener('click', undoLast);
+    const compareDialog = $('loungeCompareDialog');
+    if(compareDialog){
+      compareDialog.onclose = () => {
+        state.showCompareChart = false;
+        updateCompareButton();
+      };
+      compareDialog.oncancel = () => {
+        state.showCompareChart = false;
+        updateCompareButton();
+      };
+    }
+    const suggestDialog = $('trackSuggestionDialog');
+    if(suggestDialog){
+      suggestDialog.oncancel = () => {};
+    }
+      document.querySelectorAll('[data-lobby-tag]').forEach(btn => btn.addEventListener('click', () => setLobbyTag(btn.dataset.lobbyTag)));
+      document.querySelectorAll('[data-entry-mode]').forEach(btn => btn.addEventListener('click', () => setEntryMode(btn.dataset.entryMode)));
+      bindGlobalChartFilterClosers();
+      bindChartFilterToggle('btnTrackPerfFilter', 'menuTrackPerfFilter');
+      bindChartFilterToggle('btnPlacementFilter', 'menuPlacementFilter');
+      document.querySelectorAll('[data-track-sort]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          closeChartFilterMenus();
+          setTrackSort(btn.dataset.trackSort);
+        });
+      });
+      document.querySelectorAll('[data-track-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => setTrackChartMode(btn.dataset.trackMode));
+      });
+      bindSwipeNavigation($('trackPerfSwipeSurface'), {
+        onLeft: () => cycleTrackChartMode('left'),
+        onRight: () => cycleTrackChartMode('right')
+      });
+      $('btnCloseLoungeCompare')?.addEventListener('click', closeCompareDialog);
+      $('btnCompareWorldWide')?.addEventListener('click', () => {
+        if($('loungeCompareDialog')?.open){
+          closeCompareDialog();
+          return;
+      }
+      state.showCompareChart = true;
+      updateCompareButton();
+      renderModeCompareChart().catch((err) => {
+        console.error('[lounge] compare chart failed', err);
+        const meta = $('loungeCompareMeta');
+        if(meta) meta.textContent = 'Comparison failed. Please try again.';
+      });
+    });
+      document.querySelectorAll('[data-placement-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          closeChartFilterMenus();
+          setPlacementMode(btn.dataset.placementMode);
+        });
+      });
+      $('btnSaveRace').addEventListener('click', () => saveRace());
+      $('btnDisconnect').addEventListener('click', () => toggleDisconnectTag());
+      $('btnUndo').addEventListener('click', undoLast);
+      $('btnTrackSuggestions')?.addEventListener('click', () => {
+        if($('trackSuggestionDialog')?.open){
+          closeTrackSuggestionDialog();
+          return;
+        }
+        openTrackSuggestionDialog();
+      });
+      $('btnCloseTrackSuggestions')?.addEventListener('click', closeTrackSuggestionDialog);
+      $('trackSuggestionGrid')?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-suggest-track]');
+        if(!button) return;
+        const track = String(button.getAttribute('data-suggest-track') || '').trim();
+        if(!track || state.entryMode !== 'track') return;
+        const select = $('trackSelect');
+        if(select){
+          select.value = track;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        closeTrackSuggestionDialog();
+      });
     $('btnConfirmMogiResult')?.addEventListener('click', confirmMogiResult);
     $('btnKeepMogiResult')?.addEventListener('click', () => {
       closeMogiResultDialog();
@@ -1844,6 +2353,7 @@
       setStatus('Cloud lounge unavailable. Local mode loaded.', false);
       console.error(e);
     }
+    await loadTrackIconMap();
     if(PAGE_CONFIG.allowIntermissionRoutes) await loadStratsMeta();
     setEntryMode('track');
     initIntermissionRouteFilters();

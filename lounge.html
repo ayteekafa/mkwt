@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -14,7 +14,7 @@
 <link href="tracker.css" rel="stylesheet"/>
 <link href="stats.css" rel="stylesheet"/>
 <link href="lounge.css" rel="stylesheet"/>
-<title>MKWT – Lounge 12p</title>
+<title>MKWT - Lounge 12p</title>
 </head>
 <body data-lounge-player-count="12" data-lounge-storage-suffix="12" data-lounge-title="Lounge 12p" data-lounge-lobby-tags="true" data-lounge-page-name="lounge.html">
 <noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript.</p></div></noscript>
@@ -27,8 +27,10 @@
         <a class="navDropdownItem" href="tracker.html">World Wides</a>
         <a class="navDropdownItem active" href="lounge.html">Lounge 12p</a>
         <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+        <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
       </div>
     </div>
+    <a class="navLink" href="combo-builder.html">Combo Builder</a>
     <div class="navDropdown">
       <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
       <div class="navDropdownMenu">
@@ -43,8 +45,8 @@
   <section class="card profileCard">
     <div class="profileTop">
       <div>
-        <h2 style="margin:0 0 6px 0;">Lounge 12p Tracker <span class="byAytee">by Aytee</span></h2>
-        <div class="muted" id="userInfo">Lounge 12p</div>
+        <h2 class="heroTitle">Lounge 12p Tracker <span class="byAytee">by Aytee</span></h2>
+        <div class="muted heroSubtitle" id="userInfo">Lounge 12p</div>
       </div>
     </div>
     <div aria-label="Lounge quick stats" class="statGrid loungeHeroStats">
@@ -75,8 +77,8 @@
     </div>
     <div class="bestTrackLine">
       <div class="bestTrackLabel">Best Track</div>
-      <div class="bestTrackName" id="heroBestTrackName">–</div>
-      <div class="bestTrackMeta" id="heroBestTrackMeta">–</div>
+      <div class="bestTrackName" id="heroBestTrackName">-</div>
+      <div class="bestTrackMeta" id="heroBestTrackMeta">-</div>
     </div>
     <div id="status" class="muted hidden"></div>
   </section>
@@ -84,7 +86,10 @@
   <section class="card cardSection">
     <div class="sectionHead sectionHead--split">
       <div>
-        <h3>Track Mogi</h3>
+        <h3 class="sectionTitle">Track Mogi</h3>
+      </div>
+      <div class="sectionHeadActions">
+        <button class="infoBtn" id="btnTrackSuggestions" type="button" title="Suggested tracks" aria-label="Suggested tracks">?</button>
       </div>
     </div>
 
@@ -161,51 +166,40 @@
       </summary>
       <div class="tableWrap">
         <table>
-          <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
-          <tbody id="currentMogiBody"><tr><td colspan="6" class="muted">No races tracked yet.</td></tr></tbody>
+          <thead><tr><th>#</th><th>Track</th><th>Place / Pts</th><th>Lobby / Tag</th></tr></thead>
+          <tbody id="currentMogiBody"><tr><td colspan="4" class="muted">No races tracked yet.</td></tr></tbody>
         </table>
       </div>
     </details>
   </section>
-
-  <section class="card cardSection">
-    <div class="sectionHead">
-      <div>
-        <h3>Track Performance</h3>
-      </div>
-      <div class="segRow sortRow" id="trackSortGroup">
-        <button id="btnSortPerformance" class="navAction active" type="button">Performance ↓</button>
-        <button id="btnSortPlayed" class="navAction" type="button">Most played</button>
-      </div>
-    </div>
-    <div class="chartShell">
-      <div class="chartWrap chartWrapC2"><canvas id="chartTrackAvg"></canvas></div>
-      <div class="trackInsight" id="trackInsight">
-        <div class="muted">Click on a track bar to see AVG points and times played.</div>
-      </div>
-    </div>
-    <div class="placementChartBlock">
-      <div class="sectionHead placementChartHead">
+  <dialog class="compareDialog" id="trackSuggestionDialog">
+    <div class="compareDialogPanel suggestDialogPanel">
+      <div class="compareDialogHead">
         <div>
-          <h3>Placement Distribution</h3>
+          <div class="compareDialogEyebrow">Track Suggestions</div>
+          <h3>Suggested Tracks</h3>
+          <div class="muted compareDialogMeta" id="trackSuggestionMeta">Top remaining 3-lap picks from Lounge performance.</div>
         </div>
+        <button class="navAction" id="btnCloseTrackSuggestions" type="button">Close</button>
       </div>
-      <div class="chartWrap chartWrapPlacement"><canvas id="chartPlacementDist"></canvas></div>
+      <div class="suggestTrackGrid" id="trackSuggestionGrid">
+        <div class="muted">No suggestions yet.</div>
+      </div>
     </div>
-  </section>
+  </dialog>
 
   <section class="card cardSection">
     <div class="sectionHead">
       <div>
-        <h3>Saved Mogi Sessions</h3>
+        <h3 class="sectionTitle">Saved Mogi Sessions</h3>
       </div>
     </div>
     <div id="sessionList" class="sessionListCompact"><div class="muted">No saved Mogis yet.</div></div>
     <div class="paginationRow" id="sessionPaginationRow">
       <div class="muted" id="sessionPageInfo">Page 1</div>
       <div class="paginationActions">
-        <button class="navAction navAction--sm" id="btnSessionPrev" type="button">← Prev</button>
-        <button class="navAction navAction--sm" id="btnSessionNext" type="button">Next →</button>
+        <button class="navAction navAction--sm" id="btnSessionPrev" type="button">Prev</button>
+        <button class="navAction navAction--sm" id="btnSessionNext" type="button">Next</button>
       </div>
     </div>
   </section>
@@ -224,7 +218,7 @@
     </div>
     <div class="tableWrap mogiResultTableWrap">
       <table>
-        <thead><tr><th>#</th><th>Track</th><th>Lobby</th><th>Placement</th><th>Points</th><th>Type</th></tr></thead>
+        <thead><tr><th>#</th><th>Track</th><th>Place / Pts</th><th>Lobby / Tag</th></tr></thead>
         <tbody id="mogiResultRows"></tbody>
       </table>
     </div>
@@ -234,6 +228,7 @@
     </div>
   </div>
 </dialog>
+<script src="mkwt_mode_compare.js"></script>
 <script src="lounge.js"></script>
 </body>
 </html>

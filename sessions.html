@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 <meta name="theme-color" content="#07080a"/><script src="mkwt_bootstrap.js"></script>
-<title>MKWT – Sessions</title>
+<title>MKWT - Sessions</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
 <script src="mkwt_page_helpers.js"></script>
@@ -24,7 +24,7 @@
 
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   
@@ -34,13 +34,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   
-  <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
   <meta property="og:url" content="https://www.mkwt.app/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta name="twitter:title" content="MKWT - Mario Kart World Match Tracker">
   <meta name="twitter:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta name="twitter:image" content="https://www.mkwt.app/og-card.png">
 
@@ -56,8 +56,10 @@
 <a class="navDropdownItem" href="tracker.html">World Wides</a>
 <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
 <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+<a class="navDropdownItem" href="time-trial.html">Time Trial</a>
 </div>
 </div>
+<a class="navLink" href="combo-builder.html">Combo Builder</a>
 <div class="navDropdown">
 <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
 <div class="navDropdownMenu">
@@ -69,13 +71,13 @@
 </div>
 </nav>
 <div class="wrap">
-<div class="card">
-<div class="topbar">
+<div class="card profileCard">
+<div class="profileTop">
 <div>
-<h2 style="margin:0 0 6px 0;">MKWT – Sessions</h2>
+<h2 class="heroTitle">Sessions <span class="byAytee">by Aytee</span></h2>
 <div class="pageInfoLines" style="display:none">
-<div class="muted" id="userInfo">Loading session…</div>
-<div class="muted">Sessions: <b id="sessionCount">–</b></div>
+<div class="muted heroSubtitle" id="userInfo">Loading session...</div>
+<div class="muted">Sessions: <b id="sessionCount">-</b></div>
 </div>
 </div>
 </div>
@@ -84,19 +86,16 @@
 <div class="muted" id="debug"></div>
 </div>
 </div>
-<div class="card">
-<div style="display:flex; gap:10px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;">
+<div class="card cardSection">
+<div class="sectionHead">
 <div>
-<h3 style="margin:0 0 6px 0;">Session Performance</h3>
-<div class="muted">
-            
-          </div>
+<h3 class="sectionTitle">Session Performance</h3>
 </div>
-<div class="muted" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-<span>Page</span>
-<button class="navAction" id="btnPrev" style="padding:6px 10px;" type="button">◀</button>
-<span><b id="pageInfo">–</b></span>
-<button class="navAction" id="btnNext" style="padding:6px 10px;" type="button">▶</button>
+<div class="sectionHeadActions">
+<span class="muted">Page</span>
+<button class="navAction navAction--sm" id="btnPrev" type="button">Prev</button>
+<span class="muted"><b id="pageInfo">-</b></span>
+<button class="navAction navAction--sm" id="btnNext" type="button">Next</button>
 </div>
 </div>
 <div id="sessionList" style="margin-top:12px;"></div>

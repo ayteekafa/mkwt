@@ -6,8 +6,8 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 
-  <title>MKWT - Mario Kart World Tracker, Lounge 12p, and MKCentral Stats</title>
-  <meta name="description" content="MKWT lets you track VR matches, sessions, Lounge mogis, and MKCentral Lounge stats in one clean Mario Kart World app." />
+  <title>MKWT - Mario Kart World Tracker, Combo Builder, Time Trials, Lounge 12p, and MKCentral Stats</title>
+  <meta name="description" content="MKWT lets you track VR matches, build Mario Kart World combos, save Time Trial PBs, log Lounge mogis, and review MKCentral Lounge stats in one clean app." />
 
   <link rel="canonical" href="https://mkwt.app/" />
   <meta name="theme-color" content="#07080a" />
@@ -19,14 +19,14 @@
   <link rel="manifest" href="manifest.webmanifest" />
 
   <meta property="og:title" content="MKWT - Mario Kart World Tracker" />
-  <meta property="og:description" content="Track VR matches, Lounge mogis, and MKCentral Lounge stats in one place." />
+  <meta property="og:description" content="Track VR matches, build combos, save Time Trial PBs, log Lounge mogis, and review MKCentral Lounge stats in one place." />
   <meta property="og:image" content="https://mkwt.app/og-card.png" />
   <meta property="og:url" content="https://mkwt.app/" />
   <meta property="og:type" content="website" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MKWT - Mario Kart World Tracker" />
-  <meta name="twitter:description" content="Track ranked matches, sessions, Lounge 12p mogis, and MKCentral stats with MKWT." />
+  <meta name="twitter:description" content="Track ranked matches, build combos, save Time Trial PBs, log Lounge 12p mogis, and review MKCentral stats with MKWT." />
   <meta name="twitter:image" content="https://mkwt.app/og-card.png" />
 
   <link rel="stylesheet" href="mkwt_theme_v3.css" />
@@ -38,7 +38,7 @@
     "@type": "WebSite",
     "name": "MKWT",
     "url": "https://mkwt.app/",
-    "description": "Mario Kart World tracker for VR matches, sessions, Lounge 12p mogis, and MKCentral Season 2 / 12 player stats.",
+    "description": "Mario Kart World tracker for VR matches, Time Trial PBs, sessions, Lounge 12p mogis, and MKCentral Season 2 / 12 player stats.",
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://mkwt.app/?q={search_term_string}",
@@ -60,8 +60,10 @@
         <a class="navDropdownItem" href="tracker.html">World Wides</a>
         <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
         <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+        <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
       </div>
     </div>
+    <a class="navLink" href="combo-builder.html">Combo Builder</a>
     <div class="navDropdown">
       <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
       <div class="navDropdownMenu">
@@ -83,10 +85,11 @@
       <div class="homeBrandRow">
         <img class="homeAppIcon" src="icons/icon-192.png" alt="MKWT icon" width="72" height="72" />
         <div class="homeBrandText">
-          <h1>Track VR, Lounge 12p, and MKCentral history in one place.</h1>
+          <h1>Track VR, Time Trials, Lounge 12p, and MKCentral history in one place.</h1>
           <p class="homeLead">
-            Log ranked matches, review sessions, measure track and intermission performance, save Lounge 12p mogis race by race,
-            and pull your MKCentral Lounge stats into local charts.
+            Log ranked matches, build character and vehicle combos from hidden stat data, save Time Trial PBs against live world
+            records, review sessions, measure track and intermission performance, save Lounge 12p mogis race by race, and pull
+            your MKCentral Lounge stats into local charts.
           </p>
         </div>
       </div>
@@ -109,14 +112,14 @@
           <p>See averages, best tracks, distributions, trends, and session progress.</p>
         </div>
         <div class="homeHighlight">
+          <div class="homeHighlightLabel">Combo Builder</div>
+          <div class="homeHighlightValue">Hidden stats</div>
+          <p>Pick character and vehicle, sum every stat, and compare coin curves against Feather and Heavy references.</p>
+        </div>
+        <div class="homeHighlight">
           <div class="homeHighlightLabel">Lounge 12p</div>
           <div class="homeHighlightValue">Race by race</div>
           <p>Save mogis with DC tags, review the full set after race 12, and keep stats clean.</p>
-        </div>
-        <div class="homeHighlight">
-          <div class="homeHighlightLabel">Lounge Stats</div>
-          <div class="homeHighlightValue">MKCentral sync</div>
-          <p>Pull MKCentral history, daily play time, MMR trends, and last 50 average MMR.</p>
         </div>
       </div>
     </div>
@@ -133,6 +136,8 @@
       <div class="homeFeatureMeta">Built for quick daily use, not spreadsheet cleanup later.</div>
       <div class="homeFeatureActions">
         <a class="navAction navAction--sm" href="tracker.html">Open Tracker</a>
+        <a class="navAction navAction--sm" href="time-trial.html">Open Time Trial</a>
+        <a class="navAction navAction--sm" href="combo-builder.html">Open Combo Builder</a>
       </div>
     </article>
 

@@ -1,4 +1,4 @@
-const INTERMISSION_ROUTES = [
+﻿const INTERMISSION_ROUTES = [
   {"from":"Acorn Heights","to":"Boo Cinema"},{"from":"Acorn Heights","to":"Dandelion Depths"},{"from":"Acorn Heights","to":"Dry Bones Burnout"},{"from":"Acorn Heights","to":"Mario Circuit"},{"from":"Acorn Heights","to":"Toad's Factory"},
   {"from":"Airship Fortress","to":"Bowser's Castle"},{"from":"Airship Fortress","to":"Dry Bones Burnout"},{"from":"Airship Fortress","to":"Shy Guy Bazaar"},{"from":"Airship Fortress","to":"Toad's Factory"},{"from":"Airship Fortress","to":"Wario Stadium"},
   {"from":"Boo Cinema","to":"Acorn Heights"},{"from":"Boo Cinema","to":"Dandelion Depths"},{"from":"Boo Cinema","to":"Dry Bones Burnout"},{"from":"Boo Cinema","to":"Mario Circuit"},{"from":"Boo Cinema","to":"Starview Peak"},
@@ -48,12 +48,12 @@ function fillTrackSelect(selectEl, placeholder){
   selectEl.innerHTML = "";
   const opt0 = document.createElement("option");
   opt0.value = "";
-  opt0.textContent = placeholder || "—";
+  opt0.textContent = placeholder || "-";
   selectEl.appendChild(opt0);
 
   // Deterministic ordering:
   // - If this is an Intermission-start select, put EXACTLY ONE suggested track (latest match target)
-  //   right under the placeholder and mark it visually (★), but keep value as the raw track name.
+  //   right under the placeholder and mark it visually (â˜…), but keep value as the raw track name.
   // - Under that: all other tracks in strict alphabetical order, excluding the suggested track.
   // - Never keep/accumulate old suggestions because we rebuild the options from scratch every time.
   const suggested = (getSuggestedNextStart?.() || '');
@@ -64,7 +64,7 @@ function fillTrackSelect(selectEl, placeholder){
   if (isStartSelect && suggested && sortedAll.includes(suggested)){
     const o = document.createElement('option');
     o.value = suggested;
-    o.textContent = `★ ${suggested}`;
+    o.textContent = `Suggested: ${suggested}`;
     o.dataset.suggested = '1';
     selectEl.appendChild(o);
   }
@@ -102,7 +102,7 @@ function fillTrackSelectFromList(selectEl, placeholder, list){
   selectEl.innerHTML = "";
   const opt0 = document.createElement("option");
   opt0.value = "";
-  opt0.textContent = placeholder || "—";
+  opt0.textContent = placeholder || "-";
   selectEl.appendChild(opt0);
 
   const arr = Array.isArray(list) ? list : [];
@@ -116,7 +116,7 @@ function fillTrackSelectFromList(selectEl, placeholder, list){
   if (isStartSelect && suggested && sorted.includes(suggested)){
     const o = document.createElement('option');
     o.value = suggested;
-    o.textContent = `★ ${suggested}`;
+    opt.textContent = `Suggested: ${suggested}`;
     o.dataset.suggested = '1';
     selectEl.appendChild(o);
   }
@@ -146,7 +146,7 @@ function applySpecialEndLabelsToSelect(endSelectEl, startVal){
       const end = String(opt.value);
       let label = end;
       if (start && metaIM){
-        const k = `${start}→${end}`;
+        const k = `${start}>${end}`;
         const m = metaIM[k];
         // Use the same naming/grouping as the Intermission Destiny chart.
         // DISPLAY-ONLY: option.value (and saved data) stays as the plain end track.

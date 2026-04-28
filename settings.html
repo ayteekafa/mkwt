@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 <meta name="theme-color" content="#07080a"/><script src="mkwt_bootstrap.js"></script>
-<title>MKWT – Settings</title>
+<title>MKWT - Settings</title>
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
@@ -17,7 +17,7 @@
 
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   
@@ -27,13 +27,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   
-  <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
   <meta property="og:url" content="https://www.mkwt.app/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta name="twitter:title" content="MKWT - Mario Kart World Match Tracker">
   <meta name="twitter:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta name="twitter:image" content="https://www.mkwt.app/og-card.png">
 
@@ -50,8 +50,10 @@
 <a class="navDropdownItem" href="tracker.html">World Wides</a>
 <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
 <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+<a class="navDropdownItem" href="time-trial.html">Time Trial</a>
 </div>
 </div>
+<a class="navLink" href="combo-builder.html">Combo Builder</a>
 <div class="navDropdown">
 <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
 <div class="navDropdownMenu">
@@ -65,20 +67,26 @@
 <!-- ===== CONTENT ===== -->
 <div class="wrap">
 
-<div class="card">
-  <div class="topbar">
-    <div>
-      <h2 class="mb-0" style="margin-bottom:6px;">MKWT – Settings</h2>
-      <div class="muted" id="userInfo">Loading session…</div>
-      <div class="muted">Current VR (Profile): <b id="currentVr">–</b></div>
-      <div class="muted">Matches: <b id="matchCount">–</b></div>
+<div class="card profileCard settingsHero">
+  <div class="profileTop settingsHeroTop">
+    <div class="settingsHeroCopy">
+      <h2 class="heroTitle">Settings <span class="byAytee">by Aytee</span></h2>
+      <div class="muted heroSubtitle" id="userInfo">Loading session...</div>
+      <div class="settingsHeroMeta pageInfoLines">
+        <div class="muted">Current VR: <b id="currentVr">-</b></div>
+        <div class="muted">Matches: <b id="matchCount">-</b></div>
+      </div>
     </div>
   </div>
   <div class="muted" data-status="shared" id="statusTop"></div>
 </div>
 
-<div class="card">
-<h2>Settings</h2>
+<div class="card cardSection settingsCard">
+<div class="sectionHead">
+  <div>
+    <h2 class="sectionTitle">Settings</h2>
+  </div>
+</div>
 <div class="profileSettingsGrid">
   <div class="field">
     <label class="muted" for="settingsNickname">Name</label>
@@ -183,23 +191,23 @@
   <div class="infoPanel" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
     <div class="infoHeader">
       <div class="infoTitle" id="pwTitle">Change password</div>
-      <button class="mcard__infoBtn" id="pwClose" type="button" title="Close" aria-label="Close">×</button>
+      <button class="mcard__infoBtn" id="pwClose" type="button" title="Close" aria-label="Close">x</button>
     </div>
-    <div class="infoBody">
+    <form class="infoBody" id="pwForm">
       <div class="field" style="margin-bottom:10px;">
         <label class="muted">New password</label>
-        <input id="pwNew" type="password" autocomplete="new-password" placeholder="••••••••" />
+        <input id="pwNew" type="password" autocomplete="new-password" placeholder="........" />
       </div>
       <div class="field" style="margin-bottom:12px;">
         <label class="muted">Confirm password</label>
-        <input id="pwConfirmInput" type="password" autocomplete="new-password" placeholder="••••••••" />
+        <input id="pwConfirmInput" type="password" autocomplete="new-password" placeholder="........" />
       </div>
       <div class="muted" id="pwStatus" style="min-height:18px; margin-bottom:12px;"></div>
       <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
         <button class="btn2" id="pwCancel" type="button">Cancel</button>
-        <button class="btn" id="pwConfirm" type="button">Confirm</button>
+        <button class="btn" id="pwConfirm" type="submit">Confirm</button>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 
@@ -208,7 +216,7 @@
 <div aria-labelledby="infoTitle" aria-modal="true" class="infoPanel" role="dialog">
 <div class="infoHeader">
 <div class="infoTitle" id="infoTitle">Info</div>
-<button aria-label="Close" class="mcard__infoBtn" id="infoClose" title="Close" type="button">×</button>
+<button aria-label="Close" class="mcard__infoBtn" id="infoClose" title="Close" type="button">x</button>
 </div>
 <div class="infoBody" id="infoBody"></div>
 </div>

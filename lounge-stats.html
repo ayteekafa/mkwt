@@ -24,8 +24,10 @@
         <a class="navDropdownItem" href="tracker.html">World Wides</a>
         <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
         <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+        <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
       </div>
     </div>
+    <a class="navLink" href="combo-builder.html">Combo Builder</a>
     <div class="navDropdown">
       <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
       <div class="navDropdownMenu">
@@ -74,7 +76,7 @@
           <p class="eyebrow">MKCentral Sync</p>
           <h3>Choose season</h3>
         </div>
-        <button class="mkcDialogClose" id="btnCloseMkcUpdate" type="button" aria-label="Close">x</button>
+        <button class="mkcDialogClose" id="btnCloseMkcUpdate" type="button" aria-label="Close">Close</button>
       </div>
       <div class="muted">Updating another season or mode switches this page to that local dataset. Your other synced datasets stay separate.</div>
       <div class="mkcScopeChoices" id="mkcScopeChoices"></div>
@@ -114,7 +116,91 @@
         <div class="muted" id="mkcChartMeta">Estimated daily play time across Season 2.</div>
       </div>
     </div>
-    <div class="mkcChartWrap"><canvas id="chartMkcDelta"></canvas></div>
+    <div class="mkcChartWrap mkcChartWrapWide"><canvas id="chartMkcDelta"></canvas></div>
+  </section>
+
+  <section class="card mkcTrackerChartsSection">
+    <div class="sectionHead mkcTrackerChartsHead">
+      <div>
+        <h3>Lounge Tracker Charts</h3>
+        <div class="muted" id="mkcLocalTrackerMeta">Loading saved Lounge tracker data...</div>
+      </div>
+      <div class="mkcTrackerFilter" id="mkcLoungeModeFilterRoot">
+        <button aria-controls="menuMkcLoungeModeFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungeModeFilter" type="button">
+          <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span id="mkcLoungeModeFilterValue">Lounge 12p</span>
+        </button>
+        <div class="mkcTrackerFilterMenu" hidden id="menuMkcLoungeModeFilter">
+          <button class="mkcTrackerFilterItem active" data-mkc-lounge-mode="12" id="optMkcLoungeMode12" type="button"><span>Lounge 12p</span></button>
+          <button class="mkcTrackerFilterItem" data-mkc-lounge-mode="24" id="optMkcLoungeMode24" type="button"><span>Lounge 24p</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mkcTrackerChartsGrid">
+      <div class="card mkcTrackerChartCard">
+        <div class="mkcTrackerChartHead">
+          <div>
+            <h4>Track Performance</h4>
+            <div class="muted" id="mkcLoungeTrackModeMeta">Tracks</div>
+          </div>
+          <div class="mkcTrackerChartActions">
+            <div class="mkcTrackerPager" id="mkcLoungeTrackPager" hidden>
+              <button class="mkcTrackerPagerBtn active" data-mkc-track-mode="tracks" type="button">Tracks</button>
+              <button class="mkcTrackerPagerBtn" data-mkc-track-mode="im_destiny" type="button">Destiny</button>
+              <button class="mkcTrackerPagerBtn" data-mkc-track-mode="im_routes" type="button">Separated</button>
+            </div>
+            <div class="mkcTrackerFilter" id="mkcLoungeTrackFilterRoot">
+              <button aria-controls="menuMkcLoungeTrackFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungeTrackFilter" type="button">
+                <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span id="mkcLoungeTrackFilterValue">Performance v</span>
+              </button>
+              <div class="mkcTrackerFilterMenu" hidden id="menuMkcLoungeTrackFilter">
+                <button class="mkcTrackerFilterItem active" data-mkc-track-sort="avg" id="optMkcLoungeTrackSortAvg" type="button"><span>Performance</span><span class="mkcTrackerFilterMeta">v</span></button>
+                <button class="mkcTrackerFilterItem" data-mkc-track-sort="count" id="optMkcLoungeTrackSortCount" type="button"><span>Most played</span><span class="mkcTrackerFilterMeta"></span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mkcChartWrap mkcChartWrapTracker"><canvas id="chartMkcLoungeTrack"></canvas></div>
+        <div class="mkcTrackerInsight" id="mkcLoungeTrackInsight">
+          <div class="muted">Click on a bar to see AVG points and times played.</div>
+        </div>
+      </div>
+
+      <div class="card mkcTrackerChartCard">
+        <div class="mkcTrackerChartHead">
+          <div>
+            <h4>Placement Distribution</h4>
+            <div class="muted" id="mkcLoungePlacementMeta">Tracks</div>
+          </div>
+          <div class="mkcTrackerChartActions">
+            <div class="mkcTrackerFilter" id="mkcLoungePlacementFilterRoot" hidden>
+              <button aria-controls="menuMkcLoungePlacementFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungePlacementFilter" type="button">
+                <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span id="mkcLoungePlacementFilterValue">All</span>
+              </button>
+              <div class="mkcTrackerFilterMenu" hidden id="menuMkcLoungePlacementFilter">
+                <button class="mkcTrackerFilterItem active" data-mkc-placement-mode="all" id="optMkcLoungePlacementAll" type="button"><span>All</span></button>
+                <button class="mkcTrackerFilterItem" data-mkc-placement-mode="tracks" id="optMkcLoungePlacementTracks" type="button"><span>Tracks</span></button>
+                <button class="mkcTrackerFilterItem" data-mkc-placement-mode="intermission" id="optMkcLoungePlacementIntermission" type="button"><span>Intermission</span></button>
+              </div>
+            </div>
+            <div class="mkcTrackerFilter" id="mkcLoungePlacementItemFilterRoot">
+              <button aria-controls="menuMkcLoungePlacementItemFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungePlacementItemFilter" type="button">
+                <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span id="mkcLoungePlacementItemFilterValue">All tracks</span>
+              </button>
+              <div class="mkcTrackerFilterMenu" hidden id="menuMkcLoungePlacementItemFilter"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mkcChartWrap mkcChartWrapTracker"><canvas id="chartMkcLoungePlacement"></canvas></div>
+        <div class="mkcTrackerInsight" id="mkcLoungePlacementInsight">
+          <div class="muted">Track placements for all saved races in the selected Lounge mode.</div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="mkcTwo">

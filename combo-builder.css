@@ -1,0 +1,1143 @@
+.comboWrap{
+  padding-bottom:36px;
+}
+
+.comboHeroTop{
+  justify-content:space-between;
+  align-items:flex-start;
+  text-align:left;
+}
+
+.comboHeroCopy{
+  min-width:0;
+  max-width:760px;
+}
+
+.comboHeroActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.comboSection{
+  min-width:0;
+}
+
+.comboSectionHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.comboSectionActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:flex-end;
+}
+
+.comboActionBtn{
+  white-space:nowrap;
+}
+
+.cbBuilderGrid{
+  display:grid;
+  grid-template-columns:minmax(0, 1.02fr) minmax(0, .98fr);
+  gap:16px;
+}
+
+.cbPickerGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.cbPicker{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+
+.cbPicker span{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.cbPicker select{
+  width:100%;
+}
+
+.cbCurrentCombo{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-top:14px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+    var(--card-2);
+}
+
+.cbCurrentComboIcons{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:0 0 auto;
+}
+
+.cbCurrentComboText{
+  min-width:0;
+}
+
+.cbCurrentComboTitle{
+  font-size:18px;
+  font-weight:950;
+  line-height:1.1;
+}
+
+.cbCurrentComboMeta{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+}
+
+.cbMetaGrid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:10px;
+  margin-top:14px;
+}
+
+.cbMetaChip{
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+}
+
+.cbMetaChip--accent{
+  background:
+    linear-gradient(180deg, rgba(78,124,255,.14), rgba(78,124,255,.04)),
+    var(--card-2);
+  border-color:rgba(78,124,255,.32);
+}
+
+.cbMetaLabel{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.cbMetaValue{
+  display:block;
+  margin-top:6px;
+  font-size:16px;
+  font-weight:900;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.cbStatsGroups{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+  margin-top:16px;
+}
+
+.cbStatGroup{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+  min-width:0;
+}
+
+.cbStatGroup--speed{
+  background:
+    linear-gradient(180deg, rgba(78,124,255,.12), rgba(78,124,255,.04)),
+    var(--card-2);
+  border-color: rgba(78,124,255,.25);
+}
+
+.cbStatGroup--handling{
+  background:
+    linear-gradient(180deg, rgba(76,196,144,.12), rgba(76,196,144,.04)),
+    var(--card-2);
+  border-color: rgba(76,196,144,.24);
+}
+
+.cbStatGroup--tech{
+  background:
+    linear-gradient(180deg, rgba(255,151,73,.11), rgba(255,151,73,.04)),
+    var(--card-2);
+  border-color: rgba(255,151,73,.24);
+}
+
+.cbStatGroup--survival{
+  background:
+    linear-gradient(180deg, rgba(216,104,255,.1), rgba(216,104,255,.03)),
+    var(--card-2);
+  border-color: rgba(216,104,255,.2);
+}
+
+.cbGroupHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+  min-width:0;
+}
+
+.cbGroupTitle{
+  color:var(--text);
+  font-size:14px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+
+.cbGroupMeta{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.cbGroupTotal{
+  font-size:18px;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+.cbGroupRows{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.cbStatRow{
+  padding:10px 10px 9px;
+  border-radius:12px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.04);
+}
+
+.cbStatHead{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+
+.cbStatLabelWrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.cbStatLabel{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  min-width:0;
+}
+
+.cbStatValue{
+  font-size:15px;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+.cbInfoBtn{
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  font-size:12px;
+  font-weight:900;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+
+.cbInfoBtn:hover{
+  background:rgba(255,255,255,.1);
+}
+
+.cbStatBar{
+  height:9px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,.06);
+  margin-top:8px;
+}
+
+.cbStatBarFill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg, rgba(78,124,255,.9), rgba(76,196,144,.92));
+}
+
+.cbChartSummary{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+}
+
+.cbRefCard{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+}
+
+.cbRefCard--selected{
+  border-color:rgba(78,124,255,.4);
+  background:
+    linear-gradient(180deg, rgba(78,124,255,.16), rgba(78,124,255,.05)),
+    var(--card-2);
+}
+
+.cbRefCard--feather{
+  border-color:rgba(76,196,144,.32);
+  background:
+    linear-gradient(180deg, rgba(76,196,144,.14), rgba(76,196,144,.05)),
+    var(--card-2);
+}
+
+.cbRefCard--heavy{
+  border-color:rgba(255,151,73,.34);
+  background:
+    linear-gradient(180deg, rgba(255,151,73,.16), rgba(255,151,73,.05)),
+    var(--card-2);
+}
+
+.cbRefLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.cbRefValue{
+  margin-top:7px;
+  font-size:26px;
+  font-weight:950;
+  line-height:1;
+}
+
+.cbRefMeta{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+.cbChartWrap{
+  position:relative;
+  width:100%;
+  height:420px;
+  margin-top:16px;
+}
+
+.cbChartWrap canvas{
+  width:100% !important;
+  height:100% !important;
+  display:block;
+}
+
+.cbCurveNotes{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:14px;
+}
+
+.cbCompareChooser{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.cbCompareHero{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.cbCompareComboCard{
+  min-width:0;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+    var(--card-2);
+}
+
+.cbCompareComboCard--target{
+  background:
+    linear-gradient(180deg, rgba(78,124,255,.08), rgba(78,124,255,.02)),
+    var(--card-2);
+  border-color:color-mix(in srgb, var(--primary) 28%, var(--border));
+}
+
+.cbCompareComboLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.cbCompareComboMain{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:9px;
+  min-width:0;
+}
+
+.cbCompareComboIcons{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+
+.cbCompareComboText{
+  min-width:0;
+}
+
+.cbCompareComboTitle{
+  font-size:18px;
+  font-weight:950;
+  line-height:1.15;
+}
+
+.cbCompareComboMeta{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+}
+
+.cbCompareSummary{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.cbCompareSummaryCard{
+  min-width:0;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+}
+
+.cbCompareSummaryCard--up{
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--chart-positive-stroke) 16%, transparent), rgba(255,255,255,.01)),
+    var(--card-2);
+  border-color:color-mix(in srgb, var(--chart-positive-stroke) 28%, var(--border));
+}
+
+.cbCompareSummaryCard--down{
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--chart-negative-stroke) 15%, transparent), rgba(255,255,255,.01)),
+    var(--card-2);
+  border-color:color-mix(in srgb, var(--chart-negative-stroke) 28%, var(--border));
+}
+
+.cbCompareSummaryLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.cbCompareSummaryValue{
+  margin-top:8px;
+  font-size:24px;
+  line-height:1;
+  font-weight:950;
+}
+
+.cbCompareSummaryMeta{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.cbCompareGroups{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.cbCompareGroup{
+  min-width:0;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+}
+
+.cbCompareGroupHead{
+  margin-bottom:10px;
+}
+
+.cbCompareGroupTitle{
+  font-size:14px;
+  font-weight:900;
+}
+
+.cbCompareGroupMeta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.cbCompareRows{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.cbCompareRow{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:12px;
+  border-radius:12px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.04);
+}
+
+.cbCompareRowTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.cbCompareRowLabel{
+  min-width:0;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.cbCompareMeter{
+  position:relative;
+  height:18px;
+  border-radius:999px;
+  overflow:visible;
+}
+
+.cbCompareMeterTrack,
+.cbCompareMeterBase,
+.cbCompareMeterCompare,
+.cbCompareMeterDelta{
+  position:absolute;
+  top:0;
+  left:0;
+  height:100%;
+  border-radius:999px;
+}
+
+.cbCompareMeterTrack{
+  width:100%;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.06);
+}
+
+.cbCompareMeterBase{
+  background:linear-gradient(90deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+.cbCompareMeterCompare{
+  opacity:.5;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+.cbCompareMeterCompare--up{
+  background:linear-gradient(90deg, color-mix(in srgb, var(--chart-positive-stroke) 48%, transparent), color-mix(in srgb, var(--chart-positive-stroke) 26%, transparent));
+}
+
+.cbCompareMeterCompare--down{
+  background:linear-gradient(90deg, color-mix(in srgb, var(--chart-negative-stroke) 44%, transparent), color-mix(in srgb, var(--chart-negative-stroke) 24%, transparent));
+}
+
+.cbCompareMeterCompare--equal{
+  background:linear-gradient(90deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+}
+
+.cbCompareMeterDelta{
+  min-width:0;
+}
+
+.cbCompareMeterDelta--up{
+  background:linear-gradient(90deg, color-mix(in srgb, var(--chart-positive-stroke) 90%, transparent), color-mix(in srgb, var(--chart-positive-stroke) 68%, transparent));
+}
+
+.cbCompareMeterDelta--down{
+  background:linear-gradient(90deg, color-mix(in srgb, var(--chart-negative-stroke) 88%, transparent), color-mix(in srgb, var(--chart-negative-stroke) 64%, transparent));
+}
+
+.cbCompareMeterDelta--equal{
+  background:transparent;
+}
+
+.cbCompareMeterMarker{
+  position:absolute;
+  top:50%;
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  transform:translate(-50%, -50%);
+  border:2px solid rgba(255,255,255,.9);
+  background:var(--card);
+  box-shadow:0 0 0 2px rgba(0,0,0,.22);
+}
+
+.cbCompareMeterMarker--base{
+  border-color:rgba(255,255,255,.82);
+}
+
+.cbCompareMeterMarker--compare{
+  width:12px;
+  height:12px;
+}
+
+.cbCompareMeterMarker--up{
+  border-color:var(--chart-positive-stroke);
+}
+
+.cbCompareMeterMarker--down{
+  border-color:var(--chart-negative-stroke);
+}
+
+.cbCompareMeterMarker--equal{
+  border-color:rgba(255,255,255,.82);
+}
+
+.cbCompareRowValues{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:8px;
+}
+
+.cbCompareValueCard{
+  min-width:0;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.025);
+}
+
+.cbCompareValueCard--target{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)),
+    rgba(255,255,255,.02);
+}
+
+.cbCompareValueLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.cbCompareValueNumber{
+  margin-top:5px;
+  font-size:15px;
+  font-weight:950;
+  line-height:1.1;
+}
+
+.cbCompareDelta{
+  min-width:52px;
+  text-align:right;
+  font-size:14px;
+  font-weight:950;
+  color:var(--muted);
+}
+
+.cbCompareDelta--up{
+  color:var(--chart-positive-stroke);
+}
+
+.cbCompareDelta--down{
+  color:var(--chart-negative-stroke);
+}
+
+.cbCurveNote{
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+  color:var(--muted);
+  line-height:1.45;
+}
+
+.cbCurveNote b{
+  color:var(--text);
+}
+
+.ttDialog{
+  border:0;
+  padding:0;
+  margin:auto;
+  background:transparent;
+  width:min(720px, calc(100vw - 24px));
+}
+
+.ttDialog--wide{
+  width:min(1180px, calc(100vw - 24px));
+}
+
+.ttDialog::backdrop{
+  background:rgba(0,0,0,0.62);
+}
+
+.ttDialogBox{
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--card);
+  padding:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.35);
+}
+
+.ttDialogHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.ttDialogHead h3{
+  margin:0 0 4px 0;
+  font-size:28px;
+  line-height:1.05;
+}
+
+.ttDialogClose{
+  border:1px solid var(--border);
+  background:var(--hover);
+  color:var(--text);
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:900;
+}
+
+.cbInfoGrid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.cbInfoCard{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+}
+
+.cbInfoLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.cbInfoValue{
+  margin-top:7px;
+  font-size:24px;
+  font-weight:950;
+  line-height:1.08;
+}
+
+.cbSimilarList{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.cbSimilarCard{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+}
+
+.cbSimilarCard--active{
+  border-color:rgba(78,124,255,.38);
+  background:
+    linear-gradient(180deg, rgba(78,124,255,.14), rgba(78,124,255,.04)),
+    var(--card-2);
+}
+
+.cbSimilarMain{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.cbSimilarIcons{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+
+.cbGlyph{
+  position:relative;
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:950;
+  letter-spacing:.02em;
+  color:#fff;
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 10px 22px rgba(0,0,0,.16);
+  overflow:hidden;
+}
+
+.cbGlyph--large{
+  width:52px;
+  height:52px;
+  border-radius:14px;
+  font-size:16px;
+}
+
+.cbGlyph--character{
+  background:linear-gradient(135deg, rgba(78,124,255,.98), rgba(114,151,255,.78));
+}
+
+.cbGlyph--vehicle{
+  background:linear-gradient(135deg, rgba(255,151,73,.95), rgba(255,196,76,.72));
+}
+
+.cbGlyphFallback{
+  position:relative;
+  z-index:1;
+}
+
+.cbGlyph[data-has-image="true"] .cbGlyphFallback{
+  opacity:0;
+}
+
+.cbGlyph img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  padding:3px;
+  display:block;
+  z-index:2;
+}
+
+.cbSimilarText{
+  min-width:0;
+}
+
+.cbSimilarTitle{
+  font-size:16px;
+  font-weight:950;
+  line-height:1.2;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.cbSimilarMeta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+.cbSimilarBadge{
+  flex:0 0 auto;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid rgba(78,124,255,.28);
+  background:rgba(78,124,255,.12);
+  color:var(--text);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.cbResultStats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+
+.cbResultStatChip{
+  padding:6px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  line-height:1;
+}
+
+.cbFilterLayout{
+  display:grid;
+  grid-template-columns:minmax(280px, 360px) minmax(0, 1fr);
+  gap:14px;
+}
+
+.cbFilterPanel,
+.cbFilterResults{
+  min-width:0;
+}
+
+.cbFilterPanelHead,
+.cbFilterResultsHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.cbFilterPanelTitle{
+  font-size:15px;
+  font-weight:950;
+  line-height:1.2;
+}
+
+.cbFilterGroups{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.cbFilterGroup{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+}
+
+.cbFilterGroupTitle{
+  font-size:13px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+
+.cbFilterRows{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.cbFilterRow{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 108px;
+  gap:10px;
+  align-items:center;
+}
+
+.cbFilterRowLabel{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+
+.cbFilterInputWrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.cbFilterInput{
+  width:100%;
+}
+
+.cbFilterMax{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.cbEmpty{
+  padding:14px;
+  border:1px dashed var(--border);
+  border-radius:14px;
+  color:var(--muted);
+}
+
+@media (max-width: 1040px){
+  .cbBuilderGrid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width: 720px){
+  .comboHeroTop{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .comboSectionHead,
+  .cbFilterPanelHead,
+  .cbFilterResultsHead{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .comboSectionActions{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    align-items:stretch;
+    justify-content:stretch;
+    gap:10px;
+  }
+
+  .comboActionBtn{
+    width:100%;
+    min-width:0;
+    min-height:48px;
+    padding:12px 14px;
+    font-size:14px;
+    line-height:1.2;
+    text-align:center;
+    justify-content:center;
+  }
+
+  .comboActionBtn--wide{
+    grid-column:1 / -1;
+  }
+
+  .cbPickerGrid,
+  .cbMetaGrid,
+  .cbChartSummary,
+  .cbInfoGrid,
+  .cbCompareSummary{
+    grid-template-columns:1fr;
+  }
+
+  .cbStatsGroups{
+    grid-template-columns:1fr;
+  }
+
+  .cbCompareChooser,
+  .cbCompareHero,
+  .cbCompareGroups{
+    grid-template-columns:1fr;
+  }
+
+  .cbCurrentCombo{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .cbFilterLayout{
+    grid-template-columns:1fr;
+  }
+
+  .cbFilterRow{
+    grid-template-columns:1fr;
+  }
+
+  .ttDialog{
+    width:min(100vw, calc(100vw - 12px));
+  }
+
+  .ttDialogBox{
+    padding:16px;
+  }
+
+  .ttDialogHead{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .ttDialogClose{
+    align-self:flex-end;
+  }
+
+  .cbChartWrap{
+    height:360px;
+  }
+
+  .cbSimilarCard{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .cbSimilarMain{
+    width:100%;
+  }
+
+  .cbSimilarBadge{
+    align-self:flex-start;
+  }
+
+  .cbCompareRow{
+    padding:11px;
+  }
+
+  .cbCompareRowValues,
+  .cbCompareDelta{
+    justify-content:flex-start;
+    text-align:left;
+  }
+}

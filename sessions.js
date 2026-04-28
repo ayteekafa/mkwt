@@ -1,4 +1,4 @@
-// ========= UI Helpers =========
+﻿// ========= UI Helpers =========
   const $ = (id) => document.getElementById(id);
   const $status = $("status");
   const $debug = $("debug");
@@ -232,7 +232,7 @@ async function requireSession(){
       const s = slice[i];
       const st = computeSessionStats(s);
       const gain = st.gain;
-      const gainTxt = (gain == null) ? "–" : ((gain >= 0 ? "+" : "") + gain);
+      const gainTxt = (gain == null) ? "-" : ((gain >= 0 ? "+" : "") + gain);
       const gainClass = (gain == null) ? "muted" : (gain >= 0 ? "ok" : "bad");
 
       // One bold time range line
@@ -242,15 +242,15 @@ async function requireSession(){
         const date = d ? d.toLocaleDateString() : "";
         const t1 = d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
         const t2 = s.end ? s.end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-        rangeLine = (date ? (date + " ") : "") + (t1 && t2 ? (t1 + "–" + t2) : "");
+        rangeLine = (date ? (date + " ") : "") + (t1 && t2 ? (t1 + "-" + t2) : "");
         if (!rangeLine.trim()) rangeLine = "Session";
       } catch {}
 
-      const startVr = st.startVr == null ? "–" : st.startVr;
-      const endVr = st.endVr == null ? "–" : st.endVr;
+      const startVr = st.startVr == null ? "-" : st.startVr;
+      const endVr = st.endVr == null ? "-" : st.endVr;
 
-      const imAvg = st.interAvg == null ? "–" : st.interAvg.toFixed(2);
-      const trAvg = st.trackAvg == null ? "–" : st.trackAvg.toFixed(2);
+      const imAvg = st.interAvg == null ? "-" : st.interAvg.toFixed(2);
+      const trAvg = st.trackAvg == null ? "-" : st.trackAvg.toFixed(2);
       const imAvgClass = classForVal(imAvg);
       const trAvgClass = classForVal(trAvg);
 
@@ -262,15 +262,15 @@ async function requireSession(){
           </div>
 
           <div class="sessMeta">
-            <div class="muted sessVR">VR <b class="sessNum">${startVr}</b> → <b class="sessNum">${endVr}</b></div>
+            <div class="muted sessVR">VR <b class="sessNum">${startVr}</b> > <b class="sessNum">${endVr}</b></div>
           </div>
 
           <div class="muted sessGrid">
             <div class="label">Intermission</div>
-            <div class="val"><b class="sessNum">${st.interCount}</b> · Ø <span class="sessAvg ${imAvgClass} sessNum">${imAvg}</span></div>
+            <div class="val"><b class="sessNum">${st.interCount}</b> - Avg <span class="sessAvg ${imAvgClass} sessNum">${imAvg}</span></div>
 
             <div class="label">Tracks (3 Laps)</div>
-            <div class="val"><b class="sessNum">${st.trackCount}</b> · Ø <span class="sessAvg ${trAvgClass} sessNum">${trAvg}</span></div>
+            <div class="val"><b class="sessNum">${st.trackCount}</b> - Avg <span class="sessAvg ${trAvgClass} sessNum">${trAvg}</span></div>
           </div>
         </div>
       `;
@@ -289,7 +289,7 @@ async function requireSession(){
     wirePager();
     await requireSession();
 
-    setStatus("Loading matches…", true);
+    setStatus("Loading matches...", true);
     const matchesAsc = await getAllMatchesAsc();
 
     if (!Array.isArray(matchesAsc) || matchesAsc.length === 0) {

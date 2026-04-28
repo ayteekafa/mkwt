@@ -46,15 +46,27 @@
     .td3Card{
       padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--card-2);
+      border-radius: 14px;
+      background: var(--surface-panel);
+    }
+    .td3TitleWrap{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      margin-bottom:8px;
     }
     .td3Title{
       font-size: 11px;
       letter-spacing: .08em;
       text-transform: uppercase;
       opacity: .75;
-      margin-bottom: 8px;
+      margin-bottom: 0;
+    }
+    .td3Share{
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      line-height: 1.2;
     }
     .td3Grid{
       display: grid;
@@ -65,7 +77,7 @@
     .td3Metric{ min-width: 0; }
 
     /* ===== Info button + modal (reuses tracker.html visual language) ===== */
-    .chartHeader{
+.chartHeader{
       display:flex;
       align-items:center;
       justify-content:space-between;
@@ -73,6 +85,177 @@
       margin:0 0 10px 0;
     }
     .chartHeader h3{ margin:0; }
+.chartHeaderLead{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  flex-wrap:wrap;
+}
+.chartHeaderLead--stacked{
+  align-items:flex-start;
+  justify-content:space-between;
+  flex:1 1 auto;
+}
+.chartHeaderMeta{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+  line-height:1.35;
+}
+.chartHeaderActions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  margin-left:auto;
+}
+.chartFilter{
+  position:relative;
+}
+.chartFilterBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-width:150px;
+  padding:9px 12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--card-2);
+  color:var(--text);
+  cursor:pointer;
+  box-shadow:var(--shadow);
+}
+.chartFilterBtn[aria-expanded="true"]{
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 68%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), rgba(255,255,255,.02)),
+    var(--surface-panel);
+}
+.chartFilterGlyph{
+  width:18px;
+  height:18px;
+  display:grid;
+  gap:3px;
+  flex:0 0 auto;
+}
+.chartFilterGlyph span{
+  display:block;
+  height:3px;
+  border-radius:999px;
+  background:linear-gradient(90deg, var(--chart-split-a-stroke), var(--chart-split-b-stroke));
+}
+.chartFilterGlyph span:nth-child(1){ width:100%; }
+.chartFilterGlyph span:nth-child(2){ width:72%; }
+.chartFilterGlyph span:nth-child(3){ width:46%; }
+.chartFilterValue{
+  font-size:13px;
+  font-weight:800;
+  line-height:1.15;
+  text-align:left;
+}
+.chartFilterMenu{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  min-width:220px;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--surface-dialog);
+  box-shadow:var(--shadow);
+  z-index:40;
+}
+.chartFilterSection{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.chartFilterSection + .chartFilterSection{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+.chartFilterItem{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  padding:9px 10px;
+  border-radius:10px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:700;
+}
+.chartFilterItem:hover{
+  background:color-mix(in srgb, var(--text) 4%, transparent);
+}
+.chartFilterItem.active{
+  background:color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent);
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 46%, var(--border));
+}
+.chartFilterItemMeta{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  min-width:18px;
+  text-align:right;
+}
+.chartSwipeViewport{
+  overflow:hidden;
+}
+.chartSwipeTrack{
+  display:flex;
+  width:200%;
+  transform:translateX(0%);
+  transition:transform .26s ease;
+  will-change:transform;
+}
+.chartSwipePanel{
+  width:50%;
+  flex:0 0 50%;
+  min-width:50%;
+}
+.chartWrapWeekly{
+  height:260px;
+}
+.chartPanelMetric{
+  min-height:28px;
+}
+.chartPager{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.chartPagerBtn{
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--card-2);
+  color:var(--muted);
+  cursor:pointer;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+.chartPagerBtn.active{
+  background:color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent);
+  color:var(--text);
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 46%, transparent);
+}
+.chartSwipeSurface{
+  touch-action:pan-y;
+}
 
     /* Match tracker.html's info button look (same class name) */
     .mcard__infoBtn{
@@ -165,3 +348,159 @@
 }
 
 .avgBig{ font-size:1.35em !important; font-weight:900; }
+
+.modeComparePanel{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--border);
+}
+
+.modeCompareMeta{
+  margin-bottom:10px;
+  line-height:1.45;
+}
+
+.chartWrapCompare{
+  height:620px;
+}
+
+.modeCompareNotes{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:12px;
+}
+
+.modeCompareNote{
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface-panel);
+  line-height:1.45;
+}
+
+.modeCompareNote b{
+  color:var(--text);
+}
+.compareAction{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:2px;
+  min-width:0;
+  max-width:240px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid color-mix(in srgb, var(--chart-split-a-stroke) 48%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 14%, transparent)),
+    var(--surface-panel);
+  color:var(--text);
+  box-shadow:0 8px 18px rgba(0,0,0,.14);
+  cursor:pointer;
+}
+.compareAction--sm{
+  padding:7px 10px;
+}
+.compareAction.active{
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 70%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 24%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 18%, transparent)),
+    var(--surface-panel);
+}
+.compareAction__eyebrow{
+  font-size:9px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:800;
+}
+.compareAction__label{
+  font-size:12px;
+  line-height:1.15;
+  font-weight:900;
+}
+.compareDialog{
+  width:min(1180px, calc(100vw - 24px));
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:0;
+  background:var(--surface-dialog);
+  color:var(--text);
+  box-shadow:var(--shadow);
+}
+.compareDialog::backdrop{ background:var(--backdrop); }
+.compareDialogPanel{ padding:18px; }
+.compareDialogHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+.compareDialogHead h3{ margin:0; }
+.compareDialogEyebrow{
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:800;
+  margin-bottom:8px;
+}
+.compareDialogMeta{ margin-top:8px; }
+.compareDialog .modeComparePanel{
+  margin-top:0;
+  padding-top:0;
+  border-top:none;
+}
+
+@media (max-width: 520px){
+  .chartHeader{
+    align-items:flex-start;
+  }
+  .chartHeaderActions{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px 10px;
+    align-items:start;
+  }
+  .chartHeaderActions .compareAction{
+    grid-column:1;
+    width:100%;
+    max-width:none;
+  }
+  .chartFilter{
+    grid-column:1;
+  }
+  .chartFilterBtn{
+    min-width:0;
+    width:100%;
+  }
+  .chartHeaderActions .mcard__infoBtn{
+    grid-column:2;
+    grid-row:1 / span 2;
+    align-self:center;
+    justify-self:end;
+  }
+  .chartFilterMenu{
+    left:0;
+    right:auto;
+    width:min(280px, calc(100vw - 56px));
+  }
+  .chartWrapWeekly{
+    height:300px;
+  }
+  .chartPagerBtn{
+    padding:6px 10px;
+    font-size:11px;
+  }
+  .compareDialogPanel{
+    padding:14px;
+  }
+  .chartWrapCompare{
+    height:700px;
+  }
+}

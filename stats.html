@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -7,19 +7,18 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 <meta name="theme-color" content="#07080a"/><script src="mkwt_bootstrap.js"></script>
-<title>MKWT – Stats</title>
+<title>MKWT - Stats</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
 <script src="mkwt_page_helpers.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
 <link href="stats.css" rel="stylesheet"/>
 
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   
@@ -29,13 +28,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   
-  <meta property="og:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://www.mkwt.app/og-card.png">
   <meta property="og:url" content="https://www.mkwt.app/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MKWT – Mario Kart World Match Tracker">
+  <meta name="twitter:title" content="MKWT - Mario Kart World Match Tracker">
   <meta name="twitter:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta name="twitter:image" content="https://www.mkwt.app/og-card.png">
 
@@ -51,8 +50,10 @@
 <a class="navDropdownItem" href="tracker.html">World Wides</a>
 <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
 <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+<a class="navDropdownItem" href="time-trial.html">Time Trial</a>
 </div>
 </div>
+<a class="navLink" href="combo-builder.html">Combo Builder</a>
 <div class="navDropdown">
 <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
 <div class="navDropdownMenu">
@@ -63,15 +64,15 @@
 <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>
-<div class="wrap">
+<div class="wrap statsWrap">
 <div class="card">
 <div class="topbar">
 <div>
-<h2 style="margin:0 0 6px 0;">MKWT – Stats</h2>
+<h2 class="heroTitle">World Wide Stats <span class="byAytee">by Aytee</span></h2>
 <div class="pageInfoLines" style="display:none">
-<div class="muted" id="userInfo">Loading session…</div>
-<div class="muted">Current VR (Profile): <b id="currentVr">–</b></div>
-<div class="muted">Matches: <b id="matchCount">–</b></div>
+<div class="muted" id="userInfo">Loading session...</div>
+<div class="muted">Current VR (Profile): <b id="currentVr">-</b></div>
+<div class="muted">Matches: <b id="matchCount">-</b></div>
 </div>
 </div>
 <button class="navAction" id="btnDownloadStatsImage" type="button" disabled>Download image</button>
@@ -83,87 +84,177 @@
 </div>
 <div class="card">
 <div class="chartHeader">
-<h3>VR History</h3>
-<button aria-label="Info" class="mcard__infoBtn" data-info="vrHistory" title="Info" type="button">i</button>
+<div class="chartHeaderLead">
+<div>
+<h3 id="vrDeckTitle">VR History</h3>
+<div class="chartHeaderMeta" id="vrDeckMeta">Overall</div>
 </div>
+</div>
+<div class="chartHeaderActions">
+<div class="chartFilter" id="vrDeckFilterRoot">
+<button aria-controls="menuVrDeckFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnVrDeckFilter" type="button">
+<span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
+<span class="chartFilterValue" id="vrDeckFilterValue">Overall</span>
+</button>
+<div class="chartFilterMenu" hidden="" id="menuVrDeckFilter">
+<div class="chartFilterSection" data-vr-filter-set="vr">
+<button class="chartFilterItem" data-label="Overall" data-value="all" id="optVrAll" type="button"><span>Overall</span></button>
+<button class="chartFilterItem" data-label="Last month" data-value="month" id="optVrMonth" type="button"><span>Last month</span></button>
+<button class="chartFilterItem" data-label="Last week" data-value="week" id="optVrWeek" type="button"><span>Last week</span></button>
+</div>
+<div class="chartFilterSection" data-vr-filter-set="weekly" hidden="">
+<button class="chartFilterItem" data-label="VR Average" data-value="vravg" id="optWeeklyVrAvg" type="button"><span>VR Average</span></button>
+<button class="chartFilterItem" data-label="VR Gain Avg" data-value="gains" id="optWeeklyGains" type="button"><span>VR Gain Avg</span></button>
+</div>
+</div>
+</div>
+<button aria-label="Info" class="mcard__infoBtn" data-info="vrHistory" id="btnVrDeckInfo" title="Info" type="button">i</button>
+</div>
+</div>
+<div class="chartSwipeViewport" id="vrDeckViewport">
+<div class="chartSwipeTrack" id="vrDeckTrack">
+<section class="chartSwipePanel" data-vr-panel="0">
 <div class="chartWrap"><canvas height="120" id="chartVr"></canvas></div>
-<div class="muted chartBtns" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-<button class="navAction navAction--sm" id="btnVrAll" type="button">Overall</button>
-<button class="navAction navAction--sm" id="btnVr100" type="button">Last month</button>
-<button class="navAction navAction--sm" id="btnVr50" type="button">Last week</button>
+<div class="muted chartPanelMetric" style="margin-top:10px;">Avg VR: <b class="avgBig" id="avgVrWindow" style="font-size:1.1em">-</b></div>
+</section>
+<section class="chartSwipePanel" data-vr-panel="1">
+<div class="bar-wrap chartWrap chartWrapWeekly">
+<canvas id="chartWeekly"></canvas>
 </div>
-<div class="muted" style="margin-top:10px;">Avg VR: <b class="avgBig" id="avgVrWindow" style="font-size:1.1em">–</b></div>
+</section>
+</div>
+</div>
+<div class="chartPager" id="vrDeckPager">
+<button aria-label="Show VR history" class="chartPagerBtn active" data-vr-panel="0" type="button">VR</button>
+<button aria-label="Show weekly VR history" class="chartPagerBtn" data-vr-panel="1" type="button">Weekly</button>
+</div>
 </div>
 <div class="card">
 <div class="chartHeader">
+<div class="chartHeaderLead">
+<div>
 <h3>Performance</h3>
+<div class="chartHeaderMeta" id="perfModeMeta">Tracks</div>
+</div>
+</div>
+<div class="chartHeaderActions">
+<button class="compareAction compareAction--sm" id="btnCompareLounge" type="button">
+<span class="compareAction__eyebrow">Mode Compare</span>
+<span class="compareAction__label">Compare vs Lounge 12p</span>
+</button>
+<div class="chartFilter" id="perfFilterRoot">
+<button aria-controls="menuPerfFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnPerfFilter" type="button">
+<span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
+<span class="chartFilterValue" id="perfFilterValue">Average VR gain ↓</span>
+</button>
+<div class="chartFilterMenu" hidden="" id="menuPerfFilter">
+<button class="chartFilterItem" data-key="avg" data-label="Average VR gain" id="optPerfAvg" type="button"><span>Average VR gain</span><span class="chartFilterItemMeta"></span></button>
+<button class="chartFilterItem" data-key="win" data-label="Win rate" id="optPerfWin" type="button"><span>Win rate</span><span class="chartFilterItemMeta"></span></button>
+<button class="chartFilterItem" data-key="count" data-label="Times played" id="optPerfCount" type="button"><span>Times played</span><span class="chartFilterItemMeta"></span></button>
+<button class="chartFilterItem" data-key="alpha" data-label="A-Z" id="optPerfAlpha" type="button"><span>A-Z</span><span class="chartFilterItemMeta"></span></button>
+</div>
+</div>
 <button aria-label="Info" class="mcard__infoBtn" data-info="performance" title="Info" type="button">i</button>
 </div>
-<div class="muted chartBtns" data-btn-group="perfMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-<button class="navAction navAction--sm active" id="btnPerfTracks" type="button">Tracks</button>
-<button class="navAction navAction--sm" id="btnPerfImDestiny" type="button">Intermission Destiny</button>
-<button class="navAction navAction--sm" id="btnPerfImRoutes" type="button">Intermission Separated</button>
 </div>
+<div class="chartSwipeSurface" id="perfSwipeSurface">
 <div class="chartWrap chartWrapC2"><canvas id="chartPerf"></canvas></div>
-<div class="muted chartBtns" data-btn-group="perfSort" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-<button class="navAction navAction--sm" id="btnC2SortAvg" type="button">Average VR gain</button>
-<button class="navAction navAction--sm" id="btnC2SortWin" type="button">Win rate</button>
-<button class="navAction navAction--sm" id="btnC2SortCount" type="button">Times played</button>
-<button class="navAction navAction--sm" id="btnC2SortAlpha" type="button">A–Z</button>
-<span class="muted" style="opacity:.85;"></span>
+</div>
+<div class="chartPager chartPager--perf" id="perfPager">
+<button aria-label="Show track performance" class="chartPagerBtn active" data-perf-mode="tracks" type="button">Tracks</button>
+<button aria-label="Show intermission destiny performance" class="chartPagerBtn" data-perf-mode="im_destiny" type="button">Destiny</button>
+<button aria-label="Show separated intermission performance" class="chartPagerBtn" data-perf-mode="im_routes" type="button">Separated</button>
 </div>
 <div class="muted" id="perfSelected" style="margin-top:8px;"></div>
 </div>
+<dialog class="compareDialog" id="wwCompareDialog">
+<div class="compareDialogPanel">
+<div class="compareDialogHead">
+<div>
+<div class="compareDialogEyebrow">Mode Compare</div>
+<h3>World Wides vs Lounge 12p</h3>
+<div class="muted compareDialogMeta" id="wwCompareMeta">World Wides compare here only against Lounge 12p.</div>
+</div>
+<button class="navAction" id="btnCloseWwCompare" type="button">Close</button>
+</div>
+<div class="modeComparePanel" id="wwComparePanel">
+<div class="chartWrap chartWrapCompare"><canvas id="chartModeCompareWw"></canvas></div>
+<div class="modeCompareNotes" id="wwCompareNotes"></div>
+</div>
+</div>
+</dialog>
 <div class="card">
 <div class="chartHeader">
+<div class="chartHeaderLead">
+<div>
 <h3>Track Distribution</h3>
+<div class="chartHeaderMeta" id="pieFilterMeta">Overall</div>
+</div>
+</div>
+<div class="chartHeaderActions">
+<div class="chartFilter" id="pieFilterRoot">
+<button aria-controls="menuPieFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnPieFilter" type="button">
+<span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
+<span class="chartFilterValue" id="pieFilterValue">Overall</span>
+</button>
+<div class="chartFilterMenu" hidden="" id="menuPieFilter">
+<button class="chartFilterItem" data-label="Overall" data-value="all" id="optPieAll" type="button"><span>Overall</span></button>
+<button class="chartFilterItem" data-label="Last month" data-value="month" id="optPieMonth" type="button"><span>Last month</span></button>
+<button class="chartFilterItem" data-label="Last week" data-value="week" id="optPieWeek" type="button"><span>Last week</span></button>
+</div>
+</div>
 <button aria-label="Info" class="mcard__infoBtn" data-info="trackDistribution" title="Info" type="button">i</button>
 </div>
-<div class="muted chartBtns" data-btn-group="c5" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-<button class="navAction navAction--sm" id="btnPie5All" type="button">Overall</button>
-<button class="navAction navAction--sm" id="btnPie5100" type="button">Last month</button>
-<button class="navAction navAction--sm" id="btnPie550" type="button">Last week</button>
 </div>
 <div class="pie-wrap" style="max-width:100%; height:220px;">
 <canvas id="chartPie5"></canvas>
 </div>
 <div class="td3Wrap">
 <div class="td3Card">
+<div class="td3TitleWrap">
 <div class="td3Title">Matches</div>
+<div class="td3Share" id="c5ShareAll">-</div>
+</div>
 <div class="td3Grid">
 <div class="td3Metric">
 <div class="muted">Avg VR</div>
-<div class="avgBig" id="c5AvgAll">–</div>
+<div class="avgBig" id="c5AvgAll">-</div>
 </div>
 <div class="td3Metric">
 <div class="muted">Win rate</div>
-<div class="avgBig" id="c5WinAll">–</div>
+<div class="avgBig" id="c5WinAll">-</div>
 </div>
 </div>
 </div>
 <div class="td3Card">
+<div class="td3TitleWrap">
 <div class="td3Title">Tracks</div>
+<div class="td3Share" id="c5ShareTrack">-</div>
+</div>
 <div class="td3Grid">
 <div class="td3Metric">
 <div class="muted">Avg VR</div>
-<div class="avgBig" id="c5AvgTrack">–</div>
+<div class="avgBig" id="c5AvgTrack">-</div>
 </div>
 <div class="td3Metric">
 <div class="muted">Win rate</div>
-<div class="avgBig" id="c5WinTrack">–</div>
+<div class="avgBig" id="c5WinTrack">-</div>
 </div>
 </div>
 </div>
 <div class="td3Card">
+<div class="td3TitleWrap">
 <div class="td3Title">Intermission</div>
+<div class="td3Share" id="c5ShareIm">-</div>
+</div>
 <div class="td3Grid">
 <div class="td3Metric">
 <div class="muted">Avg VR</div>
-<div class="avgBig" id="c5AvgIm">–</div>
+<div class="avgBig" id="c5AvgIm">-</div>
 </div>
 <div class="td3Metric">
 <div class="muted">Win rate</div>
-<div class="avgBig" id="c5WinIm">–</div>
+<div class="avgBig" id="c5WinIm">-</div>
 </div>
 </div>
 </div>
@@ -171,30 +262,29 @@
 </div>
 <div class="card">
 <div class="chartHeader">
+<div class="chartHeaderLead">
+<div>
 <h3>VR Performance Sweetspot</h3>
+<div class="chartHeaderMeta" id="bucketFilterMeta">Overall</div>
+</div>
+</div>
+<div class="chartHeaderActions">
+<div class="chartFilter" id="bucketFilterRoot">
+<button aria-controls="menuBucketFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnBucketFilter" type="button">
+<span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
+<span class="chartFilterValue" id="bucketFilterValue">Overall</span>
+</button>
+<div class="chartFilterMenu" hidden="" id="menuBucketFilter">
+<button class="chartFilterItem" data-label="Overall" data-value="overall" id="optBucketOverall" type="button"><span>Overall</span></button>
+<button class="chartFilterItem" data-label="Track only" data-value="track" id="optBucketTrack" type="button"><span>Track only</span></button>
+<button class="chartFilterItem" data-label="Intermission only" data-value="im" id="optBucketIm" type="button"><span>Intermission only</span></button>
+</div>
+</div>
 <button aria-label="Info" class="mcard__infoBtn" data-info="buckets" title="Info" type="button">i</button>
 </div>
-<div class="muted chartBtns" data-btn-group="bucketMode" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-<button class="navAction navAction--sm active" id="btnBucketOverall" type="button">Overall</button>
-<button class="navAction navAction--sm" id="btnBucketTrack" type="button">Track only</button>
-<button class="navAction navAction--sm" id="btnBucketIm" type="button">Intermission only</button>
 </div>
 <div class="chartWrapBuckets"><canvas id="chartBuckets"></canvas></div>
 <div class="muted" id="bucketSelected" style="margin-top:8px;"></div>
-</div>
-<div class="card">
-<div class="chartHeader">
-<h3>VR History (Weekly)</h3>
-<button aria-label="Info" class="mcard__infoBtn" data-info="weekly" title="Info" type="button">i</button>
-</div>
-<div class="muted chartBtns" data-btn-group="c6" style="margin:0 0 10px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-<button class="navAction navAction--sm" id="btnWkVrAvg" type="button">VR Average</button>
-<button class="navAction navAction--sm" id="btnWkGains" type="button">VR Gain Avg</button>
-</div>
-<!-- Hint moved into the info popup to keep the UI clean -->
-<div class="bar-wrap" style="max-width:100%; height:260px;">
-<canvas id="chartWeekly"></canvas>
-</div>
 </div>
 </div>
 
@@ -203,7 +293,7 @@
 <div aria-labelledby="infoTitle" aria-modal="true" class="infoDialog" role="dialog">
 <div class="hdr">
 <div class="title" id="infoTitle">Info</div>
-<button aria-label="Close" class="mcard__infoBtn" id="infoClose" title="Close" type="button">×</button>
+<button aria-label="Close" class="mcard__infoBtn" id="infoClose" title="Close" type="button">x</button>
 </div>
 <div class="body" id="infoBody"></div>
 </div>
@@ -212,6 +302,7 @@
 <script src="mkwt_public.js"></script>
 <script src="stats_ui.js"></script>
 <script src="mkwt_report.js"></script>
+<script src="mkwt_mode_compare.js"></script>
 <script src="stats.js"></script>
 </body>
 </html>

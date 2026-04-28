@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
+  <meta name="theme-color" content="#07080a" />
+  <script src="mkwt_bootstrap.js"></script>
+  <title>MKWT - Time Trial</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+  <script src="mkwt_core.js"></script>
+  <script src="mkwt_page_helpers.js"></script>
+  <link href="mkwt_theme_v3.css" rel="stylesheet" />
+  <link href="tracker.css" rel="stylesheet" />
+  <link href="time-trial.css" rel="stylesheet" />
+
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <meta
+    name="description"
+    content="Track your Mario Kart World Time Trial personal bests, compare them to live mkwrs.com world records, and keep your character and kart choices in one place."
+  />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://www.mkwt.app/time-trial.html" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <meta property="og:title" content="MKWT - Time Trial" />
+  <meta
+    property="og:description"
+    content="Save your Mario Kart World Time Trial PBs and compare them to current mkwrs.com world records."
+  />
+  <meta property="og:image" content="https://www.mkwt.app/og-card.png" />
+  <meta property="og:url" content="https://www.mkwt.app/time-trial.html" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MKWT - Time Trial" />
+  <meta
+    name="twitter:description"
+    content="Track Mario Kart World Time Trial PBs, characters, karts, and live world record differences."
+  />
+  <meta name="twitter:image" content="https://www.mkwt.app/og-card.png" />
+</head>
+<body>
+  <noscript>
+    <div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;">
+      <h2>MKWT requires JavaScript</h2>
+      <p>Please enable JavaScript or disable your adblocker for this site.</p>
+    </div>
+  </noscript>
+
+  <nav class="nav">
+    <div class="navInner">
+      <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="tracker.html">World Wides</a>
+          <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+          <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+          <a class="navDropdownItem active" href="time-trial.html">Time Trial</a>
+        </div>
+      </div>
+      <a class="navLink" href="combo-builder.html">Combo Builder</a>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
+          <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+        </div>
+      </div>
+      <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="card profileCard">
+      <div class="profileTop timeTrialTop">
+        <div class="timeTrialHeroCopy">
+          <h2 class="heroTitle">Time Trial <span class="byAytee">by Aytee</span></h2>
+          <div class="muted heroSubtitle" id="ttUserInfo">Loading session...</div>
+          <div class="muted heroSubtitle" id="ttWrInfo">Loading world record reference...</div>
+        </div>
+        <div class="timeTrialHeroActions">
+          <button class="btn" id="btnOpenTimeTrialForm" type="button">Track PB</button>
+          <button
+            aria-label="Open WR list"
+            class="btn2 ttSymbolBtn"
+            id="btnOpenWrDialog"
+            title="Open WR list"
+            type="button"
+          >
+            WR
+          </button>
+        </div>
+      </div>
+
+      <div aria-label="Time Trial quick stats" class="statGrid ttStatGrid">
+        <div class="statBox">
+          <div class="statLabel">Entries</div>
+          <div class="statValue" id="ttStatEntries">-</div>
+          <div class="ttStatMeta" id="ttStatEntriesMeta">My PB rows</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">Shroom</div>
+          <div class="statValue" id="ttStatShroom">-</div>
+          <div class="ttStatMeta" id="ttStatShroomMeta">Saved PBs</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">Shroomless</div>
+          <div class="statValue" id="ttStatShroomless">-</div>
+          <div class="ttStatMeta" id="ttStatShroomlessMeta">Saved PBs</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">Closest To WR</div>
+          <div class="statValue" id="ttStatClosest">-</div>
+          <div class="ttStatMeta" id="ttStatClosestMeta">No WR comparison yet</div>
+        </div>
+      </div>
+
+      <div class="muted hidden" id="ttStatus"></div>
+    </div>
+
+    <div class="card ttEntriesCard" id="ttEntriesCard">
+      <div class="timeTrialSectionHead">
+        <div class="timeTrialSectionCopy">
+          <h3 class="sectionTitle">My Time Trial Profile</h3>
+          <div class="muted">Your PBs stay linked to the latest WR reference and stay front and center.</div>
+        </div>
+        <div class="ttEntriesHeadActions">
+          <div class="chartFilter ttCategoryFilter" id="ttEntryFilterRoot">
+            <button aria-controls="menuTtEntryFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnTtEntryFilter" type="button">
+              <span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
+              <span class="chartFilterValue" id="ttEntryFilterValue">All</span>
+            </button>
+            <div class="chartFilterMenu" hidden id="menuTtEntryFilter">
+              <button class="chartFilterItem" data-tt-filter="all" type="button"><span>All</span></button>
+              <button class="chartFilterItem" data-tt-filter="shroom" type="button"><span>Shroom</span></button>
+              <button class="chartFilterItem" data-tt-filter="shroomless" type="button"><span>Shroomless</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ttEntryGrid" id="ttEntryRows">
+        <div class="ttEmptyState">Loading saved PBs...</div>
+      </div>
+    </div>
+  </div>
+
+  <dialog class="ttDialog" id="ttEntryDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3 id="ttEntryDialogTitle">Track Time Trial</h3>
+          <div class="muted" id="ttEntryDialogSubtitle">Save one PB per track and category.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseTimeTrialForm" type="button">Close</button>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="muted" for="ttTrack">Track</label>
+          <select id="ttTrack"></select>
+        </div>
+        <div class="field">
+          <label class="muted" for="ttCategory">Category</label>
+          <select id="ttCategory">
+            <option value="shroom">Shroom</option>
+            <option value="shroomless">Shroomless</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="muted" for="ttTime">Time</label>
+          <input id="ttTime" inputmode="text" placeholder="e.g. 1'54&quot;321 or 1:54.321" type="text" />
+          <div class="muted">Accepted: 1'54"321 or 1:54.321.</div>
+        </div>
+        <div class="field">
+          <label class="muted" for="ttCharacter">Character</label>
+          <select id="ttCharacter"></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="muted" for="ttKart">Kart</label>
+          <select id="ttKart"></select>
+        </div>
+      </div>
+
+      <div class="matchFormActions ttDialogActions">
+        <button class="btn2" id="btnClearTimeTrial" type="button">Clear</button>
+        <div class="ttDialogActionGroup">
+          <button class="btn2" id="btnCancelTimeTrial" type="button">Cancel</button>
+          <button class="btn" id="btnSaveTimeTrial" type="button">Save PB</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="ttDialog ttDialog--wide" id="ttWrDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3>World Record Reference</h3>
+          <div class="muted">Current MKWorld WRs from mkwrs.com by category.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseWrDialog" type="button">Close</button>
+      </div>
+
+      <div class="timeTrialSectionHead timeTrialSectionHead--wrDialog">
+        <div class="chartFilter ttCategoryFilter" id="ttWrFilterRoot">
+          <button aria-controls="menuTtWrFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnTtWrFilter" type="button">
+            <span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
+            <span class="chartFilterValue" id="ttWrFilterValue">All</span>
+          </button>
+          <div class="chartFilterMenu" hidden id="menuTtWrFilter">
+            <button class="chartFilterItem" data-tt-wr-filter="all" type="button"><span>All</span></button>
+            <button class="chartFilterItem" data-tt-wr-filter="shroom" type="button"><span>Shroom</span></button>
+            <button class="chartFilterItem" data-tt-wr-filter="shroomless" type="button"><span>Shroomless</span></button>
+          </div>
+        </div>
+        <div class="ttWrDialogActions">
+          <button class="btn2" id="btnRefreshTimeTrialWr" type="button">Update WRs</button>
+        </div>
+      </div>
+
+      <div class="ttWrGrid" id="ttWrRows">
+        <div class="ttEmptyState">Loading world record data...</div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="ttDialog" id="ttWrInfoDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3 id="ttWrInfoTitle">Current WR Info</h3>
+          <div class="muted" id="ttWrInfoSubtitle">Latest holder data for this category.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseWrInfoDialog" type="button">Close</button>
+      </div>
+      <div class="ttWrInfoGrid" id="ttWrInfoGrid">
+        <div class="ttWrInfoItem">
+          <div class="ttWrInfoLabel">WR Time</div>
+          <div class="ttWrInfoValue">-</div>
+        </div>
+      </div>
+      <div class="ttDialogActionGroup ttWrInfoActionGroup">
+        <button class="btn2 hidden" id="btnOpenWrComboStats" type="button">WR combo stats</button>
+        <button class="btn2 hidden" id="btnOpenComboBuilderFromWrInfo" type="button">Open in Combo Builder</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="ttDialog" id="ttComboInfoDialog">
+    <div class="ttDialogBox">
+      <div class="ttDialogHead">
+        <div>
+          <h3 id="ttComboInfoTitle">Combo stats</h3>
+          <div class="muted" id="ttComboInfoSubtitle">Current combo breakdown.</div>
+        </div>
+        <button aria-label="Close" class="ttDialogClose" id="btnCloseComboInfoDialog" type="button">Close</button>
+      </div>
+      <div class="ttComboInfoLead" id="ttComboInfoLead">
+        <div class="ttComboInfoIcons" id="ttComboInfoIcons"></div>
+        <div class="ttComboInfoNames">
+          <div class="ttComboInfoNamesTitle" id="ttComboInfoNamesTitle">-</div>
+          <div class="ttComboInfoNamesMeta" id="ttComboInfoNamesMeta">-</div>
+        </div>
+      </div>
+      <div class="ttComboInfoGrid" id="ttComboInfoGrid">
+        <div class="ttEmptyState">No combo stats available.</div>
+      </div>
+      <div class="ttDialogActionGroup">
+        <button class="btn2 hidden" id="btnOpenComboBuilderFromComboInfo" type="button">Open in Combo Builder</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="mkwt_public.js"></script>
+  <script src="time-trial.js"></script>
+</body>
+</html>

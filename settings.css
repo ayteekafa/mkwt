@@ -66,6 +66,29 @@
 .discordIcon{display:inline-flex; align-items:center; justify-content:center;}
 .discordIcon svg{width:18px; height:18px; fill:currentColor;}
 
+.settingsHero{
+  padding:22px 22px 18px;
+}
+
+.settingsHeroTop{
+  justify-content:center;
+  text-align:center;
+}
+
+.settingsHeroCopy{
+  min-width:0;
+  max-width:760px;
+}
+
+.settingsHeroMeta{
+  justify-content:center;
+  margin-top:2px;
+}
+
+.settingsCard{
+  padding:20px;
+}
+
 .profileSettingsGrid{
   display:grid;
   grid-template-columns:repeat(3, minmax(0, 1fr));
@@ -153,6 +176,12 @@
 }
 
 @media (max-width: 640px){
+  .settingsHero{
+    padding:18px;
+  }
+  .settingsCard{
+    padding:18px;
+  }
   .profileSettingsGrid{
     grid-template-columns:1fr;
     gap:12px;

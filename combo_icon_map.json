@@ -1,0 +1,459 @@
+﻿{
+    "generatedAt":  "2026-04-26T12:30:38.4087115Z",
+    "sourceData":  "combo_builder_data.json",
+    "sourceWorkbook":  "https://docs.google.com/spreadsheets/d/1EQd2XYGlB3EFFNE-35hFLaBzJo4cipU9DZT4MRSjBlc/export?format=xlsx",
+    "characters":  {
+                       "baby-peach":  {
+                                          "name":  "Baby Peach",
+                                          "slug":  "baby-peach",
+                                          "path":  "combo-icons/characters/baby-peach.png"
+                                      },
+                       "baby-daisy":  {
+                                          "name":  "Baby Daisy",
+                                          "slug":  "baby-daisy",
+                                          "path":  "combo-icons/characters/baby-daisy.png"
+                                      },
+                       "swoop":  {
+                                     "name":  "Swoop",
+                                     "slug":  "swoop",
+                                     "path":  "combo-icons/characters/swoop.png"
+                                 },
+                       "para-biddybud":  {
+                                             "name":  "Para-Biddybud",
+                                             "slug":  "para-biddybud",
+                                             "path":  "combo-icons/characters/para-biddybud.png"
+                                         },
+                       "baby-mario":  {
+                                          "name":  "Baby Mario",
+                                          "slug":  "baby-mario",
+                                          "path":  "combo-icons/characters/baby-mario.png"
+                                      },
+                       "goomba":  {
+                                      "name":  "Goomba",
+                                      "slug":  "goomba",
+                                      "path":  "combo-icons/characters/goomba.png"
+                                  },
+                       "spike":  {
+                                     "name":  "Spike",
+                                     "slug":  "spike",
+                                     "path":  "combo-icons/characters/spike.png"
+                                 },
+                       "baby-luigi":  {
+                                          "name":  "Baby Luigi",
+                                          "slug":  "baby-luigi",
+                                          "path":  "combo-icons/characters/baby-luigi.png"
+                                      },
+                       "dry-bones":  {
+                                         "name":  "Dry Bones",
+                                         "slug":  "dry-bones",
+                                         "path":  "combo-icons/characters/dry-bones.png"
+                                     },
+                       "peepa":  {
+                                     "name":  "Peepa",
+                                     "slug":  "peepa",
+                                     "path":  "combo-icons/characters/peepa.png"
+                                 },
+                       "baby-rosalina":  {
+                                             "name":  "Baby Rosalina",
+                                             "slug":  "baby-rosalina",
+                                             "path":  "combo-icons/characters/baby-rosalina.png"
+                                         },
+                       "sidestepper":  {
+                                           "name":  "Sidestepper",
+                                           "slug":  "sidestepper",
+                                           "path":  "combo-icons/characters/sidestepper.png"
+                                       },
+                       "fish-bone":  {
+                                         "name":  "Fish Bone",
+                                         "slug":  "fish-bone",
+                                         "path":  "combo-icons/characters/fish-bone.png"
+                                     },
+                       "toadette":  {
+                                        "name":  "Toadette",
+                                        "slug":  "toadette",
+                                        "path":  "combo-icons/characters/toadette.png"
+                                    },
+                       "nabbit":  {
+                                      "name":  "Nabbit",
+                                      "slug":  "nabbit",
+                                      "path":  "combo-icons/characters/nabbit.png"
+                                  },
+                       "toad":  {
+                                    "name":  "Toad",
+                                    "slug":  "toad",
+                                    "path":  "combo-icons/characters/toad.png"
+                                },
+                       "shy-guy":  {
+                                       "name":  "Shy Guy",
+                                       "slug":  "shy-guy",
+                                       "path":  "combo-icons/characters/shy-guy.png"
+                                   },
+                       "stingby":  {
+                                       "name":  "Stingby",
+                                       "slug":  "stingby",
+                                       "path":  "combo-icons/characters/stingby.png"
+                                   },
+                       "koopa-troopa":  {
+                                            "name":  "Koopa Troopa",
+                                            "slug":  "koopa-troopa",
+                                            "path":  "combo-icons/characters/koopa-troopa.png"
+                                        },
+                       "lakitu":  {
+                                      "name":  "Lakitu",
+                                      "slug":  "lakitu",
+                                      "path":  "combo-icons/characters/lakitu.png"
+                                  },
+                       "cheep-cheep":  {
+                                           "name":  "Cheep Cheep",
+                                           "slug":  "cheep-cheep",
+                                           "path":  "combo-icons/characters/cheep-cheep.png"
+                                       },
+                       "peach":  {
+                                     "name":  "Peach",
+                                     "slug":  "peach",
+                                     "path":  "combo-icons/characters/peach.png"
+                                 },
+                       "daisy":  {
+                                     "name":  "Daisy",
+                                     "slug":  "daisy",
+                                     "path":  "combo-icons/characters/daisy.png"
+                                 },
+                       "coin-coffer":  {
+                                           "name":  "Coin Coffer",
+                                           "slug":  "coin-coffer",
+                                           "path":  "combo-icons/characters/coin-coffer.png"
+                                       },
+                       "yoshi":  {
+                                     "name":  "Yoshi",
+                                     "slug":  "yoshi",
+                                     "path":  "combo-icons/characters/yoshi.png"
+                                 },
+                       "monty-mole":  {
+                                          "name":  "Monty Mole",
+                                          "slug":  "monty-mole",
+                                          "path":  "combo-icons/characters/monty-mole.png"
+                                      },
+                       "bowser-jr":  {
+                                         "name":  "Bowser Jr.",
+                                         "slug":  "bowser-jr",
+                                         "path":  "combo-icons/characters/bowser-jr.png"
+                                     },
+                       "dolphin":  {
+                                       "name":  "Dolphin",
+                                       "slug":  "dolphin",
+                                       "path":  "combo-icons/characters/dolphin.png"
+                                   },
+                       "mario":  {
+                                     "name":  "Mario",
+                                     "slug":  "mario",
+                                     "path":  "combo-icons/characters/mario.png"
+                                 },
+                       "rocky-wrench":  {
+                                            "name":  "Rocky Wrench",
+                                            "slug":  "rocky-wrench",
+                                            "path":  "combo-icons/characters/rocky-wrench.png"
+                                        },
+                       "luigi":  {
+                                     "name":  "Luigi",
+                                     "slug":  "luigi",
+                                     "path":  "combo-icons/characters/luigi.png"
+                                 },
+                       "hammer-bro":  {
+                                          "name":  "Hammer Bro",
+                                          "slug":  "hammer-bro",
+                                          "path":  "combo-icons/characters/hammer-bro.png"
+                                      },
+                       "pokey":  {
+                                     "name":  "Pokey",
+                                     "slug":  "pokey",
+                                     "path":  "combo-icons/characters/pokey.png"
+                                 },
+                       "birdo":  {
+                                     "name":  "Birdo",
+                                     "slug":  "birdo",
+                                     "path":  "combo-icons/characters/birdo.png"
+                                 },
+                       "penguin":  {
+                                       "name":  "Penguin",
+                                       "slug":  "penguin",
+                                       "path":  "combo-icons/characters/penguin.png"
+                                   },
+                       "pauline":  {
+                                       "name":  "Pauline",
+                                       "slug":  "pauline",
+                                       "path":  "combo-icons/characters/pauline.png"
+                                   },
+                       "snowman":  {
+                                       "name":  "Snowman",
+                                       "slug":  "snowman",
+                                       "path":  "combo-icons/characters/snowman.png"
+                                   },
+                       "piranha-plant":  {
+                                             "name":  "Piranha Plant",
+                                             "slug":  "piranha-plant",
+                                             "path":  "combo-icons/characters/piranha-plant.png"
+                                         },
+                       "king-boo":  {
+                                        "name":  "King Boo",
+                                        "slug":  "king-boo",
+                                        "path":  "combo-icons/characters/king-boo.png"
+                                    },
+                       "conkdor":  {
+                                       "name":  "Conkdor",
+                                       "slug":  "conkdor",
+                                       "path":  "combo-icons/characters/conkdor.png"
+                                   },
+                       "rosalina":  {
+                                        "name":  "Rosalina",
+                                        "slug":  "rosalina",
+                                        "path":  "combo-icons/characters/rosalina.png"
+                                    },
+                       "cataquack":  {
+                                         "name":  "Cataquack",
+                                         "slug":  "cataquack",
+                                         "path":  "combo-icons/characters/cataquack.png"
+                                     },
+                       "wario":  {
+                                     "name":  "Wario",
+                                     "slug":  "wario",
+                                     "path":  "combo-icons/characters/wario.png"
+                                 },
+                       "wiggler":  {
+                                       "name":  "Wiggler",
+                                       "slug":  "wiggler",
+                                       "path":  "combo-icons/characters/wiggler.png"
+                                   },
+                       "donkey-kong":  {
+                                           "name":  "Donkey Kong",
+                                           "slug":  "donkey-kong",
+                                           "path":  "combo-icons/characters/donkey-kong.png"
+                                       },
+                       "chargin-chuck":  {
+                                             "name":  "Chargin\u0027 Chuck",
+                                             "slug":  "chargin-chuck",
+                                             "path":  "combo-icons/characters/chargin-chuck.png"
+                                         },
+                       "cow":  {
+                                   "name":  "Cow",
+                                   "slug":  "cow",
+                                   "path":  "combo-icons/characters/cow.png"
+                               },
+                       "waluigi":  {
+                                       "name":  "Waluigi",
+                                       "slug":  "waluigi",
+                                       "path":  "combo-icons/characters/waluigi.png"
+                                   },
+                       "pianta":  {
+                                      "name":  "Pianta",
+                                      "slug":  "pianta",
+                                      "path":  "combo-icons/characters/pianta.png"
+                                  },
+                       "bowser":  {
+                                      "name":  "Bowser",
+                                      "slug":  "bowser",
+                                      "path":  "combo-icons/characters/bowser.png"
+                                  }
+                   },
+    "vehicles":  {
+                     "standard-bike":  {
+                                           "name":  "Standard Bike",
+                                           "slug":  "standard-bike",
+                                           "path":  "combo-icons/vehicles/standard-bike.png"
+                                       },
+                     "tune-thumper":  {
+                                          "name":  "Tune Thumper",
+                                          "slug":  "tune-thumper",
+                                          "path":  "combo-icons/vehicles/tune-thumper.png"
+                                      },
+                     "cute-scoot":  {
+                                        "name":  "Cute Scoot",
+                                        "slug":  "cute-scoot",
+                                        "path":  "combo-icons/vehicles/cute-scoot.png"
+                                    },
+                     "pipe-frame":  {
+                                        "name":  "Pipe Frame",
+                                        "slug":  "pipe-frame",
+                                        "path":  "combo-icons/vehicles/pipe-frame.png"
+                                    },
+                     "loco-moto":  {
+                                       "name":  "Loco Moto",
+                                       "slug":  "loco-moto",
+                                       "path":  "combo-icons/vehicles/loco-moto.png"
+                                   },
+                     "standard-kart":  {
+                                           "name":  "Standard Kart",
+                                           "slug":  "standard-kart",
+                                           "path":  "combo-icons/vehicles/standard-kart.png"
+                                       },
+                     "plushbuggy":  {
+                                        "name":  "Plushbuggy",
+                                        "slug":  "plushbuggy",
+                                        "path":  "combo-icons/vehicles/plushbuggy.png"
+                                    },
+                     "blastronaut-iii":  {
+                                             "name":  "Blastronaut III",
+                                             "slug":  "blastronaut-iii",
+                                             "path":  "combo-icons/vehicles/blastronaut-iii.png"
+                                         },
+                     "w-twin-chopper":  {
+                                            "name":  "W-Twin Chopper",
+                                            "slug":  "w-twin-chopper",
+                                            "path":  "combo-icons/vehicles/w-twin-chopper.png"
+                                        },
+                     "reel-racer":  {
+                                        "name":  "Reel Racer",
+                                        "slug":  "reel-racer",
+                                        "path":  "combo-icons/vehicles/reel-racer.png"
+                                    },
+                     "junkyard-hog":  {
+                                          "name":  "Junkyard Hog",
+                                          "slug":  "junkyard-hog",
+                                          "path":  "combo-icons/vehicles/junkyard-hog.png"
+                                      },
+                     "dread-sled":  {
+                                        "name":  "Dread Sled",
+                                        "slug":  "dread-sled",
+                                        "path":  "combo-icons/vehicles/dread-sled.png"
+                                    },
+                     "stellar-sled":  {
+                                          "name":  "Stellar Sled",
+                                          "slug":  "stellar-sled",
+                                          "path":  "combo-icons/vehicles/stellar-sled.png"
+                                      },
+                     "mach-rocket":  {
+                                         "name":  "Mach Rocket",
+                                         "slug":  "mach-rocket",
+                                         "path":  "combo-icons/vehicles/mach-rocket.png"
+                                     },
+                     "r-o-b-h-o-g":  {
+                                         "name":  "R.O.B. H.O.G.",
+                                         "slug":  "r-o-b-h-o-g",
+                                         "path":  "combo-icons/vehicles/r-o-b-h-o-g.png"
+                                     },
+                     "baby-blooper":  {
+                                          "name":  "Baby Blooper",
+                                          "slug":  "baby-blooper",
+                                          "path":  "combo-icons/vehicles/baby-blooper.png"
+                                      },
+                     "roadster-royale":  {
+                                             "name":  "Roadster Royale",
+                                             "slug":  "roadster-royale",
+                                             "path":  "combo-icons/vehicles/roadster-royale.png"
+                                         },
+                     "b-dasher":  {
+                                      "name":  "B Dasher",
+                                      "slug":  "b-dasher",
+                                      "path":  "combo-icons/vehicles/b-dasher.png"
+                                  },
+                     "hot-rod":  {
+                                     "name":  "Hot Rod",
+                                     "slug":  "hot-rod",
+                                     "path":  "combo-icons/vehicles/hot-rod.png"
+                                 },
+                     "bumble-v":  {
+                                      "name":  "Bumble V",
+                                      "slug":  "bumble-v",
+                                      "path":  "combo-icons/vehicles/bumble-v.png"
+                                  },
+                     "billdozer":  {
+                                       "name":  "Billdozer",
+                                       "slug":  "billdozer",
+                                       "path":  "combo-icons/vehicles/billdozer.png"
+                                   },
+                     "big-horn":  {
+                                      "name":  "Big Horn",
+                                      "slug":  "big-horn",
+                                      "path":  "combo-icons/vehicles/big-horn.png"
+                                  },
+                     "rallygator":  {
+                                        "name":  "Rallygator",
+                                        "slug":  "rallygator",
+                                        "path":  "combo-icons/vehicles/rallygator.png"
+                                    },
+                     "rally-bike":  {
+                                        "name":  "Rally Bike",
+                                        "slug":  "rally-bike",
+                                        "path":  "combo-icons/vehicles/rally-bike.png"
+                                    },
+                     "hyper-pipe":  {
+                                        "name":  "Hyper Pipe",
+                                        "slug":  "hyper-pipe",
+                                        "path":  "combo-icons/vehicles/hyper-pipe.png"
+                                    },
+                     "biddybuggy":  {
+                                        "name":  "Biddybuggy",
+                                        "slug":  "biddybuggy",
+                                        "path":  "combo-icons/vehicles/biddybuggy.png"
+                                    },
+                     "rally-kart":  {
+                                        "name":  "Rally Kart",
+                                        "slug":  "rally-kart",
+                                        "path":  "combo-icons/vehicles/rally-kart.png"
+                                    },
+                     "zoom-buggy":  {
+                                        "name":  "Zoom Buggy",
+                                        "slug":  "zoom-buggy",
+                                        "path":  "combo-icons/vehicles/zoom-buggy.png"
+                                    },
+                     "bowser-bruiser":  {
+                                            "name":  "Bowser Bruiser",
+                                            "slug":  "bowser-bruiser",
+                                            "path":  "combo-icons/vehicles/bowser-bruiser.png"
+                                        },
+                     "li-l-dumpy":  {
+                                        "name":  "Li\u0027l Dumpy",
+                                        "slug":  "li-l-dumpy",
+                                        "path":  "combo-icons/vehicles/li-l-dumpy.png"
+                                    },
+                     "chargin-truck":  {
+                                           "name":  "Chargin\u0027 Truck",
+                                           "slug":  "chargin-truck",
+                                           "path":  "combo-icons/vehicles/chargin-truck.png"
+                                       },
+                     "tiny-titan":  {
+                                        "name":  "Tiny Titan",
+                                        "slug":  "tiny-titan",
+                                        "path":  "combo-icons/vehicles/tiny-titan.png"
+                                    },
+                     "dolphin-dasher":  {
+                                            "name":  "Dolphin Dasher",
+                                            "slug":  "dolphin-dasher",
+                                            "path":  "combo-icons/vehicles/dolphin-dasher.png"
+                                        },
+                     "fin-twin":  {
+                                      "name":  "Fin Twin",
+                                      "slug":  "fin-twin",
+                                      "path":  "combo-icons/vehicles/fin-twin.png"
+                                  },
+                     "cloud-9":  {
+                                     "name":  "Cloud 9",
+                                     "slug":  "cloud-9",
+                                     "path":  "combo-icons/vehicles/cloud-9.png"
+                                 },
+                     "ribbit-revster":  {
+                                            "name":  "Ribbit Revster",
+                                            "slug":  "ribbit-revster",
+                                            "path":  "combo-icons/vehicles/ribbit-revster.png"
+                                        },
+                     "carpet-flyer":  {
+                                          "name":  "Carpet Flyer",
+                                          "slug":  "carpet-flyer",
+                                          "path":  "combo-icons/vehicles/carpet-flyer.png"
+                                      },
+                     "funky-dorrie":  {
+                                          "name":  "Funky Dorrie",
+                                          "slug":  "funky-dorrie",
+                                          "path":  "combo-icons/vehicles/funky-dorrie.png"
+                                      },
+                     "mecha-trike":  {
+                                         "name":  "Mecha Trike",
+                                         "slug":  "mecha-trike",
+                                         "path":  "combo-icons/vehicles/mecha-trike.png"
+                                     },
+                     "lobster-roller":  {
+                                            "name":  "Lobster Roller",
+                                            "slug":  "lobster-roller",
+                                            "path":  "combo-icons/vehicles/lobster-roller.png"
+                                        }
+                 }
+}
