@@ -3,6 +3,7 @@ const statusEls = Array.from(document.querySelectorAll('[data-status="shared"]')
 function setStatus(t, ok=true){ window.MKWT?.setStatus?.(statusEls, t, ok); }
 const STORAGE_KEYS = window.MKWT?.storageKeys || { theme:'mkwt_theme', minVrFilter:'mkwt_min_vr_filter', lastMode:'mkwt_last_mode' };
 const MKCENTRAL_PLAYER_KEY = 'mkwt_mkcentral_player_ref_v1';
+const ACCOUNT_DEFAULT_THEME = "dark";
 
 const SETTINGS_FIELDS = [
   { inputId: "settingsNickname", stateId: "settingsNicknameState" },
@@ -24,7 +25,7 @@ function captureSettingsSnapshot(){
     nickname: String($("settingsNickname")?.value || ""),
     vr: String($("settingsVr")?.value || ""),
     mkcentralPlayer: String($("settingsMkcentralPlayer")?.value || ""),
-    theme: String($("settingsTheme")?.value || "dark"),
+    theme: String($("settingsTheme")?.value || ACCOUNT_DEFAULT_THEME),
     minVr: String($("settingsMinVr")?.value || "")
   };
 }
@@ -35,7 +36,7 @@ function restoreSettingsSnapshot(snapshot){
   if($("settingsVr")) $("settingsVr").value = snapshot.vr || "";
   if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = snapshot.mkcentralPlayer || "";
   if($("settingsTheme")){
-    $("settingsTheme").value = snapshot.theme || "dark";
+    $("settingsTheme").value = snapshot.theme || ACCOUNT_DEFAULT_THEME;
     applyThemeValue($("settingsTheme").value);
   }
   if($("settingsMinVr")) $("settingsMinVr").value = snapshot.minVr || "";
@@ -99,26 +100,28 @@ function finishSettingsSave(){
 // ========= Theme (local setting, affects the whole UI) =========
 function applyThemeValue(t){
   try{
-    document.documentElement.dataset.theme = (t && String(t).trim()) ? String(t).trim() : "dark";
+    document.documentElement.dataset.theme = (t && String(t).trim()) ? String(t).trim() : ACCOUNT_DEFAULT_THEME;
   }catch(e){}
 }
 function loadThemeSetting(){
   try{
-    const t = window.MKWT?.readStorage?.(STORAGE_KEYS.theme, "dark") || "dark";
+    const t = window.MKWT?.readStorage?.(STORAGE_KEYS.theme, ACCOUNT_DEFAULT_THEME) || ACCOUNT_DEFAULT_THEME;
     const sel = $("settingsTheme");
     if (sel) sel.value = t;
     applyThemeValue(t);
   }catch(e){
-    applyThemeValue("dark");
+    applyThemeValue(ACCOUNT_DEFAULT_THEME);
   }
 }
 function saveThemeSetting(){
   try{
     const sel = $("settingsTheme");
-    const t = (sel && sel.value) ? sel.value : "dark";
+    const t = (sel && sel.value) ? sel.value : ACCOUNT_DEFAULT_THEME;
     window.MKWT?.writeStorage?.(STORAGE_KEYS.theme, t);
     applyThemeValue(t);
+    return t;
   }catch(e){}
+  return ACCOUNT_DEFAULT_THEME;
 }
 
 // ========= Min-VR Filter (local setting, affects stats/sessions) =========
@@ -179,7 +182,7 @@ const INFO_TEXT = {
   minVrFilter:
     "This filter removes low-VR outliers from your stats. Any match where your VR total before or after the game is below the threshold will be excluded from charts and averages. Set it to 0, or leave it empty, to disable the filter.",
   theme:
-    "Choose a visual style for the whole app. The selected theme is stored locally and applied across tracker, stats, sessions, and settings.",
+    "Choose a visual style for the whole app. Logged-in accounts sync their selected theme across devices, while Guest stays locked to Dendo Denim.",
   account:
     "Changing your password is only available for logged-in accounts. Guest mode has no account credentials, so there is no password to change.",
   contact:
@@ -255,14 +258,14 @@ async function loadProfile(){
   // Prefer profiles.id (most common in your project). If that column doesn't exist, fallback to profiles.user_id.
   let { data, error } = await supabaseClient
     .from("profiles")
-    .select("nickname,current_vr,mkcentral_player_id")
+    .select("nickname,current_vr,mkcentral_player_id,theme_preference")
     .eq("id", SESSION.user.id)
     .maybeSingle();
 
   if (error && String(error.message || "").includes("column profiles.id")) {
     ({ data, error } = await supabaseClient
       .from("profiles")
-      .select("nickname,current_vr,mkcentral_player_id")
+      .select("nickname,current_vr,mkcentral_player_id,theme_preference")
       .eq("user_id", SESSION.user.id)
       .maybeSingle());
   }
@@ -271,6 +274,12 @@ async function loadProfile(){
 
   $("settingsNickname").value = data?.nickname || "";
   $("settingsVr").value = (data?.current_vr ?? "");
+  const cloudTheme = String(data?.theme_preference || "").trim();
+  if(cloudTheme){
+    window.MKWT?.writeStorage?.(STORAGE_KEYS.theme, cloudTheme);
+    if($("settingsTheme")) $("settingsTheme").value = cloudTheme;
+    applyThemeValue(cloudTheme);
+  }
   const mkcentralPlayerId = String(data?.mkcentral_player_id || "").trim();
   if(mkcentralPlayerId){
     window.MKWT?.writeStorage?.(MKCENTRAL_PLAYER_KEY, mkcentralPlayerId);
@@ -302,7 +311,7 @@ async function saveSettings(){
   }
 
   // Apply + save local UI settings only when Save is pressed
-  saveThemeSetting();
+  const selectedTheme = saveThemeSetting();
   const minVr = saveMinVrSetting();
   const mkcentral = saveMkcentralSetting();
   const mkcentralText = mkcentral ? " | MKCentral saved" : " | MKCentral cleared";
@@ -324,6 +333,7 @@ async function saveSettings(){
   const payload = {
     id: SESSION.user.id,          // primary key in your current schema
     mkcentral_player_id: mkcentralId || null,
+    theme_preference: selectedTheme || ACCOUNT_DEFAULT_THEME,
     updated_at: new Date().toISOString()
   };
   if(nickname) payload.nickname = nickname;
@@ -341,6 +351,7 @@ async function saveSettings(){
       .upsert({
         user_id: SESSION.user.id,
         mkcentral_player_id: mkcentralId || null,
+        theme_preference: selectedTheme || ACCOUNT_DEFAULT_THEME,
         ...(nickname ? { nickname } : {}),
         ...(Number.isFinite(vr) ? { current_vr: vr } : {}),
         updated_at: new Date().toISOString()
@@ -443,10 +454,10 @@ function applyAuthVisibility(){
     }
 
     if (themeSel){
-      themeSel.value = "dark";
+      themeSel.value = "dendo";
     }
     if (themeHelp){
-      themeHelp.textContent = "Theme changes require login (Guest is locked to Midnight Matte).";
+      themeHelp.textContent = "Theme changes require login (Guest is locked to Dendo Denim).";
     }
 
     // Turn Logout into Login
@@ -467,7 +478,7 @@ function applyAuthVisibility(){
       btnChangePw.title = "";
     }
     if (themeHelp){
-      themeHelp.textContent = "Applies after you press Save (stored locally on this device).";
+      themeHelp.textContent = "Applies after you press Save and syncs to your account across devices.";
     }
     if (btnLogout){
       btnLogout.textContent = "Logout";
@@ -486,12 +497,12 @@ function applyAuthVisibility(){
   loadMinVrSetting();
   await loadProfile();
 
-  // Theme: account can pick, guest is locked to dark
+  // Theme: account can pick, guest is locked to Dendo Denim
   if (window.SESSION && window.SESSION.user){
     loadThemeSetting();
   } else {
-    try{ document.documentElement.dataset.theme = "dark"; }catch(e){}
-    try{ const sel = document.getElementById("settingsTheme"); if(sel){ sel.value="dark"; } }catch(e){}
+    try{ document.documentElement.dataset.theme = "dendo"; }catch(e){}
+    try{ const sel = document.getElementById("settingsTheme"); if(sel){ sel.value="dendo"; } }catch(e){}
   }
 
   settingsSnapshot = captureSettingsSnapshot();

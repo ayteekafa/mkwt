@@ -143,12 +143,53 @@ function setNavAuthButton(mode){
 
 function applyThemeForMode(mode){
   try{
-    const t = (mode === 'guest') ? 'dark' : (localStorage.getItem('mkwt_theme') || 'dark');
+    const t = (mode === 'guest') ? 'dendo' : (localStorage.getItem('mkwt_theme') || 'dark');
     document.documentElement.dataset.theme = t;
     const c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';
     const m=document.querySelector('meta[name="theme-color"]');
     if(m) m.setAttribute('content', c);
   }catch(e){ /* safe to ignore */ }
+}
+
+async function syncAccountThemePreference(client, userId){
+  try{
+    if(!client || !userId) return null;
+    let { data, error } = await client
+      .from("profiles")
+      .select("theme_preference")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error && String(error.message || "").includes("column profiles.id")) {
+      ({ data, error } = await client
+        .from("profiles")
+        .select("theme_preference")
+        .eq("user_id", userId)
+        .maybeSingle());
+    }
+
+    if(error) return null;
+    const theme = String(data?.theme_preference || "").trim();
+    if(!theme){
+      const localTheme = String(localStorage.getItem("mkwt_theme") || "").trim();
+      if(!localTheme) return null;
+      try{
+        await client
+          .from("profiles")
+          .upsert({
+            id: userId,
+            theme_preference: localTheme,
+            updated_at: new Date().toISOString()
+          });
+      }catch(e){ /* safe to ignore */ }
+      return localTheme;
+    }
+    try{ localStorage.setItem("mkwt_theme", theme); }catch(e){ /* safe to ignore */ }
+    applyThemeForMode("account");
+    return theme;
+  }catch(e){
+    return null;
+  }
 }
 
 function downloadTextFile(filename, text) {
@@ -218,6 +259,7 @@ window.mkwtRequireAuth = async function(options = {}){
   if (resolved.session) {
     syncSharedSession(resolved.client, resolved.session);
     try { localStorage.setItem("mkwt_mode", "account"); } catch(e){ /* safe to ignore */ }
+    await syncAccountThemePreference(resolved.client, resolved.session.user?.id || null);
     if (typeof onAccount === "function") await onAccount(resolved.session, resolved.client, resolved.source);
     return resolved.session;
   }

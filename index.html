@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-  <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 
-  <title>MKWT - Mario Kart World Tracker, Combo Builder, Time Trials, Lounge 12p, and MKCentral Stats</title>
-  <meta name="description" content="MKWT lets you track VR matches, build Mario Kart World combos, save Time Trial PBs, log Lounge mogis, and review MKCentral Lounge stats in one clean app." />
+  <title>MKWT - World Wides, Lounge, Time Trial, Combo Builder, and Stats</title>
+  <meta
+    name="description"
+    content="MKWT brings World Wide tracking, Lounge mogis, Time Trial PBs, combo building, and deep stats into one focused Mario Kart World tool."
+  />
 
   <link rel="canonical" href="https://mkwt.app/" />
   <meta name="theme-color" content="#07080a" />
@@ -19,14 +20,20 @@
   <link rel="manifest" href="manifest.webmanifest" />
 
   <meta property="og:title" content="MKWT - Mario Kart World Tracker" />
-  <meta property="og:description" content="Track VR matches, build combos, save Time Trial PBs, log Lounge mogis, and review MKCentral Lounge stats in one place." />
+  <meta
+    property="og:description"
+    content="One clean place for World Wides, Lounge, Time Trial, combo building, and post-session stats."
+  />
   <meta property="og:image" content="https://mkwt.app/og-card.png" />
   <meta property="og:url" content="https://mkwt.app/" />
   <meta property="og:type" content="website" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MKWT - Mario Kart World Tracker" />
-  <meta name="twitter:description" content="Track ranked matches, build combos, save Time Trial PBs, log Lounge 12p mogis, and review MKCentral stats with MKWT." />
+  <meta
+    name="twitter:description"
+    content="Track races fast, review deeper stats, save Time Trial PBs, build combos, and keep Lounge sessions tidy."
+  />
   <meta name="twitter:image" content="https://mkwt.app/og-card.png" />
 
   <link rel="stylesheet" href="mkwt_theme_v3.css" />
@@ -38,170 +45,242 @@
     "@type": "WebSite",
     "name": "MKWT",
     "url": "https://mkwt.app/",
-    "description": "Mario Kart World tracker for VR matches, Time Trial PBs, sessions, Lounge 12p mogis, and MKCentral Season 2 / 12 player stats.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://mkwt.app/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
+    "description": "Mario Kart World tracker for World Wides, Lounge mogis, Time Trial PBs, combo building, and stats."
   }
   </script>
 </head>
-<body>
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
-
-<nav class="nav">
-  <div class="navInner">
-    <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
-    <a class="navLink active" href="index.html">Home</a>
-    <div class="navDropdown">
-      <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
-      <div class="navDropdownMenu">
-        <a class="navDropdownItem" href="tracker.html">World Wides</a>
-        <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
-        <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
-        <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
-      </div>
+<body class="indexPage">
+  <noscript>
+    <div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;">
+      <h2>MKWT requires JavaScript</h2>
+      <p>Please enable JavaScript or disable your adblocker for this site.</p>
     </div>
-    <a class="navLink" href="combo-builder.html">Combo Builder</a>
-    <div class="navDropdown">
-      <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
-      <div class="navDropdownMenu">
-        <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
-        <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
-      </div>
-    </div>
-    <a class="navLink" href="about.html">About</a>
-    <div class="navSpacer"></div>
-    <a class="navAction" href="login.html">Login</a>
-    <a class="navAction active" data-guest-link="true" href="tracker.html">Try as Guest</a>
-  </div>
-</nav>
+  </noscript>
 
-<main class="wrap homeWrap">
-  <section class="homeHero" aria-label="MKWT overview">
-    <div class="homeHeroInner">
-      <p class="eyebrow">Mario Kart World Match Tracker</p>
-      <div class="homeBrandRow">
-        <img class="homeAppIcon" src="icons/icon-192.png" alt="MKWT icon" width="72" height="72" />
-        <div class="homeBrandText">
-          <h1>Track VR, Time Trials, Lounge 12p, and MKCentral history in one place.</h1>
-          <p class="homeLead">
-            Log ranked matches, build character and vehicle combos from hidden stat data, save Time Trial PBs against live world
-            records, review sessions, measure track and intermission performance, save Lounge 12p mogis race by race, and pull
-            your MKCentral Lounge stats into local charts.
+  <main class="wrap landingWrap">
+    <section class="landingHero card" aria-label="MKWT welcome">
+      <div class="landingBackdrop" aria-hidden="true">
+        <img class="landingBgIcon landingBgIcon--trackA" src="assets/track-icons/transparent/AF.png" alt="" />
+        <img class="landingBgIcon landingBgIcon--trackB" src="assets/track-icons/transparent/PS.png" alt="" />
+        <img class="landingBgIcon landingBgIcon--trackC" src="assets/track-icons/transparent/WS.png" alt="" />
+        <img class="landingBgIcon landingBgIcon--charA" src="assets/combo-icons/characters/peepa.png" alt="" />
+        <img class="landingBgIcon landingBgIcon--charB" src="assets/combo-icons/characters/yoshi.png" alt="" />
+        <img class="landingBgIcon landingBgIcon--kartA" src="assets/combo-icons/vehicles/r-o-b-h-o-g.png" alt="" />
+        <img class="landingBgIcon landingBgIcon--kartB" src="assets/combo-icons/vehicles/junkyard-hog.png" alt="" />
+      </div>
+
+      <div class="landingHeroCopy">
+        <div class="landingBrandRow">
+          <div class="landingBrandLockup">
+            <div class="landingBrandMark">MKWT</div>
+            <div class="landingBrandMeta">
+              <p class="eyebrow">Mario Kart World toolkit</p>
+              <span class="landingByline">by Aytee</span>
+            </div>
+          </div>
+        </div>
+
+        <h1>World Wides, Lounge, Time Trial, combos, and review tools in one clean flow.</h1>
+        <p class="landingLead">
+          Track matches in seconds, review what actually changes your results, build hidden-stat combos, and keep your Lounge
+          and MKCentral history in the same place.
+        </p>
+
+        <a class="navAction active landingContinue" href="login.html">Continue</a>
+
+        <div class="landingPillRow" aria-label="Feature summary">
+          <span class="landingPill">World Wide Tracker</span>
+          <span class="landingPill">Lounge 12p + 24p</span>
+          <span class="landingPill">Time Trial PBs</span>
+          <span class="landingPill">Combo Builder</span>
+          <span class="landingPill">Stats + Lounge Stats</span>
+        </div>
+      </div>
+
+      <div class="landingHeroVisual" aria-label="MKWT overview previews">
+        <div class="showcaseGrid">
+          <article class="showcaseCard showcaseCard--wide">
+            <div class="showcaseLabel">World Wide Tracker</div>
+            <div class="showcaseHeader">
+              <div class="showcaseTitle">Fast logging</div>
+              <div class="showcaseStat">Review-ready</div>
+            </div>
+            <div class="showcaseTrackerOverview">
+              <div class="showcaseTrackerMatch">
+                <div class="showcaseTrackerBadge">Latest tracked match</div>
+                <div class="showcaseTrackerTrack">
+                  <img src="assets/track-icons/transparent/SHS.png" alt="" />
+                  <div>
+                    <strong>Sky-High Sundae</strong>
+                    <span>2nd place • 12p lobby</span>
+                  </div>
+                </div>
+                <div class="showcaseTrackerStats">
+                  <div class="showcaseTrackerMetric">
+                    <span>VR gain</span>
+                    <strong class="showcaseTrackerGain">+28</strong>
+                  </div>
+                  <div class="showcaseTrackerMetric">
+                    <span>New total VR</span>
+                    <strong>8750</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="showcaseTrackerInsights">
+                <div class="showcaseInsight showcaseInsight--up">
+                  <span class="showcaseInsightArrow">↑</span>
+                  <div>
+                    <span class="showcaseInsightLabel">Best track</span>
+                    <strong>Sky-High Sundae</strong>
+                    <span class="showcaseInsightSub">Improving</span>
+                  </div>
+                </div>
+                <div class="showcaseInsight showcaseInsight--down">
+                  <span class="showcaseInsightArrow">↓</span>
+                  <div>
+                    <span class="showcaseInsightLabel">Worst track</span>
+                    <strong>Dry Bones Burnout</strong>
+                    <span class="showcaseInsightSub">Needs work</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="showcaseCard">
+            <div class="showcaseLabel">Stats</div>
+            <div class="showcaseTitle">Trend view</div>
+            <div class="showcaseLineChart" aria-hidden="true">
+              <span class="lineStroke lineStroke--one"></span>
+              <span class="lineStroke lineStroke--two"></span>
+            </div>
+          </article>
+
+          <article class="showcaseCard">
+            <div class="showcaseLabel">Time Trial</div>
+            <div class="showcaseTitle">PB against WR</div>
+            <div class="showcaseTimePanel">
+              <img src="assets/track-icons/transparent/WS.png" alt="" />
+              <div>
+                <strong>2'03&quot;231</strong>
+                <span>+3&quot;349 to WR</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="showcaseCard">
+            <div class="showcaseLabel">Combo Builder</div>
+            <div class="showcaseTitle">Compare bars</div>
+            <div class="showcaseBars">
+              <div class="showcaseBar"><span style="width:76%"></span></div>
+              <div class="showcaseBar showcaseBar--gain"><span style="width:64%"></span></div>
+              <div class="showcaseBar showcaseBar--loss"><span style="width:48%"></span></div>
+            </div>
+            <div class="showcaseComboIcons">
+              <img src="assets/combo-icons/characters/peepa.png" alt="" />
+              <img src="assets/combo-icons/vehicles/r-o-b-h-o-g.png" alt="" />
+            </div>
+          </article>
+
+          <article class="showcaseCard showcaseCard--accent">
+            <div class="showcaseLabel">Lounge update</div>
+            <div class="showcaseTitle">12p, 24p, intermission</div>
+            <div class="showcaseLoungeMeta">
+              <span>Track performance</span>
+              <span>Placement distribution</span>
+              <span>MKCentral sync</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="landingStoryGrid" aria-label="Feature update overview">
+      <article class="storyCard card">
+        <div class="storyCopy">
+          <p class="eyebrow">World Wides</p>
+          <h2>Track faster, review cleaner.</h2>
+          <p>
+            Save 3-lap and intermission results with less friction, cleaner recent matches, and a flow built for quick daily use.
           </p>
         </div>
-      </div>
-
-      <div class="homeActions">
-        <a class="navAction active" href="login.html">Login / Start</a>
-        <a class="navAction" data-guest-link="true" href="tracker.html">Open as Guest</a>
-        <a class="navAction" href="about.html">About & Features</a>
-      </div>
-
-      <div class="homeHighlights" aria-label="Core features">
-        <div class="homeHighlight">
-          <div class="homeHighlightLabel">VR Tracker</div>
-          <div class="homeHighlightValue">Fast logging</div>
-          <p>Track, intermission, placement, opponents, VR after, and VR change.</p>
+        <div class="storyVisual storyVisual--tracker" aria-hidden="true">
+          <div class="miniChart miniChart--bars">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
         </div>
-        <div class="homeHighlight">
-          <div class="homeHighlightLabel">Stats</div>
-          <div class="homeHighlightValue">Clean review</div>
-          <p>See averages, best tracks, distributions, trends, and session progress.</p>
+      </article>
+
+      <article class="storyCard card">
+        <div class="storyCopy">
+          <p class="eyebrow">Lounge</p>
+          <h2>12p and 24p now live together.</h2>
+          <p>
+            Keep mogis race by race, review intermission routes, and move the bigger chart story into Lounge Stats where it belongs.
+          </p>
         </div>
-        <div class="homeHighlight">
-          <div class="homeHighlightLabel">Combo Builder</div>
-          <div class="homeHighlightValue">Hidden stats</div>
-          <p>Pick character and vehicle, sum every stat, and compare coin curves against Feather and Heavy references.</p>
+        <div class="storyVisual storyVisual--lounge" aria-hidden="true">
+          <div class="miniChart miniChart--placement">
+            <span></span><span></span><span></span><span></span>
+          </div>
         </div>
-        <div class="homeHighlight">
-          <div class="homeHighlightLabel">Lounge 12p</div>
-          <div class="homeHighlightValue">Race by race</div>
-          <p>Save mogis with DC tags, review the full set after race 12, and keep stats clean.</p>
+      </article>
+
+      <article class="storyCard card">
+        <div class="storyCopy">
+          <p class="eyebrow">Time Trial</p>
+          <h2>PBs, WR context, and cleaner overview cards.</h2>
+          <p>
+            Keep your runs readable at a glance and compare your own time against live WR pages without leaving MKWT.
+          </p>
         </div>
-      </div>
-    </div>
-  </section>
+        <div class="storyVisual storyVisual--tt" aria-hidden="true">
+          <div class="miniTime">
+            <img src="assets/track-icons/transparent/WS.png" alt="" />
+            <strong>2'03&quot;231</strong>
+          </div>
+        </div>
+      </article>
 
-  <section class="homeFeatureGrid" aria-label="Feature overview">
-    <article class="card homeFeature">
-      <p class="eyebrow">Tracker</p>
-      <h2>Log ranked matches without friction.</h2>
-      <p>
-        Save track or intermission results in seconds, keep VR before and after tidy, and build a complete match history without
-        leaving the app flow.
-      </p>
-      <div class="homeFeatureMeta">Built for quick daily use, not spreadsheet cleanup later.</div>
-      <div class="homeFeatureActions">
-        <a class="navAction navAction--sm" href="tracker.html">Open Tracker</a>
-        <a class="navAction navAction--sm" href="time-trial.html">Open Time Trial</a>
-        <a class="navAction navAction--sm" href="combo-builder.html">Open Combo Builder</a>
-      </div>
-    </article>
+      <article class="storyCard card">
+        <div class="storyCopy">
+          <p class="eyebrow">Combo Builder</p>
+          <h2>Better compare, better hidden-stat read.</h2>
+          <p>
+            Build around real hidden data, compare combos like a game stat screen, and spot gains or losses without spreadsheet energy.
+          </p>
+        </div>
+        <div class="storyVisual storyVisual--combo" aria-hidden="true">
+          <div class="miniCompare">
+            <span class="miniCompareBase"></span>
+            <span class="miniCompareDelta miniCompareDelta--up"></span>
+          </div>
+        </div>
+      </article>
 
-    <article class="card homeFeature">
-      <p class="eyebrow">Stats</p>
-      <h2>See what actually moves your results.</h2>
-      <p>
-        Review VR history, session summaries, streaks, win rates, track distribution, and the routes or tracks where your results
-        stay strongest over time.
-      </p>
-      <div class="homeFeatureMeta">Built around the same charts and summaries you already use inside the app.</div>
-      <div class="homeFeatureActions">
-        <a class="navAction navAction--sm" href="stats.html">Open Stats</a>
-        <a class="navAction navAction--sm" href="sessions.html">Open Sessions</a>
-      </div>
-    </article>
+      <article class="storyCard card storyCard--full">
+        <div class="storyCopy">
+          <p class="eyebrow">Stats</p>
+          <h2>See what actually moves your results.</h2>
+          <p>
+            World Wide Stats and Lounge Stats now carry more of the analysis weight, so the trackers stay focused and the charts stay
+            where they make sense.
+          </p>
+        </div>
+        <div class="storyVisual storyVisual--stats" aria-hidden="true">
+          <div class="miniChart miniChart--lineWide">
+            <span></span>
+            <span></span>
+          </div>
+          <div class="miniPie">
+            <span></span>
+          </div>
+        </div>
+      </article>
+    </section>
 
-    <article class="card homeFeature">
-      <p class="eyebrow">Lounge 12p</p>
-      <h2>Track mogis race by race with proper review at the end.</h2>
-      <p>
-        Save 12-player mogis one race at a time, tag DCs without polluting the stats, and review the full 12-race result before you
-        commit it.
-      </p>
-      <div class="homeFeatureMeta">Placement charts, best-track rules, and cleaner post-mogi review are already included.</div>
-      <div class="homeFeatureActions">
-        <a class="navAction navAction--sm" href="lounge.html">Open Lounge 12p</a>
-      </div>
-    </article>
-
-    <article class="card homeFeature">
-      <p class="eyebrow">Lounge Stats</p>
-      <h2>Bring MKCentral Season 2 history into MKWT.</h2>
-      <p>
-        Save your MKCentral player ID in Settings, sync Lounge results, and view local charts for MMR trend, daily play
-        time, average MMR over the last 50 mogis, and estimated season hours.
-      </p>
-      <div class="homeFeatureMeta">Account mode keeps your player ID in the cloud. Guest mode keeps it local.</div>
-      <div class="homeFeatureActions">
-        <a class="navAction navAction--sm" href="lounge-stats.html">Open Lounge Stats</a>
-        <a class="navAction navAction--sm" href="settings.html">Open Settings</a>
-      </div>
-    </article>
-  </section>
-
-  <section class="card homeAccess">
-    <div>
-      <p class="eyebrow">Access</p>
-      <h2>Play your way.</h2>
-      <p class="homeAccessText">
-        Guest mode keeps everything local on this device. Account mode syncs your tracker profile, Lounge data, and MKCentral player
-        ID through Supabase so you can pick up where you left off.
-      </p>
-    </div>
-    <div class="homeAccessActions">
-      <a class="navAction active" href="login.html">Login / Create Account</a>
-      <a class="navAction" data-guest-link="true" href="tracker.html">Continue as Guest</a>
-    </div>
-  </section>
-
-  <p class="homeDisclaimer">Not affiliated with Nintendo.</p>
-</main>
-
-<script src="mkwt_public.js"></script>
-<script src="index.js"></script>
+    <p class="landingDisclaimer">Not affiliated with Nintendo.</p>
+  </main>
 </body>
 </html>

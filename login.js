@@ -94,6 +94,29 @@ async function maybeOfferGuestImport(client, userId) {
   } catch (e) {}
 }
 
+async function syncCloudThemePreference(client, userId) {
+  try {
+    if (!client || !userId) return;
+    let { data, error } = await client
+      .from("profiles")
+      .select("theme_preference")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error && String(error.message || "").includes("column profiles.id")) {
+      ({ data, error } = await client
+        .from("profiles")
+        .select("theme_preference")
+        .eq("user_id", userId)
+        .maybeSingle());
+    }
+    if (error) return;
+    const theme = String(data?.theme_preference || "").trim();
+    if (theme) {
+      try { localStorage.setItem("mkwt_theme", theme); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
 async function finalizeLogin(stay, session, user) {
   try {
     localStorage.setItem("mkwt_auth_storage", stay ? "local" : "session");
@@ -108,6 +131,7 @@ async function finalizeLogin(stay, session, user) {
     localStorage.setItem("mkwt_last_mode", "account");
   } catch (e) {}
 
+  await syncCloudThemePreference(client, user?.id || session?.user?.id || null);
   await maybeOfferGuestImport(client, user?.id || session?.user?.id || null);
   setStatus("Logged in.", true);
   window.location.href = "tracker.html";

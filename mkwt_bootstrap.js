@@ -1,7 +1,7 @@
 (function(){
   try{
     var mode = localStorage.getItem('mkwt_mode') || '';
-    var t = (mode === 'guest') ? 'dark' : (localStorage.getItem('mkwt_theme') || 'dark');
+    var t = (mode === 'guest') ? 'dendo' : (localStorage.getItem('mkwt_theme') || 'dark');
     document.documentElement.dataset.theme = t;
     var c = (t==='light') ? '#f3f4f6'
       : (t==='rose') ? '#f7f0f4'
