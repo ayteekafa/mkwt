@@ -3,10 +3,39 @@ const JSON_HEADERS = {
   "cache-control": "no-store",
 };
 
+const PRODUCTION_HOST = "mkwt.app";
+const CANONICAL_REDIRECT_HOST = "www.mkwt.app";
+const HSTS_VALUE = "max-age=31536000; includeSubDomains; preload";
+
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: JSON_HEADERS,
+  });
+}
+
+function shouldRedirectToCanonical(url) {
+  return url.protocol === "https:" && url.hostname === CANONICAL_REDIRECT_HOST;
+}
+
+function redirectToCanonical(url) {
+  const next = new URL(url.toString());
+  next.hostname = PRODUCTION_HOST;
+  return Response.redirect(next.toString(), 301);
+}
+
+function shouldAttachHsts(url) {
+  return url.protocol === "https:" && (url.hostname === PRODUCTION_HOST || url.hostname === CANONICAL_REDIRECT_HOST);
+}
+
+function withSecurityHeaders(response, requestUrl) {
+  if (!shouldAttachHsts(requestUrl)) return response;
+  const headers = new Headers(response.headers);
+  headers.set("Strict-Transport-Security", HSTS_VALUE);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
   });
 }
 
@@ -208,26 +237,30 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (shouldRedirectToCanonical(url)) {
+      return withSecurityHeaders(redirectToCanonical(url), url);
+    }
+
     if (url.pathname === "/api/mkcentral-player") {
-      return handleMkcentralPlayer(request);
+      return withSecurityHeaders(await handleMkcentralPlayer(request), url);
     }
 
     if (url.pathname === "/api/mkcentral-options") {
-      return handleMkcentralOptions();
+      return withSecurityHeaders(await handleMkcentralOptions(), url);
     }
 
     if (url.pathname === "/api/mkcentral-table") {
-      return handleMkcentralTable(request);
+      return withSecurityHeaders(await handleMkcentralTable(request), url);
     }
 
     if (url.pathname === "/api/time-trial-index") {
-      return handleTimeTrialIndex();
+      return withSecurityHeaders(await handleTimeTrialIndex(), url);
     }
 
     if (url.pathname === "/api/time-trial-track") {
-      return handleTimeTrialTrack(request);
+      return withSecurityHeaders(await handleTimeTrialTrack(request), url);
     }
 
-    return env.ASSETS.fetch(request);
+    return withSecurityHeaders(await env.ASSETS.fetch(request), url);
   },
 };
