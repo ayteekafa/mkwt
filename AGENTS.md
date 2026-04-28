@@ -37,6 +37,18 @@ The real structure is:
   - `tools`
   - `icons`
   - `Track Icons MKW`
+  - `Track Icons MKW Transparent`
+  - `combo-icons`
+
+## Generated and mirrored files
+- Prefer editing the source scripts in `tools/` over hand-editing generated data/assets.
+- Treat these as generated artifacts unless the task explicitly says otherwise:
+  - `combo_builder_data.json`
+  - `combo_icon_map.json`
+  - `track_icon_map.json`
+  - `track_icon_map_boxed.json`
+- `lounge-stats.html` and `mkcentral.html` are mirrored entry pages for the same Lounge Stats system. When one changes structurally, check the other immediately.
+- Root stray/temp files should be removed instead of left behind. This repo is already root-heavy, so even small junk files make navigation worse fast.
 
 ## Page ownership guidance
 - `tracker.*`: World Wide tracking UI and recent matches
