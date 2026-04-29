@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -7,6 +7,11 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
 <script src="mkwt_bootstrap.js"></script>
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="icon" href="/favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -30,12 +35,18 @@
         <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
       </div>
     </div>
-    <a class="navLink" href="combo-builder.html">Combo Builder</a>
     <div class="navDropdown">
       <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
       <div class="navDropdownMenu">
         <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
         <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+      </div>
+    </div>
+    <div class="navDropdown">
+      <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Race Lab</button>
+      <div class="navDropdownMenu">
+        <a class="navDropdownItem" href="combo-builder.html">Combo Builder</a>
+        <a class="navDropdownItem" href="item-distribution.html">Item Distribution</a>
       </div>
     </div>
     <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
@@ -84,14 +95,17 @@
   </section>
 
   <section class="card cardSection">
-    <div class="sectionHead sectionHead--split">
-      <div>
-        <h3 class="sectionTitle">Track Mogi</h3>
+      <div class="sectionHead sectionHead--split">
+        <div>
+          <h3 class="sectionTitle">Track Mogi</h3>
+        </div>
+        <div class="sectionHeadActions">
+          <button class="compareAction compareAction--sm active" id="btnTrackSuggestions" type="button" title="Suggested tracks" aria-label="Suggested tracks">
+            <span class="compareAction__eyebrow">Track picks</span>
+            <span class="compareAction__label">Suggested Tracks</span>
+          </button>
+        </div>
       </div>
-      <div class="sectionHeadActions">
-        <button class="infoBtn" id="btnTrackSuggestions" type="button" title="Suggested tracks" aria-label="Suggested tracks">?</button>
-      </div>
-    </div>
 
     <div class="controlSurface">
       <div class="entryPanel">
@@ -228,6 +242,7 @@
     </div>
   </div>
 </dialog>
+<script src="mkwt_public.js"></script>
 <script src="mkwt_mode_compare.js"></script>
 <script src="lounge.js"></script>
 </body>

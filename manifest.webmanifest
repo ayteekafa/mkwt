@@ -6,10 +6,61 @@
   "id": "/login.html",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait",
   "background_color": "#07080a",
   "theme_color": "#07080a",
   "categories": ["games", "utilities"],
+  "shortcuts": [
+    {
+      "name": "World Wides",
+      "short_name": "Tracker",
+      "url": "/tracker.html",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Lounge 12p",
+      "short_name": "Lounge",
+      "url": "/lounge.html",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "World Wide Stats",
+      "short_name": "Stats",
+      "url": "/stats.html",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Race Lab",
+      "short_name": "Race Lab",
+      "url": "/combo-builder.html",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

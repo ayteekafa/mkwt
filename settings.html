@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -16,7 +16,6 @@
 <link href="settings.css" rel="stylesheet"/>
 
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
@@ -53,12 +52,18 @@
 <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
 </div>
 </div>
-<a class="navLink" href="combo-builder.html">Combo Builder</a>
 <div class="navDropdown">
 <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
 <div class="navDropdownMenu">
 <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
 <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+</div>
+</div>
+<div class="navDropdown">
+<button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Race Lab</button>
+<div class="navDropdownMenu">
+<a class="navDropdownItem" href="combo-builder.html">Combo Builder</a>
+<a class="navDropdownItem" href="item-distribution.html">Item Distribution</a>
 </div>
 </div>
 <a aria-label="Settings" class="navLink navIcon active" href="settings.html" title="Settings">&#9881;</a>
@@ -70,12 +75,10 @@
 <div class="card profileCard settingsHero">
   <div class="profileTop settingsHeroTop">
     <div class="settingsHeroCopy">
-      <h2 class="heroTitle">Settings <span class="byAytee">by Aytee</span></h2>
-      <div class="muted heroSubtitle" id="userInfo">Loading session...</div>
-      <div class="settingsHeroMeta pageInfoLines">
-        <div class="muted">Current VR: <b id="currentVr">-</b></div>
-        <div class="muted">Matches: <b id="matchCount">-</b></div>
-      </div>
+      <h2 class="heroTitle settingsHeroTitle">
+        <span>Settings</span>
+        <img class="settingsHeroBadge" src="assets/combo-icons/characters/rocky-wrench.png" alt="" aria-hidden="true" />
+      </h2>
     </div>
   </div>
   <div class="muted" data-status="shared" id="statusTop"></div>
@@ -120,6 +123,11 @@
       <option value="red">Red Ruby</option>
       <option value="purple">Purple Pop</option>
       <option value="rose">Rose Rime</option>
+      <option value="aurora">Aurora Drift</option>
+      <option value="ember">Ember Drive</option>
+      <option value="glacier">Glacier Glass</option>
+      <option value="arcade">Arcade Pulse</option>
+      <option value="sunset">Sunset Signal</option>
     </select>
     <div class="fieldState saved" id="settingsThemeState">Saved</div>
     <div class="muted" id="themeHelp" class="hint"></div>

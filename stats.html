@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -17,7 +17,6 @@
 <link href="stats.css" rel="stylesheet"/>
 
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
@@ -53,7 +52,6 @@
 <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
 </div>
 </div>
-<a class="navLink" href="combo-builder.html">Combo Builder</a>
 <div class="navDropdown">
 <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
 <div class="navDropdownMenu">
@@ -61,27 +59,42 @@
 <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
 </div>
 </div>
+<div class="navDropdown">
+<button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Race Lab</button>
+<div class="navDropdownMenu">
+<a class="navDropdownItem" href="combo-builder.html">Combo Builder</a>
+<a class="navDropdownItem" href="item-distribution.html">Item Distribution</a>
+</div>
+</div>
 <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>
 <div class="wrap statsWrap">
-<div class="card">
-<div class="topbar">
-<div>
-<h2 class="heroTitle">World Wide Stats <span class="byAytee">by Aytee</span></h2>
+<section class="card profileCard statsHero">
+<div class="profileTop statsHeroTop">
+<div class="statsHeroCopy">
+<h2 class="heroTitle statsHeroTitle"><span>World Wide Stats</span><img class="statsHeroBadge" src="assets/combo-icons/characters/wiggler.png" alt="" aria-hidden="true"/></h2>
+</div>
+</div>
+</section>
+<section class="card statsToolbarCard">
+<div class="statsToolbarActions">
+<button class="navAction" id="btnDownloadStatsImage" type="button" disabled>Download image</button>
+<button class="compareAction compareAction--sm" id="btnCompareLounge" type="button">
+<span class="compareAction__eyebrow">Mode Compare</span>
+<span class="compareAction__label">Compare vs Lounge 12p</span>
+</button>
+</div>
 <div class="pageInfoLines" style="display:none">
 <div class="muted" id="userInfo">Loading session...</div>
 <div class="muted">Current VR (Profile): <b id="currentVr">-</b></div>
 <div class="muted">Matches: <b id="matchCount">-</b></div>
 </div>
-</div>
-<button class="navAction" id="btnDownloadStatsImage" type="button" disabled>Download image</button>
-</div>
 <div class="pageInfoLines" style="display:none">
 <div class="muted" id="status"></div>
 <div class="muted" id="debug"></div>
 </div>
-</div>
+</section>
 <div class="card">
 <div class="chartHeader">
 <div class="chartHeaderLead">
@@ -138,14 +151,10 @@
 </div>
 </div>
 <div class="chartHeaderActions">
-<button class="compareAction compareAction--sm" id="btnCompareLounge" type="button">
-<span class="compareAction__eyebrow">Mode Compare</span>
-<span class="compareAction__label">Compare vs Lounge 12p</span>
-</button>
 <div class="chartFilter" id="perfFilterRoot">
 <button aria-controls="menuPerfFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnPerfFilter" type="button">
 <span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
-<span class="chartFilterValue" id="perfFilterValue">Average VR gain ↓</span>
+<span class="chartFilterValue" id="perfFilterValue">Average VR gain ?</span>
 </button>
 <div class="chartFilterMenu" hidden="" id="menuPerfFilter">
 <button class="chartFilterItem" data-key="avg" data-label="Average VR gain" id="optPerfAvg" type="button"><span>Average VR gain</span><span class="chartFilterItemMeta"></span></button>

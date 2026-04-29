@@ -145,7 +145,20 @@ function applyThemeForMode(mode){
   try{
     const t = (mode === 'guest') ? 'dendo' : (localStorage.getItem('mkwt_theme') || 'dark');
     document.documentElement.dataset.theme = t;
-    const c=(t==='light')?'#f3f4f6':(t==='rose')?'#f7f0f4':(t==='purple')?'#05060a':(t==='green')?'#05060a':(t==='red')?'#05060a':(t==='dendo')?'#05060a':'#07080a';
+    const themeColors = {
+      light: '#f3f4f6',
+      rose: '#f7f0f4',
+      glacier: '#eef6ff',
+      purple: '#07060b',
+      green: '#04100b',
+      red: '#0f0809',
+      dendo: '#05060a',
+      aurora: '#04100f',
+      ember: '#120b0e',
+      arcade: '#090b11',
+      sunset: '#140c14'
+    };
+    const c = themeColors[t] || '#07080a';
     const m=document.querySelector('meta[name="theme-color"]');
     if(m) m.setAttribute('content', c);
   }catch(e){ /* safe to ignore */ }

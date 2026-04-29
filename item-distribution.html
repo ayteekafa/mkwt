@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
+  <meta name="theme-color" content="#07080a" />
+  <script src="mkwt_bootstrap.js"></script>
+  <title>MKWT - Item Distribution</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+  <script src="mkwt_core.js"></script>
+  <script src="mkwt_page_helpers.js"></script>
+  <link href="mkwt_theme_v3.css" rel="stylesheet" />
+  <link href="tracker.css" rel="stylesheet" />
+  <link href="item-distribution.css" rel="stylesheet" />
+
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <meta
+    name="description"
+    content="See Mario Kart World online race item pools for 12-player and 24-player lobbies, translated into English with placement bands and transparent item icons."
+  />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://www.mkwt.app/item-distribution.html" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <meta property="og:title" content="MKWT - Item Distribution" />
+  <meta
+    property="og:description"
+    content="12-player and 24-player online race item pools in one clean MKWT reference page."
+  />
+  <meta property="og:image" content="https://www.mkwt.app/og-card.png" />
+  <meta property="og:url" content="https://www.mkwt.app/item-distribution.html" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MKWT - Item Distribution" />
+  <meta
+    name="twitter:description"
+    content="Placement-based item pools for 12p and 24p standard online races, translated into English."
+  />
+  <meta name="twitter:image" content="https://www.mkwt.app/og-card.png" />
+</head>
+<body>
+  <noscript>
+    <div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;">
+      <h2>MKWT requires JavaScript</h2>
+      <p>Please enable JavaScript or disable your adblocker for this site.</p>
+    </div>
+  </noscript>
+
+  <nav class="nav">
+    <div class="navInner">
+      <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="tracker.html">World Wides</a>
+          <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+          <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+          <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
+        </div>
+      </div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
+          <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+        </div>
+      </div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Race Lab</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="combo-builder.html">Combo Builder</a>
+          <a class="navDropdownItem active" href="item-distribution.html">Item Distribution</a>
+        </div>
+      </div>
+      <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
+    </div>
+  </nav>
+
+  <div class="wrap itemDistWrap">
+    <section class="card profileCard itemDistHero">
+      <div class="itemDistHeroSimple">
+        <h2 class="heroTitle itemDistHeroTitle">
+          <span>Item Distribution</span>
+          <img class="itemDistHeroBadge" src="assets/combo-icons/characters/lakitu.png" alt="" aria-hidden="true" />
+        </h2>
+      </div>
+    </section>
+
+    <section class="card itemDistSection">
+      <div class="itemDistSectionHead">
+        <h3 class="sectionTitle">Placement Pools</h3>
+        <div class="itemDistModeSwitch" role="tablist" aria-label="Item distribution mode">
+          <button class="itemDistModeBtn active" id="btnItemMode12" data-item-mode="12p" type="button" aria-selected="true">12p online</button>
+          <button class="itemDistModeBtn" id="btnItemMode24" data-item-mode="24p" type="button" aria-selected="false">24p online</button>
+        </div>
+      </div>
+      <div class="itemDistBandGrid" id="itemDistBandGrid">
+        <div class="cbEmpty">Loading placement pools...</div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="mkwt_public.js"></script>
+  <script src="item-distribution.js"></script>
+</body>
+</html>

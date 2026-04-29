@@ -1,0 +1,367 @@
+.itemDistWrap{
+  display:grid;
+  gap:22px;
+}
+
+.itemDistHero{
+  min-height:156px;
+  padding:24px 24px 20px;
+}
+
+.itemDistHeroSimple{
+  display:grid;
+  place-items:center;
+  text-align:center;
+}
+
+.itemDistHeroTitle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.itemDistHeroBadge{
+  width:96px;
+  height:96px;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 16px rgba(0,0,0,.28));
+}
+
+.cbEmpty{
+  padding:22px 18px;
+  border-radius:8px;
+  border:1px dashed rgba(148,55,67,.5);
+  background:rgba(255,255,255,.03);
+  color:var(--muted);
+  text-align:center;
+}
+
+.itemDistHeroTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+  flex-wrap:wrap;
+}
+
+.itemDistHeroCopy{
+  display:grid;
+  gap:8px;
+  max-width:760px;
+}
+
+.itemDistHeroMeta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.itemDistModeSwitch{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.itemDistModeBtn{
+  border:1px solid rgba(164,61,74,.9);
+  background:rgba(17,23,34,.76);
+  color:var(--text);
+  min-height:44px;
+  padding:0 18px;
+  border-radius:8px;
+  font:800 15px/1.1 inherit;
+  cursor:pointer;
+  transition:transform .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
+}
+
+.itemDistModeBtn:hover{
+  transform:translateY(-1px);
+}
+
+.itemDistModeBtn.active{
+  background:linear-gradient(180deg, rgba(82,128,234,.92), rgba(66,111,215,.96));
+  border-color:rgba(95,129,223,.98);
+  color:#09111d;
+}
+
+.itemDistOverview{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:8px;
+}
+
+.itemDistOverviewCard{
+  display:grid;
+  gap:6px;
+  padding:16px 18px;
+  border-radius:8px;
+  border:1px solid rgba(148,55,67,.64);
+  background:rgba(9,13,20,.62);
+}
+
+.itemDistOverviewLabel{
+  font-size:12px;
+  line-height:1;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  color:var(--muted-2);
+  font-weight:900;
+}
+
+.itemDistOverviewCard strong{
+  font-size:22px;
+  line-height:1.06;
+}
+
+.itemDistOverviewCard span{
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.45;
+}
+
+.itemDistSection{
+  display:grid;
+  gap:18px;
+}
+
+.itemDistSectionHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.itemDistSourceLink{
+  text-decoration:none;
+}
+
+.itemDistBandGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:14px;
+}
+
+.itemDistMiniBandGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:12px;
+}
+
+.itemDistBandCard,
+.itemDistMiniBandCard,
+.itemDistSpecialCard,
+.itemDistCatalogCard{
+  border:1px solid rgba(148,55,67,.62);
+  border-radius:8px;
+  background:linear-gradient(180deg, rgba(11,16,24,.78), rgba(11,16,24,.62));
+  box-shadow:0 12px 28px rgba(0,0,0,.22);
+}
+
+.itemDistBandCard{
+  padding:16px;
+  display:grid;
+  gap:14px;
+}
+
+.itemDistMiniBandCard{
+  padding:14px 12px;
+  display:grid;
+  gap:10px;
+}
+
+.itemDistSpecialGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:14px;
+}
+
+.itemDistSpecialCard{
+  padding:18px;
+  display:grid;
+  gap:12px;
+}
+
+.itemDistSpecialMeta{
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.5;
+}
+
+.itemDistBandHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+
+.itemDistBandLabel{
+  font-size:26px;
+  line-height:1;
+  font-weight:900;
+}
+
+.itemDistBandHint{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.4;
+  text-align:right;
+}
+
+.itemDistPackTag{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:var(--muted-2);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.itemDistPackTag--front{
+  border-color:rgba(243,203,74,.3);
+  color:#f6d874;
+  background:rgba(243,203,74,.09);
+}
+
+.itemDistPackTag--mid{
+  border-color:rgba(255,142,84,.28);
+  color:#ffb17f;
+  background:rgba(255,142,84,.08);
+}
+
+.itemDistPackTag--back{
+  border-color:rgba(95,171,255,.28);
+  color:#9ec8ff;
+  background:rgba(95,171,255,.08);
+}
+
+.itemDistPackTag--catchup{
+  border-color:rgba(106,222,149,.28);
+  color:#72e1a0;
+  background:rgba(106,222,149,.08);
+}
+
+.itemDistIconList{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.itemDistIconChip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:52px;
+  height:52px;
+  border-radius:8px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);
+  position:relative;
+}
+
+.itemDistIconChip img{
+  max-width:38px;
+  max-height:38px;
+  object-fit:contain;
+  filter:drop-shadow(0 8px 12px rgba(0,0,0,.28));
+}
+
+.itemDistIconChip--wide img{
+  max-width:44px;
+  max-height:44px;
+}
+
+.itemDistCatalog{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:12px;
+}
+
+.itemDistCatalogCard{
+  padding:14px 14px 16px;
+  display:grid;
+  gap:12px;
+  justify-items:flex-start;
+}
+
+.itemDistCatalogCard .itemDistIconChip{
+  width:60px;
+  height:60px;
+}
+
+.itemDistCatalogCard .itemDistIconChip img{
+  max-width:42px;
+  max-height:42px;
+}
+
+.itemDistCatalogTitle{
+  font-weight:900;
+  font-size:16px;
+  line-height:1.2;
+}
+
+.itemDistCatalogMeta{
+  font-size:12px;
+  line-height:1.2;
+  color:var(--muted-2);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:900;
+}
+
+@media (max-width: 940px){
+  .itemDistOverview{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width: 720px){
+  .itemDistBandGrid{
+    grid-template-columns:1fr 1fr;
+  }
+  .itemDistCatalog{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media (max-width: 560px){
+  .itemDistHero{
+    min-height:auto;
+    padding:20px 18px;
+  }
+  .itemDistHeroBadge{
+    width:72px;
+    height:72px;
+  }
+  .itemDistHeroTop,
+  .itemDistSectionHead,
+  .itemDistBandHead{
+    align-items:flex-start;
+  }
+  .itemDistModeSwitch{
+    width:100%;
+  }
+  .itemDistModeBtn{
+    flex:1 1 0;
+  }
+  .itemDistBandGrid,
+  .itemDistMiniBandGrid,
+  .itemDistSpecialGrid,
+  .itemDistCatalog{
+    grid-template-columns:1fr;
+  }
+  .itemDistBandHint{
+    text-align:left;
+  }
+}

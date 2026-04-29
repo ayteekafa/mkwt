@@ -1,0 +1,137 @@
+[
+  {
+    "url": "assets/item-icons/transparent/coin.png",
+    "name": "Coin",
+    "id": "coin"
+  },
+  {
+    "url": "assets/item-icons/transparent/banana_peel.png",
+    "name": "Banana",
+    "id": "banana"
+  },
+  {
+    "url": "assets/item-icons/transparent/green_shell.png",
+    "name": "Green Shell",
+    "id": "green_shell"
+  },
+  {
+    "url": "assets/item-icons/transparent/feather.png",
+    "name": "Feather",
+    "id": "feather"
+  },
+  {
+    "url": "assets/item-icons/transparent/super_horn.png",
+    "name": "Super Horn",
+    "id": "super_horn"
+  },
+  {
+    "url": "assets/item-icons/transparent/coin_box.png",
+    "name": "Coin Box",
+    "id": "coin_box"
+  },
+  {
+    "url": "assets/item-icons/transparent/bob_omb.png",
+    "name": "Bob-omb",
+    "id": "bob_omb"
+  },
+  {
+    "url": "assets/item-icons/transparent/hammer.png",
+    "name": "Hammer",
+    "id": "hammer"
+  },
+  {
+    "url": "assets/item-icons/transparent/triple_bananas.png",
+    "name": "Triple Bananas",
+    "id": "triple_bananas"
+  },
+  {
+    "url": "assets/item-icons/transparent/triple_green_shells.png",
+    "name": "Triple Green Shells",
+    "id": "triple_green_shells"
+  },
+  {
+    "url": "assets/item-icons/transparent/red_shell.png",
+    "name": "Red Shell",
+    "id": "red_shell"
+  },
+  {
+    "url": "assets/item-icons/transparent/mushroom.png",
+    "name": "Mushroom",
+    "id": "mushroom"
+  },
+  {
+    "url": "assets/item-icons/transparent/kamek.png",
+    "name": "Kamek",
+    "id": "kamek"
+  },
+  {
+    "url": "assets/item-icons/transparent/ice_flower.png",
+    "name": "Ice Flower",
+    "id": "ice_flower"
+  },
+  {
+    "url": "assets/item-icons/transparent/boo.png",
+    "name": "Boo",
+    "id": "boo"
+  },
+  {
+    "url": "assets/item-icons/transparent/triple_red_shells.png",
+    "name": "Triple Red Shells",
+    "id": "triple_red_shells"
+  },
+  {
+    "url": "assets/item-icons/transparent/blooper.png",
+    "name": "Blooper",
+    "id": "blooper"
+  },
+  {
+    "url": "assets/item-icons/transparent/boomerang_flower.png",
+    "name": "Boomerang",
+    "id": "boomerang"
+  },
+  {
+    "url": "assets/item-icons/transparent/fire_flower.png",
+    "name": "Fire Flower",
+    "id": "fire_flower"
+  },
+  {
+    "url": "assets/item-icons/transparent/triple_mushrooms.png",
+    "name": "Triple Mushrooms",
+    "id": "triple_mushrooms"
+  },
+  {
+    "url": "assets/item-icons/transparent/blue_shell.png",
+    "name": "Blue Shell",
+    "id": "blue_shell"
+  },
+  {
+    "url": "assets/item-icons/transparent/coin_shell.png",
+    "name": "Coin Shell",
+    "id": "coin_shell"
+  },
+  {
+    "url": "assets/item-icons/transparent/super_star.png",
+    "name": "Star",
+    "id": "star"
+  },
+  {
+    "url": "assets/item-icons/transparent/golden_mushroom.png",
+    "name": "Golden Mushroom",
+    "id": "golden_mushroom"
+  },
+  {
+    "url": "assets/item-icons/transparent/mega_mushroom.png",
+    "name": "Mega Mushroom",
+    "id": "mega_mushroom"
+  },
+  {
+    "url": "assets/item-icons/transparent/bullet_bill.png",
+    "name": "Bullet Bill",
+    "id": "bullet_bill"
+  },
+  {
+    "url": "assets/item-icons/transparent/lightning.png",
+    "name": "Lightning",
+    "id": "lightning"
+  }
+]

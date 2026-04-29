@@ -48,6 +48,44 @@
     feather: { stroke: "#4cc490", fill: "rgba(76,196,144,.12)" },
     heavy: { stroke: "#ff9749", fill: "rgba(255,151,73,.12)" },
   };
+  const ONLINE_META_GROUPS = [
+    {
+      label: "On-Road Lightweight",
+      tag: "ON-L-4",
+      characters: ["Toadette", "Nabbit"],
+      vehicles: ["Baby Blooper"],
+    },
+    {
+      label: "On-Road Lightweight",
+      tag: "ON-L-2",
+      characters: ["Toadette", "Nabbit"],
+      vehicles: ["Mach Rocket", "R.O.B. H.O.G."],
+    },
+    {
+      label: "Flyweight",
+      tag: "ON-L-4",
+      characters: ["Baby Peach", "Baby Daisy", "Swoop", "Para-Biddybud"],
+      vehicles: ["Baby Blooper"],
+    },
+    {
+      label: "On-Road Featherweight",
+      tag: "ON-L-4",
+      characters: ["Baby Mario", "Goomba", "Spike"],
+      vehicles: ["Baby Blooper"],
+    },
+    {
+      label: "Flyweight",
+      tag: "ON-L-2",
+      characters: ["Baby Peach", "Baby Daisy", "Swoop", "Para-Biddybud"],
+      vehicles: ["Mach Rocket", "R.O.B. H.O.G."],
+    },
+    {
+      label: "On-Road Featherweight",
+      tag: "ON-L-2",
+      characters: ["Baby Mario", "Goomba", "Spike"],
+      vehicles: ["Mach Rocket", "R.O.B. H.O.G."],
+    },
+  ];
 
   const $ = (id) => document.getElementById(id);
   let builderData = null;
@@ -840,24 +878,111 @@
     setText("cbHeavyCurveMeta", referenceLabel(heavyReference));
   }
 
-  function buildCurveSummaryText(selectedCurve, featherCurve, heavyCurve) {
-    const selectedLast = Number(selectedCurve[selectedCurve.length - 1] || 0);
-    const featherLast = Number(featherCurve[featherCurve.length - 1] || 0);
-    const heavyLast = Number(heavyCurve[heavyCurve.length - 1] || 0);
+  function applyComboSelection(characterName, vehicleName) {
+    const characterSelect = $("cbCharacterSelect");
+    const vehicleSelect = $("cbVehicleSelect");
+    if (!characterSelect || !vehicleSelect) return;
+    characterSelect.value = canonicalName(characterName, CHARACTER_NAME_ALIASES);
+    vehicleSelect.value = canonicalName(vehicleName, VEHICLE_NAME_ALIASES);
+    renderBuilder();
+    $("cbCurrentCombo")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
-    const featherGap = (selectedLast - featherLast).toFixed(2);
-    const heavyGap = (selectedLast - heavyLast).toFixed(2);
+  function chooseGroupCombo(group, { characterName = "", vehicleName = "" } = {}) {
+    const safeCharacters = (group?.characters || []).map((name) => canonicalName(name, CHARACTER_NAME_ALIASES));
+    const safeVehicles = (group?.vehicles || []).map((name) => canonicalName(name, VEHICLE_NAME_ALIASES));
+    const current = resolveSelection();
+    const nextCharacter = canonicalName(characterName || "", CHARACTER_NAME_ALIASES) || (safeCharacters.includes(current.character) ? current.character : safeCharacters[0]);
+    const nextVehicle = canonicalName(vehicleName || "", VEHICLE_NAME_ALIASES) || (safeVehicles.includes(current.vehicle) ? current.vehicle : safeVehicles[0]);
+    if (!nextCharacter || !nextVehicle) return null;
+    return { character: nextCharacter, vehicle: nextVehicle };
+  }
 
-    setText(
-      "cbCurveNotePrimary",
-      `At max coins your combo reaches ${fmtPercent(selectedLast)} speed gain. That is ${Number(featherGap) >= 0 ? "+" : ""}${featherGap}% vs Feather and ${Number(heavyGap) >= 0 ? "+" : ""}${heavyGap}% vs Heavy.`
-    );
+  function findComboEntry(characterName, vehicleName) {
+    const normalizedCharacter = canonicalName(characterName, CHARACTER_NAME_ALIASES);
+    const normalizedVehicle = canonicalName(vehicleName, VEHICLE_NAME_ALIASES);
+    return allCombos.find((entry) =>
+      cleanText(entry.characterName) === cleanText(normalizedCharacter) &&
+      cleanText(entry.vehicleName) === cleanText(normalizedVehicle)
+    ) || null;
+  }
 
-    const tenIndex = Math.min(10, selectedCurve.length - 1);
-    setText(
-      "cbCurveNoteSecondary",
-      `At 10 coins your combo sits at ${fmtPercent(selectedCurve[tenIndex])}. The reference lines use the same vehicle and only swap the character class.`
-    );
+  function renderOnlineMetaTiers() {
+    const host = $("cbMetaTierGrid");
+    if (!host) return;
+    const rows = ONLINE_META_GROUPS.map((group) => {
+      const entries = [];
+      for (const characterName of group.characters) {
+        for (const vehicleName of group.vehicles) {
+          const combo = findComboEntry(characterName, vehicleName);
+          if (combo) entries.push(combo);
+        }
+      }
+      return { ...group, entries };
+    }).filter((group) => group.entries.length);
+
+    if (!rows.length) {
+      host.innerHTML = `<div class="cbEmpty">No S-rank snapshot available right now.</div>`;
+      return;
+    }
+
+    host.innerHTML = rows.map((group) => `
+      <section class="cbMetaTier cbMetaTier--row">
+        <div class="cbMetaTierHead cbMetaTierHead--split">
+          <div>
+            <div class="cbMetaTierLabel">${escapeHtml(group.label)}</div>
+            <div class="cbMetaTierNote">All entries below are S rank for standard online races.</div>
+          </div>
+          <div class="cbMetaTierTag">${escapeHtml(group.tag)}</div>
+        </div>
+        <div class="cbMetaGroupRow">
+          <div class="cbMetaGroupBlock">
+            <div class="cbMetaGroupLabel">Characters</div>
+            <div class="cbMetaGroupIcons">
+              ${group.characters.map((characterName) => {
+                const match = group.entries.find((entry) => cleanText(entry.characterName) === cleanText(canonicalName(characterName, CHARACTER_NAME_ALIASES)));
+                if (!match) return "";
+                return `
+                  <button class="cbMetaIconBtn" type="button" title="${escapeHtml(match.characterName)}" data-meta-group="${escapeHtml(group.tag)}" data-meta-character="${escapeHtml(match.characterName)}">
+                    ${iconMarkup("character", match.characterName, match.characterSlug, "cbGlyph--large")}
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </div>
+          <div class="cbMetaGroupBlock cbMetaGroupBlock--vehicles">
+            <div class="cbMetaGroupLabel">Karts / Bikes</div>
+            <div class="cbMetaGroupIcons">
+              ${group.vehicles.map((vehicleName) => {
+                const match = group.entries.find((entry) => cleanText(entry.vehicleName) === cleanText(canonicalName(vehicleName, VEHICLE_NAME_ALIASES)));
+                if (!match) return "";
+                return `
+                  <button class="cbMetaIconBtn cbMetaIconBtn--vehicle" type="button" title="${escapeHtml(match.vehicleName)}" data-meta-group="${escapeHtml(group.tag)}" data-meta-vehicle="${escapeHtml(match.vehicleName)}">
+                    ${iconMarkup("vehicle", match.vehicleName, match.vehicleSlug, "cbGlyph--large")}
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </div>
+      </section>
+    `).join("");
+
+    host.querySelectorAll("[data-meta-character]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const group = rows.find((entry) => entry.tag === button.dataset.metaGroup);
+        const combo = chooseGroupCombo(group, { characterName: button.dataset.metaCharacter });
+        if (combo) applyComboSelection(combo.character, combo.vehicle);
+      });
+    });
+
+    host.querySelectorAll("[data-meta-vehicle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const group = rows.find((entry) => entry.tag === button.dataset.metaGroup);
+        const combo = chooseGroupCombo(group, { vehicleName: button.dataset.metaVehicle });
+        if (combo) applyComboSelection(combo.character, combo.vehicle);
+      });
+    });
   }
 
   function renderCoinChart(character, vehicle, selectedStats, featherReference, heavyReference) {
@@ -869,7 +994,7 @@
     const heavyCurve = getCoinCurveValues(heavyStats.coinCurve);
 
     renderReferenceCards(selectedStats, featherReference, heavyReference, vehicle);
-    buildCurveSummaryText(selectedCurve, featherCurve, heavyCurve);
+    renderOnlineMetaTiers();
 
     const ctx = $("cbCoinChart");
     if (!ctx || !window.Chart) return;

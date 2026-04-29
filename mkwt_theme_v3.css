@@ -1555,6 +1555,371 @@ td:last-child{
   --modeBtn-active-text: var(--primary-text);
 }
 
+:root[data-theme="aurora"]{
+  /* Aurora Drift: dark teal base with mint + lime energy */
+  --bg: #04100f;
+  --card: #081816;
+  --card-2: #061311;
+  --hover: #0b201d;
+
+  --text: #ffffff;
+  --muted: rgba(219, 234, 254, 0.72);
+  --border: rgba(74, 222, 128, 0.34);
+  --border-strong: rgba(103, 232, 249, 0.56);
+
+  --accent-blue: #67e8f9;
+  --accent-red: #ff5d73;
+  --accent-white: #ffffff;
+
+  --primary: #4ade80;
+  --primary-2: #67e8f9;
+  --primary-text: #04110d;
+  --danger: #ff5d73;
+  --danger-text: #ffffff;
+  --ring: 0 0 0 3px rgba(103,232,249,.24);
+  --link: #a7f3d0;
+  --nav-bg: rgba(3,11,10,.88);
+  --backdrop: rgba(3,10,10,.60);
+  --shadow: 0 14px 34px rgba(0,0,0,.58);
+
+  --surface-panel:
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.012)),
+    linear-gradient(135deg, rgba(74,222,128,.08), transparent 58%),
+    var(--card-2);
+  --surface-panel-accent:
+    linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012)),
+    linear-gradient(135deg, rgba(74,222,128,.14), transparent 42%),
+    linear-gradient(45deg, rgba(103,232,249,.10), transparent 56%),
+    var(--card-2);
+  --surface-dialog:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.014)),
+    linear-gradient(135deg, rgba(74,222,128,.12), transparent 54%),
+    linear-gradient(320deg, rgba(103,232,249,.09), transparent 48%),
+    var(--card);
+
+  --action-edit-fill: rgba(103,232,249,.10);
+  --action-edit-border: rgba(103,232,249,.28);
+  --action-edit-text: #ffffff;
+  --action-delete-fill: rgba(255,93,115,.16);
+  --action-delete-border: rgba(255,93,115,.30);
+  --action-delete-text: #ffe2e8;
+
+  --chart-line-primary: rgb(103,232,249);
+  --chart-line-primary-fill: rgba(103,232,249,.16);
+  --chart-line-secondary: rgba(255,255,255,.88);
+  --chart-line-secondary-fill: rgba(255,255,255,.13);
+  --chart-positive-fill: rgba(74,222,128,.82);
+  --chart-positive-stroke: rgb(74,222,128);
+  --chart-negative-fill: rgba(255,93,115,.82);
+  --chart-negative-stroke: rgb(255,93,115);
+  --chart-split-a-fill: rgba(74,222,128,.80);
+  --chart-split-a-stroke: rgb(74,222,128);
+  --chart-split-b-fill: rgba(103,232,249,.76);
+  --chart-split-b-stroke: rgb(103,232,249);
+  --chart-break-even: rgba(190,242,100,.88);
+  --chart-break-even-text: rgba(217,249,157,.92);
+  --chart-separator: rgba(103,232,249,.28);
+
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
+
+:root[data-theme="ember"]{
+  /* Ember Drive: charcoal with ember coral and warm gold lift */
+  --bg: #120b0e;
+  --card: #181014;
+  --card-2: #130d10;
+  --hover: #201519;
+
+  --text: #fffdfb;
+  --muted: rgba(255,236,224,0.72);
+  --border: rgba(251,113,133,0.34);
+  --border-strong: rgba(251,191,36,0.54);
+
+  --accent-blue: #fbbf24;
+  --accent-red: #fb7185;
+  --accent-white: #fffdfb;
+
+  --primary: #fb7185;
+  --primary-2: #fbbf24;
+  --primary-text: #180b0b;
+  --danger: #dc2626;
+  --danger-text: #ffffff;
+  --ring: 0 0 0 3px rgba(251,113,133,.24);
+  --link: #fdba74;
+  --nav-bg: rgba(15,8,10,.88);
+  --backdrop: rgba(17,9,10,.60);
+  --shadow: 0 14px 34px rgba(0,0,0,.60);
+
+  --surface-panel:
+    linear-gradient(180deg, rgba(255,255,255,.022), rgba(255,255,255,.010)),
+    linear-gradient(135deg, rgba(251,113,133,.08), transparent 58%),
+    var(--card-2);
+  --surface-panel-accent:
+    linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012)),
+    linear-gradient(135deg, rgba(251,113,133,.15), transparent 42%),
+    linear-gradient(325deg, rgba(251,191,36,.08), transparent 50%),
+    var(--card-2);
+  --surface-dialog:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.014)),
+    linear-gradient(135deg, rgba(251,113,133,.12), transparent 56%),
+    linear-gradient(320deg, rgba(251,191,36,.08), transparent 48%),
+    var(--card);
+
+  --action-edit-fill: rgba(251,191,36,.10);
+  --action-edit-border: rgba(251,191,36,.26);
+  --action-edit-text: #fffdfb;
+  --action-delete-fill: rgba(251,113,133,.16);
+  --action-delete-border: rgba(251,113,133,.30);
+  --action-delete-text: #ffe2e8;
+
+  --chart-line-primary: rgb(251,191,36);
+  --chart-line-primary-fill: rgba(251,191,36,.14);
+  --chart-line-secondary: rgba(255,255,255,.88);
+  --chart-line-secondary-fill: rgba(255,255,255,.12);
+  --chart-positive-fill: rgba(251,191,36,.82);
+  --chart-positive-stroke: rgb(251,191,36);
+  --chart-negative-fill: rgba(251,113,133,.82);
+  --chart-negative-stroke: rgb(251,113,133);
+  --chart-split-a-fill: rgba(251,113,133,.80);
+  --chart-split-a-stroke: rgb(251,113,133);
+  --chart-split-b-fill: rgba(251,191,36,.76);
+  --chart-split-b-stroke: rgb(251,191,36);
+  --chart-break-even: rgba(253,186,116,.88);
+  --chart-break-even-text: rgba(254,215,170,.92);
+  --chart-separator: rgba(251,191,36,.24);
+
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
+
+:root[data-theme="glacier"]{
+  /* Glacier Glass: bright ice theme with crisp blue contrast */
+  --bg: #eef6ff;
+  --card: #ffffff;
+  --card-2: #f6fbff;
+  --hover: #e5f0fa;
+
+  --text: #07111f;
+  --muted: rgba(15,23,42,0.66);
+  --border: rgba(59,130,246,0.28);
+  --border-strong: rgba(6,182,212,0.44);
+
+  --accent-blue: #0284c7;
+  --accent-red: #e11d48;
+  --accent-white: #07111f;
+
+  --primary: #0ea5e9;
+  --primary-2: #2563eb;
+  --primary-text: #03131b;
+  --danger: #e11d48;
+  --danger-text: #ffffff;
+  --ring: 0 0 0 3px rgba(14,165,233,.18);
+  --link: #0369a1;
+  --nav-bg: rgba(246,251,255,.92);
+  --backdrop: rgba(147,197,253,.20);
+  --shadow: 0 12px 28px rgba(15,23,42,.10);
+
+  --surface-panel:
+    linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.52)),
+    linear-gradient(135deg, rgba(14,165,233,.06), transparent 60%),
+    var(--card-2);
+  --surface-panel-accent:
+    linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,.56)),
+    linear-gradient(135deg, rgba(14,165,233,.10), transparent 44%),
+    linear-gradient(320deg, rgba(37,99,235,.06), transparent 50%),
+    var(--card-2);
+  --surface-dialog:
+    linear-gradient(180deg, rgba(255,255,255,.84), rgba(255,255,255,.62)),
+    linear-gradient(135deg, rgba(14,165,233,.08), transparent 56%),
+    linear-gradient(320deg, rgba(37,99,235,.05), transparent 52%),
+    var(--card);
+
+  --action-edit-fill: rgba(14,165,233,.08);
+  --action-edit-border: rgba(14,165,233,.22);
+  --action-edit-text: #07111f;
+  --action-delete-fill: rgba(225,29,72,.08);
+  --action-delete-border: rgba(225,29,72,.22);
+  --action-delete-text: #9f1239;
+
+  --chart-line-primary: rgb(14,165,233);
+  --chart-line-primary-fill: rgba(14,165,233,.14);
+  --chart-line-secondary: rgba(7,17,31,.78);
+  --chart-line-secondary-fill: rgba(7,17,31,.08);
+  --chart-positive-fill: rgba(16,185,129,.80);
+  --chart-positive-stroke: rgb(16,185,129);
+  --chart-negative-fill: rgba(225,29,72,.76);
+  --chart-negative-stroke: rgb(225,29,72);
+  --chart-split-a-fill: rgba(14,165,233,.78);
+  --chart-split-a-stroke: rgb(14,165,233);
+  --chart-split-b-fill: rgba(37,99,235,.74);
+  --chart-split-b-stroke: rgb(37,99,235);
+  --chart-break-even: rgba(3,105,161,.80);
+  --chart-break-even-text: rgba(7,89,133,.92);
+  --chart-separator: rgba(14,165,233,.22);
+
+  --modeBtn-bg: rgba(15,23,42,0.03);
+  --modeBtn-border: rgba(59,130,246,0.24);
+  --modeBtn-text: #07111f;
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
+
+:root[data-theme="arcade"]{
+  /* Arcade Pulse: graphite with electric cyan + acid lime */
+  --bg: #090b11;
+  --card: #0f131d;
+  --card-2: #0c1018;
+  --hover: #141a27;
+
+  --text: #ffffff;
+  --muted: rgba(214,223,238,0.72);
+  --border: rgba(34,211,238,0.34);
+  --border-strong: rgba(163,230,53,0.46);
+
+  --accent-blue: #22d3ee;
+  --accent-red: #fb7185;
+  --accent-white: #ffffff;
+
+  --primary: #22d3ee;
+  --primary-2: #a3e635;
+  --primary-text: #051116;
+  --danger: #fb7185;
+  --danger-text: #ffffff;
+  --ring: 0 0 0 3px rgba(34,211,238,.24);
+  --link: #67e8f9;
+  --nav-bg: rgba(7,10,16,.88);
+  --backdrop: rgba(5,8,12,.60);
+  --shadow: 0 14px 34px rgba(0,0,0,.60);
+
+  --surface-panel:
+    linear-gradient(180deg, rgba(255,255,255,.024), rgba(255,255,255,.011)),
+    linear-gradient(135deg, rgba(34,211,238,.06), transparent 60%),
+    var(--card-2);
+  --surface-panel-accent:
+    linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012)),
+    linear-gradient(135deg, rgba(34,211,238,.12), transparent 44%),
+    linear-gradient(320deg, rgba(163,230,53,.08), transparent 50%),
+    var(--card-2);
+  --surface-dialog:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.014)),
+    linear-gradient(135deg, rgba(34,211,238,.10), transparent 56%),
+    linear-gradient(320deg, rgba(163,230,53,.07), transparent 50%),
+    var(--card);
+
+  --action-edit-fill: rgba(34,211,238,.10);
+  --action-edit-border: rgba(34,211,238,.28);
+  --action-edit-text: #ffffff;
+  --action-delete-fill: rgba(251,113,133,.16);
+  --action-delete-border: rgba(251,113,133,.30);
+  --action-delete-text: #ffe2e8;
+
+  --chart-line-primary: rgb(34,211,238);
+  --chart-line-primary-fill: rgba(34,211,238,.16);
+  --chart-line-secondary: rgba(255,255,255,.88);
+  --chart-line-secondary-fill: rgba(255,255,255,.13);
+  --chart-positive-fill: rgba(163,230,53,.82);
+  --chart-positive-stroke: rgb(163,230,53);
+  --chart-negative-fill: rgba(251,113,133,.80);
+  --chart-negative-stroke: rgb(251,113,133);
+  --chart-split-a-fill: rgba(34,211,238,.80);
+  --chart-split-a-stroke: rgb(34,211,238);
+  --chart-split-b-fill: rgba(163,230,53,.76);
+  --chart-split-b-stroke: rgb(163,230,53);
+  --chart-break-even: rgba(251,191,36,.88);
+  --chart-break-even-text: rgba(253,224,71,.92);
+  --chart-separator: rgba(34,211,238,.28);
+
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
+
+:root[data-theme="sunset"]{
+  /* Sunset Signal: plum-charcoal with coral + peach glow */
+  --bg: #140c14;
+  --card: #1a111c;
+  --card-2: #150f17;
+  --hover: #211623;
+
+  --text: #fffdfb;
+  --muted: rgba(255,225,219,0.72);
+  --border: rgba(251,146,60,0.30);
+  --border-strong: rgba(244,114,182,0.46);
+
+  --accent-blue: #fb7185;
+  --accent-red: #f97316;
+  --accent-white: #fffdfb;
+
+  --primary: #fb7185;
+  --primary-2: #fb923c;
+  --primary-text: #180b10;
+  --danger: #dc2626;
+  --danger-text: #ffffff;
+  --ring: 0 0 0 3px rgba(251,113,133,.22);
+  --link: #fdba74;
+  --nav-bg: rgba(14,8,15,.88);
+  --backdrop: rgba(17,8,14,.60);
+  --shadow: 0 14px 34px rgba(0,0,0,.60);
+
+  --surface-panel:
+    linear-gradient(180deg, rgba(255,255,255,.024), rgba(255,255,255,.011)),
+    linear-gradient(135deg, rgba(251,113,133,.06), transparent 60%),
+    var(--card-2);
+  --surface-panel-accent:
+    linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012)),
+    linear-gradient(135deg, rgba(251,113,133,.14), transparent 44%),
+    linear-gradient(320deg, rgba(251,146,60,.08), transparent 50%),
+    var(--card-2);
+  --surface-dialog:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.014)),
+    linear-gradient(135deg, rgba(251,113,133,.11), transparent 56%),
+    linear-gradient(320deg, rgba(251,146,60,.08), transparent 50%),
+    var(--card);
+
+  --action-edit-fill: rgba(251,146,60,.10);
+  --action-edit-border: rgba(251,146,60,.26);
+  --action-edit-text: #fffdfb;
+  --action-delete-fill: rgba(251,113,133,.16);
+  --action-delete-border: rgba(251,113,133,.30);
+  --action-delete-text: #ffe2e8;
+
+  --chart-line-primary: rgb(251,146,60);
+  --chart-line-primary-fill: rgba(251,146,60,.14);
+  --chart-line-secondary: rgba(255,255,255,.88);
+  --chart-line-secondary-fill: rgba(255,255,255,.12);
+  --chart-positive-fill: rgba(251,146,60,.82);
+  --chart-positive-stroke: rgb(251,146,60);
+  --chart-negative-fill: rgba(251,113,133,.80);
+  --chart-negative-stroke: rgb(251,113,133);
+  --chart-split-a-fill: rgba(251,113,133,.80);
+  --chart-split-a-stroke: rgb(251,113,133);
+  --chart-split-b-fill: rgba(251,146,60,.76);
+  --chart-split-b-stroke: rgb(251,146,60);
+  --chart-break-even: rgba(253,186,116,.88);
+  --chart-break-even-text: rgba(254,215,170,.92);
+  --chart-separator: rgba(251,146,60,.24);
+
+  --modeBtn-bg: var(--card-2);
+  --modeBtn-border: var(--border);
+  --modeBtn-text: var(--text);
+  --modeBtn-active-bg: var(--primary);
+  --modeBtn-active-border: var(--primary);
+  --modeBtn-active-text: var(--primary-text);
+}
+
 /* ===== Login responsive (from shared) ===== */
 .login-wrap{
   min-height:100dvh;

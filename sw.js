@@ -46,6 +46,24 @@ const STATIC_ASSETS = [
   "/icons/icon-512.png",
 ];
 
+const APP_SHELL_PAGES = [
+  "/index.html",
+  "/about.html",
+  "/login.html",
+  "/reset.html",
+  "/tracker.html",
+  "/time-trial.html",
+  "/combo-builder.html",
+  "/item-distribution.html",
+  "/stats.html",
+  "/sessions.html",
+  "/settings.html",
+  "/lounge.html",
+  "/lounge-24.html",
+  "/lounge-stats.html",
+  "/mkcentral.html",
+];
+
 const normalizeNavPath = (pathname) => {
   let p = pathname || "/";
   // strip trailing slash (except root)
@@ -54,14 +72,17 @@ const normalizeNavPath = (pathname) => {
   if (p.endsWith(".html")) return p;
   // pretty routes
   if (p === "/tracker") return "/tracker.html";
+  if (p === "/lounge") return "/lounge.html";
   if (p === "/time-trial") return "/time-trial.html";
   if (p === "/combo-builder") return "/combo-builder.html";
+  if (p === "/item-distribution") return "/item-distribution.html";
   if (p === "/stats") return "/stats.html";
   if (p === "/sessions") return "/sessions.html";
   if (p === "/lounge-24") return "/lounge-24.html";
   if (p === "/mkcentral") return "/mkcentral.html";
   if (p === "/lounge-stats") return "/lounge-stats.html";
   if (p === "/settings") return "/settings.html";
+  if (p === "/about") return "/about.html";
   if (p === "/login") return "/login.html";
   if (p === "/reset") return "/reset.html";
   return p;
@@ -87,11 +108,11 @@ async function cachePutIfSafe(cache, key, res) {
 }
 
 self.addEventListener("install", (e) => {
-  // Do NOT precache navigations here (Safari can cache redirect responses during install).
-  // We only precache static assets with safe fetches, and even that is optional.
+  // Precache static app shell assets and direct .html pages only.
+  // We avoid pretty-route URLs so Safari never sees redirected install responses.
   e.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    for (const path of STATIC_ASSETS) {
+    for (const path of [...STATIC_ASSETS, ...APP_SHELL_PAGES]) {
       try {
         const url = new URL(path, self.location.origin).toString();
         const res = await safeFetchNoRedirect(url);
@@ -135,16 +156,17 @@ self.addEventListener("fetch", (e) => {
     e.respondWith((async () => {
       const cache = await caches.open(CACHE);
 
-      const cached = await cache.match(path);
-      if (cached) return cached;
-
       try {
         const res = await safeFetchNoRedirect(normalizedUrl);
         await cachePutIfSafe(cache, path, res);
         return res;
       } catch (err) {
-        // Offline fallback: if we have index/tracker cached, prefer that.
-        const fallback = await cache.match("/index.html") || await cache.match("/tracker.html");
+        // Offline fallback: serve the normalized page first, then fall back to core entry pages.
+        const fallback =
+          await cache.match(path) ||
+          await cache.match("/login.html") ||
+          await cache.match("/index.html") ||
+          await cache.match("/tracker.html");
         if (fallback) return fallback;
         throw err;
       }

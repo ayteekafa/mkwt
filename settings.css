@@ -67,7 +67,15 @@
 .discordIcon svg{width:18px; height:18px; fill:currentColor;}
 
 .settingsHero{
-  padding:22px 22px 18px;
+  min-height:156px;
+  padding:24px 24px 20px;
+}
+
+.settingsHeroBadge{
+  width:96px;
+  height:96px;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 16px rgba(0,0,0,.28));
 }
 
 .settingsHeroTop{
@@ -80,9 +88,12 @@
   max-width:760px;
 }
 
-.settingsHeroMeta{
+.settingsHeroTitle{
+  display:inline-flex;
+  align-items:center;
   justify-content:center;
-  margin-top:2px;
+  gap:16px;
+  flex-wrap:wrap;
 }
 
 .settingsCard{
@@ -177,7 +188,12 @@
 
 @media (max-width: 640px){
   .settingsHero{
-    padding:18px;
+    min-height:auto;
+    padding:20px 18px;
+  }
+  .settingsHeroBadge{
+    width:72px;
+    height:72px;
   }
   .settingsCard{
     padding:18px;

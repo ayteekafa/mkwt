@@ -2,15 +2,34 @@
   padding-bottom:36px;
 }
 
+.comboHero{
+  min-height:156px;
+  padding:24px 24px 20px;
+}
+
 .comboHeroTop{
-  justify-content:space-between;
-  align-items:flex-start;
-  text-align:left;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
 }
 
 .comboHeroCopy{
   min-width:0;
   max-width:760px;
+}
+
+.comboHeroTitle{
+  display:inline-flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.comboHeroBadge{
+  width:96px;
+  height:96px;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 16px rgba(0,0,0,.28));
 }
 
 .comboHeroActions{
@@ -373,6 +392,265 @@
   flex-direction:column;
   gap:8px;
   margin-top:14px;
+}
+
+.cbMetaSpotlight{
+  margin-top:16px;
+  padding:16px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+    var(--card-2);
+}
+
+.cbMetaSpotlightHead{
+  margin-bottom:14px;
+}
+
+.cbMetaSpotlightEyebrow{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.cbMetaSpotlightTitle{
+  margin:6px 0 0;
+  font-size:22px;
+  font-weight:950;
+}
+
+.cbMetaSpotlightSub{
+  margin-top:6px;
+}
+
+.cbMetaTierGrid{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.cbMetaTier{
+  padding:14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.02);
+}
+
+.cbMetaTier--s{
+  background:
+    linear-gradient(180deg, rgba(78,124,255,.12), rgba(78,124,255,.04)),
+    var(--card-2);
+  border-color:rgba(78,124,255,.28);
+}
+
+.cbMetaTier--a{
+  background:
+    linear-gradient(180deg, rgba(76,196,144,.10), rgba(76,196,144,.04)),
+    var(--card-2);
+  border-color:rgba(76,196,144,.24);
+}
+
+.cbMetaTier--b{
+  background:
+    linear-gradient(180deg, rgba(255,151,73,.10), rgba(255,151,73,.04)),
+    var(--card-2);
+  border-color:rgba(255,151,73,.24);
+}
+
+.cbMetaTierHead{
+  margin-bottom:10px;
+}
+
+.cbMetaTierHead--split{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.cbMetaTierLabel{
+  font-size:12px;
+  font-weight:950;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.cbMetaTierNote{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.cbMetaTierTag{
+  flex:0 0 auto;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.cbMetaTierList{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.cbMetaGroupRow{
+  display:grid;
+  grid-template-columns:minmax(0, 1.6fr) minmax(220px, .9fr);
+  gap:14px;
+  align-items:start;
+}
+
+.cbMetaGroupBlock{
+  min-width:0;
+}
+
+.cbMetaGroupBlock--vehicles{
+  justify-self:end;
+}
+
+.cbMetaGroupLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+
+.cbMetaGroupIcons{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.cbMetaIconBtn{
+  padding:0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  border-radius:14px;
+  transition:transform .14s ease, filter .14s ease;
+}
+
+.cbMetaIconBtn:hover{
+  transform:translateY(-1px) scale(1.03);
+  filter:brightness(1.06);
+}
+
+.cbMetaIconBtn .cbGlyph{
+  box-shadow:0 10px 22px rgba(0,0,0,.16);
+}
+
+.cbMetaIconBtn--vehicle .cbGlyph{
+  box-shadow:0 10px 22px rgba(0,0,0,.14);
+}
+
+.cbMetaComboCard{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+  transition:transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+
+.cbMetaComboCard:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb, var(--primary) 34%, var(--border));
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)),
+    rgba(255,255,255,.02);
+  box-shadow:0 12px 28px rgba(0,0,0,.18);
+}
+
+.cbMetaComboMain{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.cbMetaComboIcons{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+
+.cbMetaComboText{
+  min-width:0;
+}
+
+.cbMetaComboTitle{
+  font-size:17px;
+  font-weight:950;
+  line-height:1.2;
+}
+
+.cbMetaComboMeta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+.cbMetaComboStats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+
+.cbMetaComboChip{
+  padding:6px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  line-height:1;
+}
+
+.cbMetaComboAside{
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+}
+
+.cbMetaComboScore{
+  font-size:18px;
+  font-weight:950;
+  line-height:1;
+}
+
+.cbMetaComboTotal{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
 }
 
 .cbCompareChooser{
@@ -1033,7 +1311,17 @@
 @media (max-width: 720px){
   .comboHeroTop{
     flex-direction:column;
-    align-items:stretch;
+    align-items:center;
+  }
+
+  .comboHero{
+    min-height:auto;
+    padding:20px 18px;
+  }
+
+  .comboHeroBadge{
+    width:72px;
+    height:72px;
   }
 
   .comboSectionHead,
@@ -1116,6 +1404,26 @@
 
   .cbChartWrap{
     height:360px;
+  }
+
+  .cbMetaComboCard{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .cbMetaGroupRow{
+    grid-template-columns:1fr;
+  }
+
+  .cbMetaGroupBlock--vehicles{
+    justify-self:stretch;
+  }
+
+  .cbMetaComboAside{
+    width:100%;
+    flex-direction:row;
+    align-items:center;
+    justify-content:space-between;
   }
 
   .cbSimilarCard{

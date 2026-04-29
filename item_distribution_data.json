@@ -1,0 +1,214 @@
+{
+  "source": {
+    "title": "Placement workbook provided for MKWT",
+    "url": "",
+    "scope": "Standard online races only. Workbook-aligned 12p and 24p placement pools.",
+    "notes": [
+      "MKWT follows the corrected workbook rows directly and keeps the page in English.",
+      "The blank spacer column before Coin Box is ignored because it has no meaning.",
+      "This page shows which items appear in each placement band, not exact pull odds."
+    ]
+  },
+  "items": {
+    "coin": {
+      "name": "Coin",
+      "icon": "assets/item-icons/transparent/coin.png",
+      "category": "front-pack"
+    },
+    "banana": {
+      "name": "Banana",
+      "icon": "assets/item-icons/transparent/banana_peel.png",
+      "category": "front-pack"
+    },
+    "green_shell": {
+      "name": "Green Shell",
+      "icon": "assets/item-icons/transparent/green_shell.png",
+      "category": "front-pack"
+    },
+    "feather": {
+      "name": "Feather",
+      "icon": "assets/item-icons/transparent/feather.png",
+      "category": "front-pack"
+    },
+    "super_horn": {
+      "name": "Super Horn",
+      "icon": "assets/item-icons/transparent/super_horn.png",
+      "category": "front-pack"
+    },
+    "coin_box": {
+      "name": "Coin Box",
+      "icon": "assets/item-icons/transparent/coin_box.png",
+      "category": "front-pack"
+    },
+    "bob_omb": {
+      "name": "Bob-omb",
+      "icon": "assets/item-icons/transparent/bob_omb.png",
+      "category": "mid-pack"
+    },
+    "hammer": {
+      "name": "Hammer",
+      "icon": "assets/item-icons/transparent/hammer.png",
+      "category": "mid-pack"
+    },
+    "triple_bananas": {
+      "name": "Triple Bananas",
+      "icon": "assets/item-icons/transparent/triple_bananas.png",
+      "category": "mid-pack"
+    },
+    "triple_green_shells": {
+      "name": "Triple Green Shells",
+      "icon": "assets/item-icons/transparent/triple_green_shells.png",
+      "category": "mid-pack"
+    },
+    "red_shell": {
+      "name": "Red Shell",
+      "icon": "assets/item-icons/transparent/red_shell.png",
+      "category": "mid-pack"
+    },
+    "mushroom": {
+      "name": "Mushroom",
+      "icon": "assets/item-icons/transparent/mushroom.png",
+      "category": "mid-pack"
+    },
+    "kamek": {
+      "name": "Kamek",
+      "icon": "assets/item-icons/transparent/kamek.png",
+      "category": "mid-pack"
+    },
+    "ice_flower": {
+      "name": "Ice Flower",
+      "icon": "assets/item-icons/transparent/ice_flower.png",
+      "category": "mid-pack"
+    },
+    "boo": {
+      "name": "Boo",
+      "icon": "assets/item-icons/transparent/boo.png",
+      "category": "mid-pack"
+    },
+    "triple_red_shells": {
+      "name": "Triple Red Shells",
+      "icon": "assets/item-icons/transparent/triple_red_shells.png",
+      "category": "mid-pack"
+    },
+    "blooper": {
+      "name": "Blooper",
+      "icon": "assets/item-icons/transparent/blooper.png",
+      "category": "mid-pack"
+    },
+    "boomerang": {
+      "name": "Boomerang",
+      "icon": "assets/item-icons/transparent/boomerang_flower.png",
+      "category": "mid-pack"
+    },
+    "fire_flower": {
+      "name": "Fire Flower",
+      "icon": "assets/item-icons/transparent/fire_flower.png",
+      "category": "mid-pack"
+    },
+    "triple_mushrooms": {
+      "name": "Triple Mushrooms",
+      "icon": "assets/item-icons/transparent/triple_mushrooms.png",
+      "category": "back-pack"
+    },
+    "blue_shell": {
+      "name": "Blue Shell",
+      "icon": "assets/item-icons/transparent/blue_shell.png",
+      "category": "back-pack"
+    },
+    "coin_shell": {
+      "name": "Coin Shell",
+      "icon": "assets/item-icons/transparent/coin_shell.png",
+      "category": "back-pack"
+    },
+    "star": {
+      "name": "Star",
+      "icon": "assets/item-icons/transparent/super_star.png",
+      "category": "back-pack"
+    },
+    "golden_mushroom": {
+      "name": "Golden Mushroom",
+      "icon": "assets/item-icons/transparent/golden_mushroom.png",
+      "category": "catch-up"
+    },
+    "mega_mushroom": {
+      "name": "Mega Mushroom",
+      "icon": "assets/item-icons/transparent/mega_mushroom.png",
+      "category": "catch-up"
+    },
+    "bullet_bill": {
+      "name": "Bullet Bill",
+      "icon": "assets/item-icons/transparent/bullet_bill.png",
+      "category": "catch-up"
+    },
+    "lightning": {
+      "name": "Lightning",
+      "icon": "assets/item-icons/transparent/lightning.png",
+      "category": "catch-up"
+    }
+  },
+  "catalogOrder": [
+    "coin",
+    "banana",
+    "green_shell",
+    "feather",
+    "super_horn",
+    "coin_box",
+    "bob_omb",
+    "hammer",
+    "triple_bananas",
+    "triple_green_shells",
+    "red_shell",
+    "mushroom",
+    "kamek",
+    "ice_flower",
+    "boo",
+    "triple_red_shells",
+    "blooper",
+    "boomerang",
+    "fire_flower",
+    "triple_mushrooms",
+    "blue_shell",
+    "coin_shell",
+    "star",
+    "golden_mushroom",
+    "mega_mushroom",
+    "bullet_bill",
+    "lightning"
+  ],
+  "modes": {
+    "12p": {
+      "title": "12-player online races",
+      "subtitle": "Full placement ladder from 1st to 12th, aligned to the corrected workbook.",
+      "bands": [
+        { "label": "1st", "items": ["coin", "banana", "green_shell", "feather", "super_horn", "coin_box"] },
+        { "label": "2nd", "items": ["coin", "banana", "green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom"] },
+        { "label": "3rd", "items": ["banana", "green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells"] },
+        { "label": "4th", "items": ["green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells", "blooper", "boomerang", "fire_flower"] },
+        { "label": "5th", "items": ["green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells", "blooper", "boomerang", "fire_flower", "triple_mushrooms"] },
+        { "label": "6th", "items": ["super_horn", "coin_box", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells", "blooper", "boomerang", "fire_flower", "triple_mushrooms", "blue_shell", "coin_shell", "star"] },
+        { "label": "7th", "items": ["triple_green_shells", "red_shell", "mushroom", "ice_flower", "boo", "triple_red_shells", "boomerang", "fire_flower", "triple_mushrooms", "blue_shell", "coin_shell", "star"] },
+        { "label": "8th", "items": ["red_shell", "mushroom", "triple_red_shells", "boomerang", "fire_flower", "triple_mushrooms", "blue_shell", "coin_shell", "star", "golden_mushroom"] },
+        { "label": "9th", "items": ["triple_mushrooms", "coin_shell", "star", "golden_mushroom", "mega_mushroom"] },
+        { "label": "10th-11th", "items": ["triple_mushrooms", "star", "golden_mushroom", "mega_mushroom", "bullet_bill", "lightning"] },
+        { "label": "12th", "items": ["triple_mushrooms", "golden_mushroom", "mega_mushroom", "bullet_bill", "lightning"] }
+      ]
+    },
+    "24p": {
+      "title": "24-player online races",
+      "subtitle": "Grouped placement bands from the corrected workbook, aligned row-for-row to the provided table.",
+      "bands": [
+        { "label": "1st", "items": ["coin", "banana", "green_shell", "feather", "super_horn", "coin_box"] },
+        { "label": "2nd", "items": ["coin", "banana", "green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom"] },
+        { "label": "3rd", "items": ["banana", "green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells"] },
+        { "label": "4th", "items": ["green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells", "blooper", "boomerang", "fire_flower"] },
+        { "label": "5th", "items": ["green_shell", "feather", "super_horn", "coin_box", "bob_omb", "hammer", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells", "blooper", "boomerang", "fire_flower", "triple_mushrooms"] },
+        { "label": "6th-7th", "items": ["super_horn", "coin_box", "triple_bananas", "triple_green_shells", "red_shell", "mushroom", "kamek", "ice_flower", "boo", "triple_red_shells", "blooper", "boomerang", "fire_flower", "triple_mushrooms", "blue_shell", "coin_shell", "star"] },
+        { "label": "8th-10th", "items": ["triple_green_shells", "red_shell", "mushroom", "ice_flower", "boo", "triple_red_shells", "boomerang", "fire_flower", "triple_mushrooms", "blue_shell", "coin_shell", "star"] },
+        { "label": "11th-14th", "items": ["red_shell", "mushroom", "triple_red_shells", "boomerang", "fire_flower", "triple_mushrooms", "blue_shell", "coin_shell", "star", "golden_mushroom"] },
+        { "label": "15th-18th", "items": ["triple_mushrooms", "coin_shell", "star", "golden_mushroom", "mega_mushroom"] },
+        { "label": "19th-23rd", "items": ["triple_mushrooms", "star", "golden_mushroom", "mega_mushroom", "bullet_bill", "lightning"] },
+        { "label": "24th", "items": ["triple_mushrooms", "golden_mushroom", "mega_mushroom", "bullet_bill", "lightning"] }
+      ]
+    }
+  }
+}

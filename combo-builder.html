@@ -17,7 +17,6 @@
   <link href="combo-builder.css" rel="stylesheet" />
 
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <meta name="mobile-web-app-capable" content="yes" />
 
   <meta
@@ -66,12 +65,18 @@
           <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
         </div>
       </div>
-      <a class="navLink active" href="combo-builder.html">Combo Builder</a>
       <div class="navDropdown">
         <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
         <div class="navDropdownMenu">
           <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
           <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+        </div>
+      </div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Race Lab</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem active" href="combo-builder.html">Combo Builder</a>
+          <a class="navDropdownItem" href="item-distribution.html">Item Distribution</a>
         </div>
       </div>
       <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
@@ -82,14 +87,10 @@
     <section class="card profileCard comboHero">
       <div class="profileTop comboHeroTop">
         <div class="comboHeroCopy">
-          <h2 class="heroTitle">Combo Builder <span class="byAytee">by Aytee</span></h2>
-          <div class="muted heroSubtitle">
-            Build Mario Kart World character + vehicle combos from the shared stat sheet and compare their hidden stat totals.
-          </div>
-          <div class="muted heroSubtitle" id="cbSourceMeta">Loading builder data...</div>
-        </div>
-        <div class="comboHeroActions">
-          <button class="btn2" id="btnResetComboBuilder" type="button">Reset</button>
+          <h2 class="heroTitle comboHeroTitle">
+            <span>Wario's Garage</span>
+            <img class="comboHeroBadge" src="assets/combo-icons/characters/wario.png" alt="" aria-hidden="true" />
+          </h2>
         </div>
       </div>
       <div class="muted hidden" id="cbStatus"></div>
@@ -105,6 +106,7 @@
           <div class="comboSectionActions">
             <button class="btn2 comboActionBtn" id="btnOpenComboFilters" type="button">Combo filters</button>
             <button class="btn2 comboActionBtn" id="btnOpenComboCompare" type="button">Compare combo</button>
+            <button class="btn2 comboActionBtn" id="btnResetComboBuilder" type="button">Reset</button>
             <button class="btn2 comboActionBtn comboActionBtn--wide" id="btnOpenSimilarCombos" type="button" disabled>Similar combos</button>
           </div>
         </div>
@@ -175,7 +177,7 @@
           <div>
             <h3 class="sectionTitle">Coin Curve Compare</h3>
             <div class="muted">
-              The selected combo stays in the middle. Feather and Heavy references keep your chosen vehicle and swap only the character class.
+              Selected combo versus same-vehicle Feather and Heavy baselines, plus a quick online race meta snapshot.
             </div>
           </div>
         </div>
@@ -202,9 +204,15 @@
           <canvas id="cbCoinChart"></canvas>
         </div>
 
-        <div class="cbCurveNotes">
-          <div class="cbCurveNote" id="cbCurveNotePrimary">-</div>
-          <div class="cbCurveNote" id="cbCurveNoteSecondary">-</div>
+        <div class="cbMetaSpotlight">
+          <div class="cbMetaSpotlightHead">
+            <div class="cbMetaSpotlightEyebrow">Online Race Meta</div>
+            <h4 class="cbMetaSpotlightTitle">S-rank snapshot</h4>
+            <div class="muted cbMetaSpotlightSub">Grouped in the same order and logic as your reference. Click characters or karts to load a matching build into the builder.</div>
+          </div>
+          <div class="cbMetaTierGrid" id="cbMetaTierGrid">
+            <div class="cbEmpty">Loading S-rank snapshot...</div>
+          </div>
         </div>
       </div>
     </section>
@@ -328,6 +336,7 @@
     </div>
   </dialog>
 
+  <script src="mkwt_public.js"></script>
   <script src="combo-builder.js"></script>
 </body>
 </html>

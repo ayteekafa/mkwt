@@ -158,6 +158,8 @@ tbody tr.raceRow--dc{
 .compareAction.active{border-color:color-mix(in srgb, var(--chart-split-a-stroke) 70%, var(--border));background:linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 24%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 18%, transparent)),var(--surface-panel)}
 .compareAction__eyebrow{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800}
 .compareAction__label{font-size:12px;line-height:1.15;font-weight:900}
+.compareAction[disabled]{opacity:.48;cursor:default;box-shadow:none}
+.sectionHeadActions .compareAction{max-width:none;min-width:156px}
 .compareDialog{width:min(1180px,calc(100vw - 24px));border:1px solid var(--border);border-radius:16px;padding:0;background:var(--surface-dialog);color:var(--text);box-shadow:var(--shadow)}
 .compareDialog::backdrop{background:var(--backdrop)}
 .compareDialogPanel{padding:18px}

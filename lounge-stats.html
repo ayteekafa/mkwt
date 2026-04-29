@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#07080a"/>
 <script src="mkwt_bootstrap.js"></script>
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="icon" href="/favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <title>MKWT - Lounge Stats</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
@@ -27,7 +32,6 @@
         <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
       </div>
     </div>
-    <a class="navLink" href="combo-builder.html">Combo Builder</a>
     <div class="navDropdown">
       <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
       <div class="navDropdownMenu">
@@ -35,34 +39,53 @@
         <a class="navDropdownItem active" href="lounge-stats.html">Lounge Stats</a>
       </div>
     </div>
+    <div class="navDropdown">
+      <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Race Lab</button>
+      <div class="navDropdownMenu">
+        <a class="navDropdownItem" href="combo-builder.html">Combo Builder</a>
+        <a class="navDropdownItem" href="item-distribution.html">Item Distribution</a>
+      </div>
+    </div>
     <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
   </div>
 </nav>
 
 <main class="wrap mkcWrap">
-  <section class="card mkcHero">
-    <div>
-      <p class="eyebrow" id="mkcScopeEyebrow">MKCentral Season 2 / 12p</p>
-      <h2>Lounge Stats</h2>
-      <p class="muted">Pull your public MKCentral events once, keep them locally in this app, and update later without deleting old entries.</p>
-    </div>
-    <div class="mkcActions">
-      <div class="mkcIdentityLine">
-        <span class="mkcIdentityName" id="mkcPlayerNameDisplay">MKCentral Player</span>
-        <span class="mkcIdentityDot">&bull;</span>
-        <span class="mkcIdentityId" id="mkcPlayerDisplay">Not set</span>
+  <section class="card profileCard mkcHero mkcHeroUnified">
+    <div class="profileTop mkcHeroTop">
+      <div class="mkcHeroCopy">
+        <h2 class="heroTitle mkcHeroTitle"><span>Lounge Stats</span><img class="mkcHeroBadge" src="assets/combo-icons/characters/king-boo.png" alt="" aria-hidden="true"/></h2>
       </div>
-      <div class="mkcActionRow">
-        <div class="mkcHeaderUpdate">
-          <span>Last update</span>
-          <strong id="mkcLastUpdateDisplay">-</strong>
+    </div>
+  </section>
+
+  <section class="card mkcToolbarCard">
+    <div class="mkcToolbarMeta">
+      <div class="mkcToolbarPill">
+        <span class="mkcToolbarPillLabel">Season scope</span>
+        <strong class="mkcToolbarPillValue" id="mkcScopeEyebrow">MKCentral Season 2 / 12p</strong>
+      </div>
+      <div class="mkcToolbarPill mkcToolbarPill--identity">
+        <span class="mkcToolbarPillLabel">Player</span>
+        <div class="mkcIdentityLine">
+          <span class="mkcIdentityName" id="mkcPlayerNameDisplay">MKCentral Player</span>
+          <span class="mkcIdentityDot">&bull;</span>
+          <span class="mkcIdentityId" id="mkcPlayerDisplay">Not set</span>
         </div>
+      </div>
+      <div class="mkcToolbarPill">
+        <span class="mkcToolbarPillLabel">Last update</span>
+        <strong class="mkcToolbarPillValue" id="mkcLastUpdateDisplay">-</strong>
+      </div>
+    </div>
+    <div class="mkcToolbarFooter">
+      <div class="mkcToolbarActions">
         <button class="navAction active" id="btnUpdateMkc" type="button">Update data</button>
         <button class="navAction" id="btnDownloadMkcImage" type="button" disabled>Download image</button>
         <a class="navAction" href="settings.html">Settings</a>
       </div>
+      <div class="muted statusLine" id="mkcStatus"></div>
     </div>
-    <div class="muted statusLine" id="mkcStatus"></div>
   </section>
 
   <section class="mkcGrid" id="mkcCards">
@@ -240,6 +263,7 @@
   </section>
 </main>
 
+<script src="mkwt_public.js"></script>
 <script src="mkwt_report.js"></script>
 <script src="mkcentral.js"></script>
 </body>
