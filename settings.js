@@ -1,8 +1,27 @@
 const $ = id => document.getElementById(id);
 const statusEls = Array.from(document.querySelectorAll('[data-status="shared"]'));
 function setStatus(t, ok=true){ window.MKWT?.setStatus?.(statusEls, t, ok); }
+function setPasswordStatus(t, ok=true){
+  const el = $("pwStatus");
+  const text = String(t || "").trim();
+  if(window.MKWT?.showToast){
+    if(el){
+      el.textContent = "";
+      el.className = "muted statusSpaceSmall hidden";
+      el.hidden = true;
+    }
+    window.MKWT.showToast(text, ok);
+    return;
+  }
+  if(!el) return;
+  el.hidden = !text;
+  el.textContent = text;
+  el.className = "muted statusSpaceSmall " + (text ? (ok ? "ok" : "bad") : "hidden");
+}
 const STORAGE_KEYS = window.MKWT?.storageKeys || { theme:'mkwt_theme', minVrFilter:'mkwt_min_vr_filter', lastMode:'mkwt_last_mode' };
-const MKCENTRAL_PLAYER_KEY = 'mkwt_mkcentral_player_ref_v1';
+const SETTINGS_MKCENTRAL_PLAYER_KEY = 'mkwt_mkcentral_player_ref_v1';
+const SETTINGS_PROFILE_ICON_KEY = 'mkwt_profile_icon_slug_v1';
+const SETTINGS_ICON_MANIFEST_URL = 'combo_icon_map.json';
 const ACCOUNT_DEFAULT_THEME = "dark";
 
 const SETTINGS_FIELDS = [
@@ -15,6 +34,214 @@ const SETTINGS_FIELDS = [
 
 let settingsEditMode = false;
 let settingsSnapshot = null;
+let profileIconSlug = "";
+let profileIconManifest = null;
+let profileIconLoadPromise = null;
+let profileIconEntries = [];
+
+function settingsText(value, fallback="-"){
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function getSelectedThemeLabel(){
+  const sel = $("settingsTheme");
+  if(!sel) return "-";
+  const option = sel.options?.[sel.selectedIndex];
+  return option?.textContent?.trim() || settingsText(sel.value);
+}
+
+function getProfileInitials(name){
+  const text = settingsText(name, "M");
+  const words = text.split(/\s+/).filter(Boolean);
+  const first = words[0]?.charAt(0) || "M";
+  const second = words.length > 1 ? words[1].charAt(0) : "";
+  return (first + second).toUpperCase();
+}
+
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[ch]));
+}
+
+function normalizeProfileIconSlug(value){
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "");
+}
+
+function getProfileIconRecord(slug = profileIconSlug){
+  const normalized = normalizeProfileIconSlug(slug);
+  if(!normalized || !profileIconManifest?.characters) return null;
+  return profileIconManifest.characters[normalized] || null;
+}
+
+function profileIconThumbPath(entry){
+  const rawPath = settingsText(entry?.path, "");
+  const fileName = rawPath.replace(/\\/g, "/").split("/").pop();
+  return fileName ? `assets/picker-icons/characters/${fileName}` : rawPath;
+}
+
+async function loadProfileIconManifest(){
+  if(profileIconManifest) return profileIconManifest;
+  if(profileIconLoadPromise) return profileIconLoadPromise;
+
+  profileIconLoadPromise = fetch(SETTINGS_ICON_MANIFEST_URL, { cache: "no-store" })
+    .then(async response => {
+      if(!response.ok) throw new Error("Profile icons could not be loaded.");
+      const manifest = await response.json();
+      const characters = manifest?.characters || {};
+      profileIconManifest = manifest;
+      profileIconEntries = Object.values(characters)
+        .filter(entry => entry?.slug && entry?.path && entry?.name)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      return profileIconManifest;
+    })
+    .finally(() => {
+      profileIconLoadPromise = null;
+    });
+
+  return profileIconLoadPromise;
+}
+
+function loadProfileIconSetting(){
+  try{
+    profileIconSlug = normalizeProfileIconSlug(window.MKWT?.readStorage?.(SETTINGS_PROFILE_ICON_KEY, "") || "");
+  }catch(e){
+    profileIconSlug = "";
+  }
+}
+
+function saveProfileIconSetting(){
+  try{
+    if(profileIconSlug){
+      window.MKWT?.writeStorage?.(SETTINGS_PROFILE_ICON_KEY, profileIconSlug);
+    }else{
+      localStorage.removeItem(SETTINGS_PROFILE_ICON_KEY);
+    }
+  }catch(e){}
+}
+
+function renderProfileIcon(){
+  const mark = $("settingsProfileInitials");
+  if(!mark) return;
+
+  const nickname = settingsText($("settingsNickname")?.value, "M");
+  const record = getProfileIconRecord();
+  const editable = settingsEditMode;
+
+  mark.disabled = !editable;
+  mark.classList.toggle("isEditable", editable);
+  mark.classList.toggle("hasIcon", !!record);
+  mark.setAttribute("aria-label", editable ? "Choose profile icon" : "Profile icon");
+
+  if(record){
+    mark.innerHTML = `<img src="${escapeHtml(profileIconThumbPath(record))}" alt="${escapeHtml(record.name)}" loading="lazy" decoding="async">`;
+    mark.title = editable ? `Change profile icon (${record.name})` : `Profile icon: ${record.name}`;
+  }else{
+    mark.innerHTML = `<span class="settingsProfileMarkLabel">${escapeHtml(getProfileInitials(nickname))}</span>`;
+    mark.title = editable ? "Choose profile icon" : "Profile initials";
+  }
+  renderEditProfileIcon();
+}
+
+function renderEditProfileIcon(){
+  const source = $("settingsProfileInitials");
+  const target = $("settingsEditProfileIcon");
+  if(!source || !target) return;
+
+  target.innerHTML = source.innerHTML;
+  target.classList.toggle("hasIcon", source.classList.contains("hasIcon"));
+  target.classList.toggle("isEditable", settingsEditMode);
+  target.disabled = !settingsEditMode;
+  target.title = source.title || "Choose profile icon";
+  target.setAttribute("aria-label", settingsEditMode ? "Choose profile icon" : "Profile icon");
+}
+
+function renderSettingsIconGrid(){
+  const grid = $("settingsIconGrid");
+  if(!grid) return;
+
+  const initials = getProfileInitials($("settingsNickname")?.value);
+  const initialSelected = !profileIconSlug;
+  const initialButton = `
+    <button class="settingsIconOption ${initialSelected ? "is-selected" : ""}" type="button" data-icon-slug="" aria-pressed="${initialSelected ? "true" : "false"}">
+      <span class="settingsIconCube settingsIconCube--initial"><span>${escapeHtml(initials)}</span></span>
+      <span class="settingsIconName">Initial</span>
+    </button>`;
+
+  const iconButtons = profileIconEntries.map(entry => {
+    const slug = normalizeProfileIconSlug(entry.slug);
+    const selected = slug === profileIconSlug;
+    return `
+      <button class="settingsIconOption ${selected ? "is-selected" : ""}" type="button" data-icon-slug="${escapeHtml(slug)}" aria-pressed="${selected ? "true" : "false"}">
+        <span class="settingsIconCube"><img src="${escapeHtml(profileIconThumbPath(entry))}" alt="" loading="lazy" decoding="async"></span>
+        <span class="settingsIconName">${escapeHtml(entry.name)}</span>
+      </button>`;
+  }).join("");
+
+  grid.innerHTML = initialButton + iconButtons;
+  grid.querySelectorAll(".settingsIconOption").forEach(button => {
+    button.addEventListener("click", () => {
+      profileIconSlug = normalizeProfileIconSlug(button.dataset.iconSlug || "");
+      syncSettingsReadView();
+      renderSettingsIconGrid();
+      closeSettingsIconDialog();
+    });
+  });
+}
+
+async function openSettingsIconDialog(){
+  if(!settingsEditMode) return;
+  const overlay = $("settingsIconOverlay");
+  if(!overlay) return;
+  try{
+    await loadProfileIconManifest();
+  }catch(e){
+    setStatus(e?.message || "Profile icons could not be loaded.", false);
+    return;
+  }
+  renderSettingsIconGrid();
+  overlay.hidden = false;
+  setTimeout(() => {
+    try{
+      overlay.querySelector(".settingsIconOption.is-selected")?.focus();
+    }catch(e){}
+  }, 0);
+}
+
+function closeSettingsIconDialog(){
+  const overlay = $("settingsIconOverlay");
+  if(overlay) overlay.hidden = true;
+}
+
+function syncSettingsReadView(){
+  const nickname = settingsText($("settingsNickname")?.value, "Not set");
+  const vr = settingsText($("settingsVr")?.value, "Not set");
+  const mkcentral = settingsText($("settingsMkcentralPlayer")?.value, "Not set");
+  const minVrRaw = String($("settingsMinVr")?.value || "").trim();
+  const minVr = parseInt(minVrRaw, 10);
+  const statsFilter = Number.isFinite(minVr) && minVr > 0 ? `Below ${minVr}` : "Off";
+
+  if($("settingsProfileNameDisplay")) $("settingsProfileNameDisplay").textContent = nickname;
+  if($("settingsThemeRead")) $("settingsThemeRead").textContent = getSelectedThemeLabel();
+  if($("settingsMinVrRead")) $("settingsMinVrRead").textContent = statsFilter;
+  renderProfileIcon();
+
+  if($("settingsProfileMetaDisplay")){
+    const parts = [
+      `VR ${vr}`,
+      mkcentral !== "Not set" ? `MKC ${mkcentral}` : "MKC not set"
+    ];
+    $("settingsProfileMetaDisplay").textContent = parts.join(" | ");
+  }
+}
 
 function isAccountMode(){
   return !!(window.SESSION && window.SESSION.user);
@@ -26,7 +253,8 @@ function captureSettingsSnapshot(){
     vr: String($("settingsVr")?.value || ""),
     mkcentralPlayer: String($("settingsMkcentralPlayer")?.value || ""),
     theme: String($("settingsTheme")?.value || ACCOUNT_DEFAULT_THEME),
-    minVr: String($("settingsMinVr")?.value || "")
+    minVr: String($("settingsMinVr")?.value || ""),
+    profileIconSlug
   };
 }
 
@@ -40,6 +268,8 @@ function restoreSettingsSnapshot(snapshot){
     applyThemeValue($("settingsTheme").value);
   }
   if($("settingsMinVr")) $("settingsMinVr").value = snapshot.minVr || "";
+  profileIconSlug = normalizeProfileIconSlug(snapshot.profileIconSlug || "");
+  syncSettingsReadView();
 }
 
 function setFieldLockedState(field){
@@ -67,23 +297,47 @@ function refreshSettingsEditUi(){
   const editBtn = $("btnEditSettings");
   const saveBtn = $("btnSaveSettings");
   const cancelBtn = $("btnCancelSettings");
+  const card = document.querySelector(".settingsCard");
+  const editPanel = $("settingsEditPanel");
+  const editOverlay = $("settingsEditOverlay");
 
-  if(editBtn) editBtn.disabled = settingsEditMode;
-  if(saveBtn) saveBtn.disabled = !settingsEditMode;
-  if(cancelBtn) cancelBtn.disabled = !settingsEditMode;
+  card?.classList.toggle("isEditing", settingsEditMode);
+  if(editPanel) editPanel.hidden = !settingsEditMode;
+  if(editOverlay) editOverlay.hidden = !settingsEditMode;
+  if(editBtn){
+    editBtn.hidden = settingsEditMode;
+    editBtn.disabled = settingsEditMode;
+    editBtn.classList.toggle("hidden", settingsEditMode);
+  }
+  if(saveBtn){
+    saveBtn.hidden = !settingsEditMode;
+    saveBtn.disabled = !settingsEditMode;
+    saveBtn.classList.toggle("hidden", !settingsEditMode);
+  }
+  if(cancelBtn){
+    cancelBtn.hidden = !settingsEditMode;
+    cancelBtn.disabled = !settingsEditMode;
+    cancelBtn.classList.toggle("hidden", !settingsEditMode);
+  }
+  renderEditProfileIcon();
+  syncSettingsReadView();
 }
 
 function beginSettingsEdit(){
   settingsSnapshot = captureSettingsSnapshot();
   settingsEditMode = true;
   refreshSettingsEditUi();
-  try{
-    $("settingsNickname")?.focus();
-    $("settingsNickname")?.select?.();
-  }catch(e){}
+  setTimeout(() => {
+    try{
+      $("settingsNickname")?.focus();
+      $("settingsNickname")?.select?.();
+    }catch(e){}
+  }, 0);
 }
 
 function cancelSettingsEdit(){
+  if(!settingsEditMode) return;
+  closeSettingsIconDialog();
   restoreSettingsSnapshot(settingsSnapshot);
   settingsEditMode = false;
   refreshSettingsEditUi();
@@ -94,6 +348,7 @@ function finishSettingsSave(){
   settingsSnapshot = captureSettingsSnapshot();
   settingsEditMode = false;
   refreshSettingsEditUi();
+  syncSettingsReadView();
 }
 
 
@@ -149,7 +404,7 @@ function saveMinVrSetting(){
 function loadMkcentralSetting(){
   try{
     const input = $("settingsMkcentralPlayer");
-    if(input) input.value = window.MKWT?.readStorage?.(MKCENTRAL_PLAYER_KEY, "") || "";
+    if(input) input.value = window.MKWT?.readStorage?.(SETTINGS_MKCENTRAL_PLAYER_KEY, "") || "";
   }catch(e){}
 }
 
@@ -166,10 +421,10 @@ function saveMkcentralSetting(){
     const raw = String($("settingsMkcentralPlayer")?.value || "").trim();
     const normalized = extractMkcentralPlayerId(raw);
     if(normalized){
-      window.MKWT?.writeStorage?.(MKCENTRAL_PLAYER_KEY, normalized);
+      window.MKWT?.writeStorage?.(SETTINGS_MKCENTRAL_PLAYER_KEY, normalized);
       if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = normalized;
     }
-    else localStorage.removeItem(MKCENTRAL_PLAYER_KEY);
+    else localStorage.removeItem(SETTINGS_MKCENTRAL_PLAYER_KEY);
     return normalized;
   }catch(e){
     return "";
@@ -179,6 +434,8 @@ function saveMkcentralSetting(){
 
 
 const INFO_TEXT = {
+  currentVr:
+    "Adjust your current VR here after a disconnect, correction, or similar reason. Existing matches keep the VR values they were saved with, so old results are not rewritten.",
   minVrFilter:
     "This filter removes low-VR outliers from your stats. Any match where your VR total before or after the game is below the threshold will be excluded from charts and averages. Set it to 0, or leave it empty, to disable the filter.",
   theme:
@@ -195,6 +452,7 @@ function setTopInfo({emailText, currentVrText, matchCountText}){
 
 window.MKWT?.bindInfoOverlay?.({
   texts: {
+    currentVr: { title: 'Current VR', body: INFO_TEXT.currentVr },
     minVrFilter: { title: 'Info', body: INFO_TEXT.minVrFilter },
     theme: { title: 'Info', body: INFO_TEXT.theme },
     account: { title: 'Info', body: INFO_TEXT.account },
@@ -208,7 +466,7 @@ window.MKWT?.bindInfoOverlay?.({
   function setNavAuthButton(mode){
     const b = document.getElementById("btnLogout");
     if(!b) return;
-    b.style.display = "";
+    b.classList.remove("hidden");
     if(mode === "account"){
       b.textContent = "Logout";
       b.classList.remove("active");
@@ -249,6 +507,7 @@ async function loadProfile(){
     $("settingsNickname").value = gp?.nickname || "Guest";
     $("settingsVr").value = (gp?.current_vr ?? "");
     loadMkcentralSetting();
+    loadProfileIconSetting();
     const count = guestCount();
     setTopInfo({ emailText: "Guest mode (local)", currentVrText: String(gp?.current_vr ?? "-"), matchCountText: String(count) });
     setStatus("Guest mode (saved locally)");
@@ -258,19 +517,19 @@ async function loadProfile(){
   // Prefer profiles.id (most common in your project). If that column doesn't exist, fallback to profiles.user_id.
   let { data, error } = await supabaseClient
     .from("profiles")
-    .select("nickname,current_vr,mkcentral_player_id,theme_preference")
+    .select("nickname,current_vr,mkcentral_player_id,theme_preference,profile_icon_slug")
     .eq("id", SESSION.user.id)
     .maybeSingle();
 
   if (error && String(error.message || "").includes("column profiles.id")) {
     ({ data, error } = await supabaseClient
       .from("profiles")
-      .select("nickname,current_vr,mkcentral_player_id,theme_preference")
+      .select("nickname,current_vr,mkcentral_player_id,theme_preference,profile_icon_slug")
       .eq("user_id", SESSION.user.id)
       .maybeSingle());
   }
 
-  if(error){ setStatus(error.message); return }
+  if(error){ setStatus(error.message, false); return }
 
   $("settingsNickname").value = data?.nickname || "";
   $("settingsVr").value = (data?.current_vr ?? "");
@@ -282,10 +541,18 @@ async function loadProfile(){
   }
   const mkcentralPlayerId = String(data?.mkcentral_player_id || "").trim();
   if(mkcentralPlayerId){
-    window.MKWT?.writeStorage?.(MKCENTRAL_PLAYER_KEY, mkcentralPlayerId);
+    window.MKWT?.writeStorage?.(SETTINGS_MKCENTRAL_PLAYER_KEY, mkcentralPlayerId);
     if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = mkcentralPlayerId;
   }else{
     loadMkcentralSetting();
+  }
+
+  const cloudIconSlug = normalizeProfileIconSlug(data?.profile_icon_slug || "");
+  if(cloudIconSlug){
+    profileIconSlug = cloudIconSlug;
+    saveProfileIconSetting();
+  }else{
+    loadProfileIconSetting();
   }
 
   // Top card: Current VR + Matches count
@@ -325,6 +592,7 @@ async function saveSettings(){
       window.MKWT?.saveGuestProfile?.({ nickname, current_vr: vr });
       setTopInfo({ currentVrText: String(vr) });
     }
+    saveProfileIconSetting();
     finishSettingsSave();
     setStatus(`Saved locally${minVr>0 ? ` (Min VR: ${minVr})` : ""}${mkcentralText}.`);
     return;
@@ -333,6 +601,7 @@ async function saveSettings(){
   const payload = {
     id: SESSION.user.id,          // primary key in your current schema
     mkcentral_player_id: mkcentralId || null,
+    profile_icon_slug: profileIconSlug || null,
     theme_preference: selectedTheme || ACCOUNT_DEFAULT_THEME,
     updated_at: new Date().toISOString()
   };
@@ -351,6 +620,7 @@ async function saveSettings(){
       .upsert({
         user_id: SESSION.user.id,
         mkcentral_player_id: mkcentralId || null,
+        profile_icon_slug: profileIconSlug || null,
         theme_preference: selectedTheme || ACCOUNT_DEFAULT_THEME,
         ...(nickname ? { nickname } : {}),
         ...(Number.isFinite(vr) ? { current_vr: vr } : {}),
@@ -358,9 +628,10 @@ async function saveSettings(){
       }));
   }
 
-  if(error){ setStatus(error.message); return }
+  if(error){ setStatus(error.message, false); return }
 
   if(Number.isFinite(vr)) setTopInfo({ currentVrText: String(vr) });
+  saveProfileIconSetting();
   finishSettingsSave();
   setStatus(`Saved${minVr>0 ? ` (Min VR: ${minVr})` : ""}${mkcentralText}`);
 }
@@ -373,6 +644,16 @@ async function saveSettings(){
 $("btnSaveSettings").onclick = saveSettings;
 $("btnEditSettings").onclick = beginSettingsEdit;
 $("btnCancelSettings").onclick = cancelSettingsEdit;
+$("settingsProfileInitials")?.addEventListener("click", openSettingsIconDialog);
+$("settingsEditProfileIcon")?.addEventListener("click", openSettingsIconDialog);
+$("settingsEditClose")?.addEventListener("click", cancelSettingsEdit);
+$("settingsEditOverlay")?.addEventListener("click", (e) => {
+  if(e.target === $("settingsEditOverlay")) cancelSettingsEdit();
+});
+$("settingsIconClose")?.addEventListener("click", closeSettingsIconDialog);
+$("settingsIconOverlay")?.addEventListener("click", (e) => {
+  if(e.target === $("settingsIconOverlay")) closeSettingsIconDialog();
+});
 
 $("btnChangePassword").onclick = () => {
   openPwModal();
@@ -382,29 +663,28 @@ async function submitPasswordChange() {
   const p1 = String($("pwNew").value || "");
   const p2 = String($("pwConfirmInput").value || "");
 
-  $("pwStatus").textContent = "";
+  setPasswordStatus("", true);
 
   if(p1.length < 6){
-    $("pwStatus").textContent = "Password must be at least 6 characters.";
+    setPasswordStatus("Password must be at least 6 characters.", false);
     return;
   }
   if(p1 !== p2){
-    $("pwStatus").textContent = "Passwords do not match.";
+    setPasswordStatus("Passwords do not match.", false);
     return;
   }
 
   try{
-    $("pwStatus").textContent = "Updating password...";
+    setPasswordStatus("Updating password...", true);
     const { error } = await supabaseClient.auth.updateUser({ password: p1 });
-    if(error){ $("pwStatus").textContent = error.message; return; }
+    if(error){ setPasswordStatus(error.message, false); return; }
     $("pwNew").value = "";
     $("pwConfirmInput").value = "";
-    $("pwStatus").textContent = "Password updated.";
-    setStatus("Password updated.");
+    setPasswordStatus("Password updated.", true);
     // Close after a short moment
     setTimeout(closePwModal, 600);
   }catch(e){
-    $("pwStatus").textContent = "Password update failed: " + (e?.message || e);
+    setPasswordStatus("Password update failed: " + (e?.message || e), false);
   }
 }
 
@@ -417,7 +697,7 @@ $("pwForm")?.addEventListener("submit", async (e) => {
 
 function openPwModal(){
   $("pwOverlay").hidden = false;
-  $("pwStatus").textContent = "";
+  setPasswordStatus("", true);
   $("pwNew").value = "";
   $("pwConfirmInput").value = "";
   setTimeout(()=>{ try{$("pwNew").focus();}catch{} }, 0);
@@ -432,7 +712,16 @@ $("pwOverlay").addEventListener("click", (e)=>{
 });
 
 document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape" && !$("pwOverlay").hidden) closePwModal();
+  if(e.key !== "Escape") return;
+  if($("settingsIconOverlay") && !$("settingsIconOverlay").hidden){
+    closeSettingsIconDialog();
+    return;
+  }
+  if($("settingsEditOverlay") && !$("settingsEditOverlay").hidden){
+    cancelSettingsEdit();
+    return;
+  }
+  if($("pwOverlay") && !$("pwOverlay").hidden) closePwModal();
 });
 
 
@@ -440,6 +729,9 @@ function applyAuthVisibility(){
   const authed = !!(window.SESSION && window.SESSION.user);
   const btnLogout = document.getElementById("btnLogout");
   const btnChangePw = document.getElementById("btnChangePassword");
+  const accountTitle = document.getElementById("settingsAccountTitle");
+  const accountHint = document.getElementById("settingsAccountHint");
+  const accountInfo = document.getElementById("settingsAccountInfo");
   const themeSel = document.getElementById("settingsTheme");
   const themeHelp = document.getElementById("themeHelp");
 
@@ -447,11 +739,16 @@ function applyAuthVisibility(){
     // Guest mode: keep settings visible, but lock account-only controls
     if (btnChangePw){
       btnChangePw.disabled = true;
+      btnChangePw.hidden = true;
+      btnChangePw.classList.add("hidden");
       btnChangePw.style.opacity = "0.55";
       btnChangePw.style.cursor = "not-allowed";
       btnChangePw.title = "Login required";
       btnChangePw.onclick = ()=>{};
     }
+    if (accountTitle) accountTitle.textContent = "Login";
+    if (accountHint) accountHint.textContent = "";
+    if (accountInfo) accountInfo.hidden = true;
 
     if (themeSel){
       themeSel.value = "dendo";
@@ -463,8 +760,10 @@ function applyAuthVisibility(){
     // Turn Logout into Login
     if (btnLogout){
       btnLogout.textContent = "Login";
+      btnLogout.hidden = false;
       btnLogout.classList.remove("danger");
       btnLogout.classList.remove("btn2");
+      btnLogout.classList.remove("hidden");
       btnLogout.classList.add("btn");
       // keep button styling unified with the rest of the app
       btnLogout.onclick = ()=>{ window.location.href = "login.html"; };
@@ -472,17 +771,24 @@ function applyAuthVisibility(){
   } else {
     // Logged-in: enable everything
     if (btnChangePw){
+      btnChangePw.hidden = false;
+      btnChangePw.classList.remove("hidden");
       btnChangePw.disabled = false;
       btnChangePw.style.opacity = "";
       btnChangePw.style.cursor = "";
       btnChangePw.title = "";
     }
+    if (accountTitle) accountTitle.textContent = "Account";
+    if (accountHint) accountHint.textContent = "";
+    if (accountInfo) accountInfo.hidden = false;
     if (themeHelp){
       themeHelp.textContent = "Applies after you press Save and syncs to your account across devices.";
     }
     if (btnLogout){
       btnLogout.textContent = "Logout";
+      btnLogout.hidden = false;
       btnLogout.classList.remove("btn");
+      btnLogout.classList.remove("hidden");
       btnLogout.classList.add("danger");
       btnLogout.classList.remove("btn2");
       }
@@ -496,6 +802,7 @@ function applyAuthVisibility(){
   applyAuthVisibility();
   loadMinVrSetting();
   await loadProfile();
+  try{ await loadProfileIconManifest(); }catch(e){}
 
   // Theme: account can pick, guest is locked to Dendo Denim
   if (window.SESSION && window.SESSION.user){

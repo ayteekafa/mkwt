@@ -3,35 +3,232 @@
     @media (max-width: 520px){ .chartWrap { height: 320px; } }
 
 /* ===== Sessions UI polish ===== */
+    .sessionSummaryGrid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:10px;
+      margin:12px 0 14px;
+    }
+    .sessionSummaryCard{
+      min-width:0;
+      padding:12px 14px;
+      border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
+      border-radius:12px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 68%),
+        var(--card-2);
+    }
+    .sessionSummaryLabel{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      line-height:1.1;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    .sessionSummaryValue{
+      margin-top:6px;
+      color:var(--text);
+      font-size:22px;
+      font-weight:950;
+      line-height:1;
+      font-variant-numeric:tabular-nums;
+    }
     .sessCard {
-      padding:14px;
+      padding:15px;
       margin:0;
       border:1px solid var(--border);
-      border-radius:14px;
+      border-radius:12px;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
+        linear-gradient(180deg, rgba(255,255,255,0.032), rgba(255,255,255,0.01)),
+        linear-gradient(135deg, color-mix(in srgb, var(--primary) 7%, transparent), transparent 62%),
         var(--card);
       box-shadow:none;
     }
-    .sessHeader { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
+    .sessHeader { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:start; }
+    .sessStack { display:flex; flex-direction:column; gap:10px; }
+    .sessKicker{ color:var(--muted); font-size:11px; font-weight:900; line-height:1; text-transform:uppercase; letter-spacing:.06em; }
     .sessTitle { font-weight:900; font-size:16px; letter-spacing:.2px; }
-    .sessBadge { padding:2px 8px; border-radius:999px; font-weight:800; font-size:12px; }
-    .sessMeta { margin-top:8px; display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+    .sessBadge { padding:5px 9px; border-radius:999px; font-weight:900; font-size:12px; white-space:nowrap; background:color-mix(in srgb, var(--card-2) 82%, transparent); border:1px solid color-mix(in srgb, var(--border) 74%, transparent); }
+    .sessStatsGrid{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:minmax(86px,.7fr) minmax(106px,.8fr) minmax(150px,1.15fr) minmax(118px,.95fr) minmax(118px,.95fr);
+      gap:8px;
+    }
+    .sessMetric{
+      min-width:0;
+      padding:10px 12px;
+      border:1px solid color-mix(in srgb, var(--border) 72%, transparent);
+      border-radius:10px;
+      background:color-mix(in srgb, var(--card-2) 84%, transparent);
+    }
+    .sessMetric span,
+    .sessModeStat span{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      line-height:1.1;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    .sessMetric b{
+      display:block;
+      margin-top:5px;
+      font-size:17px;
+      line-height:1.1;
+    }
+    .sessArrow{ color:var(--muted); font-size:13px; }
+    .sessModeStat{
+      background:color-mix(in srgb, var(--bg) 28%, transparent);
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      gap:4px 10px;
+      align-items:end;
+    }
+    .sessModeStat span{ grid-column:1 / -1; }
+    .sessModeStat b{ font-size:20px; line-height:1; }
+    .sessModeStat em{ color:var(--muted); font-style:normal; font-size:12px; font-weight:800; text-align:right; }
     .sessVR { font-size:13px; }
     .sessGrid { margin-top:10px; display:grid; grid-template-columns: 1fr auto; gap:8px 14px; max-width:420px; }
     .sessGrid .label { opacity:.85; }
     .sessGrid .val { text-align:right; font-variant-numeric: tabular-nums; }
     .sessNum { font-variant-numeric: tabular-nums; }
     .sessAvg { font-weight:800; }
+    .sessionForecast{
+      margin-top:12px;
+    }
+    .sessionForecastToggle{
+      appearance:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-height:34px;
+      max-width:100%;
+      padding:8px 12px;
+      border-radius:10px;
+      border:1px solid color-mix(in srgb, var(--chart-split-a-stroke) 48%, var(--border));
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), color-mix(in srgb, var(--chart-split-b-stroke) 14%, transparent)),
+        var(--surface-panel);
+      color:var(--text);
+      box-shadow:0 8px 18px rgba(0,0,0,.14);
+      cursor:pointer;
+      font:inherit;
+      line-height:1.1;
+    }
+    .sessionForecastToggle[aria-expanded="true"]{
+      border-color:color-mix(in srgb, var(--chart-split-a-stroke) 72%, var(--border));
+    }
+    .sessionForecastToggle:focus-visible{
+      outline:none;
+      box-shadow:var(--ring);
+    }
+    .sessionForecastToggle__label{
+      font-size:12px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    .sessionForecastToggle__value{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
+      font-variant-numeric:tabular-nums;
+    }
+    .sessionForecastPanel{
+      margin-top:10px;
+      padding:12px;
+      border:1px solid color-mix(in srgb, var(--border) 78%, transparent);
+      border-radius:12px;
+      background:color-mix(in srgb, var(--card-2) 84%, transparent);
+    }
+    .sessionForecastPanel[hidden]{
+      display:none !important;
+    }
+    .sessionForecastGrid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+      margin-bottom:10px;
+    }
+    .sessionForecastGrid > div{
+      min-width:0;
+      padding:9px 10px;
+      border:1px solid color-mix(in srgb, var(--border) 68%, transparent);
+      border-radius:10px;
+      background:color-mix(in srgb, var(--bg) 24%, transparent);
+    }
+    .sessionForecastGrid span,
+    .sessionForecastGrid em{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:850;
+      line-height:1.1;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      font-style:normal;
+    }
+    .sessionForecastGrid b{
+      display:block;
+      margin-top:5px;
+      color:var(--text);
+      font-size:15px;
+      line-height:1;
+      font-weight:950;
+      font-variant-numeric:tabular-nums;
+    }
+    .sessionForecastGrid em{
+      margin-top:5px;
+      text-transform:none;
+      letter-spacing:0;
+    }
+    .sessionForecastPanel p{
+      margin:0;
+      color:var(--text);
+      font-size:13px;
+      line-height:1.4;
+      font-weight:800;
+    }
+    .sessionForecastNote{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+      font-weight:750;
+    }
+    @media (max-width: 720px){
+      .sessionSummaryGrid{ grid-template-columns:1fr; }
+      .sessionSummaryCard{ padding:10px 12px; }
+      .sessionSummaryValue{ font-size:20px; }
+      .sessStatsGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .sessMetric--wide{ grid-column:auto; }
+      .sessionForecastGrid{ grid-template-columns:1fr; }
+    }
     @media (max-width: 520px){
       .sessTitle{ font-size:15px; }
-      .sessGrid{ max-width: 100%; }
+      .sessHeader{ grid-template-columns:1fr; }
+      .sessBadge{ justify-self:start; }
+      .sessStatsGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .sessionForecastToggle{ width:100%; }
     }
 
 html[data-embed="sessions"],
 html[data-embed="sessions"] body{
   background: transparent;
   min-height: 100%;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+html[data-embed="sessions"]::-webkit-scrollbar,
+html[data-embed="sessions"] body::-webkit-scrollbar,
+html[data-embed="sessions"] *::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
 }
 html[data-embed="sessions"] .nav{
   display:none;

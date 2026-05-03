@@ -37,7 +37,7 @@
 
 </head>
 <body>
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
+<noscript><div class="noscriptNotice"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
 <nav class="nav">
 <div class="navInner">
 <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
@@ -67,7 +67,7 @@
 <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>
-<div class="wrap">
+<main class="wrap">
 <div class="card profileCard">
 <div class="profileTop">
 <div>
@@ -109,10 +109,17 @@
 <div class="statValue" id="statMaxLoss">-</div>
 </div>
 </div>
-<div class="bestTrackLine">
+<div class="bestTrackLine bestTrackLine--split">
+<div class="bestTrackSlot">
 <div class="bestTrackLabel">Best Track</div>
 <div class="bestTrackName" id="bestTrackName">-</div>
 <div class="bestTrackMeta" id="bestTrackMeta">-</div>
+</div>
+<div class="bestTrackSlot">
+<div class="bestTrackLabel">Best Intermission</div>
+<div class="bestTrackName" id="bestIntermissionName">-</div>
+<div class="bestTrackMeta" id="bestIntermissionMeta">-</div>
+</div>
 </div>
 <div class="muted hidden" id="status"></div>
 <div class="muted hidden" id="debug"></div>
@@ -122,24 +129,30 @@
 <h3 class="sectionTitle">Create profile (one time)</h3>
 <div class="row">
 <div class="field">
-<label class="muted">Nickname</label>
+<label class="muted" for="setupNickname">Nickname</label>
 <input id="setupNickname" placeholder="e.g. Nickname"/>
 </div>
 <div class="field">
-<label class="muted">Current VR</label>
+<label class="muted" for="setupVr">Current VR</label>
 <input id="setupVr" inputmode="numeric" placeholder="e.g. 8500" type="number"/>
 <div class="muted"></div>
 </div>
 </div>
-<div style="display:flex; gap:10px; margin-top:12px;">
-<button class="btn" id="btnCreateProfile">Create profile</button>
+<div class="setupActions">
+<button class="btn" id="btnCreateProfile" type="button">Create profile</button>
 </div>
 </div>
 <!-- SETTINGS (always available when a profile exists) -->
 <!-- settingsCard removed (moved to settings.html) -->
 <!-- MATCH INPUT -->
 <div class="card cardSection hidden" id="matchCard">
+<div class="matchCardHead">
 <h3 class="sectionTitle">Match Tracker</h3>
+<div aria-live="polite" class="destinyNotice hidden" hidden id="intermissionDestinyNotice" role="status">
+<span class="destinyNotice__label">Special Destiny</span>
+<span class="destinyNotice__value" id="intermissionDestinyNoticeValue">-</span>
+</div>
+</div>
 <!-- Mode toggle: Intermission vs 3-Lap -->
 <div aria-label="Match mode" class="modeToggle" role="tablist">
 <button aria-selected="true" class="modeBtn isActive" data-mode="intermission" type="button">Intermission</button>
@@ -147,8 +160,8 @@
 </div>
 <!-- Intermission selects: keep both dropdowns in ONE row on mobile -->
 <div class="row inlineSelects" id="intermissionSelectRow">
-<div class="field" id="fieldIntermissionStart">
-<label class="muted" id="labelIntermissionStart">Intermission start</label>
+<div class="field field--embeddedLabel" id="fieldIntermissionStart">
+<label class="muted matchFieldLabel matchFieldLabel--hidden" id="labelIntermissionStart" for="intermission">Intermission start</label>
 <select id="intermission">
 <option value="">Intermission start</option>
 <option>Acorn Heights</option>
@@ -183,8 +196,8 @@
 <option>Whistlestop Summit</option>
 </select>
 </div>
-<div class="field hasStratIcon" id="fieldTrack">
-<label class="muted" id="labelTrack">Intermission end</label>
+<div class="field hasStratIcon field--embeddedLabel" id="fieldTrack">
+<label class="muted matchFieldLabel matchFieldLabel--hidden" id="labelTrack" for="track">Intermission end</label>
 <button aria-label="Strategy" class="stratBtn" data-strat-target="track" id="stratBtnTrack" type="button">?</button>
 <select id="track">
 <option id="trackPlaceholder" value="">Intermission end</option>
@@ -222,21 +235,21 @@
 </div>
 </div>
 <div class="row compactRow">
-<div class="field">
-<label class="muted">VR change</label>
+<div class="field field--metric">
+<label class="muted matchFieldLabel" for="vrChange">VR change</label>
 <div class="vr-delta-wrap">
 <button aria-label="Toggle negative" class="vr-sign" id="vrSignToggle" type="button">-</button>
 <input id="vrChange" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="text"/>
 </div>
 </div>
-<div class="field hasStratIcon">
-<label class="muted">new total VR</label>
+<div class="field hasStratIcon field--metric">
+<label class="muted matchFieldLabel" for="vrAfterInput">new total VR</label>
 <button aria-label="Info" class="stratBtn" data-popup="vrAfter" id="infoBtnVrAfter" type="button">i</button>
 <input id="vrAfterInput" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 7980" type="text"/>
 <div class="muted"></div>
 </div>
-<div class="field">
-<label class="muted">Opponents</label>
+<div class="field field--embeddedLabel">
+<label class="muted matchFieldLabel matchFieldLabel--hidden" for="opponents">Opponents</label>
 <select id="opponents">
 <option value="">-</option>
 <optgroup label="Popular (15-23)">
@@ -251,8 +264,8 @@
 </optgroup>
 </select>
 </div>
-<div class="field">
-<label class="muted">Placement</label>
+<div class="field field--embeddedLabel">
+<label class="muted matchFieldLabel matchFieldLabel--hidden" for="placement">Placement</label>
 <select id="placement">
 <option value="">-</option>
 <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
@@ -263,17 +276,18 @@
 </div>
 </div>
 <div class="matchFormActions">
-<button class="btn2" id="btnClear">Clear</button>
-<button class="btn" id="btnSaveMatch">Save</button>
+<button class="btn2" id="btnClear" type="button">Clear</button>
+<button class="btn" id="btnSaveMatch" type="button">Save</button>
 </div>
 </div>
+<div aria-live="polite" class="matchFormStatus hidden" id="matchStatus" role="status"></div>
 <!-- MATCH LIST -->
 <div class="card cardSection hidden" id="listCard">
 <div class="matchListHead">
-<h3 style="margin:0;">Recent matches</h3>
-<button class="btn2" id="btnShowSessions" type="button">Show Sessions</button>
+<h3 class="m-0">Recent matches</h3>
+<button class="sessionLaunchBtn" id="btnShowSessions" type="button"><span class="sessionLaunchBtn__label">Show Sessions</span></button>
 </div>
-<div class="muted" style="margin-bottom:10px;">
+<div class="muted matchListNote">
 </div>
 <div class="matchListScroll">
 <div class="matchTableWrap">
@@ -287,7 +301,7 @@
 <th>VR after</th>
 <th>Opp</th>
 <th>Place</th>
-<th style="text-align:center;">Actions</th>
+<th class="actionsHeader">Actions</th>
 </tr>
 </thead>
 <tbody id="rows">
@@ -296,11 +310,11 @@
 </table>
 </div>
 <div class="matchCards" id="matchCards"></div>
-<div class="row" style="align-items:center; margin-top:10px;">
+<div class="row matchPagerRow">
 <div class="muted" id="pageInfo">Page 1</div>
-<div style="display:flex; gap:10px; justify-content:flex-end;">
-<button class="btn2" id="btnPrev">Prev</button>
-<button class="btn2" id="btnNext">Next</button>
+<div class="matchPagerActions">
+<button class="btn2" id="btnPrev" type="button">Prev</button>
+<button class="btn2" id="btnNext" type="button">Next</button>
 </div>
 </div>
 </div>
@@ -310,7 +324,6 @@
 <div class="sessionsDialogHeader">
 <div>
 <div class="sessionsDialogTitle">Sessions</div>
-<div class="muted">World Wide session history with pages.</div>
 </div>
 <button class="btn2" id="btnCloseSessionsDlg" type="button">Close</button>
 </div>
@@ -318,100 +331,76 @@
 </dialog>
 <!-- EDIT DIALOG -->
 <dialog id="editDlg">
-<div style="padding:16px; border-bottom:1px solid var(--border); display:flex; justify-content:center;
-      flex-wrap:wrap; align-items:center;">
+<div class="editDialogHead">
 <div>
-<div style="font-weight:800;">Edit match</div>
+<div class="editDialogTitle">Edit match</div>
 <div class="muted" id="editMeta">-</div>
 </div>
-<button class="btn2" id="btnCloseDlg" type="button">Close</button>
 </div>
-<div style="padding:16px;">
+<div class="editDialogBody">
 <div class="modeToggleRow">
 <button class="modeBtnSmall isActive" data-mode="intermission" id="editModeIntermission" type="button">Intermission</button>
 <button class="modeBtnSmall" data-mode="3lap" id="editMode3lap" type="button">3-Lap track</button>
 </div>
-<div class="row">
+<div class="row editTrackRow">
 <div class="field" id="editIntermissionField">
-<label class="muted" id="editIntermissionLabel">Intermission start</label>
+<label class="muted editFieldLabel--hidden" id="editIntermissionLabel" for="editIntermission">Intermission start</label>
 <select id="editIntermission"></select>
 </div>
 <div class="field">
-<label class="muted" id="editTrackLabel">Intermission end</label>
+<label class="muted editFieldLabel--hidden" id="editTrackLabel" for="editTrack">Intermission end</label>
 <select id="editTrack"></select>
 </div>
 </div>
-<div class="row compactRow">
+<div class="row compactRow editStatsRow">
 <div class="field">
-<label class="muted">VR change</label>
+<label class="muted" for="editVrChange">VR change</label>
 <div class="vr-delta-wrap">
 <button aria-label="Toggle negative" class="vr-sign" id="editVrSignToggle" type="button">-</button>
-<input id="editVrChange" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" type="text">
-</input></div>
+<input id="editVrChange" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" type="text"/>
+</div>
 </div>
 <div class="field hasStratIcon">
-<label class="muted">new total VR</label>
+<label class="muted" for="editVrAfter">new total VR</label>
 <button aria-label="Info" class="stratBtn" data-popup="vrAfter" id="infoBtnVrAfterEdit" type="button">i</button>
-<input id="editVrAfter" inputmode="numeric" placeholder="e.g. 9000" type="number">
-</input></div>
-<div class="field">
-<label class="muted">total opponents</label>
-<input id="editOpponents" inputmode="numeric" list="editOppList" max="23" min="1" placeholder="1-23" type="number"/>
-<datalist id="editOppList">
-<option value="8"></option>
-<option value="12"></option>
-<option value="16"></option>
-<option value="18"></option>
-<option value="20"></option>
-<option value="21"></option>
-<option value="22"></option>
-<option value="23"></option>
-</datalist>
+<input id="editVrAfter" inputmode="numeric" placeholder="e.g. 9000" type="number"/>
 </div>
 <div class="field">
-<label class="muted">Placement (1-24)</label>
-<input id="editPlacement" inputmode="numeric" list="editPlaceList" max="24" min="1" placeholder="1-24" type="number"/>
-<datalist id="editPlaceList">
-<option value="1"></option>
-<option value="2"></option>
-<option value="3"></option>
-<option value="4"></option>
-<option value="5"></option>
-<option value="6"></option>
-<option value="7"></option>
-<option value="8"></option>
-<option value="9"></option>
-<option value="10"></option>
-<option value="11"></option>
-<option value="12"></option>
-<option value="13"></option>
-<option value="14"></option>
-<option value="15"></option>
-<option value="16"></option>
-<option value="17"></option>
-<option value="18"></option>
-<option value="19"></option>
-<option value="20"></option>
-<option value="21"></option>
-<option value="22"></option>
-<option value="23"></option>
-<option value="24"></option>
-</datalist>
+<label class="muted editFieldLabel--hidden" for="editOpponents">Opponents</label>
+<select id="editOpponents">
+<option value="">Opponents</option>
+<option>23</option><option>22</option><option>21</option><option>20</option><option>19</option><option>18</option>
+<option>17</option><option>16</option><option>15</option><option>14</option><option>13</option><option>12</option>
+<option>11</option><option>10</option><option>9</option><option>8</option><option>7</option><option>6</option>
+<option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
+</select>
+</div>
+<div class="field">
+<label class="muted editFieldLabel--hidden" for="editPlacement">Placement</label>
+<select id="editPlacement">
+<option value="">Placement</option>
+<option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+<option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+<option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
+<option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option>
+</select>
 </div>
 </div>
-<div class="muted" style="margin-top:10px;">
+<div class="muted editDialogNote">
         Note: Enter VR change OR new total VR. Your current VR will be adjusted automatically.
         </div>
 </div>
-<div style="padding:16px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end;">
-<button class="btn2" id="btnCancelDlg">Cancel</button>
-<button class="btn" id="btnSaveDlg">Save</button>
+<div class="editDialogFoot">
+<button class="btn2" id="btnClearEditDlg" type="button">Clear</button>
+<button class="btn2" id="btnCancelDlg" type="button">Cancel</button>
+<button class="btn" id="btnSaveDlg" type="button">Save</button>
 </div>
 </dialog>
 <!-- Single strategy popup (content set dynamically) -->
 <div aria-hidden="true" class="stratPopup" id="stratPopup" role="dialog">
 <div class="stratPopup__body" id="stratPopupBody">coming soon</div>
 </div>
+</main>
 
 <script src="mkwt_public.js"></script>
 <script src="tracker_suggestions.js"></script>

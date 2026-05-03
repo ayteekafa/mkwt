@@ -231,7 +231,7 @@ try {
   }
 
   $manifestJson = $manifest | ConvertTo-Json -Depth 10
-  Set-Content -LiteralPath $ManifestPath -Value $manifestJson -Encoding UTF8
+  [System.IO.File]::WriteAllText($ManifestPath, $manifestJson, [System.Text.UTF8Encoding]::new($false))
 }
 finally {
   $zip.Dispose()

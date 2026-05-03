@@ -497,6 +497,10 @@ body.indexPage{
   background:rgba(140,188,255,.9);
 }
 
+.showcaseBarFill--high{ width:76%; }
+.showcaseBarFill--mid{ width:64%; }
+.showcaseBarFill--low{ width:48%; }
+
 .showcaseBar--gain span{
   background:rgba(82,226,146,.9);
 }

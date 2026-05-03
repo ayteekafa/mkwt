@@ -79,6 +79,21 @@ function getSuggestedNextStart() {
   return normalizeSuggestedStart(getLastSuggestedTrack());
 }
 
+function setEditSuggestedNextStart(name){
+  window.MKWT_EDIT_SUGGESTED_NEXT_START = normalizeSuggestedStart(name || '');
+}
+
+function clearEditSuggestedNextStart(){
+  window.MKWT_EDIT_SUGGESTED_NEXT_START = '';
+}
+
+function getSuggestedNextStartForSelect(selectEl){
+  if (selectEl?.id === 'editIntermission') {
+    return normalizeSuggestedStart(window.MKWT_EDIT_SUGGESTED_NEXT_START || '');
+  }
+  return getSuggestedNextStart();
+}
+
 // If a "suggested next start" exists AND it is currently allowed,
 // we move that track to the very top of the Intermission-start dropdown (right under the placeholder).
 // No special values, no prefixes, no extra "Suggestion" option.
@@ -86,7 +101,9 @@ function applyStartSuggestionOrdering(selectEl){
   try {
     const isStartSelect = (selectEl?.id === 'intermission' || selectEl?.id === 'editIntermission');
     if (!isStartSelect) return;
-    const suggested = (getSuggestedNextStart?.() || '');
+    const suggested = (typeof getSuggestedNextStartForSelect === 'function')
+      ? getSuggestedNextStartForSelect(selectEl)
+      : (getSuggestedNextStart?.() || '');
     if (!suggested) return;
     const opt = selectEl.querySelector(`option[value="${CSS.escape(suggested)}"]`);
     if (!opt) return; // suggested not in current allowed list
@@ -102,12 +119,14 @@ function applyStartSuggestionOrdering(selectEl){
 // without resetting the user's current selections or the existing filter logic.
 function refreshSuggestionOptionInStartSelect(selectEl){
   // Legacy name kept to avoid touching existing call sites.
-  // Ensures EXACTLY ONE highlighted suggested option (â˜…) at the top (if allowed) without changing values.
+  // Ensures EXACTLY ONE highlighted suggested option at the top (if allowed) without changing values.
   try {
     const isStartSelect = (selectEl?.id === 'intermission' || selectEl?.id === 'editIntermission');
     if (!isStartSelect) return;
 
-    const suggested = (getSuggestedNextStart?.() || '');
+    const suggested = (typeof getSuggestedNextStartForSelect === 'function')
+      ? getSuggestedNextStartForSelect(selectEl)
+      : (getSuggestedNextStart?.() || '');
     const placeholderOpt = selectEl.querySelector('option[value=""]');
 
     // Remove any previous visual markers so old suggestions never linger.
@@ -162,7 +181,17 @@ function getTopMatchTargetTrackFromTable(){
   // ========= Fehler sichtbar machen =========
   window.addEventListener("error", (e) => {
     const msg = "JS Error: " + (e.message || e.type);
-    document.getElementById("status").textContent = msg;
+    if (window.MKWT?.showToast) {
+      const status = document.getElementById("status");
+      if (status) {
+        status.textContent = "";
+        status.classList.add("hidden");
+        status.hidden = true;
+      }
+      window.MKWT.showToast(msg, false);
+    } else {
+      document.getElementById("status").textContent = msg;
+    }
     document.getElementById("debug").textContent = (e.error?.stack || "");
   });
 

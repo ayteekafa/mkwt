@@ -39,7 +39,7 @@
 
 </head>
 <body>
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
+<noscript><div class="noscriptNotice"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
 <nav class="nav">
 <div class="navInner">
 <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
@@ -69,28 +69,31 @@
 <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>
-<div class="wrap statsWrap">
+<main class="wrap statsWrap">
 <section class="card profileCard statsHero">
 <div class="profileTop statsHeroTop">
 <div class="statsHeroCopy">
-<h2 class="heroTitle statsHeroTitle"><span>World Wide Stats</span><img class="statsHeroBadge" src="assets/combo-icons/characters/wiggler.png" alt="" aria-hidden="true"/></h2>
+<h2 class="heroTitle statsHeroTitle"><span>World Wide Stats</span><img class="statsHeroBadge" src="assets/picker-icons/characters/wiggler.png" alt="" aria-hidden="true" decoding="async"/></h2>
 </div>
 </div>
 </section>
-<section class="card statsToolbarCard">
+<section class="card statsToolbarCard" aria-labelledby="statsToolbarTitle">
+<div class="statsToolbarMain">
+<div class="statsToolbarCopy">
+<h3 class="statsToolbarTitle" id="statsToolbarTitle">World Wide Overview</h3>
+<div class="statsToolbarMetrics" aria-label="Profile summary">
+<div class="statsToolbarMetric"><span>Current VR</span><b id="currentVr">-</b></div>
+<div class="statsToolbarMetric"><span>Matches</span><b id="matchCount">-</b></div>
+</div>
+</div>
 <div class="statsToolbarActions">
-<button class="navAction" id="btnDownloadStatsImage" type="button" disabled>Download image</button>
 <button class="compareAction compareAction--sm" id="btnCompareLounge" type="button">
 <span class="compareAction__eyebrow">Mode Compare</span>
 <span class="compareAction__label">Compare vs Lounge 12p</span>
 </button>
 </div>
-<div class="pageInfoLines" style="display:none">
-<div class="muted" id="userInfo">Loading session...</div>
-<div class="muted">Current VR (Profile): <b id="currentVr">-</b></div>
-<div class="muted">Matches: <b id="matchCount">-</b></div>
 </div>
-<div class="pageInfoLines" style="display:none">
+<div class="pageInfoLines hidden">
 <div class="muted" id="status"></div>
 <div class="muted" id="debug"></div>
 </div>
@@ -100,7 +103,7 @@
 <div class="chartHeaderLead">
 <div>
 <h3 id="vrDeckTitle">VR History</h3>
-<div class="chartHeaderMeta" id="vrDeckMeta">Overall</div>
+<div class="chartHeaderMeta" id="vrDeckMeta"></div>
 </div>
 </div>
 <div class="chartHeaderActions">
@@ -116,8 +119,8 @@
 <button class="chartFilterItem" data-label="Last week" data-value="week" id="optVrWeek" type="button"><span>Last week</span></button>
 </div>
 <div class="chartFilterSection" data-vr-filter-set="weekly" hidden="">
-<button class="chartFilterItem" data-label="VR Average" data-value="vravg" id="optWeeklyVrAvg" type="button"><span>VR Average</span></button>
-<button class="chartFilterItem" data-label="VR Gain Avg" data-value="gains" id="optWeeklyGains" type="button"><span>VR Gain Avg</span></button>
+<button class="chartFilterItem" data-label="Average" data-value="vravg" id="optWeeklyVrAvg" type="button"><span>Average</span></button>
+<button class="chartFilterItem" data-label="Gain" data-value="gains" id="optWeeklyGains" type="button"><span>Gain</span></button>
 </div>
 </div>
 </div>
@@ -128,7 +131,7 @@
 <div class="chartSwipeTrack" id="vrDeckTrack">
 <section class="chartSwipePanel" data-vr-panel="0">
 <div class="chartWrap"><canvas height="120" id="chartVr"></canvas></div>
-<div class="muted chartPanelMetric" style="margin-top:10px;">Avg VR: <b class="avgBig" id="avgVrWindow" style="font-size:1.1em">-</b></div>
+<div class="muted chartPanelMetric">Avg VR: <b class="avgBig avgBig--compact" id="avgVrWindow">-</b></div>
 </section>
 <section class="chartSwipePanel" data-vr-panel="1">
 <div class="bar-wrap chartWrap chartWrapWeekly">
@@ -147,19 +150,19 @@
 <div class="chartHeaderLead">
 <div>
 <h3>Performance</h3>
-<div class="chartHeaderMeta" id="perfModeMeta">Tracks</div>
+<div class="chartHeaderMeta" id="perfModeMeta"></div>
 </div>
 </div>
 <div class="chartHeaderActions">
 <div class="chartFilter" id="perfFilterRoot">
 <button aria-controls="menuPerfFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnPerfFilter" type="button">
 <span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
-<span class="chartFilterValue" id="perfFilterValue">Average VR gain ?</span>
+<span class="chartFilterValue" id="perfFilterValue">VR gain</span>
 </button>
 <div class="chartFilterMenu" hidden="" id="menuPerfFilter">
-<button class="chartFilterItem" data-key="avg" data-label="Average VR gain" id="optPerfAvg" type="button"><span>Average VR gain</span><span class="chartFilterItemMeta"></span></button>
+<button class="chartFilterItem" data-key="avg" data-label="VR gain" id="optPerfAvg" type="button"><span>VR gain</span><span class="chartFilterItemMeta"></span></button>
 <button class="chartFilterItem" data-key="win" data-label="Win rate" id="optPerfWin" type="button"><span>Win rate</span><span class="chartFilterItemMeta"></span></button>
-<button class="chartFilterItem" data-key="count" data-label="Times played" id="optPerfCount" type="button"><span>Times played</span><span class="chartFilterItemMeta"></span></button>
+<button class="chartFilterItem" data-key="count" data-label="Plays" id="optPerfCount" type="button"><span>Plays</span><span class="chartFilterItemMeta"></span></button>
 <button class="chartFilterItem" data-key="alpha" data-label="A-Z" id="optPerfAlpha" type="button"><span>A-Z</span><span class="chartFilterItemMeta"></span></button>
 </div>
 </div>
@@ -172,9 +175,10 @@
 <div class="chartPager chartPager--perf" id="perfPager">
 <button aria-label="Show track performance" class="chartPagerBtn active" data-perf-mode="tracks" type="button">Tracks</button>
 <button aria-label="Show intermission destiny performance" class="chartPagerBtn" data-perf-mode="im_destiny" type="button">Destiny</button>
+<button aria-label="Show special destiny performance" class="chartPagerBtn" data-perf-mode="im_special_destiny" type="button">Special</button>
 <button aria-label="Show separated intermission performance" class="chartPagerBtn" data-perf-mode="im_routes" type="button">Separated</button>
 </div>
-<div class="muted" id="perfSelected" style="margin-top:8px;"></div>
+<div class="muted selectionMeta" id="perfSelected"></div>
 </div>
 <dialog class="compareDialog" id="wwCompareDialog">
 <div class="compareDialogPanel">
@@ -182,13 +186,16 @@
 <div>
 <div class="compareDialogEyebrow">Mode Compare</div>
 <h3>World Wides vs Lounge 12p</h3>
-<div class="muted compareDialogMeta" id="wwCompareMeta">World Wides compare here only against Lounge 12p.</div>
+<div class="muted compareDialogMeta hidden" hidden id="wwCompareMeta"></div>
 </div>
+<div class="compareDialogHeadActions">
+<button aria-label="Info" class="mcard__infoBtn" data-info="modeCompare" title="Info" type="button">i</button>
 <button class="navAction" id="btnCloseWwCompare" type="button">Close</button>
+</div>
 </div>
 <div class="modeComparePanel" id="wwComparePanel">
 <div class="chartWrap chartWrapCompare"><canvas id="chartModeCompareWw"></canvas></div>
-<div class="modeCompareNotes" id="wwCompareNotes"></div>
+<div class="modeCompareNotes" hidden id="wwCompareNotes"></div>
 </div>
 </div>
 </dialog>
@@ -196,8 +203,8 @@
 <div class="chartHeader">
 <div class="chartHeaderLead">
 <div>
-<h3>Track Distribution</h3>
-<div class="chartHeaderMeta" id="pieFilterMeta">Overall</div>
+<h3 id="analysisDeckTitle">Tracks &amp; Intermissions</h3>
+<div class="chartHeaderMeta" id="analysisDeckMeta"></div>
 </div>
 </div>
 <div class="chartHeaderActions">
@@ -212,10 +219,24 @@
 <button class="chartFilterItem" data-label="Last week" data-value="week" id="optPieWeek" type="button"><span>Last week</span></button>
 </div>
 </div>
-<button aria-label="Info" class="mcard__infoBtn" data-info="trackDistribution" title="Info" type="button">i</button>
+<div class="chartFilter" hidden id="bucketFilterRoot">
+<button aria-controls="menuBucketFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnBucketFilter" type="button">
+<span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
+<span class="chartFilterValue" id="bucketFilterValue">Overall</span>
+</button>
+<div class="chartFilterMenu" hidden="" id="menuBucketFilter">
+<button class="chartFilterItem" data-label="Overall" data-value="overall" id="optBucketOverall" type="button"><span>Overall</span></button>
+<button class="chartFilterItem" data-label="Track" data-value="track" id="optBucketTrack" type="button"><span>Track</span></button>
+<button class="chartFilterItem" data-label="Intermission" data-value="im" id="optBucketIm" type="button"><span>Intermission</span></button>
 </div>
 </div>
-<div class="pie-wrap" style="max-width:100%; height:220px;">
+<button aria-label="Info" class="mcard__infoBtn" data-info="trackDistribution" id="btnAnalysisDeckInfo" title="Info" type="button">i</button>
+</div>
+</div>
+<div class="chartSwipeViewport analysisDeckViewport" id="analysisDeckViewport">
+<div class="chartSwipeTrack analysisDeckTrack" id="analysisDeckTrack">
+<section class="chartSwipePanel analysisDeckPanel" data-analysis-panel="0">
+<div class="pie-wrap">
 <canvas id="chartPie5"></canvas>
 </div>
 <div class="td3Wrap">
@@ -268,32 +289,17 @@
 </div>
 </div>
 </div>
-</div>
-<div class="card">
-<div class="chartHeader">
-<div class="chartHeaderLead">
-<div>
-<h3>VR Performance Sweetspot</h3>
-<div class="chartHeaderMeta" id="bucketFilterMeta">Overall</div>
-</div>
-</div>
-<div class="chartHeaderActions">
-<div class="chartFilter" id="bucketFilterRoot">
-<button aria-controls="menuBucketFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnBucketFilter" type="button">
-<span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
-<span class="chartFilterValue" id="bucketFilterValue">Overall</span>
-</button>
-<div class="chartFilterMenu" hidden="" id="menuBucketFilter">
-<button class="chartFilterItem" data-label="Overall" data-value="overall" id="optBucketOverall" type="button"><span>Overall</span></button>
-<button class="chartFilterItem" data-label="Track only" data-value="track" id="optBucketTrack" type="button"><span>Track only</span></button>
-<button class="chartFilterItem" data-label="Intermission only" data-value="im" id="optBucketIm" type="button"><span>Intermission only</span></button>
-</div>
-</div>
-<button aria-label="Info" class="mcard__infoBtn" data-info="buckets" title="Info" type="button">i</button>
-</div>
-</div>
+</section>
+<section class="chartSwipePanel analysisDeckPanel" data-analysis-panel="1">
 <div class="chartWrapBuckets"><canvas id="chartBuckets"></canvas></div>
-<div class="muted" id="bucketSelected" style="margin-top:8px;"></div>
+<div class="muted selectionMeta" id="bucketSelected"></div>
+</section>
+</div>
+</div>
+<div class="chartPager" id="analysisDeckPager">
+<button aria-label="Show separated tracks and intermissions" class="chartPagerBtn active" data-analysis-panel="0" type="button">Split</button>
+<button aria-label="Show VR performance sweetspot" class="chartPagerBtn" data-analysis-panel="1" type="button">Sweetspot</button>
+</div>
 </div>
 </div>
 
@@ -306,11 +312,10 @@
 </div>
 <div class="body" id="infoBody"></div>
 </div>
-</div>
+</main>
 
 <script src="mkwt_public.js"></script>
 <script src="stats_ui.js"></script>
-<script src="mkwt_report.js"></script>
 <script src="mkwt_mode_compare.js"></script>
 <script src="stats.js"></script>
 </body>

@@ -4,6 +4,7 @@
     12: "mkwt_lounge_sessions_v1",
     24: "mkwt_lounge24_sessions_v1",
   };
+  const NON_LOUNGE_FORMAT_TAG = "Non-Lounge";
 
   function readJson(key, fallback){
     try{
@@ -22,6 +23,18 @@
 
   function cleanTrack(value){
     return String(value || "").trim();
+  }
+
+  function normalizeLoungeFormatTag(value){
+    const raw = cleanTrack(value);
+    if(!raw) return "";
+    return raw.replace(/[\s_-]+/g, "").toLowerCase() === "nonlounge" ? NON_LOUNGE_FORMAT_TAG : raw;
+  }
+
+  function loungeSessionStatsExcluded(session){
+    const tag = normalizeLoungeFormatTag(session?.loungeFormatTag || session?.lounge_format_tag || "");
+    const excluded = session?.statsExcluded === true || session?.stats_excluded === true;
+    return tag === NON_LOUNGE_FORMAT_TAG && excluded;
   }
 
   function isIntermissionRace(race){
@@ -88,6 +101,7 @@
   function aggregateLoungeTrackRowsFromSessions(sessions){
     const races = [];
     for(const session of sessions || []){
+      if(loungeSessionStatsExcluded(session)) continue;
       for(const race of session?.races || []){
         races.push(race);
       }
@@ -143,13 +157,13 @@
       return aggregateLoungeTrackRowsFromSessions(localLoungeSessions(playerCount));
     }
 
-    const mogiIds = [];
+    const mogis = [];
     const pageSize = 1000;
     let from = 0;
     while(true){
       const { data, error } = await supabaseClient
         .from("lounge_mogis")
-        .select("id")
+        .select("id, lounge_format_tag, stats_excluded")
         .eq("user_id", session.user.id)
         .eq("player_count", Number(playerCount))
         .eq("status", "completed")
@@ -157,11 +171,15 @@
         .range(from, from + pageSize - 1);
       if(error) throw error;
       const rows = Array.isArray(data) ? data : [];
-      mogiIds.push(...rows.map((row) => String(row.id || "").trim()).filter(Boolean));
+      mogis.push(...rows);
       if(rows.length < pageSize) break;
       from += pageSize;
     }
 
+    const mogiIds = mogis
+      .filter((row) => !loungeSessionStatsExcluded(row))
+      .map((row) => String(row.id || "").trim())
+      .filter(Boolean);
     if(!mogiIds.length) return [];
 
     const races = [];

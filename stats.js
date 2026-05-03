@@ -1,8 +1,12 @@
-﻿  // ========= UI Helpers =========
+  // ========= UI Helpers =========
   const $ = (id) => document.getElementById(id);
 
   let chartFilterBindingsReady = false;
   function closeChartFilterMenus(exceptRoot = null){
+    if(window.MKWT_UI?.closeFilterMenus){
+      window.MKWT_UI.closeFilterMenus("chart", exceptRoot);
+      return;
+    }
     document.querySelectorAll(".chartFilter").forEach((root) => {
       if(exceptRoot && root === exceptRoot) return;
       const btn = root.querySelector(".chartFilterBtn");
@@ -12,6 +16,10 @@
     });
   }
   function bindGlobalChartFilterClosers(){
+    if(window.MKWT_UI?.bindGlobalFilterClosers){
+      window.MKWT_UI.bindGlobalFilterClosers("chart");
+      return;
+    }
     if(chartFilterBindingsReady) return;
     chartFilterBindingsReady = true;
     document.addEventListener("click", (event) => {
@@ -26,6 +34,9 @@
     const btn = freshButton(btnId);
     const menu = $(menuId);
     if(!btn || !menu) return null;
+    if(window.MKWT_UI?.bindFilterToggle){
+      return window.MKWT_UI.bindFilterToggle(btn, menu, { type: "chart" });
+    }
     btn.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -67,8 +78,20 @@
   const $debug = $("debug");
 
   function setStatus(msg, ok=false){
-    $status.className = "muted " + (ok ? "ok" : "bad");
-    $status.textContent = msg || "";
+    const text = String(msg || "").trim();
+    if(window.MKWT?.showToast){
+      if($status){
+        $status.textContent = "";
+        $status.className = "muted hidden";
+        $status.hidden = true;
+      }
+      window.MKWT.showToast(text, ok);
+      return;
+    }
+    if(!$status) return;
+    $status.hidden = !text;
+    $status.className = "muted " + (text ? (ok ? "ok" : "bad") : "hidden");
+    $status.textContent = text;
   }
   function setDebug(msg){ $debug.textContent = msg || ""; }
 
@@ -83,108 +106,9 @@
   let PROFILE = null;
   let matchesAsc = [];
 
-  function statText(id, fallback = "-"){
-    const value = String($(id)?.textContent || "").trim();
-    return value || fallback;
-  }
-
-  function setStatsReportEnabled(enabled){
-    const btn = $("btnDownloadStatsImage");
-    if(btn) btn.disabled = !enabled;
-  }
-
-  function signedNumber(value, decimals = 1){
-    const n = Number(value);
-    if(!Number.isFinite(n)) return "-";
-    return (n >= 0 ? "+" : "") + n.toFixed(decimals);
-  }
-
   function cssVar(name, fallback){
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return value || fallback;
-  }
-
-  function bestTrackForReport(){
-    const groups = new Map();
-    for(const match of matchesAsc || []){
-      const track = String(match?.track || "").trim();
-      const intermission = String(match?.intermission || "").trim();
-      const delta = Number(match?.vr_change);
-      if(!track || intermission || !Number.isFinite(delta)) continue;
-      const row = groups.get(track) || { track, sum: 0, count: 0 };
-      row.sum += delta;
-      row.count += 1;
-      groups.set(track, row);
-    }
-    let best = null;
-    for(const row of groups.values()){
-      const avg = row.count ? row.sum / row.count : null;
-      if(avg == null) continue;
-      if(!best || avg > best.avg || (avg === best.avg && row.count > best.count)){
-        best = { track: row.track, avg, count: row.count };
-      }
-    }
-    return best;
-  }
-
-  function buildStatsReportItems(){
-    const peakVr = matchesAsc
-      .map((match) => Number(match?.vr_after))
-      .filter(Number.isFinite)
-      .reduce((max, value) => Math.max(max, value), Number(statText("currentVr").replace(/,/g, "")) || 0);
-    const bestTrack = bestTrackForReport();
-    return [
-      { label: "Current VR", value: statText("currentVr") },
-      { label: "Peak VR", value: peakVr ? peakVr.toLocaleString("en-US") : "-" },
-      { label: "Avg VR", value: statText("avgVrWindow") },
-      { label: "Matches", value: statText("matchCount") },
-      {
-        label: "Best Track",
-        value: bestTrack?.track || "-",
-        meta: bestTrack ? `${signedNumber(bestTrack.avg)} VR avg | ${bestTrack.count} ${bestTrack.count === 1 ? "run" : "runs"}` : "3-lap only",
-      },
-    ];
-  }
-
-  async function downloadStatsReport(){
-    if(!matchesAsc.length) return;
-    const btn = $("btnDownloadStatsImage");
-    const previous = btn?.textContent || "Download image";
-    try{
-      if(!window.MKWTReport?.downloadImage) throw new Error("Report exporter unavailable.");
-      if(btn){
-        btn.disabled = true;
-        btn.textContent = "Preparing...";
-      }
-      await window.MKWTReport.downloadImage({
-        title: "MKWT World Wide Stats",
-        subtitle: `Matches: ${statText("matchCount")} | Current VR: ${statText("currentVr")}`,
-        filename: `mkwt-world-wide-stats-${new Date().toISOString().slice(0,10)}.jpg`,
-        layout: "worldWideQuad",
-        stats: buildStatsReportItems(),
-        charts: [
-          { title: "VR History", canvasId: "chartVr" },
-          { title: "Performance", canvasId: "chartPerf" },
-          { title: "Weekly VR", canvasId: "chartWeekly" },
-        ],
-        width: 2500,
-        quadRowHeight: 560,
-        quality: 0.86,
-      });
-      setStatus("Image report downloaded.", true);
-    }catch(e){
-      setStatus("Image export failed: " + (e?.message || e), false);
-    }finally{
-      if(btn){
-        btn.textContent = previous;
-        btn.disabled = !matchesAsc.length;
-      }
-    }
-  }
-
-  function bindStatsReport(){
-    $("btnDownloadStatsImage")?.addEventListener("click", downloadStatsReport);
-    setStatsReportEnabled(false);
   }
 
   let STRATS_META_INTERMISSIONS = null;
@@ -220,14 +144,12 @@
         supabaseClient = client;
         SESSION = session;
         try{ localStorage.setItem('mkwt_mode','account'); }catch(e){}
-        $("userInfo").textContent = "Signed in as: " + (maskEmail(session.user?.email) || "unknown");
         try{ setNavAuthButton("account"); }catch(e){}
       },
       onGuest: async () => {
         window.IS_GUEST = true;
         window.supabaseClient = null;
         window.SESSION = null;
-        try { $("userInfo").textContent = "Guest (local)"; } catch(e){}
         try{ setNavAuthButton("guest"); }catch(e){}
       }
     });
@@ -259,7 +181,7 @@
 
   // ========= Data Fetch =========
   async function getAllMatchesAsc() {
-    // holt alle Matches in Pages (Supabase limit max 1000 pro request ist Ã¼blich)
+    // Fetches all matches in pages; Supabase often limits requests to 1000 rows.
     const pageSize = 1000;
     let from = 0;
     let all = [];
@@ -309,7 +231,7 @@
 
   function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
 
-  
+
   // ========= Chart.js Helpers =========
   // Draw percent labels directly inside pie slices (defensive: skips on empty/too small slices).
   const piePercentLabelsPlugin = {
@@ -327,10 +249,9 @@
         const meta = chart.getDatasetMeta(0);
         if (!meta || !meta.data) return;
 
-        ctx.save();
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+        const root = getComputedStyle(document.documentElement);
+        const fill = (root.getPropertyValue('--chart-label-fill') || '#fff').trim();
+        const stroke = (root.getPropertyValue('--chart-label-stroke') || 'rgba(0,0,0,0.35)').trim();
 
         for (let i=0; i<meta.data.length; i++){
           const arc = meta.data[i];
@@ -341,27 +262,35 @@
           // skip tiny slices
           if (pct < 5) continue;
 
-          const label = String(chart.data.labels?.[i] ?? "");
-          const txt = label + " " + Math.round(pct) + "%";
+          const txt = Math.round(pct) + "%";
 
           const { startAngle, endAngle, innerRadius, outerRadius, x, y } = arc.getProps(
             ["startAngle","endAngle","innerRadius","outerRadius","x","y"],
             true
           );
           const angle = (startAngle + endAngle) / 2;
-          const r = innerRadius + (outerRadius - innerRadius) * 0.55;
+          const r = innerRadius + (outerRadius - innerRadius) * 0.58;
           const tx = x + Math.cos(angle) * r;
           const ty = y + Math.sin(angle) * r;
+          const fontSize = clamp(Math.round(outerRadius * 0.14), 17, 25);
 
-          // Theme-aware text colors (important for Light mode)
-          const root = getComputedStyle(document.documentElement);
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = (root.getPropertyValue('--chart-label-stroke') || 'rgba(0,0,0,0.35)').trim();
+          ctx.save();
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = `900 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+          ctx.lineJoin = "round";
+          ctx.lineWidth = Math.max(4, Math.round(fontSize * 0.24));
+          ctx.strokeStyle = stroke;
+          ctx.shadowColor = "rgba(0,0,0,0.36)";
+          ctx.shadowBlur = 5;
+          ctx.shadowOffsetY = 1;
           ctx.strokeText(txt, tx, ty);
-          ctx.fillStyle = (root.getPropertyValue('--chart-label-fill') || '#fff').trim();
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.fillStyle = fill;
           ctx.fillText(txt, tx, ty);
+          ctx.restore();
         }
-        ctx.restore();
       } catch (e) {
         console.warn("[stats] piePercentLabelsPlugin error", e);
       }
@@ -374,6 +303,7 @@
   // Chart 1 window state
   let vrWindowMode = "all";
   let vrDeckPanel = 0;
+  let analysisDeckPanel = 0;
   const VR_HISTORY_MAX_POINTS = 360;
 
   // Chart 5 window state
@@ -394,6 +324,37 @@
 function destroyCharts(){
     chartVr?.destroy(); chartPerf?.destroy(); chartPie5?.destroy(); chartItTr?.destroy(); chartWeekly?.destroy(); chartBuckets?.destroy(); chartModeCompareWw?.destroy();
     chartVr = chartPerf = chartPie5 = chartItTr = chartWeekly = chartBuckets = chartModeCompareWw = null;
+  }
+
+  function setStatsChartEmpty(canvasId, message = ""){
+    const canvas = $(canvasId);
+    if(!canvas) return;
+    const wrap = canvas.closest(".chartWrapCompare, .chartWrapBuckets, .pie-wrap, .chartWrapC2, .chartWrapIm, .chartWrap, .bar-wrap") || canvas.parentElement;
+    if(!wrap) return;
+    let next = wrap.nextElementSibling;
+    while(next?.classList?.contains("chartEmptyNotice") && next.dataset.forChart === canvasId){
+      const remove = next;
+      next = next.nextElementSibling;
+      remove.remove();
+    }
+    const text = String(message || "").replace(/\s+/g, " ").trim();
+    if(!text){
+      canvas.hidden = false;
+      wrap.classList.remove("isChartEmpty");
+      return;
+    }
+    try{
+      const ctx = canvas.getContext?.("2d");
+      if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }catch{}
+    canvas.hidden = false;
+    wrap.classList.add("isChartEmpty");
+    const notice = document.createElement("div");
+    notice.className = "chartEmptyNotice";
+    notice.dataset.forChart = canvasId;
+    notice.setAttribute("role", "status");
+    notice.textContent = text;
+    wrap.insertAdjacentElement("afterend", notice);
   }
 
   function buildCharts(matchesAsc) {
@@ -418,6 +379,54 @@ function destroyCharts(){
       breakEvenText: cssVar("--chart-break-even-text", "rgba(255,180,0,0.90)"),
       separator: cssVar("--chart-separator", "rgba(43,108,255,0.45)"),
     };
+
+    function updateAnalysisDeckUi(){
+      const isSweetspot = analysisDeckPanel === 1;
+      const track = $("analysisDeckTrack");
+      if(track) track.style.transform = isSweetspot ? "translateX(-50%)" : "translateX(0%)";
+      document.querySelectorAll("#analysisDeckPager [data-analysis-panel]").forEach((btn) => {
+        btn.classList.toggle("active", Number(btn.dataset.analysisPanel) === analysisDeckPanel);
+      });
+      const title = $("analysisDeckTitle");
+      if(title) title.textContent = isSweetspot ? "VR Performance Sweetspot" : "Tracks & Intermissions";
+      const meta = $("analysisDeckMeta");
+      if(meta) meta.textContent = "";
+      const pieFilter = $("pieFilterRoot");
+      const bucketFilter = $("bucketFilterRoot");
+      if(pieFilter) pieFilter.hidden = isSweetspot;
+      if(bucketFilter) bucketFilter.hidden = !isSweetspot;
+      const info = $("btnAnalysisDeckInfo");
+      if(info) info.dataset.info = isSweetspot ? "buckets" : "trackDistribution";
+    }
+
+    function setAnalysisDeckPanel(panel){
+      analysisDeckPanel = Math.max(0, Math.min(1, Number(panel) || 0));
+      closeChartFilterMenus();
+      updateAnalysisDeckUi();
+      requestAnimationFrame(() => {
+        try{ chartPie5?.resize(); }catch{}
+        try{ chartBuckets?.resize(); }catch{}
+      });
+    }
+
+    function bindAnalysisDeckNav(){
+      document.querySelectorAll("#analysisDeckPager [data-analysis-panel]").forEach((btn) => {
+        const next = btn.cloneNode(true);
+        btn.parentNode.replaceChild(next, btn);
+        btn = next;
+        btn.addEventListener("click", () => setAnalysisDeckPanel(btn.dataset.analysisPanel));
+      });
+      const viewport = $("analysisDeckViewport");
+      if(viewport && viewport.dataset.swipeBound !== "1"){
+        viewport.dataset.swipeBound = "1";
+        bindSwipeNavigation(viewport, {
+          onLeft: () => { if(analysisDeckPanel < 1) setAnalysisDeckPanel(analysisDeckPanel + 1); },
+          onRight: () => { if(analysisDeckPanel > 0) setAnalysisDeckPanel(analysisDeckPanel - 1); }
+        });
+      }
+      updateAnalysisDeckUi();
+    }
+    bindAnalysisDeckNav();
 
     // --- Diagramm 1: VR Verlauf (chronologisch) ---
     // Prefer stored vr_after snapshots if available. This guarantees a 1:1 match with the tracker table.
@@ -460,11 +469,11 @@ function destroyCharts(){
     const labels1Full = labels1;
     const vrSeriesFull = vrSeries;
 
-    // Ã˜ VR fÃ¼r aktuell ausgewÃ¤hltes Fenster (aus VR-Verlauf berechnet)
+    // Average VR for the selected window, calculated from the VR history.
     const vrNumsFull = vrSeriesFull.map(Number).filter(Number.isFinite);
     let weeklyMode = weeklyModeState;
 
-    
+
     // === Time-based windows (Overall / Last month / Last week) for VR History (Chart 1) ===
     function getMatchTsMs(m){
       // Supports Supabase created_at, numeric timestamps, or ISO strings.
@@ -673,7 +682,13 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       if (!canvas) { console.warn("[stats] chartVr canvas missing - skip Chart 1"); return; }
 
       const w = prepareVrDisplayWindow(mode);
-      if (!w.vr.length) { console.warn("[stats] no VR data - skip Chart 1"); return; }
+      if (!w.vr.length) {
+        try{ chartVr?.destroy(); }catch{}
+        chartVr = null;
+        setStatsChartEmpty("chartVr", matchesAsc.length ? "No races in this view yet." : "No World Wide matches yet.");
+        return;
+      }
+      setStatsChartEmpty("chartVr", "");
 
       // Step/treppe line: always 10 segments over the *filtered* window (10% buckets), same logic as before.
       const stepLine = computeStepAverage10(w.vr);
@@ -786,7 +801,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     const $vrDeckInfo = $("btnVrDeckInfo");
     const $vrDeckValue = $("vrDeckFilterValue");
 
-    const weeklyModeLabel = (mode) => mode === "gains" ? "VR Gain Avg" : "VR Average";
+    const weeklyModeLabel = (mode) => mode === "gains" ? "Gain" : "Average";
     const vrWindowLabel = (mode) => mode === "month" ? "Last month" : mode === "week" ? "Last week" : "Overall";
 
     function updateVrDeckFilterItems(){
@@ -815,12 +830,12 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       });
       if(vrDeckPanel === 0){
         if($vrDeckTitle) $vrDeckTitle.textContent = "VR History";
-        if($vrDeckMeta) $vrDeckMeta.textContent = "Swipe left for weekly view";
+        if($vrDeckMeta) $vrDeckMeta.textContent = "";
         if($vrDeckInfo) $vrDeckInfo.dataset.info = "vrHistory";
         if($vrDeckValue) $vrDeckValue.textContent = vrWindowLabel(vrWindowMode || "all");
       } else {
         if($vrDeckTitle) $vrDeckTitle.textContent = "VR History (Weekly)";
-        if($vrDeckMeta) $vrDeckMeta.textContent = "Swipe right for raw history";
+        if($vrDeckMeta) $vrDeckMeta.textContent = "";
         if($vrDeckInfo) $vrDeckInfo.dataset.info = "weekly";
         if($vrDeckValue) $vrDeckValue.textContent = weeklyModeLabel(weeklyMode);
       }
@@ -853,7 +868,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     });
     updateVrDeckUi();
 
-    
+
     // --- Performance (Unified): Tracks + Intermission (Destiny / Separated) ---
     // One chart, three mode buttons. Sort controls remain: avg | win | count | alpha.
     // Clicking the same sort again reverses (desc <-> asc).
@@ -898,18 +913,48 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     // Intermission Destiny groups (from STRATS_META_INTERMISSIONS destiny_group)
     const metaIM = STRATS_META_INTERMISSIONS || {};
     const destinyGroups = new Map(); // destiny_group -> {sum,n,wins,losses}
+    const specialDestinyGroups = new Map(); // special destiny_group -> {sum,n,wins,losses}
 
-    function normalizeRouteKey(start, end){
+    function routeKeyCandidates(start, end){
       const s = String(start||"").trim();
       const e = String(end||"").trim();
-      if(!s || !e) return "";
-      return `${s}>${e}`; // matches META keys
+      if(!s || !e) return [];
+      return [`${s}\u2192${e}`, `${s}>${e}`, `${s} -> ${e}`];
+    }
+    function lookupRouteMeta(start, end){
+      for(const key of routeKeyCandidates(start, end)){
+        if(Object.prototype.hasOwnProperty.call(metaIM, key)) return metaIM[key];
+      }
+      return null;
+    }
+    function cleanMetaLabel(value){
+      const label = String(value ?? "").trim();
+      if(!label || label.toLowerCase() === "null" || label.toLowerCase() === "undefined") return "";
+      return label;
     }
     function getDestinyGroup(start, end){
-      const k = normalizeRouteKey(start, end);
-      const meta = metaIM[k];
-      if (meta && meta.destiny_group) return meta.destiny_group;
+      const meta = lookupRouteMeta(start, end);
+      const group = cleanMetaLabel(meta?.destiny_group);
+      if (group) return group;
       return String(end||"").trim(); // fallback
+    }
+    function getSpecialDestinyGroup(start, end){
+      const meta = lookupRouteMeta(start, end);
+      if(!meta || !meta.is_special) return "";
+      const plainEnd = String(end || "").trim().toLowerCase();
+      const group = cleanMetaLabel(meta.destiny_group);
+      const tag = cleanMetaLabel(meta.special_tag);
+      const groupDiffers = !!group && group.toLowerCase() !== plainEnd;
+      const tagDiffers = !!tag && tag.toLowerCase() !== plainEnd;
+      return groupDiffers ? group : (tagDiffers ? tag : "");
+    }
+    function addPerformanceRowGroup(map, label, delta){
+      if(!label || !Number.isFinite(delta)) return;
+      const g = map.get(label) || { sum: 0, n: 0, wins: 0, losses: 0 };
+      g.sum += delta; g.n += 1;
+      if (delta > 0) g.wins += 1;
+      else if (delta < 0) g.losses += 1;
+      map.set(label, g);
     }
 
     for (const m of onlyIM){
@@ -919,13 +964,8 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       if(!dg) continue;
 
       const delta = Number(m.vr_change);
-      const g = destinyGroups.get(dg) || { sum: 0, n: 0, wins: 0, losses: 0 };
-      if (Number.isFinite(delta)){
-        g.sum += delta; g.n += 1;
-        if (delta > 0) g.wins += 1;
-        else if (delta < 0) g.losses += 1;
-      }
-      destinyGroups.set(dg, g);
+      addPerformanceRowGroup(destinyGroups, dg, delta);
+      addPerformanceRowGroup(specialDestinyGroups, getSpecialDestinyGroup(start, end), delta);
     }
 
     function computeWinPct(wins, losses){
@@ -1002,31 +1042,32 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     const perfCanvas = $("chartPerf");
     const $perfSel = $("perfSelected");
 
-    let perfMode = perfModeState;     // tracks | im_destiny | im_routes
+    let perfMode = perfModeState;     // tracks | im_destiny | im_special_destiny | im_routes
     let perfSortKey = perfSortKeyState;     // avg | win | count | alpha
     let perfSortDir = perfSortDirState;    // desc | asc
     let perfRowsLast = [];
     const perfModeLabelMap = {
       tracks: "Tracks",
-      im_destiny: "Intermission Destiny",
-      im_routes: "Intermission Separated"
+      im_destiny: "Destiny",
+      im_special_destiny: "Special",
+      im_routes: "Separated"
     };
     const perfSortLabelMap = {
-      avg: "Average VR gain",
+      avg: "VR gain",
       win: "Win rate",
-      count: "Times played",
+      count: "Plays",
       alpha: "A-Z"
     };
-    const perfModeOrder = ["tracks", "im_destiny", "im_routes"];
+    const perfModeOrder = ["tracks", "im_destiny", "im_special_destiny", "im_routes"];
 
     function perfSortLabel(){
       const dir = perfSortDir === "desc" ? "↓" : "↑";
-      return `${perfSortLabelMap[perfSortKey] || "Average VR gain"} ${dir}`;
+      return `${perfSortLabelMap[perfSortKey] || "VR gain"} ${dir}`;
     }
 
     function updatePerfUi(){
       const meta = $("perfModeMeta");
-      if(meta) meta.textContent = `${perfModeLabelMap[perfMode] || "Tracks"} • swipe for other modes`;
+      if(meta) meta.textContent = "";
       const filterValue = $("perfFilterValue");
       if(filterValue) filterValue.textContent = perfSortLabel();
       document.querySelectorAll("[data-perf-mode]").forEach((btn) => {
@@ -1112,6 +1153,10 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         baseRows = rowsFromImMap(destinyGroups);
         title = "Avg VR change (Intermission Destiny)";
         cap = 40;
+      } else if(perfMode === "im_special_destiny"){
+        baseRows = rowsFromImMap(specialDestinyGroups);
+        title = "Avg VR change (Special Destinies)";
+        cap = 40;
       } else {
         baseRows = rowsFromImMap(imGroups);
         title = "Avg VR change (Intermission Separated)";
@@ -1119,10 +1164,14 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       }
 
       if(!baseRows.length){
-        if($perfSel) $perfSel.textContent = "No data for this mode yet.";
+        if($perfSel) $perfSel.textContent = "";
         try { chartPerf?.destroy(); } catch {}
+        chartPerf = null;
+        perfRowsLast = [];
+        setStatsChartEmpty("chartPerf", "No data for this chart yet.");
         return;
       }
+      setStatsChartEmpty("chartPerf", "");
 
       const rows = sortPerfRows(baseRows, perfSortKey, perfSortDir);
       perfRowsLast = cap ? rows.slice(0, cap) : rows;
@@ -1194,6 +1243,25 @@ function computeStepAverage10(vrArr, forcedBucketSize){
     const $wwCompareMeta = $("wwCompareMeta");
     const $wwCompareNotes = $("wwCompareNotes");
 
+    function setWwCompareStatus(message){
+      if(!$wwCompareMeta) return;
+      const text = String(message || "").trim();
+      $wwCompareMeta.textContent = text;
+      $wwCompareMeta.hidden = !text;
+      $wwCompareMeta.classList.toggle("hidden", !text);
+    }
+
+    function clearWwCompareChart(message){
+      if($wwCompareNotes){
+        $wwCompareNotes.innerHTML = "";
+        $wwCompareNotes.hidden = true;
+      }
+      try{ chartModeCompareWw?.destroy(); }catch{}
+      chartModeCompareWw = null;
+      setWwCompareStatus("");
+      setStatsChartEmpty("chartModeCompareWw", message || "No comparison data yet.");
+    }
+
     function updateWwCompareButton(){
       const btn = $("btnCompareLounge");
       if(!btn) return;
@@ -1220,17 +1288,19 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         div.className = "modeCompareNote muted";
         div.textContent = "No major outliers right now. Shared maps look fairly balanced between both modes.";
         $wwCompareNotes.appendChild(div);
+        $wwCompareNotes.hidden = false;
         return;
       }
       for(const note of notes){
         const div = document.createElement("div");
         div.className = "modeCompareNote";
         const strong = document.createElement("b");
-        strong.textContent = note.track;
+        strong.textContent = `"${note.track}"`;
         div.appendChild(strong);
-        div.appendChild(document.createTextNode(`: ${note.text.replace(`${note.track}: `, "")}`));
+        div.appendChild(document.createTextNode(` strong in ${note.strongerLabel} but weak in ${note.weakerLabel}.`));
         $wwCompareNotes.appendChild(div);
       }
+      $wwCompareNotes.hidden = false;
     }
 
     async function renderWwCompareChart(){
@@ -1239,24 +1309,18 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         try{ $wwCompareDialog.showModal(); }catch{}
       }
       if(!window.MKWTModeCompare){
-        $wwCompareMeta.textContent = "Comparison helper unavailable.";
-        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
-        try{ chartModeCompareWw?.destroy(); }catch{}
-        chartModeCompareWw = null;
+        clearWwCompareChart("Comparison helper unavailable.");
         return;
       }
 
       const worldRows = window.MKWTModeCompare.aggregateWorldWideTrackRows(matchesAsc);
       if(!worldRows.length){
-        $wwCompareMeta.textContent = "Track comparison needs World Wide races with placement data.";
-        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
-        try{ chartModeCompareWw?.destroy(); }catch{}
-        chartModeCompareWw = null;
+        clearWwCompareChart("Track comparison needs World Wide races with placement data.");
         return;
       }
 
       const loungeLabel = "Lounge 12p";
-      $wwCompareMeta.textContent = `Loading ${loungeLabel} comparison...`;
+      setWwCompareStatus(`Loading ${loungeLabel} comparison...`);
       const loungeRows = await window.MKWTModeCompare.loadLoungeTrackRowsByPlayerCount({
         playerCount: 12,
         isGuest: isGuest(),
@@ -1264,10 +1328,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         session: SESSION,
       });
       if(!loungeRows?.length){
-        $wwCompareMeta.textContent = `No saved ${loungeLabel} track data found yet. Track a few ${loungeLabel} races first.`;
-        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
-        try{ chartModeCompareWw?.destroy(); }catch{}
-        chartModeCompareWw = null;
+        clearWwCompareChart(`No saved ${loungeLabel} track data found yet.`);
         return;
       }
 
@@ -1278,10 +1339,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         minCount: 10,
       });
       if(!compareRows.length){
-        $wwCompareMeta.textContent = `No shared tracks yet with at least 10 plays in both World Wides and ${loungeLabel}.`;
-        if($wwCompareNotes) $wwCompareNotes.innerHTML = "";
-        try{ chartModeCompareWw?.destroy(); }catch{}
-        chartModeCompareWw = null;
+        clearWwCompareChart(`No shared tracks yet with at least 10 plays in both World Wides and ${loungeLabel}.`);
         return;
       }
 
@@ -1291,6 +1349,8 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       const maxPoints = Math.max(6, compareRows.length * 2);
 
       try{ chartModeCompareWw?.destroy(); }catch{}
+      setStatsChartEmpty("chartModeCompareWw", "");
+      setWwCompareStatus("");
       chartModeCompareWw = new Chart(perfCompareCanvas, {
         type: "bar",
         data: {
@@ -1322,8 +1382,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
               min: 0,
               max: maxPoints,
               stacked: true,
-              ticks: { callback: (value) => `${Number(value).toFixed(0)} pts` },
-              title: { display: true, text: "Hidden rank-point sum" },
+              ticks: { callback: (value) => Number(value).toFixed(0) },
             },
             y: { ticks: { autoSkip: false }, stacked: true },
           },
@@ -1353,7 +1412,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
       });
 
       renderWwCompareNotes(compareRows, loungeLabel);
-      $wwCompareMeta.textContent = `${window.MKWTModeCompare.comparisonMetaText("World Wides", loungeLabel, compareRows.length, 10)} Sorted by combined rank points.`;
+      setWwCompareStatus("");
     }
 
     // Defaults
@@ -1384,18 +1443,18 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         await renderWwCompareChart();
       }catch(err){
         console.error("[stats] compare chart failed", err);
-        if($wwCompareMeta) $wwCompareMeta.textContent = "Comparison failed. Please try again.";
+        clearWwCompareChart("Comparison failed. Please try again.");
       }
     });
     if(wwCompareOpen){
       renderWwCompareChart().catch((err) => {
         console.error("[stats] compare chart failed", err);
-        if($wwCompareMeta) $wwCompareMeta.textContent = "Comparison failed. Please try again.";
+        clearWwCompareChart("Comparison failed. Please try again.");
       });
     }
 
 
-// --- Diagramm 5: Track Distribution (Pie) + Avg gain / Winrate --- 
+// --- Diagramm 5: Track Distribution (Pie) + Avg gain / Winrate ---
     try{
       const pieCanvas = $("chartPie5");
       if(!pieCanvas){
@@ -1467,7 +1526,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           if(!total){
             try{ chartPie5?.destroy(); }catch{}
             chartPie5 = null;
-            console.warn("[stats] no data for Chart 5 pie - skip");
+            setStatsChartEmpty("chartPie5", "No matches in this view yet.");
             return;
           }
           if (typeof Chart === "undefined") {
@@ -1476,6 +1535,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           }
 
           try{ chartPie5?.destroy(); }catch{}
+          setStatsChartEmpty("chartPie5", "");
           chartPie5 = new Chart(pieCanvas, {
             type: "pie",
             data: {
@@ -1500,7 +1560,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
                     }
                   }
                 },
-                legend: { position: "bottom" }
+                legend: { display: false }
               }
             },
             plugins: [piePercentLabelsPlugin]
@@ -1515,7 +1575,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           document.querySelectorAll("#menuPieFilter .chartFilterItem").forEach((item) => {
             item.classList.toggle("active", item.dataset.value === mode);
           });
-          if(pieMeta) pieMeta.textContent = labels[mode] || "Overall";
+          if(pieMeta) pieMeta.textContent = "";
           if(pieValue) pieValue.textContent = labels[mode] || "Overall";
           renderChart5();
         };
@@ -1678,7 +1738,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
           const hint = $("c6Hint");
           if(!hint) return;
           if(index == null || !weeklyData.meta[index]) {
-            hint.textContent = "Tap a bar to pin details (mobile-friendly).";
+            hint.textContent = "";
             return;
           }
           const m = weeklyData.meta[index];
@@ -1719,6 +1779,13 @@ function computeStepAverage10(vrArr, forcedBucketSize){
 
         function buildChart(){
           chartWeekly?.destroy();
+          if(!weeklyData.labels.length){
+            chartWeekly = null;
+            setStatsChartEmpty("chartWeekly", "No weekly data yet.");
+            setC6Hint(null);
+            return;
+          }
+          setStatsChartEmpty("chartWeekly", "");
           chartWeekly = new Chart(c6.getContext("2d"), {
             type: "bar",
             data: { labels: weeklyData.labels, datasets: c6Datasets() },
@@ -1835,7 +1902,7 @@ function computeStepAverage10(vrArr, forcedBucketSize){
         return out;
       }
 
-      
+
 function buildBuckets(center){
   // 10 buckets, 35 VR width each, split around center (avg VR)
   // Bucket 5 covers [center-35, center] and Bucket 6 covers [center+1, center+35]
@@ -1920,7 +1987,7 @@ function buildBuckets(center){
           r.winrateIm = r.countIm ? (r.winsIm / r.countIm * 100) : null;
         });
 
-        
+
 // baseline = combined of the two buckets closest to average (L1 and R1)
 const midA = stats[4];
 const midB = stats[5];
@@ -1966,7 +2033,7 @@ return { center, vrAvg, stats, baseline };
         }
       };
 
-      
+
 const centerDividerPlugin = {
   id: "centerDividerBuckets",
   afterDraw(chart){
@@ -2023,7 +2090,7 @@ const centerDividerPlugin = {
   }
 };
 
-      
+
 // Draw a vertical "break-even" line where Avg Net Gain crosses y=0 (progress gets blocked).
 const breakEvenXPlugin = {
   id: "breakEvenX",
@@ -2126,7 +2193,7 @@ const bucketSeparatorsPlugin = {
         return r.avgNetTotal;
       }
 
-      
+
       function shortenRangeLabel(lbl){
         try{
           if(typeof lbl !== "string") return lbl;
@@ -2151,6 +2218,15 @@ function renderBuckets(){
         }
 
         const rows = bucketAgg.stats;
+        const hasBucketData = rows.some((row) => Number(row.count || 0) > 0 || Number(row.countTr || 0) > 0 || Number(row.countIm || 0) > 0);
+        if(!hasBucketData){
+          try{ chartBuckets?.destroy(); }catch{}
+          chartBuckets = null;
+          setStatsChartEmpty("chartBuckets", "No data for this chart yet.");
+          if($bucketSel) $bucketSel.textContent = "";
+          return;
+        }
+        setStatsChartEmpty("chartBuckets", "");
         const labels = rows.map(r=>r.label);
         const data = rows.map(r=>modeValue(r));
 
@@ -2265,7 +2341,7 @@ function renderBuckets(){
           plugins: [zeroLinePlugin]
         });
 
-        // mobile-friendly pinned text
+        // Pinned details for selected VR bucket.
         function setBucketSelected(i){
           if(!$bucketSel) return;
           if(i == null || !bucketAgg.stats[i]){
@@ -2304,11 +2380,11 @@ function renderBuckets(){
 
       function setBucketMode(mode, btn){
         window.__bucketMode = mode;
-        const labels = { overall: "Overall", track: "Track only", im: "Intermission only" };
+        const labels = { overall: "Overall", track: "Track", im: "Intermission" };
         document.querySelectorAll("#menuBucketFilter .chartFilterItem").forEach((item) => {
           item.classList.toggle("active", item.dataset.value === mode);
         });
-        if($("bucketFilterMeta")) $("bucketFilterMeta").textContent = labels[mode] || "Overall";
+        if($("bucketFilterMeta")) $("bucketFilterMeta").textContent = "";
         if($("bucketFilterValue")) $("bucketFilterValue").textContent = labels[mode] || "Overall";
         renderBuckets();
       }
@@ -2337,17 +2413,14 @@ function renderBuckets(){
 
       if (matchesAsc.length === 0) {
   $("matchCount").textContent = "0";
-  setStatsReportEnabled(false);
   buildCharts([]); // zeigt leeres Chart mit Default-Range 3000-11000
   setStatus("No matches yet.", false);
   return;
 }
 
       buildCharts(matchesAsc);
-      setStatsReportEnabled(true);
       setStatus("Done.", true);
     } catch (e) {
-      setStatsReportEnabled(false);
       setStatus("Error: " + (e?.message || e), false);
       setDebug(e?.stack || "");
     }
@@ -2356,7 +2429,6 @@ function renderBuckets(){
 
   // Start
   (async () => {
-    bindStatsReport();
     // Guest mode is allowed: continue even without a session.
     await requireAuth();
     await refreshAll();

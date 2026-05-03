@@ -10,6 +10,11 @@ function json(status, payload){
   });
 }
 
+async function readUtf8Html(res){
+  const bytes = await res.arrayBuffer();
+  return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+}
+
 export async function onRequestGet({ request }){
   const url = new URL(request.url);
   const track = String(url.searchParams.get("track") || "").trim();
@@ -29,7 +34,7 @@ export async function onRequestGet({ request }){
       cf: { cacheTtl: 30, cacheEverything: false },
     });
 
-    const html = await res.text();
+    const html = await readUtf8Html(res);
     if(!res.ok){
       return json(res.status, {
         ok: false,

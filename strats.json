@@ -39,7 +39,7 @@
     "Acorn Heights→Toad's Factory": "coming soon [A:T]",
     "Airship Fortress→Bowser's Castle": "coming soon [A:B]",
     "Airship Fortress→Dry Bones Burnout": "coming soon [A:D]",
-    "Airship Fortress→Shy Guy Bazaar": "Special lap: Palace route\n\nStrategy: Bagger\n\nShock Spot:After last item set OR beginning last lap",
+    "Airship Fortress→Shy Guy Bazaar": "Special lap: Daisy's Palace\n\nStrategy: Bagger\n\nShock Spot:After last item set OR beginning last lap",
     "Airship Fortress→Toad's Factory": "coming soon [A:T]",
     "Airship Fortress→Wario Stadium": "coming soon [A:W]",
     "Boo Cinema→Acorn Heights": "coming soon [B:A]",
@@ -227,7 +227,7 @@
     "Wario Stadium→Crown City": "Special lap: Crown City lap 2\n\nStrategy: Frontrunner (there are not many shortcuts you can take for a comeback)\n\nShock Spot:After item set before the ramp into the building hole",
     "Wario Stadium→Dry Bones Burnout": "coming soon [W:D]",
     "Wario Stadium→Mario Bros. Circuit": "Special lap: Mario Bros. Circuit reverse\n\nStrategy: Bagger\n\nShock Spot:After first item set when you reach Mario Bros. Circuit",
-    "Wario Stadium→Shy Guy Bazaar": "Special lap: Palace route\n\nStrategy: Bagger\n\nShock Spot:After last item set OR beginning last lap",
+    "Wario Stadium→Shy Guy Bazaar": "Special lap: Daisy's Palace\n\nStrategy: Bagger\n\nShock Spot:After last item set OR beginning last lap",
     "Wario Stadium→Toad's Factory": "coming soon [W:T]",
     "Whistlestop Summit→Choco Mountain": "coming soon [W:C]",
     "Whistlestop Summit→Crown City": "Special lap: Crown City lap 2\n\nStrategy: Frontrunner (there are not many shortcuts you can take for a comeback)\n\nShock Spot:After item set before the ramp into the building hole",
@@ -291,8 +291,8 @@
         "start": "Airship Fortress",
         "destiny": "Shy Guy Bazaar",
         "is_special": true,
-        "special_tag": "Palace route",
-        "destiny_group": "Shy Guy Bazaar — Palace route"
+        "special_tag": "Daisy's Palace",
+        "destiny_group": "Shy Guy Bazaar — Daisy's Palace"
       },
       "Airship Fortress→Toad's Factory": {
         "start": "Airship Fortress",
@@ -1607,8 +1607,8 @@
         "start": "Wario Stadium",
         "destiny": "Shy Guy Bazaar",
         "is_special": true,
-        "special_tag": "Palace route",
-        "destiny_group": "Shy Guy Bazaar — Palace route"
+        "special_tag": "Daisy's Palace",
+        "destiny_group": "Shy Guy Bazaar — Daisy's Palace"
       },
       "Wario Stadium→Toad's Factory": {
         "start": "Wario Stadium",

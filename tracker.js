@@ -1,10 +1,67 @@
-﻿  function setStatus(msg, ok=false){
+  function setStatus(msg, ok=false){
     const has = !!(msg && String(msg).trim());
-    if (window.MKWT?.setStatus) window.MKWT.setStatus($status, has ? String(msg) : '', ok);
+    if (window.MKWT?.setStatus) {
+      window.MKWT.setStatus($status, has ? String(msg) : '', ok);
+      if ($status) {
+        $status.textContent = '';
+        $status.classList.add('hidden');
+        $status.hidden = true;
+      }
+      return;
+    }
     if ($status) $status.classList.toggle('hidden', !has);
+  }
+  let matchStatusHideTimer = null;
+  let matchStatusExitTimer = null;
+  function setMatchStatus(msg, ok=false, autoHide=true){
+    const el = $("matchStatus");
+    const has = !!(msg && String(msg).trim());
+    if (matchStatusHideTimer) {
+      clearTimeout(matchStatusHideTimer);
+      matchStatusHideTimer = null;
+    }
+    if (matchStatusExitTimer) {
+      clearTimeout(matchStatusExitTimer);
+      matchStatusExitTimer = null;
+    }
+    if (!el) {
+      setStatus(msg, ok);
+      return;
+    }
+    if (!has) {
+      el.textContent = "";
+      el.className = "matchFormStatus hidden";
+      return;
+    }
+    el.textContent = String(msg);
+    el.className = "matchFormStatus " + (ok ? "ok" : "bad");
+    requestAnimationFrame(() => {
+      if (el.textContent === String(msg)) el.classList.add("is-visible");
+    });
+    if (has && autoHide) {
+      const currentMsg = String(msg);
+      matchStatusHideTimer = setTimeout(() => {
+        if (el.textContent !== currentMsg) return;
+        el.classList.remove("is-visible");
+        matchStatusHideTimer = null;
+        matchStatusExitTimer = setTimeout(() => {
+          if (el.textContent !== currentMsg) return;
+          el.textContent = "";
+          el.className = "matchFormStatus hidden";
+          matchStatusExitTimer = null;
+        }, 220);
+      }, 2000);
+    }
   }
   function setDebug(msg){ window.MKWT?.setDebug?.($debug, msg); }
   function show(el, on){ el.classList.toggle("hidden", !on); }
+
+  function setFieldValue(id, value, eventName = "change"){
+    const el = $(id);
+    if (!el) return;
+    el.value = value;
+    try { el.dispatchEvent(new Event(eventName, { bubbles: true })); } catch(e) {}
+  }
 
   function ensureOption(selectEl, value, label){
     try{
@@ -49,7 +106,9 @@
     const elAfter = $("editVrAfter");
     if (!elDelta || !elAfter) return;
 
-    const d = Number(elDelta.value);
+    const raw = String(elDelta.value || "").trim();
+    if (!raw) { elAfter.value = ""; return; }
+    const d = Number(raw);
     if (!Number.isFinite(d)) { elAfter.value = ""; return; }
 
     _syncingEditVr = true;
@@ -63,7 +122,9 @@
     const elAfter = $("editVrAfter");
     if (!elDelta || !elAfter) return;
 
-    const a = Number(elAfter.value);
+    const raw = String(elAfter.value || "").trim();
+    if (!raw) { elDelta.value = ""; return; }
+    const a = Number(raw);
     if (!Number.isFinite(a)) { elDelta.value = ""; return; }
 
     _syncingEditVr = true;
@@ -80,7 +141,9 @@
     const elDelta = $("vrChange");
     const elAfter = $("vrAfterInput");
     if (!elDelta || !elAfter) return;
-    const d = Number(elDelta.value);
+    const raw = String(elDelta.value || "").trim();
+    if (!raw) { elAfter.value = String(getBaseVr()); return; }
+    const d = Number(raw);
     if (!Number.isFinite(d)) { elAfter.value = ""; return; }
     _syncingVr = true;
     elAfter.value = String(getBaseVr() + d);
@@ -91,7 +154,9 @@
     const elDelta = $("vrChange");
     const elAfter = $("vrAfterInput");
     if (!elDelta || !elAfter) return;
-    const a = Number(elAfter.value);
+    const raw = String(elAfter.value || "").trim();
+    if (!raw) { elDelta.value = ""; return; }
+    const a = Number(raw);
     if (!Number.isFinite(a)) { elDelta.value = ""; return; }
     _syncingVr = true;
     elDelta.value = String(a - getBaseVr());
@@ -106,6 +171,11 @@ function escapeHtml(s){
 }
 
 let trackIconPaths = new Map();
+const trackIconReadyPaths = new Set();
+const trackIconFailedPaths = new Set();
+const trackIconPreloadPromises = new Map();
+let trackPickerIconWarmupPromise = null;
+let trackPickerIconRefreshQueued = false;
 
 function cleanTrackText(value){
   return String(value ?? "").replace(/\s+/g, " ").trim();
@@ -116,6 +186,13 @@ function placementBannerClass(placement){
   if (place === 1) return "trackerRow--gold";
   if (place === 2) return "trackerRow--silver";
   if (place === 3) return "trackerRow--bronze";
+  return "";
+}
+
+function placementIconClass(placement){
+  const place = Number(placement);
+  if (place === 1) return "mcard__iconStage--gold";
+  if (place === 2) return "mcard__iconStage--silver";
   return "";
 }
 
@@ -161,12 +238,611 @@ async function loadTrackIconMap() {
   }
 }
 
-function trackIconMarkup(trackName, extraClass = "") {
-  const iconPath = trackIconPaths.get(canonicalTrackName(trackName));
-  if (iconPath) {
-    return `<img class="mcard__routeIcon ${escapeHtml(extraClass)}" src="${escapeHtml(iconPath)}" alt="${escapeHtml(trackName)}" title="${escapeHtml(trackName)}" loading="lazy" decoding="async" />`;
+function getTrackIconPath(trackName){
+  return trackIconPaths.get(canonicalTrackName(trackName)) || "";
+}
+
+function pickerIconPathFromSource(iconPath, group){
+  const cleanPath = cleanTrackText(iconPath).replace(/\\/g, "/");
+  const fileName = cleanPath.split("/").pop();
+  return fileName ? `assets/picker-icons/${group}/${fileName}` : "";
+}
+
+function getTrackPickerIconPath(trackName){
+  const iconPath = getTrackIconPath(trackName);
+  return pickerIconPathFromSource(iconPath, "tracks") || iconPath;
+}
+
+function scheduleTrackPickerIconRefresh(){
+  if (trackPickerIconRefreshQueued) return;
+  trackPickerIconRefreshQueued = true;
+  requestAnimationFrame(() => {
+    trackPickerIconRefreshQueued = false;
+    try { window.MKWT_TRACK_PICKERS?.refreshTrackPickers?.(); } catch(e) {}
+  });
+}
+
+function preloadTrackIconPath(iconPath){
+  if (!iconPath || trackIconReadyPaths.has(iconPath) || trackIconFailedPaths.has(iconPath)) {
+    return Promise.resolve(trackIconReadyPaths.has(iconPath));
   }
-  return `<div class="mcard__routeIconFallback ${escapeHtml(extraClass)}" title="${escapeHtml(trackName)}">${escapeHtml(trackAbbrev(trackName))}</div>`;
+  if (trackIconPreloadPromises.has(iconPath)) return trackIconPreloadPromises.get(iconPath);
+
+  const promise = new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.fetchPriority = "low";
+    img.onload = async () => {
+      try { await img.decode?.(); } catch(e) {}
+      trackIconReadyPaths.add(iconPath);
+      scheduleTrackPickerIconRefresh();
+      resolve(true);
+    };
+    img.onerror = () => {
+      trackIconFailedPaths.add(iconPath);
+      resolve(false);
+    };
+    img.src = iconPath;
+  });
+
+  trackIconPreloadPromises.set(iconPath, promise);
+  return promise;
+}
+
+function preloadTrackPickerIcons(){
+  if (trackPickerIconWarmupPromise) return trackPickerIconWarmupPromise;
+  const paths = [...new Set(TRACKS.map(getTrackPickerIconPath).filter(Boolean))];
+  trackPickerIconWarmupPromise = Promise.allSettled(paths.map(preloadTrackIconPath));
+  return trackPickerIconWarmupPromise;
+}
+
+function trackIconMarkup(trackName, extraClass = "", withFoil = false) {
+  const iconPath = getTrackIconPath(trackName);
+  const classSuffix = extraClass ? ` ${escapeHtml(extraClass)}` : "";
+  const safeTrack = escapeHtml(trackName);
+  if (iconPath) {
+    const safePath = escapeHtml(iconPath);
+    const baseIcon = `<img class="mcard__routeIcon${classSuffix}" src="${safePath}" alt="${safeTrack}" title="${safeTrack}" loading="lazy" decoding="async" />`;
+    if (!withFoil) return baseIcon;
+    return `<span class="mcard__routeIconWrap">${baseIcon}<img class="mcard__routeIcon mcard__routeIconFoil" src="${safePath}" alt="" aria-hidden="true" loading="lazy" decoding="async" /></span>`;
+  }
+  const fallbackText = escapeHtml(trackAbbrev(trackName));
+  const baseFallback = `<span class="mcard__routeIconFallback${classSuffix}" title="${safeTrack}">${fallbackText}</span>`;
+  if (!withFoil) return baseFallback;
+  return `<span class="mcard__routeIconWrap">${baseFallback}<span class="mcard__routeIconFallback mcard__routeIconFoil" aria-hidden="true">${fallbackText}</span></span>`;
+}
+
+const TRACK_PICKER_TEST_ENABLED = true;
+
+function initTrackPickers(){
+  if (!TRACK_PICKER_TEST_ENABLED) return;
+  const pickerConfigs = [
+    { id: "intermission", kind: "track" },
+    { id: "track", kind: "track" },
+    { id: "editIntermission", kind: "track" },
+    { id: "editTrack", kind: "track" },
+    { id: "opponents", kind: "number", values: Array.from({ length: 23 }, (_, index) => String(23 - index)), columns: 5, width: 390 },
+    { id: "placement", kind: "number", values: Array.from({ length: 24 }, (_, index) => String(index + 1)), columns: 6, width: 430 },
+    { id: "editOpponents", kind: "number", values: Array.from({ length: 23 }, (_, index) => String(23 - index)), columns: 5, width: 390 },
+    { id: "editPlacement", kind: "number", values: Array.from({ length: 24 }, (_, index) => String(index + 1)), columns: 6, width: 430 }
+  ];
+  const selects = pickerConfigs
+    .map((config) => ({ ...config, selectEl: document.getElementById(config.id) }))
+    .filter((config) => config.selectEl);
+  if (!selects.length) return;
+  const pickers = new Map();
+  const backdrop = document.createElement("div");
+  backdrop.className = "trackPickerBackdrop";
+  backdrop.hidden = true;
+  document.body.appendChild(backdrop);
+
+  let scrollLockY = 0;
+  let scrollLocked = false;
+  let activeLetterPicker = null;
+
+  const lockPageScroll = () => {
+    if (scrollLocked) return;
+    scrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.documentElement.classList.add("trackPickerScrollLocked");
+    document.body.classList.add("trackPickerScrollLocked");
+    document.body.style.top = `-${scrollLockY}px`;
+    scrollLocked = true;
+  };
+
+  const unlockPageScroll = () => {
+    if (!scrollLocked) return;
+    document.documentElement.classList.remove("trackPickerScrollLocked");
+    document.body.classList.remove("trackPickerScrollLocked");
+    document.body.style.top = "";
+    window.scrollTo(0, scrollLockY);
+    scrollLocked = false;
+  };
+
+  const showBackdrop = () => {
+    backdrop.hidden = false;
+    backdrop.classList.add("is-visible");
+    lockPageScroll();
+  };
+
+  const hideBackdrop = () => {
+    backdrop.classList.remove("is-visible");
+    backdrop.hidden = true;
+    unlockPageScroll();
+  };
+
+  const getSelectLabel = (selectEl) => {
+    const label = document.querySelector(`label[for="${CSS.escape(selectEl.id)}"]`);
+    return (label?.textContent || "Select track").trim();
+  };
+
+  const getTriggerText = (selectEl) => {
+    const value = selectEl.value;
+    if (!value) return getSelectLabel(selectEl);
+    const selected = selectEl.selectedOptions?.[0];
+    return (selected?.value || value).trim();
+  };
+
+  const readOptions = (selectEl) => {
+    const options = Array.from(selectEl.options || [])
+      .filter((option) => option.value)
+      .map((option) => ({
+        value: option.value,
+        label: (option.textContent || option.value).replace(/^Suggested:\s*/i, "").trim(),
+        suggested: option.dataset?.suggested === "1"
+      }));
+
+    return options.sort((a, b) => {
+      if (a.suggested !== b.suggested) return a.suggested ? -1 : 1;
+      return String(a.value).localeCompare(String(b.value));
+    });
+  };
+
+  const readNumberOptions = (picker) => {
+    const values = Array.isArray(picker.values) ? picker.values : [];
+    return values.map((value) => ({ value, label: value }));
+  };
+
+  const groupOptions = (options) => {
+    const groups = [];
+    const suggested = options.filter((option) => option.suggested);
+    const regular = options.filter((option) => !option.suggested);
+
+    if (suggested.length) groups.push({ label: "Suggested", options: suggested, suggested: true });
+
+    for (const option of regular) {
+      const label = (option.value || option.label || "?").trim().charAt(0).toUpperCase() || "?";
+      let group = groups.find((item) => item.label === label);
+      if (!group) {
+        group = { label, options: [] };
+        groups.push(group);
+      }
+      group.options.push(option);
+    }
+    return groups;
+  };
+
+  const getTrackLetter = (option) => {
+    const text = String(option?.value || option?.label || "").trim();
+    return (text.charAt(0) || "?").toUpperCase();
+  };
+
+  const getTrackLetters = (options) => {
+    return Array.from(new Set(options.map(getTrackLetter).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b));
+  };
+
+  const getActiveTrackLetter = (picker, letters) => {
+    const current = picker.letterFilter || "all";
+    if (current !== "all" && !letters.includes(current)) {
+      picker.letterFilter = "all";
+      return "all";
+    }
+    return current;
+  };
+
+  const filterTrackOptionsByLetter = (options, letter) => {
+    if (!letter || letter === "all") return options;
+    return options.filter((option) => getTrackLetter(option) === letter);
+  };
+
+  const createIconSlot = (trackName) => {
+    const slot = document.createElement("span");
+    slot.className = "trackPicker__iconSlot";
+    slot.setAttribute("aria-hidden", "true");
+
+    const iconPath = getTrackPickerIconPath(trackName);
+    if (iconPath && trackIconReadyPaths.has(iconPath)) {
+      const img = document.createElement("img");
+      img.className = "trackPicker__icon";
+      img.src = iconPath;
+      img.alt = "";
+      img.width = 24;
+      img.height = 24;
+      img.decoding = "async";
+      img.loading = "eager";
+      slot.appendChild(img);
+      return slot;
+    }
+
+    const fallback = document.createElement("span");
+    fallback.className = "trackPicker__iconFallback";
+    fallback.textContent = trackAbbrev(trackName);
+    slot.appendChild(fallback);
+    return slot;
+  };
+
+  const closeAll = (exceptPicker = null) => {
+    if (!exceptPicker) activeLetterPicker = null;
+    for (const picker of pickers.values()) {
+      if (picker === exceptPicker) continue;
+      picker.root.classList.remove("is-open");
+      picker.trigger.setAttribute("aria-expanded", "false");
+      picker.panel.hidden = true;
+      picker.panel.style.left = "";
+      picker.panel.style.top = "";
+      picker.panel.style.width = "";
+    }
+    if (!exceptPicker) hideBackdrop();
+  };
+
+  const applyLetterFilter = (picker, letter) => {
+    if (!picker || picker.kind !== "track" || picker.panel.hidden) return;
+    const next = letter || "all";
+    if ((picker.letterFilter || "all") === next) return;
+    picker.letterFilter = next;
+    renderPanel(picker);
+    alignPanel(picker);
+  };
+
+  const applyLetterFilterFromPoint = (clientX, clientY) => {
+    if (!activeLetterPicker) return;
+    const target = document.elementFromPoint(clientX, clientY);
+    const button = target?.closest?.("[data-letter-filter]");
+    if (!button || !activeLetterPicker.panel.contains(button)) return;
+    applyLetterFilter(activeLetterPicker, button.dataset.letterFilter || "all");
+  };
+
+  const renderPanel = (picker) => {
+    const { selectEl, panel } = picker;
+    panel.innerHTML = "";
+
+    if (picker.kind === "number") {
+      const grid = document.createElement("div");
+      grid.className = "numberPicker__grid";
+      grid.style.setProperty("--number-picker-cols", String(picker.columns || 5));
+
+      for (const option of readNumberOptions(picker)) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "numberPicker__option";
+        if ((picker.id === "placement" || picker.id === "editPlacement") && ["1", "2", "3"].includes(option.value)) {
+          item.classList.add(`numberPicker__option--place${option.value}`);
+        }
+        item.dataset.value = option.value;
+        item.setAttribute("role", "option");
+        item.setAttribute("aria-selected", selectEl.value === option.value ? "true" : "false");
+        item.textContent = option.label;
+        grid.appendChild(item);
+      }
+
+      panel.appendChild(grid);
+      return;
+    }
+
+    const allOptions = readOptions(selectEl);
+    const letters = getTrackLetters(allOptions);
+    const activeLetter = getActiveTrackLetter(picker, letters);
+    const visibleOptions = filterTrackOptionsByLetter(allOptions, activeLetter);
+    const letterCount = letters.length + 1;
+    panel.style.setProperty("--track-picker-letter-count", String(letterCount));
+    panel.style.setProperty("--track-picker-mobile-height", `${32 + (letterCount * 24) + ((letterCount - 1) * 4)}px`);
+
+    const layout = document.createElement("div");
+    layout.className = "trackPicker__layout";
+
+    const rail = document.createElement("div");
+    rail.className = "trackPicker__letterRail";
+    rail.setAttribute("aria-label", "Track letter filter");
+
+    const appendLetterButton = (label, value) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "trackPicker__letterBtn";
+      if (value === "all") button.classList.add("trackPicker__letterBtn--all");
+      if (activeLetter === value) button.classList.add("is-active");
+      button.dataset.letterFilter = value;
+      button.setAttribute("aria-pressed", activeLetter === value ? "true" : "false");
+      button.textContent = label;
+      rail.appendChild(button);
+    };
+
+    appendLetterButton("All", "all");
+    for (const letter of letters) appendLetterButton(letter, letter);
+
+    rail.addEventListener("click", (event) => {
+      const letterButton = event.target.closest?.("[data-letter-filter]");
+      if (!letterButton) return;
+      event.preventDefault();
+      applyLetterFilter(picker, letterButton.dataset.letterFilter || "all");
+    });
+    rail.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const letterButton = event.target.closest?.("[data-letter-filter]");
+      if (!letterButton) return;
+      event.preventDefault();
+      if ((picker.letterFilter || "all") !== "all") {
+        resetLetterFilterToAll(picker);
+        return;
+      }
+      applyLetterFilter(picker, letterButton.dataset.letterFilter || "all");
+    });
+    rail.addEventListener("pointerdown", (event) => {
+      if (!event.target.closest?.("[data-letter-filter]")) return;
+      event.preventDefault();
+      activeLetterPicker = picker;
+      applyLetterFilterFromPoint(event.clientX, event.clientY);
+    });
+
+    const trackArea = document.createElement("div");
+    trackArea.className = "trackPicker__trackArea";
+
+    const groupsEl = document.createElement("div");
+    groupsEl.className = "trackPicker__groups";
+
+    for (const group of groupOptions(visibleOptions)) {
+      const groupEl = document.createElement("div");
+      groupEl.className = "trackPicker__group";
+      if (group.suggested) groupEl.classList.add("trackPicker__group--suggested");
+
+      const head = document.createElement("div");
+      head.className = "trackPicker__groupLabel";
+      head.textContent = group.label;
+      groupEl.appendChild(head);
+
+      for (const option of group.options) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "trackPicker__option";
+        if (option.suggested) item.classList.add("trackPicker__option--suggested");
+        item.dataset.value = option.value;
+        item.setAttribute("role", "option");
+        item.setAttribute("aria-selected", selectEl.value === option.value ? "true" : "false");
+        item.title = option.value;
+        item.appendChild(createIconSlot(option.value));
+        const text = document.createElement("span");
+        text.className = "trackPicker__optionText";
+        text.textContent = option.label || option.value;
+        item.appendChild(text);
+        groupEl.appendChild(item);
+      }
+
+      groupsEl.appendChild(groupEl);
+    }
+
+    if (!groupsEl.children.length) {
+      const empty = document.createElement("div");
+      empty.className = "trackPicker__empty";
+      empty.textContent = "No tracks";
+      groupsEl.appendChild(empty);
+    }
+
+    trackArea.appendChild(groupsEl);
+    layout.appendChild(rail);
+    layout.appendChild(trackArea);
+    panel.appendChild(layout);
+  };
+
+  const refreshPicker = (picker) => {
+    const text = getTriggerText(picker.selectEl);
+    picker.valueEl.textContent = text;
+    picker.trigger.title = text;
+    picker.trigger.classList.toggle("is-placeholder", !picker.selectEl.value);
+      if (!picker.panel.hidden) renderPanel(picker);
+  };
+
+  const resetLetterFilterToAll = (picker, focusAll = true) => {
+    if (!picker || picker.kind !== "track" || picker.panel.hidden) return false;
+    if ((picker.letterFilter || "all") === "all") return false;
+    picker.letterFilter = "all";
+    renderPanel(picker);
+    alignPanel(picker);
+    if (focusAll) {
+      window.requestAnimationFrame(() => {
+        picker.panel.querySelector('[data-letter-filter="all"]')?.focus?.();
+      });
+    }
+    return true;
+  };
+
+  const applyKeyboardLetterFilter = (picker, key) => {
+    if (!picker || picker.kind !== "track" || picker.panel.hidden) return false;
+    const letter = String(key || "").trim().charAt(0).toUpperCase();
+    if (!/^[A-Z0-9]$/.test(letter)) return false;
+    const letters = getTrackLetters(readOptions(picker.selectEl));
+    if (!letters.includes(letter)) return false;
+    applyLetterFilter(picker, letter);
+    window.requestAnimationFrame(() => {
+      picker.panel.querySelector(`[data-letter-filter="${CSS.escape(letter)}"]`)?.focus?.();
+    });
+    return true;
+  };
+
+  const findOpenPicker = () => {
+    return Array.from(pickers.values()).find((picker) => !picker.panel.hidden) || null;
+  };
+
+  const alignPanel = (picker) => {
+    picker.panel.style.left = "";
+    picker.panel.style.top = "";
+    picker.panel.style.width = "";
+
+    const viewport = window.visualViewport || {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      offsetLeft: 0,
+      offsetTop: 0
+    };
+    const isMobile = viewport.width < 760;
+    const margin = isMobile ? 10 : 16;
+    const desiredWidth = picker.kind === "number"
+      ? (picker.width || 390)
+      : (isMobile ? 760 : 900);
+    const panelWidth = Math.min(desiredWidth, viewport.width - (margin * 2));
+    const centeredLeft = viewport.offsetLeft + ((viewport.width - panelWidth) / 2);
+    picker.panel.style.width = `${Math.round(panelWidth)}px`;
+    picker.panel.style.left = `${Math.round(centeredLeft)}px`;
+
+    const panelRect = picker.panel.getBoundingClientRect();
+    const preferredTop = viewport.offsetTop + ((viewport.height - panelRect.height) / 2);
+    const maxTop = viewport.offsetTop + viewport.height - panelRect.height - margin;
+    const top = Math.max(viewport.offsetTop + margin, Math.min(preferredTop, maxTop));
+    picker.panel.style.top = `${Math.round(top)}px`;
+  };
+
+  const openPicker = (picker) => {
+    closeAll(picker);
+    if (picker.kind === "track") picker.letterFilter = "all";
+    if (picker.kind === "track") preloadTrackPickerIcons();
+    renderPanel(picker);
+    picker.panel.hidden = false;
+    picker.root.classList.add("is-open");
+    picker.trigger.setAttribute("aria-expanded", "true");
+    alignPanel(picker);
+    showBackdrop();
+  };
+
+  const togglePicker = (picker) => {
+    if (picker.panel.hidden) openPicker(picker);
+    else closeAll();
+  };
+
+  for (const config of selects) {
+    const selectEl = config.selectEl;
+    if (selectEl.dataset.trackPickerReady === "1") continue;
+    selectEl.dataset.trackPickerReady = "1";
+    selectEl.classList.add("trackNativeSelect");
+
+    const root = document.createElement("div");
+    root.className = `trackPicker ${config.kind === "number" ? "trackPicker--number" : "trackPicker--track"}`;
+    root.dataset.selectId = selectEl.id;
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "trackPicker__trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+
+    const valueEl = document.createElement("span");
+    valueEl.className = "trackPicker__value";
+    trigger.appendChild(valueEl);
+
+    const chevron = document.createElement("span");
+    chevron.className = "trackPicker__chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = "v";
+    trigger.appendChild(chevron);
+
+    const panel = document.createElement("div");
+    panel.className = "trackPicker__panel";
+    if (config.kind === "number") panel.classList.add("trackPicker__panel--number");
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    root.appendChild(trigger);
+    root.appendChild(panel);
+    selectEl.insertAdjacentElement("afterend", root);
+
+    const picker = { ...config, selectEl, root, trigger, valueEl, panel };
+    pickers.set(selectEl.id, picker);
+
+    trigger.addEventListener("click", () => togglePicker(picker));
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      if (!picker.panel.hidden && picker.kind === "track" && (picker.letterFilter || "all") !== "all") {
+        resetLetterFilterToAll(picker);
+        return;
+      }
+      togglePicker(picker);
+    });
+
+    panel.addEventListener("click", (event) => {
+      const optionButton = event.target.closest?.("[data-value]");
+      if (!optionButton) return;
+      selectEl.value = optionButton.dataset.value || "";
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+      closeAll();
+      refreshPicker(picker);
+      trigger.focus();
+    });
+
+    selectEl.addEventListener("change", () => refreshPicker(picker));
+
+    const observer = new MutationObserver(() => refreshPicker(picker));
+    observer.observe(selectEl, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["data-suggested"]
+    });
+
+    refreshPicker(picker);
+  }
+
+  document.addEventListener("click", (event) => {
+    const insidePicker = event.target.closest?.(".trackPicker");
+    if (!insidePicker) closeAll();
+  });
+  document.addEventListener("pointermove", (event) => {
+    if (!activeLetterPicker) return;
+    event.preventDefault();
+    applyLetterFilterFromPoint(event.clientX, event.clientY);
+  }, { passive: false });
+  document.addEventListener("pointerup", () => {
+    activeLetterPicker = null;
+  });
+  document.addEventListener("pointercancel", () => {
+    activeLetterPicker = null;
+  });
+  backdrop.addEventListener("click", () => closeAll());
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      if (findOpenPicker()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      closeAll();
+      return;
+    }
+    const openPicker = findOpenPicker();
+    if (!openPicker) return;
+    const target = event.target;
+    const isTextTarget = target?.matches?.("input, textarea, select") || target?.isContentEditable;
+    if (isTextTarget || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key.length === 1 && /^[a-z0-9]$/i.test(event.key)) {
+      if (applyKeyboardLetterFilter(openPicker, event.key)) event.preventDefault();
+      return;
+    }
+    if ((event.key === "Enter" || event.key === " ")
+      && !target?.closest?.(".trackPicker__option, .numberPicker__option, .trackPicker__trigger")
+      && resetLetterFilterToAll(openPicker)) {
+      event.preventDefault();
+    }
+  });
+  window.addEventListener("resize", () => closeAll());
+
+  window.MKWT_TRACK_PICKERS = {
+    refreshAll(){
+      for (const picker of pickers.values()) refreshPicker(picker);
+    },
+    refreshTrackPickers(){
+      for (const picker of pickers.values()) {
+        if (picker.kind === "track") refreshPicker(picker);
+      }
+    },
+    closeAll
+  };
 }
 
 // All Intermission combinations (Start -> End). Used to filter the dropdowns.
@@ -187,7 +863,6 @@ function trackIconMarkup(trackName, extraClass = "") {
   // window.SESSION is exposed for shared navbar actions, but should not be relied on here.
 
   // ========= Guest Profile (local) =========
-  const GUEST_PROFILE_KEY = "mkwt_guest_profile_v1";
   const loadGuestProfile = () => (window.MKWT?.loadGuestProfile ? window.MKWT.loadGuestProfile() : { id:'guest', nickname:'Guest', current_vr:0, created_at:null });
   const saveGuestProfile = (p) => { try{ window.MKWT?.saveGuestProfile?.(p); }catch(e){} };
   function updateGuestCurrentVR(vr){
@@ -278,7 +953,7 @@ async function createProfile() {
     }
   }
 
-  
+
 /* saveSettings removed (moved to settings.html) */
 
 
@@ -354,7 +1029,7 @@ async function loadMatches() {
     return;
   }
 
-  
+
   // INIT/UPDATE_SUGGESTION_FROM_LATEST_MATCH:
   // Always keep Suggestion in sync with the newest (top) match.
   // Only do this on page 1 (which contains the newest match). Otherwise pagination
@@ -431,7 +1106,7 @@ async function loadMatches() {
               </div>
             </td>
           </tr>`;
-    
+
 }).join("");
 
   // Mobile cards (same data, cleaner layout)
@@ -439,7 +1114,7 @@ async function loadMatches() {
     $cards.innerHTML = data.map((r, idx) => {
       const matchNo = totalMatches - (from + idx);
       const d = r.created_at ? new Date(r.created_at) : null;
-      const createdShort = d ? d.toLocaleString("en-US", { year:"numeric", month:"2-digit", day:"2-digit", hour:"numeric", minute:"2-digit", hour12:true }) : "";
+      const createdShort = d ? d.toLocaleString("de-DE") : "";
       const intermission = (r.intermission ?? "") ? String(r.intermission) : "";
       const track = (r.track ?? "") ? String(r.track) : "";
       const isIntermission = !!intermission;
@@ -449,56 +1124,60 @@ const endName = track || "-";
 
 const trackHtml = isIntermission
   ? `<div class="mcard__route mcard__route--im" title="${escapeHtml(startName)} > ${escapeHtml(endName)}">
-       <div class="mcard__routeNode" title="${escapeHtml(startName)}">${trackIconMarkup(startName)}</div>
+       <div class="mcard__routeNode" title="${escapeHtml(startName)}">${trackIconMarkup(startName, "", true)}</div>
        <div class="mcard__routeArrow" aria-hidden="true">&rarr;</div>
-       <div class="mcard__routeNode mcard__routeNode--destiny" title="${escapeHtml(endName)}">${trackIconMarkup(endName)}</div>
+       <div class="mcard__routeNode mcard__routeNode--destiny" title="${escapeHtml(endName)}">${trackIconMarkup(endName, "", true)}</div>
      </div>`
   : `<div class="mcard__route" title="${escapeHtml(endName)}">
-       <div class="mcard__routeNode" title="${escapeHtml(endName)}">${trackIconMarkup(endName)}</div>
+       <div class="mcard__routeNode" title="${escapeHtml(endName)}">${trackIconMarkup(endName, "", true)}</div>
      </div>`;
       const delta = Number(r.vr_change || 0);
       const vrAfter = (r.vr_after ?? null);
       const vrNow = (vrAfter == null ? "-" : String(Number(vrAfter)));
       const deltaStr = (delta > 0 ? `+${delta}` : `${delta}`);
-      const deltaCls = delta > 0 ? "mcard__vrDelta--pos" : "mcard__vrDelta--neg";
+      const deltaCls = delta > 0 ? "mcard__vrDelta--pos" : (delta < 0 ? "mcard__vrDelta--neg" : "mcard__vrDelta--neutral");
       const canDelete = (currentPage === 1 && idx === 0);
+      const iconClass = placementIconClass(r.placement);
 
       const hasPlace = (r.placement != null && r.placement !== "" && Number(r.placement) > 0);
       const hasOpp = (r.opponents != null && r.opponents !== "" && Number(r.opponents) > 0);
 
-      // Every match shows an info button. Popover always contains Date/Time,
-      // and additionally Placement/Opponents only if provided.
-      const infoBtnHtml = `<button class="mcard__infoBtn" title="Info" data-action="info">i</button>`;
-
-      const infoLine = (hasPlace && hasOpp)
-        ? `<span class="infoLine"><strong>Place</strong>: ${escapeHtml(String(r.placement))} <span class="sep">.</span> <strong>Opp</strong>: ${escapeHtml(String(r.opponents))}</span>`
-        : (hasPlace
-            ? `<span class="infoLine"><strong>Place</strong>: ${escapeHtml(String(r.placement))}</span>`
-            : `<span class="infoLine"><strong>Opp</strong>: ${escapeHtml(String(r.opponents))}</span>`
-          );
-
-      const infoPopHtml = `
-        <div class="mcard__infoPop" hidden>
-          <div class="row"><span class="infoLine"><strong>Date</strong>: ${escapeHtml(createdShort || "-")}</span></div>
-          ${ (hasPlace || hasOpp) ? `<div class="row">${infoLine}</div>` : `` }
+      const detailRowsHtml = `
+        <div class="mcard__detailRow">
+          <span class="mcard__detailLabel">Date & time</span>
+          <span class="mcard__detailValue">${escapeHtml(createdShort || "-")}</span>
+        </div>
+        <div class="mcard__detailRow">
+          <span class="mcard__detailLabel">Placement</span>
+          <span class="mcard__detailValue">${hasPlace ? escapeHtml(String(r.placement)) : "-"}</span>
+        </div>
+        <div class="mcard__detailRow">
+          <span class="mcard__detailLabel">Opponents</span>
+          <span class="mcard__detailValue">${hasOpp ? escapeHtml(String(r.opponents)) : "-"}</span>
         </div>`;
 
       return `
-        <div class="mcard ${isIntermission ? "mcard--im" : ""} ${placementBannerClass(r.placement)}" data-match-id="${r.id}">
-          <div class="mcard__meta mcard__meta--tl"><span>#${matchNo}</span>${infoBtnHtml}</div>
-          ${infoPopHtml}
+        <div class="mcard${isIntermission ? " mcard--im" : ""}" data-match-id="${r.id}" tabindex="0" aria-expanded="false">
+          <div class="mcard__meta mcard__meta--tl"><span>#${matchNo}</span></div>
 
           <div class="mcard__main">
-            ${trackHtml}
+            <div class="mcard__iconStage${iconClass ? ` ${iconClass}` : ""}" aria-hidden="false">
+              ${trackHtml}
+            </div>
             <div class="mcard__vr">
               <span class="mcard__vrTotal">${escapeHtml(vrNow)}</span>
               <span class="mcard__vrDelta ${deltaCls}">(${escapeHtml(deltaStr)})</span>
             </div>
           </div>
 
-          <div class="mcard__actions">
-            <button class="mcard__btn" title="Edit" data-action="edit" data-id="${r.id}">Edit</button>
-            ${canDelete ? `<button class="mcard__btn" title="Delete" data-action="del" data-id="${r.id}">Delete</button>` : ``}
+          <div class="mcard__details" hidden>
+            <div class="mcard__detailGrid">
+              ${detailRowsHtml}
+            </div>
+            <div class="mcard__actions">
+              <button class="mcard__btn" title="Edit" data-action="edit" data-id="${r.id}">Edit</button>
+              ${canDelete ? `<button class="mcard__btn mcard__btn--danger" title="Delete" data-action="del" data-id="${r.id}">Delete</button>` : ``}
+            </div>
           </div>
         </div>`;
     }).join("");
@@ -517,32 +1196,42 @@ const trackHtml = isIntermission
 
   // Same handlers for mobile cards
   if ($cards) {
-    $cards.querySelectorAll("button[data-action]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-id");
-        const action = btn.getAttribute("data-action");
+    const setCardExpanded = (card, expanded) => {
+      if (!card) return;
+      const details = card.querySelector(".mcard__details");
+      if (!details) return;
+      card.classList.toggle("is-expanded", expanded);
+      card.setAttribute("aria-expanded", expanded ? "true" : "false");
+      details.hidden = !expanded;
+    };
+    const toggleCard = (card) => {
+      const willExpand = !card.classList.contains("is-expanded");
+      $cards.querySelectorAll(".mcard.is-expanded").forEach((openCard) => {
+        if (openCard !== card) setCardExpanded(openCard, false);
+      });
+      setCardExpanded(card, willExpand);
+    };
+    $cards.onclick = async (event) => {
+      const actionButton = event.target.closest?.("button[data-action]");
+      if (actionButton) {
+        event.stopPropagation();
+        const id = actionButton.getAttribute("data-id");
+        const action = actionButton.getAttribute("data-action");
         if (action === "edit") await openEditDialog(id);
         if (action === "del") await deleteMatch(id);
-        if (action === "info") {
-          const card = btn.closest('.mcard');
-          if (!card) return;
-          const pop = card.querySelector('.mcard__infoPop');
-          if (!pop) return;
-          // close other open pops
-          $cards.querySelectorAll('.mcard__infoPop:not([hidden])').forEach(el => { if (el !== pop) el.hidden = true; });
-          pop.hidden = !pop.hidden;
-          return;
-        }
-      });
-    });
-    // close info popovers on outside tap
-    $cards.addEventListener("click", (e) => {
-      const isInfo = e.target && (e.target.closest && e.target.closest(".mcard__infoBtn"));
-      const isAction = e.target && (e.target.closest && e.target.closest(".mcard__actions"));
-      if (isInfo || isAction) return;
-      $cards.querySelectorAll(".mcard__infoPop:not([hidden])").forEach(el => el.hidden = true);
-    });
-
+        return;
+      }
+      const card = event.target.closest?.(".mcard");
+      if (card) toggleCard(card);
+    };
+    $cards.onkeydown = (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      if (event.target.closest?.("button")) return;
+      const card = event.target.closest?.(".mcard");
+      if (!card) return;
+      event.preventDefault();
+      toggleCard(card);
+    };
   }
 }
 
@@ -551,6 +1240,7 @@ const trackHtml = isIntermission
     btn.disabled = true;
 
     try {
+      setMatchStatus("", true);
       const mode = document.querySelector(".modeBtn.isActive")?.dataset.mode || "intermission";
       const intermissionSel = $("intermission");
       const intermission = (mode === "intermission") ? (intermissionSel?.value || null) : null;
@@ -562,15 +1252,15 @@ const trackHtml = isIntermission
 const opponentsRaw = $("opponents").value;
       const placementRaw = $("placement").value;
 
-        if (!track) { setStatus("Please select a track.", false); return; }
-    if (mode === "intermission" && !intermission) { setStatus("Please select an intermission start.", false); return; }
-      if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setStatus("Please enter VR change or the VR after the match.", false); return; }
+        if (!track) { setMatchStatus("Please select a track.", false); return; }
+    if (mode === "intermission" && !intermission) { setMatchStatus("Please select an intermission start.", false); return; }
+      if (!Number.isFinite(vr_change_in) && !Number.isFinite(vr_after_in)) { setMatchStatus("Please enter VR change or the VR after the match.", false); return; }
 
       let opponents = null;
       if (opponentsRaw !== "") {
         opponents = parseInt(opponentsRaw, 10);
         if (!Number.isFinite(opponents) || opponents < 1 || opponents > 23) {
-          setStatus("Opponents must be 1-23.", false);
+          setMatchStatus("Opponents must be 1-23.", false);
           return;
         }
       }
@@ -579,12 +1269,12 @@ const opponentsRaw = $("opponents").value;
       if (placementRaw !== "") {
         placement = parseInt(placementRaw, 10);
         if (!Number.isFinite(placement) || placement < 1 || placement > 24) {
-          setStatus("Placement must be 1-24.", false);
+          setMatchStatus("Placement must be 1-24.", false);
           return;
         }
       }
 
-      setStatus("Saving match...", true);
+      setMatchStatus("Saving match...", true, false);
 
       const baseVr = (PROFILE?.current_vr ?? 8500);
       let vr_after;
@@ -628,7 +1318,7 @@ let insErr = null;
       }
 
       if (insErr) {
-        setStatus("Failed to save match: " + insErr.message, false);
+        setMatchStatus("Failed to save match: " + insErr.message, false);
         setDebug(JSON.stringify(insErr, null, 2));
         return;
       }
@@ -656,14 +1346,28 @@ let insErr = null;
         }
         }
       } catch(e) {}
-      try { $('vrChange').value = ''; } catch(e) {}
-      try { $('vrAfterInput').value = ''; } catch(e) {}
-      try { $('opponents').value = ''; } catch(e) {}
-      try { $('placement').value = ''; } catch(e) {}
+      setFieldValue("vrChange", "", "input");
+      setFieldValue("vrAfterInput", "", "input");
+      setFieldValue("opponents", "");
+      setFieldValue("placement", "");
+      try { window.MKWT_TRACK_PICKERS?.refreshAll?.(); } catch(e) {}
+      if (mode === "3lap") {
+        try {
+          const intermissionTab = document.querySelector('.modeBtn[data-mode="intermission"]');
+          if (intermissionTab && !intermissionTab.classList.contains("isActive")) {
+            intermissionTab.click();
+          }
+          refreshSuggestionOptionInStartSelect($("intermission"));
+          autoPrefillIntermissionStartIfFresh();
+          window.MKWT_TRACK_PICKERS?.refreshAll?.();
+        } catch(e) {}
+      }
       const newVr = vr_after;
+      const savedTracksText = intermission ? `${intermission} -> ${track}` : track;
+      const savedMatchMessage = `Saved: ${savedTracksText} | new total VR ${newVr}`;
 
       if (isGuest()) {
-        setStatus("Match saved (Guest).", true);
+        setMatchStatus(savedMatchMessage, true);
       } else {
         const { error: upErr } = await supabaseClient
           .from("profiles")
@@ -671,13 +1375,12 @@ let insErr = null;
           .eq("id", SESSION.user.id);
 
         if (upErr) {
-          setStatus("Warning: match saved, but VR update failed: " + upErr.message, false);
+          setMatchStatus("Warning: match saved, but VR update failed: " + upErr.message, false);
           setDebug(JSON.stringify(upErr, null, 2));
         } else {
-          setStatus("Match saved. VR updated.", true);
+          setMatchStatus(savedMatchMessage, true);
         }
       }
-
 
       await refreshAll();
     } finally {
@@ -685,7 +1388,8 @@ let insErr = null;
     }
   }
 
-  async function loadProfile() {
+  async function loadProfile(options = {}) {
+    const deferHeaderStats = !!options.deferHeaderStats;
     PROFILE = null;
     $("statCurrentVr").textContent = "-";
 
@@ -702,10 +1406,12 @@ let insErr = null;
       try { $("statCurrentVr").textContent = String(gp.current_vr ?? "-"); } catch(e) {}
 
       // full header stats from guest matches (same as account features)
-      try {
-        const g = loadGuestMatches();
-        updateGuestHeaderStats(gp, g);
-      } catch(e) {}
+      if (!deferHeaderStats) {
+        try {
+          const g = loadGuestMatches();
+          updateGuestHeaderStats(gp, g);
+        } catch(e) {}
+      }
       return;
     }
 
@@ -727,14 +1433,16 @@ let insErr = null;
     }
 
     PROFILE = data;
-    
+
   // Anzeige im Header: Nickname
   try { $("userInfo").textContent = "Profile: " + (PROFILE?.nickname || "-"); } catch(e) {}
 $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
-    try { await updateProfileQuickStats(); } catch(e) {}
+    if (!deferHeaderStats) {
+      try { await updateProfileQuickStats(); } catch(e) {}
+    }
   }
 
-  
+
   // ========= Profile Quick Stats (Header Card) =========
   function fmtNum(n){
     if (!Number.isFinite(n)) return "-";
@@ -752,6 +1460,76 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
     if (!Number.isFinite(n)) return "-";
     const sign = (n > 0) ? "+" : (n < 0) ? "-" : "";
     return sign + String(Math.abs(Math.round(n)));
+  }
+
+  const BEST_VR_ENTRY_MIN_GAMES = 10;
+
+  function wwIntermissionRouteLabel(row){
+    const start = String(row?.intermission || "").trim();
+    const end = String(row?.track || "").trim();
+    return start && end ? `${start} -> ${end}` : "";
+  }
+
+  function bestAverageVrEntry(rows, kind){
+    const sums = new Map();
+    for (const r of (rows || [])){
+      const d = Number(r?.vr_change);
+      if (!Number.isFinite(d)) continue;
+      const start = String(r?.intermission || "").trim();
+      const label = kind === "intermission"
+        ? wwIntermissionRouteLabel(r)
+        : (!start ? String(r?.track || "").trim() : "");
+      if (!label) continue;
+      const cur = sums.get(label) || { sum:0, count:0 };
+      cur.sum += d;
+      cur.count += 1;
+      sums.set(label, cur);
+    }
+
+    let best = null;
+    for (const [name, {sum, count}] of sums.entries()){
+      if (count < BEST_VR_ENTRY_MIN_GAMES) continue;
+      const avg = sum / count;
+      if (
+        !best ||
+        avg > best.avg ||
+        (avg === best.avg && count > best.count) ||
+        (avg === best.avg && count === best.count && name.localeCompare(best.name, "de") < 0)
+      ){
+        best = { name, avg, count };
+      }
+    }
+    return best;
+  }
+
+  function renderBestVrEntry(nameId, metaId, best, emptyMeta){
+    const nameEl = $(nameId);
+    const metaEl = $(metaId);
+    if (!nameEl || !metaEl) return;
+    if (!best){
+      nameEl.textContent = "-";
+      metaEl.textContent = emptyMeta || "-";
+      return;
+    }
+    const avgTxt = fmtSigned(best.avg, 1) + " VR avg";
+    const runsTxt = `${best.count} runs`;
+    nameEl.textContent = best.name;
+    metaEl.textContent = `${avgTxt} . ${runsTxt}`;
+  }
+
+  function renderBestVrSummaries(rows){
+    renderBestVrEntry(
+      "bestTrackName",
+      "bestTrackMeta",
+      bestAverageVrEntry(rows, "track"),
+      `Needs ${BEST_VR_ENTRY_MIN_GAMES} runs on one track.`
+    );
+    renderBestVrEntry(
+      "bestIntermissionName",
+      "bestIntermissionMeta",
+      bestAverageVrEntry(rows, "intermission"),
+      `Needs ${BEST_VR_ENTRY_MIN_GAMES} runs on one route.`
+    );
   }
 
   function calcStreaksAndExtremes(matchesAsc){
@@ -837,34 +1615,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
       const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : NaN;
       $("statAvg50Vr").textContent = fmtNum(avg);
 
-      // Best Track (3-lap only): highest avg VR change
-      const sums = new Map();
-      for (const r of arr){
-        // 3-lap entries have intermission === null
-        if (r?.intermission != null) continue;
-        const t = String(r?.track || '').trim();
-        const d = Number(r?.vr_change);
-        if (!t || !Number.isFinite(d)) continue;
-        const cur = sums.get(t) || { sum:0, count:0 };
-        cur.sum += d;
-        cur.count += 1;
-        sums.set(t, cur);
-      }
-      let best = null;
-      for (const [track, {sum, count}] of sums.entries()){
-        if (!count) continue;
-        const a = sum / count;
-        if (!best || a > best.avg) best = { track, avg: a, count };
-      }
-      if (!best){
-        $("bestTrackName").textContent = "-";
-        $("bestTrackMeta").textContent = "-";
-      } else {
-        const avgTxt = fmtSigned(best.avg, 1) + " VR avg";
-        const runsTxt = best.count === 1 ? "1 run" : `${best.count} runs`;
-        $("bestTrackName").textContent = best.track;
-        $("bestTrackMeta").textContent = `${avgTxt} . ${runsTxt}`;
-      }
+      renderBestVrSummaries(arr);
 
       // Streaks & extremes (ALL-TIME across all tracked matches)
       // We compute the *longest* win/lose streak anywhere in the history.
@@ -886,8 +1637,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
         $("statHighestVr").textContent = "-";
         $("statAvg50Vr").textContent = "-";
         $("statMatchCount").textContent = "-";
-        $("bestTrackName").textContent = "-";
-        $("bestTrackMeta").textContent = "-";
+        renderBestVrSummaries([]);
         $("statWinStreak").textContent = "-";
         $("statLoseStreak").textContent = "-";
         $("statMaxGain").textContent = "-";
@@ -939,52 +1689,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
     const avg = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length) : NaN;
     $("statAvg50Vr").textContent = fmtNum(avg);
 
-    // Best Track (3-Lap only): highest average VR change
-    // For performance we use the most recent 2000 3-lap matches (single request).
-    const { data: lapData, error: lapErr } = await supabaseClient
-      .from("matches")
-      .select("track, vr_change")
-      .eq("user_id", SESSION.user.id)
-      .is("intermission", null)
-      .order("created_at", { ascending: false })
-      .limit(2000);
-
-    if (lapErr) throw lapErr;
-
-    const sums = new Map(); // track -> {sum,count}
-    for (const r of (lapData || [])){
-      const t = String(r.track || "").trim();
-      const d = Number(r.vr_change);
-      if (!t || !Number.isFinite(d)) continue;
-      const cur = sums.get(t) || { sum:0, count:0 };
-      cur.sum += d;
-      cur.count += 1;
-      sums.set(t, cur);
-    }
-
-    let best = null; // {track, avg, count}
-    for (const [track, {sum, count}] of sums.entries()){
-      if (!count) continue;
-      const a = sum / count;
-      if (!best || a > best.avg) best = { track, avg: a, count };
-    }
-
-    if (!best){
-      $("bestTrackName").textContent = "-";
-      $("bestTrackMeta").textContent = "-";
-      try { $("statWinStreak").textContent = "-"; } catch(_){ }
-      try { $("statLoseStreak").textContent = "-"; } catch(_){ }
-      try { $("statMaxGain").textContent = "-"; } catch(_){ }
-      try { $("statMaxLoss").textContent = "-"; } catch(_){ }
-    } else {
-      const avgTxt = fmtSigned(best.avg, 1) + " VR avg";
-      const runsTxt = best.count === 1 ? "1 run" : `${best.count} runs`;
-      $("bestTrackName").textContent = best.track;
-      $("bestTrackMeta").textContent = `${avgTxt} . ${runsTxt}`;
-    }
-
-    // Win/Lose streak (ALL-TIME longest) + Max gain/loss (all-time)
-    // We must consider *all* tracked matches (can be > 1000), so we fetch paginated.
+    // Best Track / Intermission + win/loss streaks use all VR games, paginated.
     const all = [];
     const chunk = 1000;
     let from = 0;
@@ -992,7 +1697,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
       const to = from + chunk - 1;
       const { data, error } = await supabaseClient
         .from("matches")
-        .select("id, created_at, vr_change")
+        .select("id, created_at, intermission, track, vr_change")
         .eq("user_id", SESSION.user.id)
         .not("vr_change", "is", null)
         // Deterministic ordering: created_at can collide (same second), so also order by id.
@@ -1007,6 +1712,7 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
     }
 
     const asc = all.filter(r=>Number.isFinite(Number(r?.vr_change)));
+    renderBestVrSummaries(asc);
     const { maxWin, maxLose, maxGain, maxLoss } = calcStreaksAndExtremes(asc);
 
     $("statWinStreak").textContent  = String(maxWin);
@@ -1021,22 +1727,40 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
       $("statHighestVr").textContent = "-";
       $("statAvg50Vr").textContent = "-";
       $("statMatchCount").textContent = "-";
-      $("bestTrackName").textContent = "-";
-      $("bestTrackMeta").textContent = "-";
+      renderBestVrSummaries([]);
     } catch(_){}
     setDebug("Header stats error: " + (e?.message || e));
   }
 }
 
   // ========= Refresh / Init =========
-  async function refreshAll() {
+  let deferredRefreshToken = 0;
+  function setMatchesLoadingState() {
+    if ($rows) $rows.innerHTML = `<tr><td colspan="8" class="muted">Loading recent matches...</td></tr>`;
+    const cards = $("matchCards");
+    if (cards) cards.innerHTML = `<div class="muted">Loading recent matches...</div>`;
+    try { $("pageInfo").textContent = "Loading..."; } catch(e) {}
+    try { $("btnPrev").disabled = true; } catch(e) {}
+    try { $("btnNext").disabled = true; } catch(e) {}
+  }
+  function scheduleAfterFirstPaint(fn) {
+    const run = () => { Promise.resolve().then(fn).catch((e) => setDebug("Deferred load error: " + (e?.message || e))); };
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: 700 });
+      return;
+    }
+    window.setTimeout(run, 80);
+  }
+  async function refreshAll(options = {}) {
+  const deferHeavy = !!options.deferHeavy;
+  const refreshToken = ++deferredRefreshToken;
   setStatus("", true);
 
   // Pagination-Cache reset (WICHTIG!)
   totalMatches = null;
   currentPage = 1;
 
-  await loadProfile();
+  await loadProfile({ deferHeaderStats: deferHeavy });
 
     if (!PROFILE) {
       show($("setupCard"), true);
@@ -1054,15 +1778,24 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
     // removed ready pill
 
     $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
-    // IMPORTANT: Don't run cloud header stats in Guest mode.
-    // In Guest, compute header stats from localStorage matches.
-    if (isGuest()) {
-      try { updateGuestHeaderStats(PROFILE, loadGuestMatches()); } catch(e) {}
-    } else {
-      try { await updateProfileQuickStats(); } catch(e) {}
-    }
     // Re-sync inputs with new base VR
     try { syncFromDelta(); syncFromAfter(); } catch(e) {}
+    if (deferHeavy) {
+      setMatchesLoadingState();
+      scheduleAfterFirstPaint(async () => {
+        if (refreshToken !== deferredRefreshToken) return;
+        await loadMatches();
+      });
+      scheduleAfterFirstPaint(async () => {
+        if (refreshToken !== deferredRefreshToken) return;
+        if (isGuest()) {
+          try { updateGuestHeaderStats(PROFILE, loadGuestMatches()); } catch(e) {}
+        } else {
+          try { await updateProfileQuickStats(); } catch(e) {}
+        }
+      });
+      return;
+    }
     await loadMatches();
   }
 // ========= Edit / Delete =========
@@ -1085,6 +1818,60 @@ async function fetchMatchById(id) {
   return data || null;
 }
 
+function compareMatchesDesc(a, b){
+  const ta = Date.parse(a?.created_at || 0) || 0;
+  const tb = Date.parse(b?.created_at || 0) || 0;
+  if (tb !== ta) return tb - ta;
+  return String(b?.id || "").localeCompare(String(a?.id || ""));
+}
+
+function targetTrackFromMatch(row){
+  return row?.track ? String(row.track) : "";
+}
+
+async function fetchPreviousMatchTargetForEdit(row){
+  if (!row) return "";
+  if (isGuest()) {
+    const all = loadGuestMatches().slice().sort(compareMatchesDesc);
+    const index = all.findIndex(match => String(match.id) === String(row.id));
+    return index >= 0 ? targetTrackFromMatch(all[index + 1]) : "";
+  }
+
+  const createdAt = row.created_at;
+  if (!createdAt || !supabaseClient || !SESSION?.user?.id) return "";
+
+  const { data, error } = await supabaseClient
+    .from("matches")
+    .select("id, created_at, track")
+    .eq("user_id", SESSION.user.id)
+    .lte("created_at", createdAt)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(50);
+  if (error) {
+    setDebug("Edit suggestion failed: " + JSON.stringify(error, null, 2));
+    return "";
+  }
+
+  const sorted = (data || []).slice().sort(compareMatchesDesc);
+  const index = sorted.findIndex(match => String(match.id) === String(row.id));
+  if (index >= 0 && sorted[index + 1]) return targetTrackFromMatch(sorted[index + 1]);
+
+  const older = await supabaseClient
+    .from("matches")
+    .select("id, created_at, track")
+    .eq("user_id", SESSION.user.id)
+    .lt("created_at", createdAt)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1);
+  if (older.error) {
+    setDebug("Edit suggestion fallback failed: " + JSON.stringify(older.error, null, 2));
+    return "";
+  }
+  return targetTrackFromMatch(older.data?.[0]);
+}
+
 async function openEditDialog(id) {
   try {
     setStatus("", true);
@@ -1098,6 +1885,13 @@ async function openEditDialog(id) {
       "ID: " + EDIT_ROW.id + " . " +
       (EDIT_ROW.created_at ? new Date(EDIT_ROW.created_at).toLocaleString() : "");
 
+    try {
+      setEditSuggestedNextStart(await fetchPreviousMatchTargetForEdit(EDIT_ROW));
+    } catch(e) {
+      clearEditSuggestedNextStart();
+      setDebug("Edit suggestion failed: " + (e?.message || e));
+    }
+
     $("editIntermission").value = "";
     $("editTrack").value = "";
     // Reset edit selects to full options (no leftover filtered combos)
@@ -1108,7 +1902,7 @@ async function openEditDialog(id) {
     } catch(e) {}
 
     // Mode UI (Intermission vs 3-Lap)
-    try { setEditMode((EDIT_ROW.intermission ?? "") ? "intermission" : "3lap"); } catch(e) {}
+    try { setEditMode((EDIT_ROW.intermission ?? "") ? "intermission" : "3lap", { keepValues: true }); } catch(e) {}
 
     // Pre-fill selects with existing values so the edit form is never blank.
     try {
@@ -1150,6 +1944,7 @@ async function openEditDialog(id) {
 
     $("editOpponents").value = (EDIT_ROW.opponents ?? "");
     $("editPlacement").value = (EDIT_ROW.placement ?? "");
+    try { window.MKWT_TRACK_PICKERS?.refreshAll?.(); } catch(e) {}
 
     editDlg.showModal();
   } catch (e) {
@@ -1159,8 +1954,33 @@ async function openEditDialog(id) {
 }
 
 function closeDlg(){
+  try { window.MKWT_TRACK_PICKERS?.closeAll?.(); } catch(e) {}
   if (editDlg.open) editDlg.close();
+  try { clearEditSuggestedNextStart(); } catch(e) {}
   EDIT_ROW = null;
+}
+
+function resetEditRouteFields(){
+  const start = $("editIntermission");
+  const track = $("editTrack");
+  if (start) {
+    try { fillTrackSelect(start, " "); } catch(e) {}
+    start.value = "";
+  }
+  if (track) {
+    try { fillTrackSelect(track, " "); } catch(e) {}
+    track.value = "";
+  }
+  try { window.MKWT_TRACK_PICKERS?.refreshTrackPickers?.(); } catch(e) {}
+}
+
+function clearEditDialogFields(){
+  resetEditRouteFields();
+  setFieldValue("editOpponents", "");
+  setFieldValue("editPlacement", "");
+  try { window.MKWT_TRACK_PICKERS?.refreshAll?.(); } catch(e) {}
+  setStatus("", true);
+  setDebug("");
 }
 
 async function saveEditDialog(){
@@ -1290,9 +2110,17 @@ async function deleteMatch(id){
     const row = await fetchMatchById(id);
     if (!row) { setStatus("Match not found.", false); return; }
 
-    const ok = confirm(
-      `Delete match?\n\nTrack: ${row.track}\nVR change: ${row.vr_change}\nTime: ${row.created_at ? new Date(row.created_at).toLocaleString() : ""}`
-    );
+    const body = `Track: ${row.track}\nVR change: ${row.vr_change}\nTime: ${row.created_at ? new Date(row.created_at).toLocaleString() : ""}`;
+    const ok = window.MKWT?.confirmAction
+      ? await window.MKWT.confirmAction({
+          eyebrow: "Delete",
+          title: "Delete match?",
+          body,
+          confirmLabel: "Delete",
+          cancelLabel: "Cancel",
+          danger: true,
+        })
+      : confirm(`Delete match?\n\n${body}`);
     if (!ok) return;
 
     setStatus("Deleting match...", true);
@@ -1384,6 +2212,13 @@ function setupSessionsDialog(){
   });
 }
 
+function clearMatchRouteFields(){
+  try { resetIntermissionSelects(); } catch(e) {}
+  setFieldValue("intermission", "");
+  setFieldValue("track", "");
+  try { window.MKWT_TRACK_PICKERS?.refreshTrackPickers?.(); } catch(e) {}
+}
+
   // Buttons
   $("btnCreateProfile")?.addEventListener("click", createProfile);
   $("btnSaveMatch")?.addEventListener("click", saveMatch);
@@ -1394,27 +2229,19 @@ function setupSessionsDialog(){
   $("vrAfterInput")?.addEventListener("input", syncFromAfter);
 
   $("btnClear")?.addEventListener("click", () => {
-    const a = $("intermission");
-    const b = $("track");
-    a.value = "";
-    b.value = "";
-    // IMPORTANT: trigger the intermission filter logic to repopulate BOTH dropdowns
-    // back to the full 30-track list when placeholders are selected.
-    a.dispatchEvent(new Event("change", { bubbles: true }));
-    b.dispatchEvent(new Event("change", { bubbles: true }));
-
-    $("vrChange").value = "";
-    $("vrAfterInput").value = "";
-    $("opponents").value = "";
-    $("placement").value = "";
+    clearMatchRouteFields();
+    setFieldValue("opponents", "");
+    setFieldValue("placement", "");
+    try { window.MKWT_TRACK_PICKERS?.refreshAll?.(); } catch(e) {}
     setStatus("", true);
+    setMatchStatus("", true);
     setDebug("");
   });
     $("btnPrev")?.addEventListener("click", async () => {
   if (currentPage <= 1) return;
   currentPage--;
   await loadMatches();
-    
+
   });
 
     $("btnNext")?.addEventListener("click", async () => {
@@ -1428,28 +2255,22 @@ function setupSessionsDialog(){
   await loadMatches();
     });
     // ===== Dialog Buttons (PART 7) =====
-    $("btnCloseDlg")?.addEventListener("click", closeDlg);
     $("btnCancelDlg")?.addEventListener("click", closeDlg);
+    $("btnClearEditDlg")?.addEventListener("click", clearEditDialogFields);
     $("btnSaveDlg")?.addEventListener("click", saveEditDialog);
 
-    // Optional: ESC / backdrop click closes dialog
+    // ESC / backdrop click closes dialog.
     $("editDlg")?.addEventListener("cancel", (e) => { e.preventDefault(); closeDlg(); });
-
-    function fixDatalistReopen(inputId) {
-    const el = document.getElementById(inputId);
-    if (!el) return;
-
-    el.addEventListener("focus", () => {
-        // Kurz leeren > Browser vergisst den Filter
-        const v = el.value;
-        el.value = "";
-        requestAnimationFrame(() => el.value = v);
+    $("editDlg")?.addEventListener("click", (event) => {
+      if (event.target !== $("editDlg")) return;
+      if ($("editDlg")?.querySelector(".trackPicker.is-open")) {
+        event.preventDefault();
+        event.stopPropagation();
+        try { window.MKWT_TRACK_PICKERS?.closeAll?.(); } catch(e) {}
+        return;
+      }
+      closeDlg();
     });
-    }
-
-    // Enable for both fields
-    fixDatalistReopen("editPlacement");
-    fixDatalistReopen("editOpponents");
 
   // Start
   (async () => {
@@ -1459,10 +2280,12 @@ function setupSessionsDialog(){
     // Populate selects (Intermission/Track + edit dialog)
     initSelects();
     await loadTrackIconMap();
+    preloadTrackPickerIcons();
+    initTrackPickers();
 
     // Guest mode is allowed: continue even without a session.
     await requireAuth();
-    await refreshAll();
+    await refreshAll({ deferHeavy: true });
 
     // Offer to import Guest data on first login (only if account has 0 matches)
     try {
@@ -1475,7 +2298,16 @@ function setupSessionsDialog(){
             .select("id", { count: "exact", head: true })
             .eq("user_id", SESSION.user.id);
           if ((count || 0) === 0) {
-            const ok = confirm(`Import your Guest data into this account?\n\nGuest matches found: ${guest.length}\n\nOK = Import & clear Guest data\nCancel = Keep Guest data locally`);
+            const ok = window.MKWT?.confirmAction
+              ? await window.MKWT.confirmAction({
+                  eyebrow: "Guest import",
+                  title: "Import Guest data?",
+                  body: `Guest matches found: ${guest.length}\n\nThis imports your local Guest matches into this account and clears the local Guest copy.`,
+                  confirmLabel: "Import",
+                  cancelLabel: "Keep local",
+                  danger: false,
+                })
+              : confirm(`Import your Guest data into this account?\n\nGuest matches found: ${guest.length}\n\nOK = Import & clear Guest data\nCancel = Keep Guest data locally`);
             if (ok) {
               setStatus("Importing Guest data...", true);
               const batchSize = 500;
@@ -1541,22 +2373,42 @@ function setupSessionsDialog(){
     // --- Match mode toggle (Intermission vs 3-Lap) ---
     const modeBtns = Array.from(document.querySelectorAll(".modeBtn"));
     const fieldIntermission = document.getElementById("fieldIntermissionStart");
+    const fieldTrack = document.getElementById("fieldTrack");
     const labelIntermission = document.getElementById("labelIntermissionStart");
     const labelTrack = document.getElementById("labelTrack");
     const trackPlaceholder = document.getElementById("trackPlaceholder");
     const intermissionSel = document.getElementById("intermission");
+    const trackSel = document.getElementById("track");
+    const destinyNotice = document.getElementById("intermissionDestinyNotice");
+    const destinyNoticeValue = document.getElementById("intermissionDestinyNoticeValue");
+    const resetCreateRouteFields = () => {
+      try { resetIntermissionSelects(); } catch(e) {}
+      if (intermissionSel) {
+        intermissionSel.value = "";
+        try { intermissionSel.dispatchEvent(new Event("change", { bubbles: true })); } catch(e) {}
+      }
+      if (trackSel) {
+        trackSel.value = "";
+        try { trackSel.dispatchEvent(new Event("change", { bubbles: true })); } catch(e) {}
+      }
+    };
 
-    function setMode(mode){
+    function setMode(mode, options = {}){
+      const nextMode = mode || "intermission";
+      const currentMode = document.querySelector(".modeBtn.isActive")?.dataset.mode || "";
+      if (!options.force && currentMode === nextMode) return;
+
       modeBtns.forEach(b => {
-        const active = b.dataset.mode === mode;
+        const active = b.dataset.mode === nextMode;
         b.classList.toggle("isActive", active);
         b.setAttribute("aria-selected", active ? "true" : "false");
       });
 
-      const isIntermission = (mode === "intermission");
-      if (isIntermission) { try { resetIntermissionSelects(); } catch(e) {}
-      try { refreshSuggestionOptionInStartSelect(intermissionSel); } catch(e) {}
-      try { autoPrefillIntermissionStartIfFresh(); } catch(e) {} }
+      const isIntermission = (nextMode === "intermission");
+      if (isIntermission) {
+        try { resetIntermissionSelects(); } catch(e) {}
+        try { autoPrefillIntermissionStartIfFresh(); } catch(e) {}
+      }
 
       // IMPORTANT:
       // The Track <select id="track"> is shared between Intermission-End and 3-Lap Track.
@@ -1565,17 +2417,7 @@ function setupSessionsDialog(){
       // Requirement: when switching to Track mode, clear the Track selection and restore
       // the full, unfiltered list.
       if (!isIntermission) {
-        const trackSel = document.getElementById("track");
-        // Clear start + trigger the existing bidirectional filter reset.
-        if (intermissionSel) {
-          intermissionSel.value = "";
-          try { intermissionSel.dispatchEvent(new Event("change", { bubbles: true })); } catch(e) {}
-        }
-        // Clear track selection as requested.
-        if (trackSel) {
-          trackSel.value = "";
-          try { trackSel.dispatchEvent(new Event("change", { bubbles: true })); } catch(e) {}
-        }
+        resetCreateRouteFields();
       }
       if (fieldIntermission) fieldIntermission.style.display = isIntermission ? "" : "none";
       // intermissionSel is already cleared above (and change-dispatched) when leaving Intermission.
@@ -1585,11 +2427,25 @@ function setupSessionsDialog(){
 
       // Strategy ? icon should only appear when the current selection is valid.
       try { updateStratAvailability(); } catch(e) {}
+      try { updateDestinyNotice(); } catch(e) {}
+      try { window.MKWT_TRACK_PICKERS?.refreshTrackPickers?.(); } catch(e) {}
     }
 
-    modeBtns.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode || "intermission")));
+    let lastModePointerDown = 0;
+    modeBtns.forEach(b => {
+      b.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse") return;
+        lastModePointerDown = Date.now();
+        event.preventDefault();
+        setMode(b.dataset.mode || "intermission");
+      }, { passive: false });
+      b.addEventListener("click", () => {
+        if (Date.now() - lastModePointerDown < 500) return;
+        setMode(b.dataset.mode || "intermission");
+      });
+    });
     // Default: Intermission (current behavior)
-    setMode("intermission");
+    setMode("intermission", { force: true });
 
 	    // --- Strategy popup (single element; content from strats.json) ---
 	    let STRATS = null;
@@ -1598,7 +2454,6 @@ function setupSessionsDialog(){
 	    const stratBtnTrack = document.getElementById('stratBtnTrack');
 	    const infoBtnVrAfter = document.getElementById('infoBtnVrAfter');
 	    const infoBtnVrAfterEdit = document.getElementById('infoBtnVrAfterEdit');
-	    const trackSel = document.getElementById('track');
 	    const mm = (q) => (window.matchMedia ? window.matchMedia(q).matches : false);
 	    const isCoarse = mm('(pointer: coarse)');
 	    const canHover = mm('(hover: hover)');
@@ -1703,7 +2558,50 @@ function setupSessionsDialog(){
 	      const shouldShow = isIntermissionMode ? !!(start && end) : !!end;
 	      stratBtnTrack.style.display = shouldShow ? '' : 'none';
 	      stratBtnTrack.disabled = !shouldShow;
+	      if (fieldTrack) fieldTrack.classList.toggle('hasActiveStrat', shouldShow);
 	      if (!shouldShow && stratPopup && stratPopup.classList.contains('isOpen')) closePopup();
+	    }
+
+	    function selectedSpecialDestinyLabel(){
+	      const start = (intermissionSel && intermissionSel.value) ? intermissionSel.value : '';
+	      const end = (trackSel && trackSel.value) ? trackSel.value : '';
+	      if (!start || !end) return '';
+	      const metaIM = (window.MKWT_STRATS_META_INTERMISSIONS && typeof window.MKWT_STRATS_META_INTERMISSIONS === 'object')
+	        ? window.MKWT_STRATS_META_INTERMISSIONS
+	        : null;
+	      const meta = (typeof lookupIntermissionRouteMeta === 'function')
+	        ? lookupIntermissionRouteMeta(metaIM, start, end)
+	        : null;
+	      if (!meta) return '';
+	      const plainEnd = String(end || '').trim();
+	      const destinyGroup = String(meta.destiny_group || '').trim();
+	      const specialTag = String(meta.special_tag || '').trim();
+	      const groupIsDifferent = !!destinyGroup && destinyGroup.toLowerCase() !== plainEnd.toLowerCase();
+	      const tagIsDifferent = !!specialTag && specialTag.toLowerCase() !== plainEnd.toLowerCase();
+	      const labels = [];
+	      if (groupIsDifferent) labels.push(destinyGroup);
+	      if (tagIsDifferent) labels.push(specialTag);
+	      labels.sort((a, b) => a.length - b.length);
+	      return labels[0] || '';
+	    }
+
+	    function updateDestinyNotice(){
+	      if (!destinyNotice) return;
+	      const isIntermissionMode = fieldIntermission && fieldIntermission.style.display !== 'none';
+	      const label = isIntermissionMode ? selectedSpecialDestinyLabel() : '';
+	      if (!label){
+	        destinyNotice.classList.remove('is-visible');
+	        destinyNotice.classList.add('hidden');
+	        destinyNotice.hidden = true;
+	        destinyNotice.title = '';
+	        if (destinyNoticeValue) destinyNoticeValue.textContent = '-';
+	        return;
+	      }
+	      destinyNotice.hidden = false;
+	      destinyNotice.classList.remove('hidden');
+	      destinyNotice.title = label;
+	      if (destinyNoticeValue) destinyNoticeValue.textContent = label;
+	      requestAnimationFrame(() => destinyNotice.classList.add('is-visible'));
 	    }
 
 	    let lastPointerDown = 0;
@@ -1780,15 +2678,18 @@ function setupSessionsDialog(){
 	    });
 	    intermissionSel && intermissionSel.addEventListener('change', ()=>{
 	      try { updateStratAvailability(); } catch(e) {}
+	      try { updateDestinyNotice(); } catch(e) {}
 	      if (stratPopup && stratPopup.classList.contains('isOpen')) openPopup(document.getElementById(stratPopup.dataset.anchor) || stratBtnTrack );
 	    });
 	    trackSel && trackSel.addEventListener('change', ()=>{
 	      try { updateStratAvailability(); } catch(e) {}
+	      try { updateDestinyNotice(); } catch(e) {}
 	      if (stratPopup && stratPopup.classList.contains('isOpen')) openPopup(document.getElementById(stratPopup.dataset.anchor) || stratBtnTrack );
 	    });
 
 	    loadStrats().finally(()=>{
 	      try { updateStratAvailability(); } catch(e) {}
+	      try { updateDestinyNotice(); } catch(e) {}
 	      // If the user already selected a start/end before strats loaded,
 	      // re-apply the visual special suffixes now.
 	      try {
@@ -1851,19 +2752,24 @@ function setupSessionsDialog(){
   });
 })();
 
-function setEditMode(mode){
+function setEditMode(mode, options = {}){
   const bI = document.getElementById('editModeIntermission');
   const b3 = document.getElementById('editMode3lap');
   const fieldStart = document.getElementById('editIntermissionField');
   const lblTrack = document.getElementById('editTrackLabel');
+  const dlg = document.getElementById('editDlg');
+  const prevMode = dlg?.dataset.mode || '';
   const isInter = (mode === 'intermission');
   if (bI) bI.classList.toggle('isActive', isInter);
   if (b3) b3.classList.toggle('isActive', !isInter);
   if (fieldStart) fieldStart.style.display = isInter ? '' : 'none';
   if (lblTrack) lblTrack.textContent = isInter ? 'Intermission end' : 'Track';
   // store on dialog for save
-  const dlg = document.getElementById('editDlg');
   if (dlg) dlg.dataset.mode = isInter ? 'intermission' : '3lap';
+  if (!isInter && !options.keepValues && prevMode !== '3lap') {
+    resetEditRouteFields();
+  }
+  try { window.MKWT_TRACK_PICKERS?.refreshAll?.(); } catch(e) {}
 }
 
 document.addEventListener('click', (e)=>{

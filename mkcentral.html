@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#07080a"/>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <script src="mkwt_bootstrap.js"></script>
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -19,7 +20,7 @@
 <link href="mkcentral.css" rel="stylesheet"/>
 </head>
 <body>
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript for this page.</p></div></noscript>
+<noscript><div class="noscriptNotice"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript for this page.</p></div></noscript>
 <nav class="nav">
   <div class="navInner">
     <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
@@ -54,37 +55,58 @@
   <section class="card profileCard mkcHero mkcHeroUnified">
     <div class="profileTop mkcHeroTop">
       <div class="mkcHeroCopy">
-        <h2 class="heroTitle mkcHeroTitle"><span>Lounge Stats</span><img class="mkcHeroBadge" src="assets/combo-icons/characters/king-boo.png" alt="" aria-hidden="true"/></h2>
+        <h2 class="heroTitle mkcHeroTitle"><span>Lounge Stats</span><img class="mkcHeroBadge" src="assets/picker-icons/characters/king-boo.png" alt="" aria-hidden="true" decoding="async"/></h2>
       </div>
     </div>
   </section>
 
-  <section class="card mkcToolbarCard">
-    <div class="mkcToolbarMeta">
-      <div class="mkcToolbarPill">
-        <span class="mkcToolbarPillLabel">Season scope</span>
-        <strong class="mkcToolbarPillValue" id="mkcScopeEyebrow">MKCentral Season 2 / 12p</strong>
-      </div>
-      <div class="mkcToolbarPill mkcToolbarPill--identity">
-        <span class="mkcToolbarPillLabel">Player</span>
-        <div class="mkcIdentityLine">
-          <span class="mkcIdentityName" id="mkcPlayerNameDisplay">MKCentral Player</span>
-          <span class="mkcIdentityDot">&bull;</span>
-          <span class="mkcIdentityId" id="mkcPlayerDisplay">Not set</span>
+  <section class="card mkcToolbarCard" aria-labelledby="mkcToolbarTitle">
+    <div class="mkcToolbarMain">
+      <div class="mkcToolbarCopy">
+        <h3 class="mkcToolbarTitle" id="mkcToolbarTitle">Lounge Overview</h3>
+        <div class="mkcToolbarMetrics" aria-label="Lounge summary">
+          <div class="mkcToolbarMetric">
+            <span>Season</span>
+            <strong id="mkcScopeEyebrow">MKCentral Season 2 / 12p</strong>
+          </div>
+          <div class="mkcToolbarMetric">
+            <span>Last update</span>
+            <strong id="mkcLastUpdateDisplay">-</strong>
+          </div>
         </div>
       </div>
-      <div class="mkcToolbarPill">
-        <span class="mkcToolbarPillLabel">Last update</span>
-        <strong class="mkcToolbarPillValue" id="mkcLastUpdateDisplay">-</strong>
-      </div>
-    </div>
-    <div class="mkcToolbarFooter">
       <div class="mkcToolbarActions">
         <button class="navAction active" id="btnUpdateMkc" type="button">Update data</button>
-        <button class="navAction" id="btnDownloadMkcImage" type="button" disabled>Download image</button>
-        <a class="navAction" href="settings.html">Settings</a>
+        <button class="compareAction compareAction--sm" id="btnCompareMkcStats" type="button">
+          <span class="compareAction__eyebrow">Compare</span>
+          <span class="compareAction__label">Compare stats</span>
+        </button>
       </div>
-      <div class="muted statusLine" id="mkcStatus"></div>
+    </div>
+    <div class="muted statusLine hidden" id="mkcStatus"></div>
+  </section>
+
+  <section class="card mkcPlayerStatsHead" aria-label="Lounge player stats">
+    <div class="mkcPlayerBannerCopy">
+      <div class="mkcIdentityLine">
+        <strong class="mkcIdentityName" id="mkcPlayerNameDisplay">MKCentral Player</strong>
+        <span class="mkcIdentityDot">&bull;</span>
+        <strong class="mkcIdentityId" id="mkcPlayerDisplay">Not set</strong>
+      </div>
+    </div>
+    <div class="mkcSummaryFilter" id="mkcSummaryFilterRoot" hidden>
+      <span class="mkcSummaryFilterLabel">Stats window</span>
+      <div class="mkcTrackerFilter">
+        <button aria-controls="menuMkcSummaryFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcSummaryFilter" type="button">
+          <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span id="mkcSummaryFilterValue">All</span>
+        </button>
+        <div class="mkcTrackerFilterMenu" hidden id="menuMkcSummaryFilter">
+          <button class="mkcTrackerFilterItem active" data-mkc-summary-window="all" type="button"><span>All</span></button>
+          <button class="mkcTrackerFilterItem" data-mkc-summary-window="l10" type="button"><span>L10</span></button>
+          <button class="mkcTrackerFilterItem" data-mkc-summary-window="l30" type="button"><span>L30</span></button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -110,69 +132,75 @@
     </div>
   </dialog>
 
-  <section class="mkcMmrGrid">
-    <div class="card">
-      <div class="sectionHead">
+  <dialog class="mkcCompareDialog" id="mkcCompareDialog">
+    <div class="mkcCompareDialogPanel">
+      <div class="mkcCompareDialogHead">
         <div>
-          <h3>MMR History</h3>
-          <div class="muted">Chronological event order from locally saved MKCentral events.</div>
+          <div class="mkcCompareDialogEyebrow">Compare</div>
+          <h3>Lounge vs World Wides</h3>
+          <div class="muted mkcCompareDialogMeta hidden" hidden id="mkcCompareMeta"></div>
+        </div>
+        <div class="mkcCompareDialogHeadActions">
+          <button aria-label="Info" class="mcard__infoBtn" data-info="mkcModeCompare" title="Info" type="button">i</button>
+          <button class="navAction" id="btnCloseMkcCompare" type="button">Close</button>
         </div>
       </div>
-      <div class="mkcChartWrap mkcChartWrapMmr"><canvas id="chartMkcMmr"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="sectionHead">
-        <div>
-          <h3>Weekly Average MMR</h3>
-          <div class="muted">Paused weeks keep the previous week's MMR.</div>
-        </div>
+      <div class="mkcModeComparePanel" id="mkcComparePanel">
+        <div class="mkcChartWrapCompare"><canvas id="chartModeCompareMkc"></canvas></div>
+        <div class="mkcModeCompareNotes" hidden id="mkcCompareNotes"></div>
       </div>
-      <div class="mkcChartWrap mkcChartWrapMmr"><canvas id="chartMkcWeeklyMmr"></canvas></div>
     </div>
-  </section>
+  </dialog>
 
-  <section class="card">
+  <section class="card mkcMmrDeck">
     <div class="sectionHead">
       <div>
-        <h3>Daily Play Time</h3>
-        <div class="muted" id="mkcChartMeta">Estimated daily play time across Season 2.</div>
+        <h3 id="mkcMmrDeckTitle">MMR History</h3>
+      </div>
+      <button aria-label="Info" class="mcard__infoBtn" data-info="mkcMmrHistory" id="btnMkcMmrDeckInfo" title="Info" type="button">i</button>
+    </div>
+    <div class="mkcChartSwipeViewport" id="mkcMmrDeckViewport">
+      <div class="mkcChartSwipeTrack" id="mkcMmrDeckTrack">
+        <section class="mkcChartSwipePanel" data-mkc-mmr-panel="0">
+          <div class="mkcChartWrap mkcChartWrapMmr"><canvas id="chartMkcMmr"></canvas></div>
+        </section>
+        <section class="mkcChartSwipePanel" data-mkc-mmr-panel="1">
+          <div class="mkcChartWrap mkcChartWrapMmr"><canvas id="chartMkcWeeklyMmr"></canvas></div>
+        </section>
       </div>
     </div>
-    <div class="mkcChartWrap mkcChartWrapWide"><canvas id="chartMkcDelta"></canvas></div>
+    <div class="chartPager" id="mkcMmrDeckPager">
+      <button aria-label="Show MMR history" class="chartPagerBtn active" data-mkc-mmr-panel="0" type="button">History</button>
+      <button aria-label="Show weekly MMR" class="chartPagerBtn" data-mkc-mmr-panel="1" type="button">Weekly</button>
+    </div>
   </section>
 
   <section class="card mkcTrackerChartsSection">
     <div class="sectionHead mkcTrackerChartsHead">
       <div>
         <h3>Lounge Tracker Charts</h3>
-        <div class="muted" id="mkcLocalTrackerMeta">Loading saved Lounge tracker data...</div>
+        <div class="muted hidden" id="mkcLocalTrackerMeta"></div>
       </div>
-      <div class="mkcTrackerFilter" id="mkcLoungeModeFilterRoot">
-        <button aria-controls="menuMkcLoungeModeFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungeModeFilter" type="button">
-          <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span id="mkcLoungeModeFilterValue">Lounge 12p</span>
-        </button>
-        <div class="mkcTrackerFilterMenu" hidden id="menuMkcLoungeModeFilter">
-          <button class="mkcTrackerFilterItem active" data-mkc-lounge-mode="12" id="optMkcLoungeMode12" type="button"><span>Lounge 12p</span></button>
-          <button class="mkcTrackerFilterItem" data-mkc-lounge-mode="24" id="optMkcLoungeMode24" type="button"><span>Lounge 24p</span></button>
+      <div class="mkcTrackerChartActions">
+        <div class="modeToggle mkcTrackerModeToggle" id="mkcLoungeModeToggle" aria-label="Lounge mode">
+          <button class="modeBtn isActive" data-mkc-lounge-mode="12" id="optMkcLoungeMode12" type="button">12p</button>
+          <button class="modeBtn" data-mkc-lounge-mode="24" id="optMkcLoungeMode24" type="button">24p</button>
         </div>
       </div>
     </div>
 
     <div class="mkcTrackerChartsGrid">
-      <div class="card mkcTrackerChartCard">
+      <div class="card mkcTrackerChartCard mkcLoungeDeckCard">
         <div class="mkcTrackerChartHead">
           <div>
-            <h4>Track Performance</h4>
-            <div class="muted" id="mkcLoungeTrackModeMeta">Tracks</div>
-          </div>
-          <div class="mkcTrackerChartActions">
-            <div class="mkcTrackerPager" id="mkcLoungeTrackPager" hidden>
-              <button class="mkcTrackerPagerBtn active" data-mkc-track-mode="tracks" type="button">Tracks</button>
-              <button class="mkcTrackerPagerBtn" data-mkc-track-mode="im_destiny" type="button">Destiny</button>
-              <button class="mkcTrackerPagerBtn" data-mkc-track-mode="im_routes" type="button">Separated</button>
+            <div class="mkcChartTitleLine">
+              <h4 id="mkcLoungeDeckTitle">Track Performance</h4>
+              <button aria-label="Info" class="mcard__infoBtn" data-info="mkcTrackPerformance" id="btnMkcLoungeDeckInfo" title="Info" type="button">i</button>
             </div>
+            <div class="muted hidden" id="mkcLoungeTrackModeMeta"></div>
+            <div class="muted hidden" id="mkcLoungePlacementMeta"></div>
+          </div>
+          <div class="mkcTrackerChartActions" id="mkcLoungeTrackActions">
             <div class="mkcTrackerFilter" id="mkcLoungeTrackFilterRoot">
               <button aria-controls="menuMkcLoungeTrackFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungeTrackFilter" type="button">
                 <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
@@ -184,20 +212,7 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="mkcChartWrap mkcChartWrapTracker"><canvas id="chartMkcLoungeTrack"></canvas></div>
-        <div class="mkcTrackerInsight" id="mkcLoungeTrackInsight">
-          <div class="muted">Click on a bar to see AVG points and times played.</div>
-        </div>
-      </div>
-
-      <div class="card mkcTrackerChartCard">
-        <div class="mkcTrackerChartHead">
-          <div>
-            <h4>Placement Distribution</h4>
-            <div class="muted" id="mkcLoungePlacementMeta">Tracks</div>
-          </div>
-          <div class="mkcTrackerChartActions">
+          <div class="mkcTrackerChartActions" hidden id="mkcLoungePlacementActions">
             <div class="mkcTrackerFilter" id="mkcLoungePlacementFilterRoot" hidden>
               <button aria-controls="menuMkcLoungePlacementFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungePlacementFilter" type="button">
                 <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
@@ -218,12 +233,38 @@
             </div>
           </div>
         </div>
-        <div class="mkcChartWrap mkcChartWrapTracker"><canvas id="chartMkcLoungePlacement"></canvas></div>
-        <div class="mkcTrackerInsight" id="mkcLoungePlacementInsight">
-          <div class="muted">Track placements for all saved races in the selected Lounge mode.</div>
+        <div class="mkcChartSwipeViewport" id="mkcLoungeDeckViewport">
+          <div class="mkcChartSwipeTrack" id="mkcLoungeDeckTrack">
+            <section class="mkcChartSwipePanel" data-mkc-lounge-panel="track">
+              <div class="mkcChartWrap mkcChartWrapTracker"><canvas id="chartMkcLoungeTrack"></canvas></div>
+              <div class="mkcTrackerInsight" id="mkcLoungeTrackInsight" hidden></div>
+            </section>
+            <section class="mkcChartSwipePanel" data-mkc-lounge-panel="placement">
+              <div class="mkcChartWrap mkcChartWrapTracker"><canvas id="chartMkcLoungePlacement"></canvas></div>
+              <div class="mkcTrackerInsight" id="mkcLoungePlacementInsight" hidden></div>
+            </section>
+          </div>
+        </div>
+        <div class="chartPager chartPager--perf" id="mkcLoungeDeckPager">
+          <button aria-label="Show track performance" class="chartPagerBtn active" data-mkc-lounge-chart-mode="tracks" type="button">Tracks</button>
+          <button aria-label="Show destiny performance" class="chartPagerBtn" data-mkc-lounge-chart-mode="im_destiny" type="button">Destiny</button>
+          <button aria-label="Show special destiny performance" class="chartPagerBtn" data-mkc-lounge-chart-mode="im_special_destiny" type="button">Special</button>
+          <button aria-label="Show separated route performance" class="chartPagerBtn" data-mkc-lounge-chart-mode="im_routes" type="button">Separated</button>
+          <button aria-label="Show placement distribution" class="chartPagerBtn" data-mkc-lounge-chart-mode="placement" type="button">Placement</button>
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="card">
+    <div class="sectionHead">
+      <div>
+        <h3>Daily Play Time</h3>
+        <div class="muted hidden" id="mkcChartMeta"></div>
+      </div>
+      <button aria-label="Info" class="mcard__infoBtn" data-info="mkcPlayTime" title="Info" type="button">i</button>
+    </div>
+    <div class="mkcChartWrap mkcChartWrapWide"><canvas id="chartMkcDelta"></canvas></div>
   </section>
 
   <section class="mkcTwo">
@@ -232,7 +273,7 @@
       <div class="tableWrap">
         <table>
           <thead><tr><th>Type</th><th>Events</th><th>Total</th><th>Avg</th><th>WR</th></tr></thead>
-        <tbody id="mkcTypeRows"><tr><td colspan="5" class="muted">No local data yet.</td></tr></tbody>
+          <tbody id="mkcTypeRows"><tr><td colspan="5" class="muted">No local data yet.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -263,8 +304,18 @@
   </section>
 </main>
 
+<div class="infoOverlay" hidden id="infoOverlay">
+  <div aria-labelledby="infoTitle" aria-modal="true" class="infoDialog" role="dialog">
+    <div class="hdr">
+      <div class="title" id="infoTitle">Info</div>
+      <button aria-label="Close" class="mcard__infoBtn" id="infoClose" title="Close" type="button">x</button>
+    </div>
+    <div class="body" id="infoBody"></div>
+  </div>
+</div>
+
 <script src="mkwt_public.js"></script>
-<script src="mkwt_report.js"></script>
+<script src="mkwt_mode_compare.js"></script>
 <script src="mkcentral.js"></script>
 </body>
 </html>

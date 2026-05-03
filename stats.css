@@ -24,15 +24,86 @@
       filter:drop-shadow(0 10px 16px rgba(0,0,0,.28));
     }
     .statsToolbarCard{
+      padding:22px 26px;
+      display:block;
+    }
+    .statsToolbarMain{
       display:grid;
-      gap:12px;
+      grid-template-columns:minmax(0,1fr) auto;
+      align-items:center;
+      gap:18px 22px;
+    }
+    .statsToolbarCopy{
+      min-width:0;
+    }
+    .statsToolbarEyebrow{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.12em;
+      line-height:1.2;
+      text-transform:uppercase;
+    }
+    .statsToolbarTitle{
+      margin:0;
+      color:var(--text);
+      font-size:24px;
+      line-height:1.12;
+    }
+    .statsToolbarMetrics{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+    }
+    .statsToolbarMetric{
+      min-height:38px;
+      display:inline-flex;
+      align-items:baseline;
+      gap:8px;
+      padding:8px 12px;
+      border:1px solid color-mix(in srgb, var(--border) 88%, transparent);
+      border-radius:12px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--text) 3%, transparent), transparent),
+        var(--surface-panel);
+    }
+    .statsToolbarMetric span{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.1em;
+      line-height:1.2;
+      text-transform:uppercase;
+    }
+    .statsToolbarMetric b{
+      color:var(--text);
+      font-size:19px;
+      line-height:1;
     }
     .statsToolbarActions{
       display:flex;
       align-items:center;
-      justify-content:flex-start;
+      justify-content:flex-end;
       gap:10px;
       flex-wrap:wrap;
+    }
+    .statsToolbarActions .navAction,
+    .statsToolbarActions .compareAction{
+      min-height:52px;
+    }
+    .statsToolbarActions .navAction{
+      padding-inline:18px;
+      font-size:18px;
+      font-weight:900;
+    }
+    .statsToolbarActions .compareAction{
+      min-width:230px;
+      max-width:none;
+      padding:8px 14px;
+    }
+    .statsToolbarActions .compareAction__label{
+      font-size:15px;
     }
 
     /* ===== Mobile Chart Fix ===== */
@@ -49,9 +120,26 @@
         width:72px;
         height:72px;
       }
+      .statsToolbarCard{
+        padding:18px;
+      }
+      .statsToolbarMain{
+        grid-template-columns:1fr;
+      }
+      .statsToolbarMetrics{
+        display:grid;
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+      .statsToolbarMetric{
+        justify-content:space-between;
+      }
       .statsToolbarActions{
         flex-direction:column;
         align-items:stretch;
+      }
+      .statsToolbarActions .compareAction,
+      .statsToolbarActions .navAction{
+        width:100%;
       }
     }
 
@@ -73,7 +161,9 @@
     .chartWrap canvas,
     .chartWrapC2 canvas,
     .chartWrapIm canvas,
-    .chartWrapBuckets canvas {
+    .chartWrapBuckets canvas,
+    .chartWrapCompare canvas,
+    .pie-wrap canvas {
       width: 100% !important;
       height: 100% !important;
       display: block;
@@ -81,6 +171,17 @@
 
     /* Prevent label cut-off */
     .chartWrap, .chartWrapC2, .chartWrapIm, .chartWrapBuckets { overflow: visible; }
+
+    .chartEmptyNotice{
+      max-width:min(560px, 100%);
+      margin:10px auto 0;
+      padding:0 12px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:850;
+      line-height:1.35;
+      text-align:center;
+    }
 
     /* ===== Track Distribution summary (3 cards) ===== */
     .avgBig { font-size: 1.35em; font-weight: 800; }
@@ -127,140 +228,14 @@
     }
     .td3Metric{ min-width: 0; }
 
-    /* ===== Info button + modal (reuses tracker.html visual language) ===== */
-.chartHeader{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin:0 0 10px 0;
-    }
-    .chartHeader h3{ margin:0; }
-.chartHeaderLead{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  min-width:0;
-  flex-wrap:wrap;
-}
-.chartHeaderLead--stacked{
-  align-items:flex-start;
-  justify-content:space-between;
-  flex:1 1 auto;
-}
 .chartHeaderMeta{
-  margin-top:4px;
-  font-size:12px;
-  color:var(--muted);
-  font-weight:700;
-  line-height:1.35;
+  display:none !important;
 }
-.chartHeaderActions{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-  margin-left:auto;
-}
-.chartFilter{
-  position:relative;
-}
-.chartFilterBtn{
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  min-width:150px;
-  padding:9px 12px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  background:var(--card-2);
-  color:var(--text);
-  cursor:pointer;
-  box-shadow:var(--shadow);
-}
-.chartFilterBtn[aria-expanded="true"]{
-  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 68%, var(--border));
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), rgba(255,255,255,.02)),
-    var(--surface-panel);
-}
-.chartFilterGlyph{
-  width:18px;
-  height:18px;
-  display:grid;
-  gap:3px;
-  flex:0 0 auto;
-}
-.chartFilterGlyph span{
-  display:block;
-  height:3px;
-  border-radius:999px;
-  background:linear-gradient(90deg, var(--chart-split-a-stroke), var(--chart-split-b-stroke));
-}
-.chartFilterGlyph span:nth-child(1){ width:100%; }
-.chartFilterGlyph span:nth-child(2){ width:72%; }
-.chartFilterGlyph span:nth-child(3){ width:46%; }
-.chartFilterValue{
-  font-size:13px;
-  font-weight:800;
-  line-height:1.15;
-  text-align:left;
-}
-.chartFilterMenu{
-  position:absolute;
-  top:calc(100% + 8px);
-  right:0;
-  min-width:220px;
-  padding:8px;
-  border-radius:14px;
-  border:1px solid var(--border);
-  background:var(--surface-dialog);
-  box-shadow:var(--shadow);
-  z-index:40;
-}
-.chartFilterSection{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.chartFilterSection + .chartFilterSection{
-  margin-top:8px;
-  padding-top:8px;
-  border-top:1px solid color-mix(in srgb, var(--text) 6%, transparent);
-}
-.chartFilterItem{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  width:100%;
-  padding:9px 10px;
-  border-radius:10px;
-  border:1px solid transparent;
-  background:transparent;
-  color:var(--text);
-  text-align:left;
-  cursor:pointer;
-  font-size:13px;
-  font-weight:700;
-}
-.chartFilterItem:hover{
-  background:color-mix(in srgb, var(--text) 4%, transparent);
-}
-.chartFilterItem.active{
-  background:color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent);
-  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 46%, var(--border));
-}
-.chartFilterItemMeta{
-  color:var(--muted);
-  font-size:12px;
-  font-weight:900;
-  min-width:18px;
-  text-align:right;
-}
+
+    /* ===== Chart swipe + pager ===== */
 .chartSwipeViewport{
   overflow:hidden;
+  --vr-deck-chart-height:560px;
 }
 .chartSwipeTrack{
   display:flex;
@@ -274,11 +249,15 @@
   flex:0 0 50%;
   min-width:50%;
 }
+.chartSwipePanel > .chartWrap{
+  height:var(--vr-deck-chart-height);
+}
 .chartWrapWeekly{
-  height:260px;
+  height:var(--vr-deck-chart-height);
 }
 .chartPanelMetric{
   min-height:28px;
+  margin-top:10px;
 }
 .chartPager{
   display:flex;
@@ -306,6 +285,22 @@
 }
 .chartSwipeSurface{
   touch-action:pan-y;
+}
+.analysisDeckViewport{
+  touch-action:pan-y;
+}
+.analysisDeckPanel{
+  display:flex;
+  flex-direction:column;
+  min-height:356px;
+}
+.analysisDeckPanel .pie-wrap{
+  flex:0 0 240px;
+  width:min(400px, 100%);
+  height:240px;
+}
+.analysisDeckPanel .chartWrapBuckets{
+  flex:0 0 320px;
 }
 
     /* Match tracker.html's info button look (same class name) */
@@ -337,17 +332,19 @@
       inset:-10px;
     }
 
-    .infoOverlay{
-      position:fixed;
-      inset:0;
-      background: var(--backdrop);
-      z-index: 9999;
+.infoOverlay{
+  position:fixed;
+  inset:0;
+  background: color-mix(in srgb, var(--bg) 48%, transparent);
+  z-index: 100000;
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:center;
-      padding: 18px 14px;
+      padding: 20px 14px;
       overflow:auto;
       -webkit-overflow-scrolling: touch;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     /* IMPORTANT: ensure the native [hidden] attribute actually hides the overlay.
        The class rule above sets display:flex which can override the UA stylesheet.
@@ -355,14 +352,13 @@
     */
     .infoOverlay[hidden]{ display:none !important; }
     .infoDialog{
-      width:min(560px, 100%);
-      margin-top: 10px;
+      width:min(440px, calc(100vw - 28px));
+      margin:0;
       border-radius: 14px;
-      background: var(--card);
+      background: var(--surface-dialog);
       border:1px solid var(--border);
-      backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
-      padding: 12px 12px 14px;
+      padding: 14px 14px 16px;
       position:relative;
     }
     .infoDialog .hdr{
@@ -385,20 +381,10 @@
 
     /* Keep icon visually identical to tracker.html (size unchanged). */
 
-.chartBtns button.navAction{
-  padding:7px 12px !important;
-  border-radius:10px !important;
-  border:1px solid var(--border) !important;
-  background: var(--card-2) !important;
-  color: var(--text) !important;
-  cursor:pointer;
-}
-.chartBtns button.navAction.active{
-  background: var(--primary) !important;
-  color: var(--primary-text) !important;
-}
-
 .avgBig{ font-size:1.35em !important; font-weight:900; }
+.avgBig--compact{ font-size:1.1em !important; }
+.selectionMeta{ margin-top:8px; }
+.selectionMeta:empty{ display:none; }
 
 .modeComparePanel{
   margin-top:14px;
@@ -412,7 +398,9 @@
 }
 
 .chartWrapCompare{
-  height:620px;
+  height:min(520px, calc(100dvh - 280px));
+  min-height:280px;
+  overflow:hidden;
 }
 
 .modeCompareNotes{
@@ -421,6 +409,7 @@
   gap:8px;
   margin-top:12px;
 }
+.modeCompareNotes[hidden]{display:none !important;}
 
 .modeCompareNote{
   padding:10px 12px;
@@ -428,6 +417,8 @@
   border-radius:14px;
   background:var(--surface-panel);
   line-height:1.45;
+  font-size:13px;
+  font-weight:800;
 }
 
 .modeCompareNote b{
@@ -473,7 +464,10 @@
   font-weight:900;
 }
 .compareDialog{
+  position:relative;
   width:min(1180px, calc(100vw - 24px));
+  max-height:calc(100dvh - 24px);
+  overflow:hidden;
   border:1px solid var(--border);
   border-radius:16px;
   padding:0;
@@ -482,7 +476,17 @@
   box-shadow:var(--shadow);
 }
 .compareDialog::backdrop{ background:var(--backdrop); }
-.compareDialogPanel{ padding:18px; }
+.compareDialog > .infoOverlay{
+  position:absolute;
+  z-index:1000;
+}
+.compareDialogPanel{
+  max-height:calc(100dvh - 24px);
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  padding:18px;
+  overflow:hidden;
+}
 .compareDialogHead{
   display:flex;
   align-items:flex-start;
@@ -490,6 +494,12 @@
   gap:14px;
   margin-bottom:14px;
   flex-wrap:wrap;
+}
+.compareDialogHeadActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
 }
 .compareDialogHead h3{ margin:0; }
 .compareDialogEyebrow{
@@ -502,12 +512,18 @@
 }
 .compareDialogMeta{ margin-top:8px; }
 .compareDialog .modeComparePanel{
+  min-height:0;
   margin-top:0;
   padding-top:0;
   border-top:none;
+  overflow:auto;
+  padding-right:4px;
 }
 
 @media (max-width: 520px){
+  .chartSwipeViewport{
+    --vr-deck-chart-height:380px;
+  }
   .chartHeader{
     align-items:flex-start;
   }
@@ -523,26 +539,11 @@
     width:100%;
     max-width:none;
   }
-  .chartFilter{
-    grid-column:1;
-  }
-  .chartFilterBtn{
-    min-width:0;
-    width:100%;
-  }
   .chartHeaderActions .mcard__infoBtn{
     grid-column:2;
     grid-row:1 / span 2;
     align-self:center;
     justify-self:end;
-  }
-  .chartFilterMenu{
-    left:0;
-    right:auto;
-    width:min(280px, calc(100vw - 56px));
-  }
-  .chartWrapWeekly{
-    height:300px;
   }
   .chartPagerBtn{
     padding:6px 10px;
@@ -552,6 +553,7 @@
     padding:14px;
   }
   .chartWrapCompare{
-    height:700px;
+    height:calc(100dvh - 262px);
+    min-height:260px;
   }
 }

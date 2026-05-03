@@ -80,6 +80,10 @@ Most pages follow this pattern:
 3. page-local JS loads data and renders the page
 4. page-local CSS handles only page-specific layout/styling, while shared styling stays in `mkwt_theme_v3.css`
 
+### Picker popup standard
+Track-style popup pickers keep the native `<select>` as the data source and replace only the visible control with a trigger plus popup panel. Options are read from the select options, icons are resolved per picker type, and the select still emits `change` after a choice. The standard behavior is: backdrop plus body scroll lock, letter filter with touch drag, desktop keyboard letter jump, Enter/Space on an active letter filter resets to All, visible focus states, immediate text fallbacks while icons warm up, and picker refresh when select options or selected values change.
+Picker dropdowns should use the small generated assets in `assets/picker-icons/` for track, character, and vehicle thumbnails; regenerate them with `tools/generate-picker-icons.cjs` after source icon maps change.
+
 ## Main feature areas
 
 ### World Wide flow

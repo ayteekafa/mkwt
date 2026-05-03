@@ -17,28 +17,24 @@
     {
       key: "speed",
       title: "Speed Surfaces",
-      meta: "On-road, off-road, and water speed read together.",
       className: "cbStatGroup--speed",
       stats: ["onRoadSpeed", "offRoadSpeed", "waterSpeed"],
     },
     {
       key: "tech",
       title: "Drive Feel",
-      meta: "Acceleration, mini-turbo, and coin curve shape how the combo wakes up.",
       className: "cbStatGroup--tech",
       stats: ["acceleration", "miniTurbo", "coinCurve"],
     },
     {
       key: "handling",
       title: "Handling Surfaces",
-      meta: "Every handling channel stays in one block.",
       className: "cbStatGroup--handling",
       stats: ["onRoadHandling", "offRoadHandling", "waterHandling"],
     },
     {
       key: "survival",
       title: "Weight & Safety",
-      meta: "Weight and invincibility finish the full picture.",
       className: "cbStatGroup--survival",
       stats: ["weight", "invincibility"],
     },
@@ -96,6 +92,13 @@
   let filterState = {};
   let similarComboMap = new Map();
   let allCombos = [];
+  let comboPickerBackdrop = null;
+  let comboPickerScrollY = 0;
+  let comboPickerBindingsReady = false;
+  let activeComboLetterPicker = null;
+  let comboPickerIconWarmupPromise = null;
+  let comboPickerIconRefreshQueued = false;
+  const comboPickerReadyPaths = new Set();
 
   function cleanText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
@@ -112,11 +115,14 @@
     const text = cleanText(message);
     if (window.MKWT?.setStatus) {
       window.MKWT.setStatus(el, text, ok);
+      el.classList.add("hidden");
+      el.hidden = true;
     } else {
       el.textContent = text;
       el.className = "muted" + (text ? (ok ? " ok" : " bad") : "");
+      el.hidden = !text;
+      el.classList.toggle("hidden", !text);
     }
-    el.classList.toggle("hidden", !text);
   }
 
   function readStoredSelection() {
@@ -220,11 +226,12 @@
     select.innerHTML = options
       .map((entry) => `<option value="${escapeHtml(entry.name)}">${escapeHtml(entry.name)}</option>`)
       .join("");
-    const canonicalSelected = selectId === "cbCharacterSelect"
+    const canonicalSelected = selectId.includes("Character")
       ? canonicalName(selectedName, CHARACTER_NAME_ALIASES)
       : canonicalName(selectedName, VEHICLE_NAME_ALIASES);
     const hasSelection = options.some((entry) => cleanText(entry.name) === cleanText(canonicalSelected));
     select.value = hasSelection ? canonicalSelected : (options[0]?.name || "");
+    refreshComboPickers();
   }
 
   function escapeHtml(value) {
@@ -255,8 +262,7 @@
 
   function iconMarkup(type, name, slug, extraClass = "") {
     const letters = comboGlyphLetters(name);
-    const record = iconRecord(type, slug);
-    const src = cleanText(record?.path || "");
+    const src = comboPickerIconPath(type, name);
     const className = ["cbGlyph", `cbGlyph--${type}`, extraClass].filter(Boolean).join(" ");
     return `
       <span class="${escapeHtml(className)}" data-icon-key="${escapeHtml(slug || "")}" data-has-image="${src ? "true" : "false"}" aria-hidden="true">
@@ -264,6 +270,470 @@
         ${src ? `<img alt="" loading="lazy" src="${escapeHtml(src)}" />` : ""}
       </span>
     `;
+  }
+
+  function readComboPickerOptions(selectEl) {
+    return Array.from(selectEl?.options || [])
+      .filter((option) => option.value)
+      .map((option) => ({
+        value: option.value,
+        label: cleanText(option.textContent || option.label || option.value),
+      }));
+  }
+
+  function selectedComboPickerLabel(selectEl, placeholder = "") {
+    const selected = selectEl?.selectedOptions?.[0];
+    if (selectEl?.value && selected) return cleanText(selected.textContent || selected.label || selectEl.value);
+    return placeholder;
+  }
+
+  function comboPickerLetters(options) {
+    const letters = options
+      .map((option) => cleanText(option.label || option.value).charAt(0).toUpperCase())
+      .filter((letter) => /^[A-Z0-9]$/.test(letter));
+    return Array.from(new Set(letters)).sort((a, b) => a.localeCompare(b));
+  }
+
+  function filterComboPickerOptions(options, letter) {
+    if (!letter || letter === "all") return options;
+    return options.filter((option) => cleanText(option.label || option.value).charAt(0).toUpperCase() === letter);
+  }
+
+  function groupComboPickerOptions(options) {
+    const groups = new Map();
+    for (const option of options) {
+      const letter = cleanText(option.label || option.value).charAt(0).toUpperCase() || "#";
+      if (!groups.has(letter)) groups.set(letter, []);
+      groups.get(letter).push(option);
+    }
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, groupOptions]) => ({ label, options: groupOptions }));
+  }
+
+  function comboPickerIconPath(kind, value) {
+    const entry = kind === "character" ? findCharacter(value) : findVehicle(value);
+    const slug = entry?.slug || entry?.iconKey || "";
+    const record = iconRecord(kind, slug);
+    const rawPath = cleanText(record?.path || "");
+    const fileName = rawPath.split(/[\\/]/).pop();
+    if (fileName) return `assets/picker-icons/${kind === "character" ? "characters" : "vehicles"}/${fileName}`;
+    return rawPath;
+  }
+
+  function scheduleComboPickerRefresh() {
+    if (comboPickerIconRefreshQueued) return;
+    comboPickerIconRefreshQueued = true;
+    requestAnimationFrame(() => {
+      comboPickerIconRefreshQueued = false;
+      refreshComboPickers();
+    });
+  }
+
+  function preloadComboPickerIconPath(src) {
+    if (!src || comboPickerReadyPaths.has(src)) return Promise.resolve(src);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        comboPickerReadyPaths.add(src);
+        scheduleComboPickerRefresh();
+        resolve(src);
+      };
+      img.onerror = () => resolve("");
+      img.decoding = "async";
+      img.loading = "eager";
+      img.src = src;
+    });
+  }
+
+  function preloadComboPickerIcons() {
+    if (comboPickerIconWarmupPromise) return comboPickerIconWarmupPromise;
+    const paths = [];
+    for (const character of builderData?.characters || []) {
+      const path = comboPickerIconPath("character", character.name);
+      if (path) paths.push(path);
+    }
+    for (const vehicle of builderData?.vehicles || []) {
+      const path = comboPickerIconPath("vehicle", vehicle.name);
+      if (path) paths.push(path);
+    }
+    comboPickerIconWarmupPromise = Promise.allSettled([...new Set(paths)].map(preloadComboPickerIconPath));
+    return comboPickerIconWarmupPromise;
+  }
+
+  function scheduleComboPickerIconWarmup() {
+    const run = () => preloadComboPickerIcons();
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: 1800 });
+    } else {
+      window.setTimeout(run, 250);
+    }
+  }
+
+  function comboPickerIconSlot(kind, value) {
+    const slot = document.createElement("span");
+    slot.className = "trackPicker__iconSlot cbPickerIconSlot";
+    slot.setAttribute("aria-hidden", "true");
+    const src = comboPickerIconPath(kind, value);
+    if (src && comboPickerReadyPaths.has(src)) {
+      const img = document.createElement("img");
+      img.className = "trackPicker__icon cbPickerIcon";
+      img.src = src;
+      img.alt = "";
+      img.width = 24;
+      img.height = 24;
+      img.decoding = "async";
+      img.loading = "eager";
+      slot.appendChild(img);
+      return slot;
+    }
+    if (src) preloadComboPickerIconPath(src);
+    const fallback = document.createElement("span");
+    fallback.className = "trackPicker__iconFallback";
+    fallback.textContent = comboGlyphLetters(value);
+    slot.appendChild(fallback);
+    return slot;
+  }
+
+  function refreshComboPickers() {
+    document.querySelectorAll(".cbComboPicker").forEach((root) => {
+      const select = $(root.dataset.selectId || "");
+      const valueEl = root.querySelector(".trackPicker__value");
+      const trigger = root.querySelector(".trackPicker__trigger");
+      if (!select || !valueEl || !trigger) return;
+      const text = selectedComboPickerLabel(select, root.dataset.placeholder || "Select");
+      valueEl.textContent = text;
+      trigger.title = text;
+      trigger.classList.toggle("is-placeholder", !select.value);
+      const panel = root.querySelector(".trackPicker__panel");
+      if (panel && !panel.hidden) renderComboPickerPanel(root);
+    });
+  }
+
+  function closeComboPickers(exceptRoot = null) {
+    if (!exceptRoot) activeComboLetterPicker = null;
+    document.querySelectorAll(".cbComboPicker").forEach((root) => {
+      if (exceptRoot && root === exceptRoot) return;
+      root.classList.remove("is-open");
+      root.querySelector(".trackPicker__trigger")?.setAttribute("aria-expanded", "false");
+      const panel = root.querySelector(".trackPicker__panel");
+      if (panel) panel.hidden = true;
+    });
+    if (!exceptRoot) {
+      if (comboPickerBackdrop) comboPickerBackdrop.hidden = true;
+      document.documentElement.classList.remove("trackPickerScrollLocked");
+      document.body.classList.remove("trackPickerScrollLocked");
+      document.body.style.top = "";
+      if (comboPickerScrollY) window.scrollTo(0, comboPickerScrollY);
+      comboPickerScrollY = 0;
+    }
+  }
+
+  function alignComboPickerPanel(root) {
+    const panel = root.querySelector(".trackPicker__panel");
+    if (!panel) return;
+    panel.style.left = "";
+    panel.style.top = "";
+    panel.style.width = "";
+    const viewport = window.visualViewport || {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      offsetLeft: 0,
+      offsetTop: 0,
+    };
+    const isMobile = viewport.width < 760;
+    const margin = isMobile ? 10 : 16;
+    const desiredWidth = Number(root.dataset.panelWidth || 760);
+    const panelWidth = Math.min(isMobile ? 760 : desiredWidth, viewport.width - (margin * 2));
+    panel.style.width = `${Math.round(panelWidth)}px`;
+    panel.style.left = `${Math.round(viewport.offsetLeft + ((viewport.width - panelWidth) / 2))}px`;
+    const rect = panel.getBoundingClientRect();
+    const preferredTop = viewport.offsetTop + ((viewport.height - rect.height) / 2);
+    const maxTop = viewport.offsetTop + viewport.height - rect.height - margin;
+    panel.style.top = `${Math.round(Math.max(viewport.offsetTop + margin, Math.min(preferredTop, maxTop)))}px`;
+  }
+
+  function setComboLetterFilter(root, letter, focusLetter = false) {
+    const select = $(root?.dataset?.selectId || "");
+    const panel = root?.querySelector?.(".trackPicker__panel");
+    if (!root || !select || !panel || panel.hidden) return false;
+    const letters = comboPickerLetters(readComboPickerOptions(select));
+    const requested = letter && letter !== "all" ? String(letter).trim().charAt(0).toUpperCase() : "all";
+    const next = requested !== "all" && letters.includes(requested) ? requested : "all";
+    if ((root.dataset.letterFilter || "all") === next) return false;
+    root.dataset.letterFilter = next;
+    renderComboPickerPanel(root);
+    alignComboPickerPanel(root);
+    if (focusLetter) {
+      requestAnimationFrame(() => root.querySelector(`[data-letter-filter="${CSS.escape(next)}"]`)?.focus?.());
+    }
+    return true;
+  }
+
+  function resetComboLetterFilter(root, focusAll = true) {
+    if (!root || (root.dataset.letterFilter || "all") === "all") return false;
+    return setComboLetterFilter(root, "all", focusAll);
+  }
+
+  function applyComboLetterFilterFromPoint(clientX, clientY) {
+    if (!activeComboLetterPicker) return;
+    const target = document.elementFromPoint(clientX, clientY);
+    const button = target?.closest?.("[data-letter-filter]");
+    if (!button || !activeComboLetterPicker.querySelector(".trackPicker__panel")?.contains(button)) return;
+    setComboLetterFilter(activeComboLetterPicker, button.dataset.letterFilter || "all");
+  }
+
+  function applyComboKeyboardLetterFilter(root, key) {
+    const select = $(root?.dataset?.selectId || "");
+    if (!root || !select) return false;
+    const letter = String(key || "").trim().charAt(0).toUpperCase();
+    if (!/^[A-Z0-9]$/.test(letter)) return false;
+    if (!comboPickerLetters(readComboPickerOptions(select)).includes(letter)) return false;
+    return setComboLetterFilter(root, letter, true);
+  }
+
+  function findOpenComboPickerRoot() {
+    return Array.from(document.querySelectorAll(".cbComboPicker"))
+      .find((root) => !root.querySelector(".trackPicker__panel")?.hidden) || null;
+  }
+
+  function renderComboPickerPanel(root) {
+    const select = $(root.dataset.selectId || "");
+    const panel = root.querySelector(".trackPicker__panel");
+    if (!select || !panel) return;
+    const kind = root.dataset.kind || "character";
+    const options = readComboPickerOptions(select);
+    const letters = comboPickerLetters(options);
+    const currentLetter = letters.includes(root.dataset.letterFilter || "") ? root.dataset.letterFilter : "all";
+    root.dataset.letterFilter = currentLetter;
+    const visibleOptions = filterComboPickerOptions(options, currentLetter);
+    const railLetters = ["all", ...letters];
+    panel.innerHTML = "";
+    panel.style.setProperty("--track-picker-letter-count", String(railLetters.length));
+    panel.style.setProperty("--track-picker-mobile-height", `${32 + (railLetters.length * 24) + ((railLetters.length - 1) * 4)}px`);
+
+    const layout = document.createElement("div");
+    layout.className = "trackPicker__layout";
+    const rail = document.createElement("div");
+    rail.className = "trackPicker__letterRail";
+    rail.setAttribute("aria-label", `${root.dataset.placeholder || "Picker"} filter`);
+
+    railLetters.forEach((letter) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "trackPicker__letterBtn";
+      if (letter === "all") button.classList.add("trackPicker__letterBtn--all");
+      if (letter === currentLetter) button.classList.add("is-active");
+      button.dataset.letterFilter = letter;
+      button.setAttribute("aria-pressed", letter === currentLetter ? "true" : "false");
+      button.textContent = letter === "all" ? "All" : letter;
+      rail.appendChild(button);
+    });
+
+    rail.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-letter-filter]");
+      if (!button) return;
+      event.preventDefault();
+      setComboLetterFilter(root, button.dataset.letterFilter || "all");
+    });
+    rail.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const button = event.target.closest("[data-letter-filter]");
+      if (!button) return;
+      event.preventDefault();
+      if ((root.dataset.letterFilter || "all") !== "all") {
+        resetComboLetterFilter(root);
+        return;
+      }
+      setComboLetterFilter(root, button.dataset.letterFilter || "all");
+    });
+    rail.addEventListener("pointerdown", (event) => {
+      if (!event.target.closest("[data-letter-filter]")) return;
+      event.preventDefault();
+      activeComboLetterPicker = root;
+      applyComboLetterFilterFromPoint(event.clientX, event.clientY);
+    });
+
+    const trackArea = document.createElement("div");
+    trackArea.className = "trackPicker__trackArea";
+    const groupsEl = document.createElement("div");
+    groupsEl.className = "trackPicker__groups";
+    for (const group of groupComboPickerOptions(visibleOptions)) {
+      const groupEl = document.createElement("div");
+      groupEl.className = "trackPicker__group";
+      const head = document.createElement("div");
+      head.className = "trackPicker__groupLabel";
+      head.textContent = group.label;
+      groupEl.appendChild(head);
+      for (const option of group.options) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "trackPicker__option";
+        item.dataset.value = option.value;
+        item.setAttribute("role", "option");
+        item.setAttribute("aria-selected", select.value === option.value ? "true" : "false");
+        item.title = option.label;
+        item.appendChild(comboPickerIconSlot(kind, option.value));
+        const text = document.createElement("span");
+        text.className = "trackPicker__optionText";
+        text.textContent = option.label;
+        item.appendChild(text);
+        groupEl.appendChild(item);
+      }
+      groupsEl.appendChild(groupEl);
+    }
+    if (!groupsEl.children.length) {
+      const empty = document.createElement("div");
+      empty.className = "trackPicker__empty";
+      empty.textContent = "No options";
+      groupsEl.appendChild(empty);
+    }
+    trackArea.appendChild(groupsEl);
+    layout.appendChild(rail);
+    layout.appendChild(trackArea);
+    panel.appendChild(layout);
+  }
+
+  function openComboPicker(root) {
+    closeComboPickers(root);
+    root.dataset.letterFilter = "all";
+    preloadComboPickerIcons();
+    renderComboPickerPanel(root);
+    const panel = root.querySelector(".trackPicker__panel");
+    const trigger = root.querySelector(".trackPicker__trigger");
+    if (!panel || !trigger) return;
+    panel.hidden = false;
+    root.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    if (!comboPickerBackdrop) {
+      comboPickerBackdrop = document.createElement("div");
+      comboPickerBackdrop.className = "trackPickerBackdrop cbPickerBackdrop";
+      comboPickerBackdrop.hidden = true;
+      document.body.appendChild(comboPickerBackdrop);
+      comboPickerBackdrop.addEventListener("click", () => closeComboPickers());
+    }
+    comboPickerScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.documentElement.classList.add("trackPickerScrollLocked");
+    document.body.classList.add("trackPickerScrollLocked");
+    document.body.style.top = `-${comboPickerScrollY}px`;
+    comboPickerBackdrop.hidden = false;
+    alignComboPickerPanel(root);
+  }
+
+  function initComboPickers() {
+    const configs = [
+      { id: "cbCharacterSelect", kind: "character", placeholder: "Character", width: 760 },
+      { id: "cbVehicleSelect", kind: "vehicle", placeholder: "Vehicle", width: 760 },
+      { id: "cbCompareCharacterSelect", kind: "character", placeholder: "Compare character", width: 760 },
+      { id: "cbCompareVehicleSelect", kind: "vehicle", placeholder: "Compare vehicle", width: 760 },
+    ];
+    for (const config of configs) {
+      const select = $(config.id);
+      if (!select || select.dataset.cbPickerReady === "1") continue;
+      select.dataset.cbPickerReady = "1";
+      select.classList.add("trackNativeSelect", "cbNativeSelect");
+      const root = document.createElement("div");
+      root.className = "trackPicker loungePicker cbComboPicker trackPicker--track";
+      root.dataset.selectId = config.id;
+      root.dataset.kind = config.kind;
+      root.dataset.placeholder = config.placeholder;
+      root.dataset.panelWidth = String(config.width || 760);
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "trackPicker__trigger";
+      trigger.setAttribute("aria-haspopup", "listbox");
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.setAttribute("aria-label", config.placeholder);
+      const valueEl = document.createElement("span");
+      valueEl.className = "trackPicker__value";
+      trigger.appendChild(valueEl);
+      const chevron = document.createElement("span");
+      chevron.className = "trackPicker__chevron";
+      chevron.setAttribute("aria-hidden", "true");
+      chevron.textContent = "v";
+      trigger.appendChild(chevron);
+      const panel = document.createElement("div");
+      panel.className = "trackPicker__panel";
+      panel.setAttribute("role", "listbox");
+      panel.hidden = true;
+      root.appendChild(trigger);
+      root.appendChild(panel);
+      select.insertAdjacentElement("afterend", root);
+
+      trigger.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (panel.hidden) openComboPicker(root);
+        else closeComboPickers();
+      });
+      trigger.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        if (!panel.hidden && (root.dataset.letterFilter || "all") !== "all") {
+          resetComboLetterFilter(root);
+          return;
+        }
+        if (panel.hidden) openComboPicker(root);
+        else closeComboPickers();
+      });
+      panel.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const optionButton = event.target.closest("[data-value]");
+        if (!optionButton) return;
+        select.value = optionButton.dataset.value || "";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        closeComboPickers();
+        refreshComboPickers();
+        trigger.focus();
+      });
+      select.addEventListener("change", refreshComboPickers);
+      const observer = new MutationObserver(refreshComboPickers);
+      observer.observe(select, { childList: true, subtree: true, characterData: true });
+      refreshComboPickers();
+    }
+
+    if (!comboPickerBindingsReady) {
+      comboPickerBindingsReady = true;
+      document.addEventListener("click", (event) => {
+        if (event.target.closest(".cbComboPicker") || event.target.closest(".trackPicker__panel")) return;
+        closeComboPickers();
+      });
+      document.addEventListener("pointermove", (event) => {
+        if (!activeComboLetterPicker) return;
+        event.preventDefault();
+        applyComboLetterFilterFromPoint(event.clientX, event.clientY);
+      }, { passive: false });
+      document.addEventListener("pointerup", () => {
+        activeComboLetterPicker = null;
+      });
+      document.addEventListener("pointercancel", () => {
+        activeComboLetterPicker = null;
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (findOpenComboPickerRoot()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          closeComboPickers();
+          return;
+        }
+        const openRoot = findOpenComboPickerRoot();
+        if (!openRoot) return;
+        const target = event.target;
+        const isTextTarget = target?.matches?.("input, textarea, select") || target?.isContentEditable;
+        if (isTextTarget || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.key.length === 1 && /^[a-z0-9]$/i.test(event.key)) {
+          if (applyComboKeyboardLetterFilter(openRoot, event.key)) event.preventDefault();
+          return;
+        }
+        if ((event.key === "Enter" || event.key === " ")
+          && !target?.closest?.(".trackPicker__option, .trackPicker__trigger")
+          && resetComboLetterFilter(openRoot)) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener("resize", () => closeComboPickers());
+    }
   }
 
   function currentComboContext() {
@@ -499,7 +969,7 @@
           <div class="cbGroupHead">
             <div>
               <div class="cbGroupTitle">${escapeHtml(group.title)}</div>
-              <div class="cbGroupMeta">${escapeHtml(group.meta)}</div>
+              ${group.meta ? `<div class="cbGroupMeta">${escapeHtml(group.meta)}</div>` : ""}
             </div>
             <div class="cbGroupTotal">${escapeHtml(fmtNumber(groupTotal, 0))} / ${escapeHtml(fmtNumber(groupMax, 0))}</div>
           </div>
@@ -537,40 +1007,216 @@
       const rows = group.stats.map((key) => {
         const label = builderData?.statLabels?.[key] || key;
         const max = statMaximum(key);
-        const value = cleanText(filterState?.[key] ?? "");
+        const rawValue = cleanText(filterState?.[key] ?? "");
+        const value = Math.max(0, Math.min(max, Math.round(Number(rawValue) || 0)));
+        const isActive = value > 0;
+        const pct = isActive ? (value / Math.max(max, 1)) * 100 : 0;
+        const ticks = Array.from({ length: max }, (_, index) => `<span${index < value ? " class=\"is-active\"" : ""}></span>`).join("");
+        const barHelp = `${label}: click or swipe to set a minimum. Clear ignores this stat.`;
         return `
-          <label class="cbFilterRow" for="cbFilter_${escapeHtml(key)}">
-            <span class="cbFilterRowLabel">${escapeHtml(label)}</span>
-            <span class="cbFilterInputWrap">
-              <input class="cbFilterInput" id="cbFilter_${escapeHtml(key)}" data-stat-key="${escapeHtml(key)}" type="number" min="0" max="${escapeHtml(max)}" step="1" inputmode="numeric" placeholder="Any" value="${escapeHtml(value)}" />
-              <span class="cbFilterMax">/ ${escapeHtml(fmtNumber(max, 0))}</span>
-            </span>
-          </label>
+          <div class="cbStatRow cbFilterRow${isActive ? " is-active" : ""}" data-stat-row="${escapeHtml(key)}">
+            <div class="cbStatHead">
+              <div class="cbStatLabelWrap">
+                <span class="cbStatLabel">${escapeHtml(label)}</span>
+              </div>
+              <button class="cbFilterClear${isActive ? "" : " is-hidden"}" data-stat-clear="${escapeHtml(key)}" type="button" aria-hidden="${isActive ? "false" : "true"}" tabindex="${isActive ? "0" : "-1"}" title="Clear ${escapeHtml(label)} filter">Clear</button>
+              <div class="cbStatValue">
+                <span class="cbFilterBarValue">${escapeHtml(isActive ? fmtNumber(value, 0) : "Any")}</span>
+                <span class="cbFilterBarMax">/ ${escapeHtml(fmtNumber(max, 0))}</span>
+              </div>
+            </div>
+            <button
+              class="cbFilterBar${isActive ? " is-active" : ""}"
+              type="button"
+              role="slider"
+              aria-label="${escapeHtml(label)} minimum"
+              aria-valuemin="0"
+              aria-valuemax="${escapeHtml(max)}"
+              aria-valuenow="${escapeHtml(value)}"
+              aria-valuetext="${escapeHtml(isActive ? `${value} of ${max}` : "Any")}"
+              data-stat-key="${escapeHtml(key)}"
+              data-stat-max="${escapeHtml(max)}"
+              title="${escapeHtml(barHelp)}"
+            >
+              <span class="cbStatBar cbFilterBarTrack" aria-hidden="true">
+                <span class="cbStatBarFill cbFilterBarFill" style="width:${pct.toFixed(2)}%"></span>
+                <span class="cbFilterBarTicks">${ticks}</span>
+              </span>
+            </button>
+          </div>
         `;
       }).join("");
       return `
-        <div class="cbFilterGroup ${group.className}">
-          <div class="cbFilterGroupTitle">${escapeHtml(group.title)}</div>
-          <div class="cbFilterRows">${rows}</div>
+        <div class="cbStatGroup cbFilterGroup ${group.className}">
+          <div class="cbGroupHead">
+            <div class="cbGroupTitle">${escapeHtml(group.title)}</div>
+          </div>
+          <div class="cbGroupRows cbFilterRows">${rows}</div>
         </div>
       `;
     }).join("");
 
-    host.querySelectorAll("input[data-stat-key]").forEach((input) => {
-      input.addEventListener("input", (event) => {
-        const key = event.target?.dataset?.statKey;
+    const updateFilterBar = (bar, parsed) => {
+      const max = Math.max(1, Number(bar.dataset?.statMax) || statMaximum(bar.dataset?.statKey));
+      const value = Math.max(0, Math.min(max, Math.round(Number(parsed) || 0)));
+      const isActive = value > 0;
+      const pct = isActive ? (value / max) * 100 : 0;
+      const row = bar.closest(".cbFilterRow");
+      const valueEl = row?.querySelector(".cbFilterBarValue");
+      const fillEl = bar.querySelector(".cbFilterBarFill");
+      const clearEl = row?.querySelector("[data-stat-clear]");
+      row?.classList.toggle("is-active", isActive);
+      bar.classList.toggle("is-active", isActive);
+      bar.setAttribute("aria-valuenow", String(value));
+      bar.setAttribute("aria-valuetext", isActive ? `${value} of ${max}` : "Any");
+      if (valueEl) valueEl.textContent = isActive ? fmtNumber(value, 0) : "Any";
+      if (fillEl) fillEl.style.width = `${pct.toFixed(2)}%`;
+      if (clearEl) {
+        clearEl.classList.toggle("is-hidden", !isActive);
+        clearEl.setAttribute("aria-hidden", isActive ? "false" : "true");
+        clearEl.tabIndex = isActive ? 0 : -1;
+      }
+      bar.querySelectorAll(".cbFilterBarTicks span").forEach((tick, index) => {
+        tick.classList.toggle("is-active", index < value);
+      });
+    };
+
+    const clearFilterPreview = (bar) => {
+      const key = bar.dataset?.statKey;
+      if (!key) return;
+      const current = Math.max(0, Math.min(statMaximum(key), Math.round(Number(filterState?.[key] || 0))));
+      const row = bar.closest(".cbFilterRow");
+      row?.classList.remove("is-preview");
+      updateFilterBar(bar, current);
+    };
+
+    const updateFilterPreview = (bar, value) => {
+      const key = bar.dataset?.statKey;
+      if (!key) return;
+      const max = Math.max(1, Number(bar.dataset?.statMax) || statMaximum(key));
+      const parsed = Math.max(0, Math.min(max, Math.round(Number(value) || 0)));
+      const row = bar.closest(".cbFilterRow");
+      const valueEl = row?.querySelector(".cbFilterBarValue");
+      row?.classList.add("is-preview");
+      if (valueEl) valueEl.textContent = fmtNumber(parsed, 0);
+    };
+
+    const valueFromPointer = (bar, event, dragRect = null) => {
+      const key = bar.dataset?.statKey;
+      const rect = dragRect || bar.getBoundingClientRect();
+      const max = Math.max(1, Number(bar.dataset?.statMax) || statMaximum(key));
+      const stepWidth = rect.width ? rect.width / max : 0;
+      const raw = stepWidth ? (event.clientX - rect.left) / stepWidth : 0;
+      return Math.max(0, Math.min(max, Math.round(raw)));
+    };
+
+    let filterResultsFrame = 0;
+    const scheduleFilterResults = () => {
+      if (filterResultsFrame) return;
+      if (typeof requestAnimationFrame !== "function") {
+        renderFilterResults();
+        return;
+      }
+      filterResultsFrame = requestAnimationFrame(() => {
+        filterResultsFrame = 0;
+        renderFilterResults();
+      });
+    };
+
+    const updateFilter = (key, value, bar = null) => {
+      const max = statMaximum(key);
+      const parsed = Math.max(0, Math.min(max, Math.round(Number(value) || 0)));
+      const nextValue = Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "";
+      if (filterState[key] === nextValue) return;
+      filterState[key] = nextValue;
+      if (bar) updateFilterBar(bar, parsed);
+      scheduleFilterResults();
+    };
+
+    host.querySelectorAll(".cbFilterBar[data-stat-key]").forEach((bar) => {
+      let activePointerId = null;
+      let activeDragRect = null;
+      const updateFromPointer = (event, dragRect = null) => {
+        const key = bar.dataset?.statKey;
         if (!key) return;
-        const max = statMaximum(key);
-        const raw = cleanText(event.target.value);
-        if (!raw) {
-          filterState[key] = "";
-          renderFilterResults();
+        event.preventDefault();
+        updateFilter(key, valueFromPointer(bar, event, dragRect), bar);
+      };
+
+      bar.addEventListener("pointerdown", (event) => {
+        if (event.button !== undefined && event.button !== 0) return;
+        clearFilterPreview(bar);
+        activePointerId = event.pointerId;
+        activeDragRect = bar.getBoundingClientRect();
+        bar.setPointerCapture?.(event.pointerId);
+        updateFromPointer(event, activeDragRect);
+      });
+
+      bar.addEventListener("pointermove", (event) => {
+        if (activePointerId === event.pointerId) {
+          updateFromPointer(event, activeDragRect);
           return;
         }
-        const parsed = Math.max(0, Math.min(max, Math.round(Number(raw))));
-        filterState[key] = Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "";
-        if (filterState[key] !== raw) event.target.value = filterState[key];
-        renderFilterResults();
+        if (activePointerId === null && event.pointerType === "mouse") {
+          updateFilterPreview(bar, valueFromPointer(bar, event));
+        }
+      });
+
+      const endPointer = (event) => {
+        if (activePointerId !== event.pointerId) return;
+        updateFromPointer(event, activeDragRect);
+        activePointerId = null;
+        activeDragRect = null;
+        bar.releasePointerCapture?.(event.pointerId);
+      };
+
+      bar.addEventListener("pointerup", endPointer);
+      bar.addEventListener("pointercancel", (event) => {
+        if (activePointerId !== event.pointerId) return;
+        activePointerId = null;
+        activeDragRect = null;
+        bar.releasePointerCapture?.(event.pointerId);
+      });
+
+      bar.addEventListener("pointerleave", (event) => {
+        if (activePointerId === event.pointerId) return;
+        clearFilterPreview(bar);
+      });
+
+      bar.addEventListener("click", (event) => {
+        event.preventDefault();
+      });
+
+      bar.addEventListener("keydown", (event) => {
+        const key = bar.dataset?.statKey;
+        if (!key) return;
+        const max = Math.max(1, Number(bar.dataset?.statMax) || statMaximum(key));
+        const current = Math.max(0, Math.min(max, Math.round(Number(filterState?.[key] || 0))));
+        if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+          event.preventDefault();
+          updateFilter(key, Math.min(max, current + 1), bar);
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+          event.preventDefault();
+          updateFilter(key, Math.max(0, current - 1), bar);
+        } else if (event.key === "Home" || event.key === "Backspace" || event.key === "Delete") {
+          event.preventDefault();
+          updateFilter(key, 0, bar);
+        } else if (event.key === "End") {
+          event.preventDefault();
+          updateFilter(key, max, bar);
+        } else if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          updateFilter(key, current > 0 ? 0 : Math.ceil(max / 2), bar);
+        }
+      });
+    });
+
+    host.querySelectorAll("[data-stat-clear]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const key = button.dataset?.statClear;
+        if (!key) return;
+        const bar = button.closest(".cbFilterRow")?.querySelector(".cbFilterBar[data-stat-key]");
+        updateFilter(key, 0, bar);
       });
     });
   }
@@ -639,7 +1285,12 @@
     if (!btn) return;
     const matches = similarComboMap.get(statSignature(combinedStats)) || [];
     btn.disabled = matches.length === 0;
-    btn.textContent = `Similar combos${matches.length ? ` (${matches.length})` : ""}`;
+    btn.hidden = matches.length === 0;
+    btn.classList.toggle("hidden", matches.length === 0);
+    btn.classList.toggle("is-visible", matches.length > 0);
+    btn.setAttribute("aria-label", matches.length ? `Show ${matches.length} similar combos` : "No similar combos");
+    const valueEl = $("cbSimilarNoticeValue");
+    if (valueEl) valueEl.textContent = fmtNumber(matches.length, 0);
   }
 
   function compareDiffClass(diff) {
@@ -687,9 +1338,10 @@
     const comparePct = Math.max(0, Math.min(100, (safeCompare / max) * 100));
     const deltaLeft = Math.min(basePct, comparePct);
     const deltaWidth = Math.abs(comparePct - basePct);
+    const rowHelp = `${label}: selected ${compareDisplayValue(key, safeBase)}, compare ${compareDisplayValue(key, safeCompare)}, delta ${formatDiff(diff)}.`;
 
     return `
-      <div class="cbCompareRow cbCompareRow--${escapeHtml(state)}">
+      <div class="cbCompareRow cbCompareRow--${escapeHtml(state)}" title="${escapeHtml(rowHelp)}">
         <div class="cbCompareRowTop">
           <div class="cbCompareRowLabel">${escapeHtml(label)}</div>
           <div class="${compareDiffClass(diff)}">${escapeHtml(formatDiff(diff))}</div>
@@ -797,7 +1449,7 @@
           <div class="cbCompareGroupHead">
             <div>
               <div class="cbCompareGroupTitle">${escapeHtml(group.title)}</div>
-              <div class="cbCompareGroupMeta">${escapeHtml(group.meta)}</div>
+              ${group.meta ? `<div class="cbCompareGroupMeta">${escapeHtml(group.meta)}</div>` : ""}
             </div>
           </div>
           <div class="cbCompareRows">
@@ -829,7 +1481,6 @@
     });
 
     setText("cbSimilarTitle", `${matches.length} exact match${matches.length === 1 ? "" : "es"}`);
-    setText("cbSimilarSubtitle", "Same full stat line across every hidden stat in the builder.");
 
     if (!matches.length) {
       host.innerHTML = `<div class="cbEmpty">No similar combos found for the current build.</div>`;
@@ -847,7 +1498,7 @@
             </div>
             <div class="cbSimilarText">
               <div class="cbSimilarTitle">${escapeHtml(entry.characterName)} + ${escapeHtml(entry.vehicleName)}</div>
-              <div class="cbSimilarMeta">${escapeHtml(entry.fullClass || entry.characterClass)} | ${escapeHtml(entry.vehicleClass || entry.vehicleType || "Vehicle")} | ${escapeHtml(entry.vehicleTag || "-")}</div>
+              <div class="cbSimilarMeta">${escapeHtml(entry.fullClass || entry.characterClass)} | ${escapeHtml(entry.vehicleClass || entry.vehicleType || "Vehicle")}</div>
             </div>
           </div>
           <div class="cbSimilarBadge">${isActive ? "Current" : "Exact match"}</div>
@@ -867,15 +1518,15 @@
   function renderReferenceCards(selectedStats, featherReference, heavyReference, vehicle) {
     const selectedCurve = Number(selectedStats.coinCurve || 0);
     setText("cbSelectedCurveValue", `${fmtNumber(selectedCurve, 0)} / ${fmtNumber(builderData?.statMaxima?.coinCurve, 0)}`);
-    setText("cbSelectedCurveMeta", `${vehicle?.name || "-"} kept live in every comparison`);
+    setText("cbSelectedCurveMeta", "");
 
     const featherCurve = Number(featherReference?.stats?.coinCurve || 0) + Number(vehicle?.stats?.coinCurve || 0);
     const heavyCurve = Number(heavyReference?.stats?.coinCurve || 0) + Number(vehicle?.stats?.coinCurve || 0);
 
     setText("cbFeatherCurveValue", `${fmtNumber(featherCurve, 0)} / ${fmtNumber(builderData?.statMaxima?.coinCurve, 0)}`);
-    setText("cbFeatherCurveMeta", referenceLabel(featherReference));
+    setText("cbFeatherCurveMeta", "");
     setText("cbHeavyCurveValue", `${fmtNumber(heavyCurve, 0)} / ${fmtNumber(builderData?.statMaxima?.coinCurve, 0)}`);
-    setText("cbHeavyCurveMeta", referenceLabel(heavyReference));
+    setText("cbHeavyCurveMeta", "");
   }
 
   function applyComboSelection(characterName, vehicleName) {
@@ -931,9 +1582,7 @@
         <div class="cbMetaTierHead cbMetaTierHead--split">
           <div>
             <div class="cbMetaTierLabel">${escapeHtml(group.label)}</div>
-            <div class="cbMetaTierNote">All entries below are S rank for standard online races.</div>
           </div>
-          <div class="cbMetaTierTag">${escapeHtml(group.tag)}</div>
         </div>
         <div class="cbMetaGroupRow">
           <div class="cbMetaGroupBlock">
@@ -1163,12 +1812,6 @@
     $("cbInvincibilityDialog")?.addEventListener("click", (event) => {
       if (event.target === $("cbInvincibilityDialog")) closeDialog("cbInvincibilityDialog");
     });
-    $("btnResetComboBuilder")?.addEventListener("click", () => {
-      currentSelection = { ...DEFAULT_SELECTION };
-      populateSelect("cbCharacterSelect", getCharacterOptions(), currentSelection.character);
-      populateSelect("cbVehicleSelect", getVehicleOptions(), currentSelection.vehicle);
-      renderBuilder();
-    });
   }
 
   async function init() {
@@ -1180,6 +1823,8 @@
       currentSelection = readStoredSelection();
       populateSelect("cbCharacterSelect", getCharacterOptions(), currentSelection.character);
       populateSelect("cbVehicleSelect", getVehicleOptions(), currentSelection.vehicle);
+      initComboPickers();
+      scheduleComboPickerIconWarmup();
       renderFilterControls();
       renderFilterResults();
       bindEvents();

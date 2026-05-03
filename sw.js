@@ -1,7 +1,7 @@
 ﻿// MKWT Service Worker (Safari-safe)
 // Goal: cache static assets for speed/offline Guest, but NEVER serve redirected responses.
 // Also: avoid precaching HTML during install to prevent Safari "redirected response" crash.
-const CACHE = "mkwt-v370"; // bump to force refresh
+const CACHE = "mkwt-v483"; // bump to force refresh
 
 const STATIC_ASSETS = [
   "/mkwt_theme_v3.css",
@@ -22,6 +22,9 @@ const STATIC_ASSETS = [
   "/combo_builder_data.json",
   "/combo_icon_map.json",
   "/track_icon_map.json",
+  "/item-distribution.css",
+  "/item-distribution.js",
+  "/item_distribution_data.json",
   "/stats.css",
   "/stats.js",
   "/stats_ui.js",
@@ -44,7 +47,147 @@ const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/assets/picker-icons/characters/rocky-wrench.png",
+  "/assets/picker-icons/characters/wiggler.png",
+  "/assets/picker-icons/characters/king-boo.png",
+  "/assets/picker-icons/characters/wario.png",
+  "/assets/picker-icons/characters/lakitu.png",
 ];
+
+const PWA_ICON_ASSETS = [
+  "/apple-touch-icon.png",
+  "/favicon-32.png",
+  "/favicon.ico",
+];
+
+const PICKER_ICON_ASSETS = [
+  "/assets/picker-icons/characters/baby-daisy.png",
+  "/assets/picker-icons/characters/baby-luigi.png",
+  "/assets/picker-icons/characters/baby-mario.png",
+  "/assets/picker-icons/characters/baby-peach.png",
+  "/assets/picker-icons/characters/baby-rosalina.png",
+  "/assets/picker-icons/characters/birdo.png",
+  "/assets/picker-icons/characters/bowser.png",
+  "/assets/picker-icons/characters/bowser-jr.png",
+  "/assets/picker-icons/characters/cataquack.png",
+  "/assets/picker-icons/characters/chargin-chuck.png",
+  "/assets/picker-icons/characters/cheep-cheep.png",
+  "/assets/picker-icons/characters/coin-coffer.png",
+  "/assets/picker-icons/characters/conkdor.png",
+  "/assets/picker-icons/characters/cow.png",
+  "/assets/picker-icons/characters/daisy.png",
+  "/assets/picker-icons/characters/dolphin.png",
+  "/assets/picker-icons/characters/donkey-kong.png",
+  "/assets/picker-icons/characters/dry-bones.png",
+  "/assets/picker-icons/characters/fish-bone.png",
+  "/assets/picker-icons/characters/goomba.png",
+  "/assets/picker-icons/characters/hammer-bro.png",
+  "/assets/picker-icons/characters/king-boo.png",
+  "/assets/picker-icons/characters/koopa-troopa.png",
+  "/assets/picker-icons/characters/lakitu.png",
+  "/assets/picker-icons/characters/luigi.png",
+  "/assets/picker-icons/characters/mario.png",
+  "/assets/picker-icons/characters/monty-mole.png",
+  "/assets/picker-icons/characters/nabbit.png",
+  "/assets/picker-icons/characters/para-biddybud.png",
+  "/assets/picker-icons/characters/pauline.png",
+  "/assets/picker-icons/characters/peach.png",
+  "/assets/picker-icons/characters/peepa.png",
+  "/assets/picker-icons/characters/penguin.png",
+  "/assets/picker-icons/characters/pianta.png",
+  "/assets/picker-icons/characters/piranha-plant.png",
+  "/assets/picker-icons/characters/pokey.png",
+  "/assets/picker-icons/characters/rocky-wrench.png",
+  "/assets/picker-icons/characters/rosalina.png",
+  "/assets/picker-icons/characters/shy-guy.png",
+  "/assets/picker-icons/characters/sidestepper.png",
+  "/assets/picker-icons/characters/snowman.png",
+  "/assets/picker-icons/characters/spike.png",
+  "/assets/picker-icons/characters/stingby.png",
+  "/assets/picker-icons/characters/swoop.png",
+  "/assets/picker-icons/characters/toad.png",
+  "/assets/picker-icons/characters/toadette.png",
+  "/assets/picker-icons/characters/waluigi.png",
+  "/assets/picker-icons/characters/wario.png",
+  "/assets/picker-icons/characters/wiggler.png",
+  "/assets/picker-icons/characters/yoshi.png",
+  "/assets/picker-icons/tracks/AF.png",
+  "/assets/picker-icons/tracks/AH.png",
+  "/assets/picker-icons/tracks/BC.png",
+  "/assets/picker-icons/tracks/BCM.png",
+  "/assets/picker-icons/tracks/CC.png",
+  "/assets/picker-icons/tracks/CCF.png",
+  "/assets/picker-icons/tracks/CM.png",
+  "/assets/picker-icons/tracks/DBB.png",
+  "/assets/picker-icons/tracks/DD.png",
+  "/assets/picker-icons/tracks/DDJ.png",
+  "/assets/picker-icons/tracks/DH.png",
+  "/assets/picker-icons/tracks/DKP.png",
+  "/assets/picker-icons/tracks/DKS.png",
+  "/assets/picker-icons/tracks/FO.png",
+  "/assets/picker-icons/tracks/GBR.png",
+  "/assets/picker-icons/tracks/KTB.png",
+  "/assets/picker-icons/tracks/MBC.png",
+  "/assets/picker-icons/tracks/MC.png",
+  "/assets/picker-icons/tracks/MMM.png",
+  "/assets/picker-icons/tracks/PB.png",
+  "/assets/picker-icons/tracks/PS.png",
+  "/assets/picker-icons/tracks/RR.png",
+  "/assets/picker-icons/tracks/SGB.png",
+  "/assets/picker-icons/tracks/SHS.png",
+  "/assets/picker-icons/tracks/SSS.png",
+  "/assets/picker-icons/tracks/SVP.png",
+  "/assets/picker-icons/tracks/TF.png",
+  "/assets/picker-icons/tracks/WS.png",
+  "/assets/picker-icons/tracks/WSS.png",
+  "/assets/picker-icons/tracks/WSY.png",
+  "/assets/picker-icons/vehicles/baby-blooper.png",
+  "/assets/picker-icons/vehicles/b-dasher.png",
+  "/assets/picker-icons/vehicles/biddybuggy.png",
+  "/assets/picker-icons/vehicles/big-horn.png",
+  "/assets/picker-icons/vehicles/billdozer.png",
+  "/assets/picker-icons/vehicles/blastronaut-iii.png",
+  "/assets/picker-icons/vehicles/bowser-bruiser.png",
+  "/assets/picker-icons/vehicles/bumble-v.png",
+  "/assets/picker-icons/vehicles/carpet-flyer.png",
+  "/assets/picker-icons/vehicles/chargin-truck.png",
+  "/assets/picker-icons/vehicles/cloud-9.png",
+  "/assets/picker-icons/vehicles/cute-scoot.png",
+  "/assets/picker-icons/vehicles/dolphin-dasher.png",
+  "/assets/picker-icons/vehicles/dread-sled.png",
+  "/assets/picker-icons/vehicles/fin-twin.png",
+  "/assets/picker-icons/vehicles/funky-dorrie.png",
+  "/assets/picker-icons/vehicles/hot-rod.png",
+  "/assets/picker-icons/vehicles/hyper-pipe.png",
+  "/assets/picker-icons/vehicles/junkyard-hog.png",
+  "/assets/picker-icons/vehicles/li-l-dumpy.png",
+  "/assets/picker-icons/vehicles/lobster-roller.png",
+  "/assets/picker-icons/vehicles/loco-moto.png",
+  "/assets/picker-icons/vehicles/mach-rocket.png",
+  "/assets/picker-icons/vehicles/mecha-trike.png",
+  "/assets/picker-icons/vehicles/pipe-frame.png",
+  "/assets/picker-icons/vehicles/plushbuggy.png",
+  "/assets/picker-icons/vehicles/rally-bike.png",
+  "/assets/picker-icons/vehicles/rallygator.png",
+  "/assets/picker-icons/vehicles/rally-kart.png",
+  "/assets/picker-icons/vehicles/reel-racer.png",
+  "/assets/picker-icons/vehicles/ribbit-revster.png",
+  "/assets/picker-icons/vehicles/roadster-royale.png",
+  "/assets/picker-icons/vehicles/r-o-b-h-o-g.png",
+  "/assets/picker-icons/vehicles/standard-bike.png",
+  "/assets/picker-icons/vehicles/standard-kart.png",
+  "/assets/picker-icons/vehicles/stellar-sled.png",
+  "/assets/picker-icons/vehicles/tiny-titan.png",
+  "/assets/picker-icons/vehicles/tune-thumper.png",
+  "/assets/picker-icons/vehicles/w-twin-chopper.png",
+  "/assets/picker-icons/vehicles/zoom-buggy.png",
+];
+
+const PRECACHE_ASSETS = Array.from(new Set([
+  ...STATIC_ASSETS,
+  ...PWA_ICON_ASSETS,
+  ...PICKER_ICON_ASSETS,
+]));
 
 const APP_SHELL_PAGES = [
   "/index.html",
@@ -104,7 +247,9 @@ async function cachePutIfSafe(cache, key, res) {
   if (!res.ok) return;
   if (res.redirected) return;
   if (res.type !== "basic") return;
-  await cache.put(key, res.clone());
+  try {
+    await cache.put(key, res.clone());
+  } catch (_) {}
 }
 
 self.addEventListener("install", (e) => {
@@ -112,7 +257,7 @@ self.addEventListener("install", (e) => {
   // We avoid pretty-route URLs so Safari never sees redirected install responses.
   e.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    for (const path of [...STATIC_ASSETS, ...APP_SHELL_PAGES]) {
+    for (const path of [...PRECACHE_ASSETS, ...APP_SHELL_PAGES]) {
       try {
         const url = new URL(path, self.location.origin).toString();
         const res = await safeFetchNoRedirect(url);
@@ -125,6 +270,9 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
+    if (self.registration.navigationPreload) {
+      try { await self.registration.navigationPreload.enable(); } catch (_) {}
+    }
     // Remove old caches, but keep the current one populated during install.
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
@@ -157,6 +305,11 @@ self.addEventListener("fetch", (e) => {
       const cache = await caches.open(CACHE);
 
       try {
+        const preload = await e.preloadResponse;
+        if (preload && preload.ok && !preload.redirected && preload.type === "basic") {
+          await cachePutIfSafe(cache, path, preload);
+          return preload;
+        }
         const res = await safeFetchNoRedirect(normalizedUrl);
         await cachePutIfSafe(cache, path, res);
         return res;

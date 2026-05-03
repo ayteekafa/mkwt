@@ -91,7 +91,7 @@ async function fetchMkwrsHtml(target) {
     },
     cf: { cacheTtl: 30, cacheEverything: false },
   });
-  const html = await res.text();
+  const html = new TextDecoder("utf-8", { fatal: false }).decode(await res.arrayBuffer());
   if (!res.ok) {
     const err = new Error(`MKWorld WRs returned HTTP ${res.status}.`);
     err.status = res.status;

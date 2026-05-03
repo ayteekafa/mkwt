@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-theme="dendo" data-theme-lock="dendo">
 <head>
 <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
@@ -37,24 +37,24 @@
 </head>
 
 <body>
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
-  <div class="page">
+<noscript><div class="noscriptNotice"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
+  <main class="page">
     <div class="loginCard card">
       <div class="logo"><span class="brand">MKWT <span class="byAytee">by Aytee</span></span></div>
       <h2>Login</h2>
 
-      <div class="muted" style="text-align:center; margin:-6px 0 14px 0; font-size:12px;">
+      <div class="muted mutedCenterNote">
         VIP accounts are invite-only. You can also continue as Guest.
       </div>
 
       <form id="loginForm">
         <div class="field">
-          <label>Email</label>
+          <label for="email">Email</label>
           <input id="email" type="email" autocomplete="email" placeholder="you@example.com" />
         </div>
 
         <div class="field">
-          <label>Password</label>
+          <label for="password">Password</label>
           <input id="password" type="password" autocomplete="current-password" placeholder="........" />
         </div>
 
@@ -66,15 +66,15 @@
           </label>
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-          <button class="btn" id="btnLogin" type="submit" style="flex:1; min-width:160px;">Log in</button>
-          <button class="btn2" id="btnGuest" type="button" style="flex:1; min-width:160px;">Continue as Guest</button>
+        <div class="actionsRow actionsRow--mt14">
+          <button class="btn actionGrow160" id="btnLogin" type="submit">Log in</button>
+          <button class="btn2 actionGrow160" id="btnGuest" type="button">Continue as Guest</button>
         </div>
       </form>
 
-      <div class="muted" id="status" style="min-height:20px; margin-top:10px;"></div>
+      <div class="muted statusSpace" id="status"></div>
     </div>
-  </div>
+  </main>
 
   
 

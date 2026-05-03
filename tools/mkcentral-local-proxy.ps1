@@ -25,6 +25,26 @@ function Write-JsonResponse {
   $Response.Close()
 }
 
+function Get-Utf8WebContent {
+  param(
+    [string]$Uri,
+    [hashtable]$Headers
+  )
+
+  $response = Invoke-WebRequest -Uri $Uri -Headers $Headers -UseBasicParsing
+  if ($response.RawContentStream) {
+    $response.RawContentStream.Position = 0
+    $reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $response.RawContentStream, [Text.Encoding]::UTF8, $true
+    try {
+      return $reader.ReadToEnd()
+    } finally {
+      $reader.Dispose()
+    }
+  }
+
+  return $response.Content
+}
+
 $listener = [System.Net.HttpListener]::new()
 $prefix = "http://127.0.0.1:$Port/"
 $listener.Prefixes.Add($prefix)
@@ -122,10 +142,10 @@ try {
     if ($req.Url.AbsolutePath -eq "/api/time-trial-index") {
       $target = "https://mkwrs.com/mkworld/"
       try {
-        $html = (Invoke-WebRequest -Uri $target -Headers @{
+        $html = Get-Utf8WebContent -Uri $target -Headers @{
           "User-Agent" = "MKWT local Time Trial sync"
           "Accept" = "text/html,application/xhtml+xml"
-        } -UseBasicParsing).Content
+        }
 
         Write-JsonResponse -Response $res -StatusCode 200 -Payload @{
           ok = $true
@@ -153,10 +173,10 @@ try {
       $encodedTrack = [System.Uri]::EscapeDataString($track)
       $target = "https://mkwrs.com/mkworld/display.php?track=$encodedTrack"
       try {
-        $html = (Invoke-WebRequest -Uri $target -Headers @{
+        $html = Get-Utf8WebContent -Uri $target -Headers @{
           "User-Agent" = "MKWT local Time Trial sync"
           "Accept" = "text/html,application/xhtml+xml"
-        } -UseBasicParsing).Content
+        }
 
         Write-JsonResponse -Response $res -StatusCode 200 -Payload @{
           ok = $true

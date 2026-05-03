@@ -14,6 +14,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
 <script src="mkwt_core.js"></script>
+<script src="mkwt_page_helpers.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link href="mkwt_theme_v3.css" rel="stylesheet"/>
 <link href="tracker.css" rel="stylesheet"/>
@@ -22,7 +23,7 @@
 <title>MKWT - Lounge 24p</title>
 </head>
 <body data-lounge-player-count="24" data-lounge-storage-suffix="24" data-lounge-title="Lounge 24p" data-lounge-allow-intermission="true" data-lounge-lobby-tags="false" data-lounge-page-name="lounge-24.html">
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript.</p></div></noscript>
+<noscript><div class="noscriptNotice"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript.</p></div></noscript>
 <nav class="nav">
   <div class="navInner">
     <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
@@ -52,7 +53,7 @@
     <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
   </div>
 </nav>
-<div class="wrap loungeWrap">
+<main class="wrap loungeWrap">
   <section class="card profileCard">
     <div class="profileTop">
       <div>
@@ -66,7 +67,7 @@
         <div class="statValue" id="heroMogiCount">0</div>
       </div>
       <div class="statBox">
-        <div class="statLabel">Average</div>
+        <div class="statLabel">Points / AVG</div>
         <div class="statValue" id="heroMogiAvg">0.00</div>
       </div>
       <div class="statBox">
@@ -86,10 +87,17 @@
         <div class="statValue" id="heroLowestPoints">-</div>
       </div>
     </div>
-    <div class="bestTrackLine">
-      <div class="bestTrackLabel">Best Entry</div>
-      <div class="bestTrackName" id="heroBestTrackName">-</div>
-      <div class="bestTrackMeta" id="heroBestTrackMeta">-</div>
+    <div class="bestTrackLine bestTrackLine--split">
+      <div class="bestTrackSlot">
+        <div class="bestTrackLabel">Best Track</div>
+        <div class="bestTrackName" id="heroBestTrackName">-</div>
+        <div class="bestTrackMeta" id="heroBestTrackMeta">-</div>
+      </div>
+      <div class="bestTrackSlot">
+        <div class="bestTrackLabel">Best Intermission</div>
+        <div class="bestTrackName" id="heroBestIntermissionName">-</div>
+        <div class="bestTrackMeta" id="heroBestIntermissionMeta">-</div>
+      </div>
     </div>
     <div id="status" class="muted hidden"></div>
   </section>
@@ -101,7 +109,6 @@
         </div>
         <div class="sectionHeadActions">
           <button class="compareAction compareAction--sm active" id="btnTrackSuggestions" type="button" title="Suggested tracks" aria-label="Suggested tracks">
-            <span class="compareAction__eyebrow">Track picks</span>
             <span class="compareAction__label">Suggested Tracks</span>
           </button>
         </div>
@@ -116,9 +123,8 @@
 
         <div class="formGrid formGrid--single" id="trackEntryFields">
           <label>
-            <span>Track</span>
-            <select id="trackSelect">
-              <option value="">Select track</option>
+            <select id="trackSelect" aria-label="Track">
+              <option value="">Track</option>
               <option value="Acorn Heights">Acorn Heights</option>
               <option value="Airship Fortress">Airship Fortress</option>
               <option value="Boo Cinema">Boo Cinema</option>
@@ -155,9 +161,8 @@
 
         <div class="formGrid" id="intermissionEntryFields" hidden>
           <label>
-            <span>Intermission start</span>
-            <select id="intermissionStartSelect">
-              <option value="">Select start</option>
+            <select id="intermissionStartSelect" aria-label="Intermission start">
+              <option value="">Intermission start</option>
               <option value="Acorn Heights">Acorn Heights</option>
               <option value="Airship Fortress">Airship Fortress</option>
               <option value="Boo Cinema">Boo Cinema</option>
@@ -191,9 +196,8 @@
             </select>
           </label>
           <label>
-            <span>Intermission end</span>
-            <select id="intermissionEndSelect">
-              <option value="">Select end</option>
+            <select id="intermissionEndSelect" aria-label="Intermission end">
+              <option value="">Intermission end</option>
               <option value="Acorn Heights">Acorn Heights</option>
               <option value="Airship Fortress">Airship Fortress</option>
               <option value="Boo Cinema">Boo Cinema</option>
@@ -230,48 +234,46 @@
 
         <div class="formGrid formGrid--single loungePlacementGrid">
           <label>
-            <span>Placement</span>
-            <select id="placementSelect"></select>
+            <select id="placementSelect" aria-label="Result">
+              <option value="">Result</option>
+            </select>
           </label>
         </div>
 
         <div class="actionStrip actionStrip--24" aria-label="Race actions">
-          <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Track</button>
-          <div class="tagStrip tagStrip--single" aria-label="Race tags">
+          <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add Race</button>
+          <button id="btnTagToggle" class="navAction actionStripBtn tagExpandToggle" type="button" aria-expanded="false" aria-controls="entryTagStrip">Tags</button>
+          <div class="tagStrip tagStrip--single" id="entryTagStrip" aria-label="Race tags">
             <button id="btnDisconnect" class="navAction actionStripBtn tagToggle" type="button" aria-pressed="false">DC</button>
           </div>
-          <button id="btnUndo" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last">&#8630;</button>
+          <button id="btnUndo" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last"><span class="undoMark" aria-hidden="true">&#8630;</span><span class="undoLabel">Undo</span></button>
+          <div aria-live="polite" class="entryStatus hidden" id="entryStatus" role="status"></div>
         </div>
       </div>
 
-      <div class="mogiSummary">
-        <div class="statBox"><div class="statLabel">Race</div><div class="statValue" id="sumRaceCount">0 / 12</div></div>
-        <div class="statBox"><div class="statLabel">Points</div><div class="statValue" id="sumPoints">0</div></div>
-        <div class="statBox"><div class="statLabel">Average</div><div class="statValue" id="sumAvg">0.00</div></div>
-        <div class="statBox"><div class="statLabel">DCs</div><div class="statValue" id="sumDcs">0</div></div>
-        <div class="statBox"><div class="statLabel">Remaining</div><div class="statValue" id="sumRemain">12</div></div>
-      </div>
     </div>
 
-    <details class="foldCard" open>
-      <summary>
-        <span>Current races</span>
+    <details class="foldCard" open hidden>
+      <summary class="currentMogiHead">
+        <span class="currentMogiTitle">Current races</span>
+        <span class="currentMogiSummary" aria-label="Current Mogi summary">
+          <span class="currentMogiMetric currentMogiMetric--score">
+            <span class="statValue currentMogiMetricValue mogiScoreValue" id="sumScore">0p / 0.00 avg</span>
+          </span>
+          <span class="currentMogiMetric currentMogiMetric--remain">
+            <span class="statValue currentMogiMetricValue currentMogiRemainingValue"><span>Remaining</span><span id="sumRemain">12</span></span>
+          </span>
+        </span>
       </summary>
-      <div class="tableWrap">
-        <table>
-          <thead><tr><th>#</th><th>Track / Route</th><th>Place / Pts</th><th>Lobby / Tag</th></tr></thead>
-          <tbody id="currentMogiBody"><tr><td colspan="4" class="muted">No races tracked yet.</td></tr></tbody>
-        </table>
-      </div>
+      <div id="currentMogiBody" class="currentRaceStripSlot"><div class="muted">No races tracked yet.</div></div>
     </details>
   </section>
   <dialog class="compareDialog" id="trackSuggestionDialog">
     <div class="compareDialogPanel suggestDialogPanel">
       <div class="compareDialogHead">
         <div>
-          <div class="compareDialogEyebrow">Track Suggestions</div>
           <h3>Suggested Tracks</h3>
-          <div class="muted compareDialogMeta" id="trackSuggestionMeta">Top remaining 3-lap picks from Lounge performance.</div>
+          <div class="muted compareDialogMeta" id="trackSuggestionMeta">Available tracks you have not picked yet are suggested from your individual performance. A track needs at least 10 saved races before it can appear.</div>
         </div>
         <button class="navAction" id="btnCloseTrackSuggestions" type="button">Close</button>
       </div>
@@ -296,7 +298,7 @@
       </div>
     </div>
   </section>
-</div>
+</main>
 <dialog class="mogiResultDialog" id="mogiResultDialog">
   <div class="mogiResultPanel">
     <div class="mogiResultHead">
@@ -309,15 +311,103 @@
         <div class="mogiResultTotal" id="mogiResultTotal">0</div>
       </div>
     </div>
-    <div class="tableWrap mogiResultTableWrap">
-      <table>
-        <thead><tr><th>#</th><th>Track / Route</th><th>Place / Pts</th><th>Lobby / Tag</th></tr></thead>
-        <tbody id="mogiResultRows"></tbody>
-      </table>
+    <div class="mogiResultRaceStripSlot" id="mogiResultRaceStrip" aria-label="Mogi races"></div>
+    <div class="mogiResultFormatBox" aria-label="Match format">
+      <div class="mogiResultFormatTags" id="mogiResultFormatTags"></div>
     </div>
     <div class="mogiResultActions">
       <button class="navAction" id="btnKeepMogiResult" type="button">Review</button>
       <button class="navAction active" id="btnConfirmMogiResult" type="button">Confirm Mogi</button>
+    </div>
+  </div>
+</dialog>
+<dialog class="mogiResultDialog mogiFormatConfirmDialog" id="mogiFormatConfirmDialog">
+  <div class="mogiResultPanel mogiFormatConfirmPanel">
+    <h3>Save without format?</h3>
+    <div class="mogiResultActions">
+      <button class="navAction" id="btnCancelMissingFormat" type="button">Cancel</button>
+      <button class="navAction active" id="btnConfirmMissingFormat" type="button">Continue</button>
+    </div>
+  </div>
+</dialog>
+<dialog class="mogiResultDialog mogiDeleteConfirmDialog" id="mogiDeleteConfirmDialog">
+  <div class="mogiResultPanel mogiDeleteConfirmPanel">
+    <div class="mogiDeleteConfirmIcon" aria-hidden="true">!</div>
+    <div class="mogiDeleteConfirmCopy">
+      <h3>Delete Mogi?</h3>
+      <p class="muted" id="mogiDeleteConfirmText">Are you sure you want to delete this Mogi?</p>
+    </div>
+    <div class="mogiResultActions">
+      <button class="navAction" id="btnCancelDeleteMogi" type="button">Cancel</button>
+      <button class="navAction danger" id="btnConfirmDeleteMogi" type="button">Confirm</button>
+    </div>
+  </div>
+</dialog>
+<dialog class="mogiResultDialog sessionForecastDialog" id="sessionForecastDialog">
+  <div class="mogiResultPanel sessionForecastDialogPanel">
+    <div class="mogiResultHead sessionForecastDialogHead">
+      <div>
+        <h3>Track Forecast</h3>
+        <div class="muted" id="sessionForecastDialogMeta">Saved Mogi</div>
+      </div>
+      <button class="navAction" id="btnCloseSessionForecast" type="button">Close</button>
+    </div>
+    <div class="sessionForecastDialogBody" id="sessionForecastDialogBody"></div>
+  </div>
+</dialog>
+<dialog class="mogiResultDialog raceEditDialog" id="savedRaceEditDialog">
+  <div class="mogiResultPanel raceEditPanel">
+    <div class="mogiResultHead raceEditHead">
+      <div>
+        <h3>Edit Race</h3>
+        <div class="muted" id="savedRaceEditMeta">Saved Mogi</div>
+      </div>
+      <div class="mogiResultTotalBox">
+        <div class="statLabel">Points</div>
+        <div class="mogiResultTotal raceEditPoints" id="savedRaceEditPoints">0</div>
+      </div>
+    </div>
+    <div class="raceEditBody">
+      <div aria-label="Race type" class="modeToggle raceEditModeToggle" id="savedRaceEditModeToggle" role="tablist" hidden>
+        <button aria-selected="true" class="modeBtn isActive" data-race-edit-mode="track" type="button">Track</button>
+        <button aria-selected="false" class="modeBtn" data-race-edit-mode="intermission" type="button">Intermission</button>
+      </div>
+      <div class="formGrid formGrid--single raceEditFields" id="savedRaceEditTrackFields">
+        <label>
+          <select id="savedRaceEditTrackSelect" aria-label="Track">
+            <option value="">Track</option>
+          </select>
+        </label>
+      </div>
+      <div class="formGrid raceEditFields" id="savedRaceEditIntermissionFields" hidden>
+        <label>
+          <select id="savedRaceEditStartSelect" aria-label="Intermission start">
+            <option value="">Intermission start</option>
+          </select>
+        </label>
+        <label>
+          <select id="savedRaceEditEndSelect" aria-label="Intermission end">
+            <option value="">Intermission end</option>
+          </select>
+        </label>
+      </div>
+      <div class="loungePlacementGrid raceEditPlacementGrid">
+        <label>
+          <select id="savedRaceEditPlacementSelect" aria-label="Result">
+            <option value="">Result</option>
+          </select>
+        </label>
+      </div>
+      <div class="raceEditTags" id="savedRaceEditTags">
+        <button class="navAction actionStripBtn tagToggle" data-race-edit-lobby="12" type="button" aria-pressed="false">12p</button>
+        <button class="navAction actionStripBtn tagToggle" data-race-edit-lobby="11" type="button" aria-pressed="false">11p</button>
+        <button class="navAction actionStripBtn tagToggle" data-race-edit-lobby="10" type="button" aria-pressed="false">10p</button>
+        <button class="navAction actionStripBtn tagToggle" id="savedRaceEditDc" type="button" aria-pressed="false">DC</button>
+      </div>
+    </div>
+    <div class="mogiResultActions raceEditActions">
+      <button class="navAction" id="btnCancelSavedRaceEdit" type="button">Cancel</button>
+      <button class="navAction active" id="btnSaveSavedRaceEdit" type="button">Save</button>
     </div>
   </div>
 </dialog>

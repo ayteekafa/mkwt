@@ -36,60 +36,92 @@
 .eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:12px;font-weight:800;color:var(--muted);margin:0 0 8px}
 .mkcActions{display:grid;gap:10px;align-content:end;justify-items:end}
 .mkcToolbarCard{
-  display:grid;
-  gap:16px;
+  padding:22px 26px;
+  display:block;
 }
-.mkcToolbarMeta{
+.mkcToolbarMain{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:18px 22px;
 }
-.mkcToolbarPill{
+.mkcToolbarCopy{
   min-width:0;
-  padding:14px 16px;
-  border:1px solid var(--border);
-  border-radius:14px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)),
-    var(--surface-panel);
-  display:grid;
-  gap:8px;
-  align-content:start;
 }
-.mkcToolbarPill--identity{
+.mkcToolbarTitle{
+  margin:0;
+  color:var(--text);
+  font-size:24px;
+  line-height:1.12;
+}
+.mkcToolbarMetrics{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(180px,320px));
+  gap:10px;
+  margin-top:14px;
+}
+.mkcToolbarMetric{
+  min-height:64px;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:7px;
+  padding:11px 13px;
+  border:1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius:12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 3%, transparent), transparent),
+    var(--surface-panel);
+}
+.mkcToolbarMetric--identity{
+  align-items:center;
+  max-width:360px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 72%),
-    linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)),
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 3%, transparent), transparent),
     var(--surface-panel);
 }
-.mkcToolbarPillLabel{
-  display:block;
-  font-size:10px;
+.mkcToolbarMetric > span{
   color:var(--muted);
+  font-size:11px;
   font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-}
-.mkcToolbarPillValue{
-  font-size:18px;
+  letter-spacing:.1em;
   line-height:1.2;
-  color:var(--text);
-  font-weight:900;
-  overflow-wrap:anywhere;
+  text-transform:uppercase;
+  white-space:nowrap;
 }
-.mkcToolbarFooter{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:14px;
-  flex-wrap:wrap;
+.mkcToolbarMetric > strong{
+  color:var(--text);
+  font-size:18px;
+  line-height:1.05;
+  overflow-wrap:anywhere;
 }
 .mkcToolbarActions{
   display:flex;
+  flex-direction:column;
   align-items:center;
-  justify-content:flex-start;
+  justify-content:flex-end;
   gap:10px;
-  flex-wrap:wrap;
+  min-width:230px;
+}
+.mkcToolbarActions .navAction,
+.mkcToolbarActions .compareAction{
+  min-height:52px;
+  width:100%;
+}
+.mkcToolbarActions .navAction{
+  padding-inline:18px;
+  font-size:18px;
+  font-weight:900;
+}
+.mkcToolbarActions .compareAction{
+  min-width:0;
+  max-width:none;
+  padding:8px 14px;
+}
+.mkcToolbarActions .compareAction__label{
+  font-size:15px;
 }
 .mkcActionRow{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
 .mkcInputLabel{display:flex;flex-direction:column;gap:6px;font-weight:700}
@@ -126,13 +158,63 @@
 .mkcIdentityName.isEmpty{
   color:var(--muted);
 }
+.mkcToolbarMetric--identity .mkcIdentityLine{
+  flex:1;
+}
+.mkcToolbarMetric--identity .mkcIdentityName{
+  font-size:18px;
+}
+.mkcToolbarMetric--identity .mkcIdentityId{
+  font-size:17px;
+  white-space:nowrap;
+}
+.mkcPlayerStatsHead{
+  margin-top:14px;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.mkcPlayerBannerCopy{
+  min-width:0;
+  flex:1 1 auto;
+}
+.mkcSummaryFilterLabel{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+  line-height:1.2;
+  text-transform:uppercase;
+}
+.mkcPlayerStatsHead .mkcIdentityLine{
+  justify-content:flex-start;
+  gap:9px;
+}
+.mkcPlayerStatsHead .mkcIdentityName{
+  max-width:min(46vw,520px);
+  font-size:clamp(20px,2.3vw,30px);
+  line-height:1.05;
+}
+.mkcPlayerStatsHead .mkcIdentityId{
+  font-size:clamp(18px,1.8vw,24px);
+}
+.mkcSummaryFilter{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex:0 0 auto;
+}
+.mkcSummaryFilter[hidden]{display:none !important}
 .statusLine{
   min-height:20px;
   margin:2px 0 0;
   line-height:1.4;
 }
-.mkcGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 12px;margin:14px 0;align-items:start}
-.mkcStat{border:1px solid var(--border);border-radius:14px;background:var(--surface-panel-accent);padding:12px 13px;display:grid;gap:6px;align-content:start;min-width:0}
+.mkcGrid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin:10px 0 14px;align-items:stretch}
+.mkcStat{border:1px solid var(--border);border-radius:12px;background:var(--surface-panel-accent);padding:9px 10px;display:grid;gap:5px;align-content:start;min-width:0;min-height:88px}
 .mkcMobileOverview{display:none}
 .mkcOverviewHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
 .mkcOverviewTitle{font-size:18px;font-weight:900;color:var(--text)}
@@ -150,54 +232,295 @@
 .mkcOverviewMetricMeta{margin-top:4px;font-size:10px;color:var(--muted);line-height:1.35}
 .mkcStatRanked{border-color:var(--rank-color);background:linear-gradient(135deg,var(--rank-bg),var(--card) 62%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.03),0 0 22px var(--rank-bg)}
 .mkcStatRanked .mkcStatValue{color:var(--rank-color);text-shadow:0 0 14px var(--rank-bg)}
+.mkcRankBadgeGlow{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  box-shadow:0 0 12px var(--rank-bg);
+}
+.mkcRankBadgeGlow::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  inset:-55% -90%;
+  background:linear-gradient(105deg, transparent 0%, transparent 28%, color-mix(in srgb, var(--rank-color) 16%, transparent) 40%, rgba(255,255,255,.46) 50%, color-mix(in srgb, var(--rank-color) 18%, transparent) 62%, transparent 76%, transparent 100%);
+  transform:translateX(-125%) skewX(-16deg);
+  opacity:0;
+  pointer-events:none;
+  animation:mkcRankBadgeShimmer 2s ease-in-out infinite;
+}
+.mkcRankBadgeGlow{
+  color:var(--rank-color);
+}
+.mkcRankBadgeGlow::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  border:1px solid color-mix(in srgb, var(--rank-color) 42%, transparent);
+  pointer-events:none;
+}
+@keyframes mkcRankBadgeShimmer{
+  0%{opacity:0;transform:translateX(-125%) skewX(-16deg)}
+  18%{opacity:.62}
+  45%{opacity:.42;transform:translateX(125%) skewX(-16deg)}
+  62%,100%{opacity:0;transform:translateX(125%) skewX(-16deg)}
+}
 .mkcStatTop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
-.mkcRankBadge{border:1px solid var(--rank-color);border-radius:12px;padding:3px 7px;background:rgba(0,0,0,.22);color:var(--rank-color);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-.mkcStatLabel{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em;line-height:1.25}
+.mkcRankBadge{border:1px solid var(--rank-color);border-radius:10px;padding:2px 5px;background:rgba(0,0,0,.22);color:var(--rank-color);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}
+.mkcStatLabel{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.05em;line-height:1.22}
 .mkcStatValue{font-size:clamp(20px,2vw,28px);font-weight:900;margin-top:0;line-height:1.02;min-width:0;overflow-wrap:anywhere}
-.mkcStatMeta{font-size:11px;color:var(--muted);margin-top:0;line-height:1.35;min-width:0}
+.mkcStatMeta{font-size:10px;color:var(--muted);margin-top:0;line-height:1.3;min-width:0}
 .mkcEventComboRows{display:grid;gap:6px;margin-top:4px}
-.mkcEventComboRow{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;min-width:0}
-.mkcEventComboValue{font-size:18px;font-weight:900;line-height:1}
-.mkcEventComboMeta{min-width:0;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mkcEventComboTag{display:block;margin-bottom:1px;color:var(--muted);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
-.mkcEventPointsMini{display:flex;gap:6px 10px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
-.mkcEventPoint{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}
-.mkcEventPoint span{text-transform:uppercase;letter-spacing:.05em;font-size:9px;opacity:.86}
-.mkcEventPoint b{color:var(--text);font-size:12px}
-.mkcScoreTabs{display:flex;gap:4px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
-.mkcScoreTab{border:1px solid var(--border);border-radius:12px;background:var(--surface-panel);color:var(--muted);padding:3px 6px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
-.mkcScoreTab.active{border-color:var(--primary);background:var(--primary);color:var(--primary-text)}
-.mkcScoreTab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.mkcEventComboRow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center;min-width:0}
+.mkcGainPair,
+.mkcMiniValueGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:stretch}
+.mkcEventComboRow--tight,
+.mkcMiniStat{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  padding:6px 7px;
+  border:1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius:10px;
+  background:color-mix(in srgb, var(--surface-panel) 72%, transparent);
+  cursor:help;
+}
+.mkcEventComboValue{font-size:16px;font-weight:900;line-height:1}
+.mkcEventComboMeta{min-width:0;color:var(--muted);font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mkcEventComboTag{display:block;margin-bottom:1px;color:var(--muted);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.mkcMiniStat span{color:var(--muted);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;line-height:1}
+.mkcMiniStat b{color:var(--text);font-size:18px;font-weight:900;line-height:1}
 .mkcDialog{border:0;border-radius:16px;background:transparent;color:var(--text);padding:0;max-width:min(680px,calc(100vw - 28px));width:680px}
 .mkcDialog::backdrop{background:var(--backdrop)}
 .mkcDialogBox{border:1px solid var(--border);border-radius:16px;background:var(--surface-dialog);padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.5)}
 .mkcDialogHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
 .mkcDialogHead h3{margin:0;font-size:24px}
-.mkcDialogClose{border:1px solid var(--action-edit-border);border-radius:10px;background:var(--action-edit-fill);color:var(--action-edit-text);font-size:15px;font-weight:900;line-height:1;padding:10px 14px;cursor:pointer}
+.mkcDialogClose{min-height:36px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--action-edit-fill);color:var(--action-edit-text);font-size:15px;font-weight:900;line-height:1;cursor:pointer;transition:border-color .16s ease, background .16s ease, transform .12s ease, opacity .16s ease}
+.mkcDialogClose:hover{border-color:var(--action-edit-border);background:var(--hover)}
 .mkcScopeChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
 .mkcScopeChoice{border:1px solid var(--border);border-radius:14px;background:var(--surface-panel);color:var(--text);padding:12px;text-align:left;cursor:pointer}
 .mkcScopeChoice.active{border-color:var(--primary);background:linear-gradient(135deg, color-mix(in srgb, var(--primary) 20%, transparent), rgba(255,255,255,.02)),var(--surface-panel)}
 .mkcScopeChoice strong{display:block;font-size:16px}
 .mkcScopeChoice span{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .mkcDialogActions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.mkcCompareDialog{
+  position:relative;
+  width:min(1180px, calc(100vw - 24px));
+  max-height:calc(100dvh - 24px);
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:0;
+  background:var(--surface-dialog);
+  color:var(--text);
+  box-shadow:var(--shadow);
+}
+.mkcCompareDialog::backdrop{background:var(--backdrop)}
+.mkcCompareDialog > .infoOverlay{
+  position:absolute;
+  z-index:1000;
+}
+.mkcCompareDialogPanel{
+  max-height:calc(100dvh - 24px);
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  padding:18px;
+  overflow:hidden;
+}
+.mkcCompareDialogHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+.mkcCompareDialogHeadActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
+.mkcCompareDialogHead h3{margin:0}
+.mkcCompareDialogEyebrow{
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:800;
+  margin-bottom:8px;
+}
+.mkcCompareDialogMeta{margin-top:8px}
+.mkcModeComparePanel{
+  min-height:0;
+  margin-top:0;
+  padding-top:0;
+  overflow:auto;
+  padding-right:4px;
+}
+.mkcChartWrapCompare{
+  height:min(520px, calc(100dvh - 280px));
+  min-height:280px;
+  overflow:hidden;
+}
+.mkcChartWrapCompare canvas{
+  width:100% !important;
+  height:100% !important;
+  display:block;
+}
+.mkcModeCompareNotes{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:12px;
+}
+.mkcModeCompareNotes[hidden]{display:none !important}
+.mkcModeCompareNote{
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface-panel);
+  line-height:1.45;
+  font-size:13px;
+  font-weight:800;
+}
+.mkcModeCompareNote b{color:var(--text)}
 .mkcEmpty{grid-column:1 / -1;border:1px dashed var(--border);border-radius:14px;background:var(--surface-panel);padding:18px;color:var(--muted)}
 .mkcMmrGrid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(280px,.92fr);gap:12px;align-items:start}
+.mkcMmrDeck{min-width:0}
 .mkcChartWrap{height:clamp(250px,31vw,360px);max-width:min(100%,980px);margin-inline:auto;position:relative}
 .mkcChartWrap>canvas{display:block;width:100%!important;height:100%!important}
 .mkcChartWrapWide{max-width:min(100%,940px);height:clamp(240px,30vw,320px)}
 .mkcChartWrapSmall{height:300px}
-.mkcChartWrapMmr{height:clamp(230px,28vw,300px);max-width:min(100%,560px)}
+.mkcChartWrapMmr{height:clamp(250px,30vw,340px);max-width:min(100%,940px)}
+.mkcChartSwipeViewport{overflow:hidden;touch-action:pan-y}
+.mkcChartSwipeTrack{display:flex;width:200%;transform:translateX(0%);transition:transform .26s ease;will-change:transform}
+.mkcChartSwipePanel{width:50%;flex:0 0 50%;min-width:0}
+.chartPager{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.chartPagerBtn{
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--card-2);
+  color:var(--muted);
+  cursor:pointer;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+.chartPagerBtn.active{
+  background:color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent);
+  color:var(--text);
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 46%, transparent);
+}
+.chartPagerBtn:disabled{
+  opacity:.42;
+  cursor:not-allowed;
+}
 .mkcSubChartHead{margin:22px 0 10px}
 .mkcSubChartHead h4{margin:0 0 6px;font-size:18px}
 .mkcTwo{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;align-items:start}
 .sectionHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.mkcChartTitleLine{display:flex;align-items:center;gap:8px;min-width:0}
+.mkcChartTitleLine h4{margin:0}
+.mcard__infoBtn{
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  border:1px solid var(--infoBtn-border);
+  background:var(--infoBtn-bg);
+  color:var(--infoBtn-text);
+  font-size:11px;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  opacity:.78;
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  flex:0 0 auto;
+}
+.mcard__infoBtn:hover{opacity:.96}
+.mcard__infoBtn:active{transform:translateY(1px)}
+.mcard__infoBtn{position:relative;touch-action:manipulation}
+.mcard__infoBtn::after{
+  content:"";
+  position:absolute;
+  inset:-10px;
+}
+.infoOverlay{
+  position:fixed;
+  inset:0;
+  z-index:100000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px 14px;
+  overflow:auto;
+  background:color-mix(in srgb, var(--bg) 48%, transparent);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.infoOverlay[hidden]{display:none !important}
+.infoDialog{
+  width:min(440px, calc(100vw - 28px));
+  margin:0;
+  padding:14px 14px 16px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface-dialog);
+  box-shadow:var(--shadow);
+}
+.infoDialog .hdr{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.infoDialog .title{
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.infoDialog .body{
+  color:var(--text);
+  font-size:14px;
+  line-height:1.42;
+}
 .mkcTrackerChartsSection{display:grid;gap:14px}
 .mkcTrackerChartsHead{align-items:center}
-.mkcTrackerChartsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.mkcTrackerChartsGrid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
 .mkcTrackerChartCard{min-width:0;display:flex;flex-direction:column}
 .mkcTrackerChartHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .mkcTrackerChartHead h4{margin:0 0 4px;font-size:20px}
 .mkcTrackerChartActions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.mkcTrackerChartActions[hidden]{display:none !important}
+.mkcTrackerModeToggle{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  min-width:184px;
+  margin:0;
+}
+.mkcTrackerModeToggle .modeBtn{
+  width:100%;
+  min-width:0;
+  min-height:40px;
+  margin:0;
+  justify-content:center;
+  font-size:15px;
+  font-weight:900;
+}
 .mkcTrackerPager{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .mkcTrackerPager[hidden]{display:none !important}
 .mkcTrackerPagerBtn{
@@ -220,32 +543,46 @@
 .mkcTrackerFilterBtn{
   display:inline-flex;
   align-items:center;
-  gap:8px;
-  min-height:34px;
-  padding:7px 11px;
+  gap:10px;
+  min-width:150px;
+  min-height:40px;
+  padding:9px 12px;
   border:1px solid var(--border);
-  border-radius:10px;
+  border-radius:12px;
   background:var(--surface-panel);
   color:var(--text);
-  font-size:12px;
-  font-weight:900;
+  font-size:13px;
+  font-weight:800;
   cursor:pointer;
+  box-shadow:var(--shadow);
 }
-.mkcTrackerFilterGlyph{display:inline-flex;align-items:center;gap:3px}
+.mkcTrackerFilterBtn[aria-expanded="true"]{
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 68%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent), rgba(255,255,255,.02)),
+    var(--surface-panel);
+}
+.mkcTrackerFilterGlyph{
+  width:18px;
+  height:18px;
+  display:grid;
+  gap:3px;
+  flex:0 0 auto;
+}
 .mkcTrackerFilterGlyph span{
   display:block;
-  width:3px;
+  height:3px;
   border-radius:999px;
-  background:currentColor;
+  background:linear-gradient(90deg, var(--chart-split-a-stroke), var(--chart-split-b-stroke));
 }
-.mkcTrackerFilterGlyph span:nth-child(1){height:10px;opacity:.92}
-.mkcTrackerFilterGlyph span:nth-child(2){height:6px;opacity:.72}
-.mkcTrackerFilterGlyph span:nth-child(3){height:13px;opacity:.86}
+.mkcTrackerFilterGlyph span:nth-child(1){width:100%}
+.mkcTrackerFilterGlyph span:nth-child(2){width:72%}
+.mkcTrackerFilterGlyph span:nth-child(3){width:46%}
 .mkcTrackerFilterMenu{
   position:absolute;
   top:calc(100% + 8px);
   right:0;
-  min-width:180px;
+  min-width:220px;
   padding:8px;
   border:1px solid var(--border);
   border-radius:14px;
@@ -262,35 +599,65 @@
   justify-content:space-between;
   gap:10px;
   width:100%;
-  padding:8px 10px;
+  padding:9px 10px;
   border:1px solid transparent;
   border-radius:10px;
   background:transparent;
   color:var(--text);
-  font-size:12px;
-  font-weight:800;
+  font-size:13px;
+  font-weight:700;
   text-align:left;
   cursor:pointer;
 }
 .mkcTrackerFilterItem:hover{
-  background:var(--surface-panel);
-  border-color:var(--border);
+  background:color-mix(in srgb, var(--text) 4%, transparent);
 }
 .mkcTrackerFilterItem.active{
-  border-color:var(--primary);
-  background:color-mix(in srgb, var(--primary) 16%, transparent);
+  border-color:color-mix(in srgb, var(--chart-split-a-stroke) 46%, var(--border));
+  background:color-mix(in srgb, var(--chart-split-a-stroke) 18%, transparent);
 }
 .mkcTrackerFilterMeta{
   color:var(--muted);
   font-weight:900;
 }
 .mkcChartWrapTracker{height:clamp(280px,31vw,420px);max-width:none;flex:0 0 auto}
+.mkcChartWrap.isEmpty,
+.mkcChartWrapTracker.isEmpty,
+.mkcChartWrapCompare.isEmpty{
+  display:grid;
+  align-items:center;
+  justify-content:center;
+  place-items:center;
+}
+.mkcChartEmpty{
+  max-width:520px;
+  margin:10px auto 0;
+  padding:0 10px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:850;
+  line-height:1.35;
+  text-align:center;
+}
 .mkcTrackerInsight{
   margin-top:12px;
   padding:12px 14px;
   border:1px solid var(--border);
   border-radius:14px;
   background:var(--surface-panel);
+}
+.mkcTrackerInsight--empty{
+  max-width:520px;
+  margin:10px auto 0;
+  padding:0 10px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:850;
+  line-height:1.35;
+  text-align:center;
 }
 .mkcTrackerInsightTitle{font-size:18px;font-weight:900;color:var(--text)}
 .mkcTrackerInsightMeta{margin-top:4px;font-size:12px;color:var(--muted)}
@@ -320,8 +687,28 @@
 .gainGood{color:var(--chart-positive-stroke);font-weight:900}
 .gainBad{color:var(--chart-negative-stroke);font-weight:900}
 .gainFlat{color:var(--muted);font-weight:900}
+.scoreTone--darkred{--score-tone:#5e1721;--score-glow:rgba(94,23,33,.22)}
+.scoreTone--red{--score-tone:#a83238;--score-glow:rgba(168,50,56,.22)}
+.scoreTone--orange{--score-tone:#b06422;--score-glow:rgba(176,100,34,.22)}
+.scoreTone--green{--score-tone:#2d813b;--score-glow:rgba(45,129,59,.22)}
+.scoreTone--blue{--score-tone:#2e65ad;--score-glow:rgba(46,101,173,.22)}
+.scoreTone--lightblue{--score-tone:#3a8faa;--score-glow:rgba(58,143,170,.23)}
+.mkcAvgScoreValue.scoreTone--darkred,
+.mkcAvgScoreValue.scoreTone--red,
+.mkcAvgScoreValue.scoreTone--orange,
+.mkcAvgScoreValue.scoreTone--green,
+.mkcAvgScoreValue.scoreTone--blue,
+.mkcAvgScoreValue.scoreTone--lightblue{
+  color:var(--score-tone);
+  text-shadow:0 0 8px var(--score-glow);
+}
+.mkcScoreStat--avgScore{cursor:help}
 .tableWrap{overflow:auto}
 #mkcEventRows td,#mkcTypeRows td,#mkcTierRows td{white-space:nowrap}
+
+@media (max-width:1100px){
+  .mkcGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 
 @media (max-width:820px){
   .mkcHero{grid-template-columns:1fr}
@@ -335,9 +722,35 @@
     transform:translateY(-3px);
   }
   .mkcActions{justify-items:stretch}
-  .mkcToolbarMeta{grid-template-columns:1fr}
-  .mkcToolbarFooter,
-  .mkcToolbarActions{justify-content:flex-start}
+  .mkcToolbarCard{padding:18px}
+  .mkcToolbarMain{grid-template-columns:1fr}
+  .mkcToolbarMetrics{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .mkcToolbarMetric--identity{
+    max-width:none;
+    grid-column:1 / -1;
+  }
+  .mkcPlayerStatsHead{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .mkcPlayerStatsHead .mkcIdentityName{
+    max-width:100%;
+  }
+  .mkcSummaryFilter{
+    justify-content:space-between;
+  }
+  .mkcToolbarActions{
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-start;
+  }
+  .mkcToolbarActions .compareAction,
+  .mkcToolbarActions .navAction{
+    width:100%;
+  }
   .mkcIdentityLine{justify-content:flex-start}
   .mkcActionRow{justify-content:flex-start;flex-wrap:wrap}
   .mkcMmrGrid{grid-template-columns:1fr}
@@ -346,12 +759,32 @@
 }
 
 @media (max-width:680px){
-  .mkcGrid{grid-template-columns:1fr;gap:8px}
-  .mkcMobileOverview{display:block}
+  .mkcGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .mkcStat{min-height:74px;padding:7px 5px;gap:4px}
+  .mkcStatMmrTop .mkcStatTop{align-items:flex-start;flex-direction:column;gap:4px}
+  .mkcStatMmrTop .mkcRankBadge{align-self:flex-start}
+  .mkcStatLabel{font-size:8px;letter-spacing:.035em}
+  .mkcStatValue{font-size:clamp(15px,4.8vw,20px)}
+  .mkcStatMeta{font-size:8px;line-height:1.2}
+  .mkcRankBadge{min-width:0;max-width:100%;padding:2px 4px;font-size:7px;letter-spacing:0;overflow:hidden;text-overflow:ellipsis}
+  .mkcMiniValueGrid,
+  .mkcGainPair{gap:4px}
+  .mkcEventComboRow--tight,
+  .mkcMiniStat{padding:5px 3px;overflow:hidden;text-align:center;justify-items:center}
+  .mkcEventComboRow--tight{grid-template-columns:minmax(0,1fr)}
+  .mkcEventComboRow--tight .mkcEventComboMeta{display:none}
+  .mkcEventComboValue{max-width:100%;overflow:hidden;font-size:clamp(10px,3.2vw,13px);letter-spacing:0}
+  .mkcMiniStat b{max-width:100%;overflow:hidden;font-size:clamp(11px,3.4vw,14px);letter-spacing:0}
+  .mkcMobileOverview{display:none}
   .mkcStatDesktopOnly{display:none}
   .mkcTrackerChartsHead,
   .mkcTrackerChartHead,
   .mkcTrackerChartActions{flex-direction:column;align-items:stretch}
+  .mkcTrackerChartsHead{gap:10px}
+  .mkcTrackerChartsHead .mkcTrackerChartActions{width:100%}
+  .mkcTrackerModeToggle{width:100%;min-width:0}
+  .chartPager{gap:6px}
+  .chartPagerBtn{padding:6px 10px;font-size:11px}
   .mkcTrackerPager{justify-content:flex-start}
   .mkcTrackerFilterBtn{width:100%;justify-content:center}
   .mkcTrackerFilterMenu{left:0;right:auto;width:min(100%,280px)}
@@ -360,7 +793,49 @@
 @media (max-width:520px){
   .mkcScopeChoices{grid-template-columns:1fr}
   .mkcChartWrap{height:330px}
+  .mkcChartWrapCompare{
+    height:calc(100dvh - 262px);
+    min-height:260px;
+  }
   .mkcChartWrapMmr{height:280px}
+  .mkcToolbarMetrics{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin-top:10px;
+  }
+  .mkcToolbarMetric{
+    min-height:74px;
+    padding:10px 9px;
+    border-radius:10px;
+  }
+  .mkcToolbarMetric > span{
+    font-size:9.5px;
+    letter-spacing:.08em;
+  }
+  .mkcToolbarMetric > strong{
+    font-size:14.5px;
+    line-height:1.12;
+  }
+  .mkcGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .mkcStat{min-height:70px;padding:6px 4px}
+  .mkcStatTop{gap:3px}
+  .mkcPlayerStatsHead{text-align:center}
+  .mkcPlayerStatsHead .mkcIdentityLine{
+    align-items:center;
+    flex-direction:column;
+    gap:4px;
+    justify-content:center;
+    text-align:center;
+  }
+  .mkcIdentityDot{display:none}
+  .mkcSummaryFilter{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .mkcSummaryFilter .mkcTrackerFilterBtn{
+    width:100%;
+    justify-content:center;
+  }
   .mkcTrackerInsightGrid{grid-template-columns:1fr}
 }
 

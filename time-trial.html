@@ -46,7 +46,7 @@
 </head>
 <body>
   <noscript>
-    <div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;">
+    <div class="noscriptNotice">
       <h2>MKWT requires JavaScript</h2>
       <p>Please enable JavaScript or disable your adblocker for this site.</p>
     </div>
@@ -82,61 +82,53 @@
     </div>
   </nav>
 
-  <div class="wrap">
+  <main class="wrap">
     <div class="card profileCard">
       <div class="profileTop timeTrialTop">
         <div class="timeTrialHeroCopy">
           <h2 class="heroTitle">Time Trial <span class="byAytee">by Aytee</span></h2>
           <div class="muted heroSubtitle" id="ttUserInfo">Loading session...</div>
-          <div class="muted heroSubtitle" id="ttWrInfo">Loading world record reference...</div>
-        </div>
-        <div class="timeTrialHeroActions">
-          <button class="btn" id="btnOpenTimeTrialForm" type="button">Track PB</button>
-          <button
-            aria-label="Open WR list"
-            class="btn2 ttSymbolBtn"
-            id="btnOpenWrDialog"
-            title="Open WR list"
-            type="button"
-          >
-            WR
-          </button>
         </div>
       </div>
 
       <div aria-label="Time Trial quick stats" class="statGrid ttStatGrid">
-        <div class="statBox">
-          <div class="statLabel">Entries</div>
-          <div class="statValue" id="ttStatEntries">-</div>
-          <div class="ttStatMeta" id="ttStatEntriesMeta">My PB rows</div>
-        </div>
-        <div class="statBox">
+        <div class="statBox ttStatBox--category">
           <div class="statLabel">Shroom</div>
           <div class="statValue" id="ttStatShroom">-</div>
-          <div class="ttStatMeta" id="ttStatShroomMeta">Saved PBs</div>
         </div>
-        <div class="statBox">
+        <div class="statBox ttStatBox--category">
           <div class="statLabel">Shroomless</div>
           <div class="statValue" id="ttStatShroomless">-</div>
-          <div class="ttStatMeta" id="ttStatShroomlessMeta">Saved PBs</div>
         </div>
-        <div class="statBox">
+        <div class="statBox ttStatBox--closest">
           <div class="statLabel">Closest To WR</div>
           <div class="statValue" id="ttStatClosest">-</div>
           <div class="ttStatMeta" id="ttStatClosestMeta">No WR comparison yet</div>
         </div>
       </div>
 
-      <div class="muted hidden" id="ttStatus"></div>
+      <div aria-live="polite" class="ttStatus hidden" id="ttStatus" role="status"></div>
     </div>
 
     <div class="card ttEntriesCard" id="ttEntriesCard">
       <div class="timeTrialSectionHead">
         <div class="timeTrialSectionCopy">
-          <h3 class="sectionTitle">My Time Trial Profile</h3>
-          <div class="muted">Your PBs stay linked to the latest WR reference and stay front and center.</div>
+          <h3 class="sectionTitle">Time Trial Profile</h3>
+          <div class="muted ttProfileWrUpdate" id="ttWrInfo">Loading WR date...</div>
         </div>
         <div class="ttEntriesHeadActions">
+          <div class="ttProfilePrimaryActions">
+            <button class="btn" id="btnOpenTimeTrialForm" type="button">Track PB</button>
+            <button
+              aria-label="Open WR list"
+              class="btn2 ttSymbolBtn"
+              id="btnOpenWrDialog"
+              title="Open WR list"
+              type="button"
+            >
+              WR
+            </button>
+          </div>
           <div class="chartFilter ttCategoryFilter" id="ttEntryFilterRoot">
             <button aria-controls="menuTtEntryFilter" aria-expanded="false" aria-haspopup="true" class="chartFilterBtn" id="btnTtEntryFilter" type="button">
               <span aria-hidden="true" class="chartFilterGlyph"><span></span><span></span><span></span></span>
@@ -152,10 +144,10 @@
       </div>
 
       <div class="ttEntryGrid" id="ttEntryRows">
-        <div class="ttEmptyState">Loading saved PBs...</div>
+        <div class="ttEmptyState">Loading Time Trial profile...</div>
       </div>
     </div>
-  </div>
+  </main>
 
   <dialog class="ttDialog" id="ttEntryDialog">
     <div class="ttDialogBox">
@@ -167,36 +159,32 @@
         <button aria-label="Close" class="ttDialogClose" id="btnCloseTimeTrialForm" type="button">Close</button>
       </div>
 
-      <div class="row">
-        <div class="field">
-          <label class="muted" for="ttTrack">Track</label>
-          <select id="ttTrack"></select>
+      <div class="ttPbForm">
+        <div class="ttPickerField">
+          <select id="ttTrack" aria-label="Track"></select>
         </div>
-        <div class="field">
-          <label class="muted" for="ttCategory">Category</label>
-          <select id="ttCategory">
-            <option value="shroom">Shroom</option>
-            <option value="shroomless">Shroomless</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="row">
-        <div class="field">
-          <label class="muted" for="ttTime">Time</label>
-          <input id="ttTime" inputmode="text" placeholder="e.g. 1'54&quot;321 or 1:54.321" type="text" />
-          <div class="muted">Accepted: 1'54"321 or 1:54.321.</div>
+        <div aria-label="Category" class="modeToggle ttCategoryToggle" id="ttCategoryToggle" role="tablist">
+          <button aria-selected="true" class="modeBtn isActive" data-tt-category="shroom" type="button">Shroom</button>
+          <button aria-selected="false" class="modeBtn" data-tt-category="shroomless" type="button">Shroomless</button>
         </div>
-        <div class="field">
-          <label class="muted" for="ttCharacter">Character</label>
-          <select id="ttCharacter"></select>
-        </div>
-      </div>
+        <select class="ttNativeSelect" id="ttCategory" tabindex="-1" aria-hidden="true">
+          <option value="shroom">Shroom</option>
+          <option value="shroomless">Shroomless</option>
+        </select>
 
-      <div class="row">
-        <div class="field">
-          <label class="muted" for="ttKart">Kart</label>
-          <select id="ttKart"></select>
+        <div class="ttComboPickRow">
+          <div class="ttPickerField">
+            <select id="ttCharacter" aria-label="Character"></select>
+          </div>
+          <div class="ttPickerField">
+            <select id="ttKart" aria-label="Kart"></select>
+          </div>
+        </div>
+
+        <div class="ttTimeInputField">
+          <input id="ttTime" inputmode="text" placeholder="Time: 1'54&quot;321" type="text" aria-label="Time" />
+          <div class="muted ttTimeHint">Accepted: 1'54"321 or 1:54.321.</div>
         </div>
       </div>
 
@@ -215,7 +203,7 @@
       <div class="ttDialogHead">
         <div>
           <h3>World Record Reference</h3>
-          <div class="muted">Current MKWorld WRs from mkwrs.com by category.</div>
+          <div class="muted">Current MKWorld shroom WRs from mkwrs.com.</div>
         </div>
         <button aria-label="Close" class="ttDialogClose" id="btnCloseWrDialog" type="button">Close</button>
       </div>
@@ -229,11 +217,10 @@
           <div class="chartFilterMenu" hidden id="menuTtWrFilter">
             <button class="chartFilterItem" data-tt-wr-filter="all" type="button"><span>All</span></button>
             <button class="chartFilterItem" data-tt-wr-filter="shroom" type="button"><span>Shroom</span></button>
-            <button class="chartFilterItem" data-tt-wr-filter="shroomless" type="button"><span>Shroomless</span></button>
           </div>
         </div>
         <div class="ttWrDialogActions">
-          <button class="btn2" id="btnRefreshTimeTrialWr" type="button">Update WRs</button>
+          <button class="danger" id="btnRefreshTimeTrialWr" type="button">Update WRs</button>
         </div>
       </div>
 

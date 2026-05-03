@@ -67,25 +67,25 @@
 }
 
 .itemDistModeBtn{
-  border:1px solid rgba(164,61,74,.9);
-  background:rgba(17,23,34,.76);
-  color:var(--text);
-  min-height:44px;
-  padding:0 18px;
-  border-radius:8px;
-  font:800 15px/1.1 inherit;
+  border:2px solid var(--modeBtn-border);
+  background:var(--modeBtn-bg);
+  color:var(--modeBtn-text);
+  min-height:var(--button-min-height);
+  padding:10px 14px;
+  border-radius:12px;
+  font:800 14px/1 inherit;
   cursor:pointer;
   transition:transform .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
 }
 
 .itemDistModeBtn:hover{
-  transform:translateY(-1px);
+  background:var(--hover);
 }
 
 .itemDistModeBtn.active{
-  background:linear-gradient(180deg, rgba(82,128,234,.92), rgba(66,111,215,.96));
-  border-color:rgba(95,129,223,.98);
-  color:#09111d;
+  background:var(--modeBtn-active-bg);
+  border-color:var(--modeBtn-active-border);
+  color:var(--modeBtn-active-text);
 }
 
 .itemDistOverview{

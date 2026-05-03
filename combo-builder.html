@@ -47,7 +47,7 @@
 </head>
 <body>
   <noscript>
-    <div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;">
+    <div class="noscriptNotice">
       <h2>MKWT requires JavaScript</h2>
       <p>Please enable JavaScript or disable your adblocker for this site.</p>
     </div>
@@ -83,13 +83,13 @@
     </div>
   </nav>
 
-  <div class="wrap comboWrap">
+  <main class="wrap comboWrap">
     <section class="card profileCard comboHero">
       <div class="profileTop comboHeroTop">
         <div class="comboHeroCopy">
           <h2 class="heroTitle comboHeroTitle">
             <span>Wario's Garage</span>
-            <img class="comboHeroBadge" src="assets/combo-icons/characters/wario.png" alt="" aria-hidden="true" />
+            <img class="comboHeroBadge" src="assets/picker-icons/characters/wario.png" alt="" aria-hidden="true" decoding="async" />
           </h2>
         </div>
       </div>
@@ -101,34 +101,43 @@
         <div class="comboSectionHead">
           <div>
             <h3 class="sectionTitle">Build</h3>
-            <div class="muted">Character and vehicle names follow the Time Trial list and stay alphabetically sorted.</div>
           </div>
-          <div class="comboSectionActions">
-            <button class="btn2 comboActionBtn" id="btnOpenComboFilters" type="button">Combo filters</button>
-            <button class="btn2 comboActionBtn" id="btnOpenComboCompare" type="button">Compare combo</button>
-            <button class="btn2 comboActionBtn" id="btnResetComboBuilder" type="button">Reset</button>
-            <button class="btn2 comboActionBtn comboActionBtn--wide" id="btnOpenSimilarCombos" type="button" disabled>Similar combos</button>
-          </div>
+          <button class="cbBuildFilterBtn" id="btnOpenComboFilters" type="button">
+            <span class="cbBuildFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span>Filters</span>
+          </button>
         </div>
 
         <div class="cbPickerGrid">
           <label class="cbPicker">
             <span>Character</span>
-            <select id="cbCharacterSelect"></select>
+            <select id="cbCharacterSelect" aria-label="Character"></select>
           </label>
           <label class="cbPicker">
             <span>Vehicle</span>
-            <select id="cbVehicleSelect"></select>
+            <select id="cbVehicleSelect" aria-label="Vehicle"></select>
           </label>
         </div>
 
         <div class="cbCurrentCombo" id="cbCurrentCombo">
-          <div class="cbCurrentComboIcons" id="cbCurrentComboIcons">
-            <div class="cbEmpty">Loading combo icons...</div>
+          <div class="cbCurrentComboMain">
+            <div class="cbCurrentComboIcons" id="cbCurrentComboIcons">
+              <div class="cbEmpty">Loading combo icons...</div>
+            </div>
+            <div class="cbCurrentComboText">
+              <div class="cbCurrentComboTitle" id="cbCurrentComboTitle">-</div>
+              <div class="cbCurrentComboMeta" id="cbCurrentComboMeta">-</div>
+            </div>
           </div>
-          <div class="cbCurrentComboText">
-            <div class="cbCurrentComboTitle" id="cbCurrentComboTitle">-</div>
-            <div class="cbCurrentComboMeta" id="cbCurrentComboMeta">-</div>
+          <div class="cbCurrentComboActions">
+            <button class="cbSimilarNotice cbComboCardAction is-visible" id="btnOpenComboCompare" type="button">
+              <span>Compare</span>
+              <strong>Combo</strong>
+            </button>
+            <button class="cbSimilarNotice cbComboCardAction hidden" id="btnOpenSimilarCombos" type="button" disabled hidden>
+              <span>Similar combos</span>
+              <strong id="cbSimilarNoticeValue">0</strong>
+            </button>
           </div>
         </div>
 
@@ -176,9 +185,6 @@
         <div class="comboSectionHead">
           <div>
             <h3 class="sectionTitle">Coin Curve Compare</h3>
-            <div class="muted">
-              Selected combo versus same-vehicle Feather and Heavy baselines, plus a quick online race meta snapshot.
-            </div>
           </div>
         </div>
 
@@ -208,7 +214,6 @@
           <div class="cbMetaSpotlightHead">
             <div class="cbMetaSpotlightEyebrow">Online Race Meta</div>
             <h4 class="cbMetaSpotlightTitle">S-rank snapshot</h4>
-            <div class="muted cbMetaSpotlightSub">Grouped in the same order and logic as your reference. Click characters or karts to load a matching build into the builder.</div>
           </div>
           <div class="cbMetaTierGrid" id="cbMetaTierGrid">
             <div class="cbEmpty">Loading S-rank snapshot...</div>
@@ -216,14 +221,13 @@
         </div>
       </div>
     </section>
-  </div>
+  </main>
 
   <dialog class="ttDialog ttDialog--wide" id="cbSimilarDialog">
     <div class="ttDialogBox">
       <div class="ttDialogHead">
         <div>
           <h3 id="cbSimilarTitle">Similar combos</h3>
-          <div class="muted" id="cbSimilarSubtitle">Exact same full stat line as the selected combo.</div>
         </div>
         <button aria-label="Close" class="ttDialogClose" id="btnCloseSimilarCombos" type="button">Close</button>
       </div>
@@ -239,7 +243,6 @@
       <div class="ttDialogHead">
         <div>
           <h3>Compare combos</h3>
-          <div class="muted">Your selected combo stays fixed on the left. Delta shows compare minus selected.</div>
         </div>
         <button aria-label="Close" class="ttDialogClose" id="btnCloseComboCompare" type="button">Close</button>
       </div>
@@ -307,7 +310,7 @@
       <div class="ttDialogHead">
         <div>
           <h3>Combo filters</h3>
-          <div class="muted">Enter minimum stat levels and we will show every combo that reaches them.</div>
+          <div class="muted">Pick minimums on the bars. Clear a bar to ignore that stat.</div>
         </div>
         <button aria-label="Close" class="ttDialogClose" id="btnCloseComboFilters" type="button">Close</button>
       </div>

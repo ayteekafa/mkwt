@@ -1,23 +1,37 @@
 const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth:{
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: true
+let resetClient = null;
+function getResetClient(){
+  if (resetClient) return resetClient;
+  if (!window.supabase?.createClient) {
+    throw new Error("Supabase could not load. Please check your connection and reload the page.");
   }
-});
+  resetClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+    auth:{
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: true
+    }
+  });
+  return resetClient;
+}
 
 const $ = (id)=>document.getElementById(id);
 function setStatus(msg, ok=true){
   const el = $("status");
+  if (window.MKWT?.setStatus) {
+    window.MKWT.setStatus(el, msg, ok);
+    return;
+  }
+  if (!el) return;
   el.textContent = msg || "";
   el.style.color = ok ? "var(--muted)" : "#ff6b6b";
 }
 
 async function ensureRecoverySession(){
   // When coming from the Supabase recovery email, the session is parsed from the URL.
+  const client = getResetClient();
   try{
     const { data, error } = await client.auth.getSession();
     if (error) console.warn(error);
@@ -45,7 +59,15 @@ async function submitReset(){
 
   setStatus("Updating password...");
 
-  const ok = await ensureRecoverySession();
+  let client;
+  let ok = false;
+  try{
+    client = getResetClient();
+    ok = await ensureRecoverySession();
+  }catch(e){
+    setStatus(e?.message || String(e), false);
+    return;
+  }
   if(!ok){
     setStatus("Reset session not found. Please open the newest reset email again.", false);
     return;

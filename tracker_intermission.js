@@ -53,10 +53,12 @@ function fillTrackSelect(selectEl, placeholder){
 
   // Deterministic ordering:
   // - If this is an Intermission-start select, put EXACTLY ONE suggested track (latest match target)
-  //   right under the placeholder and mark it visually (â˜…), but keep value as the raw track name.
+  //   right under the placeholder and mark it visually as suggested, but keep value as the raw track name.
   // - Under that: all other tracks in strict alphabetical order, excluding the suggested track.
   // - Never keep/accumulate old suggestions because we rebuild the options from scratch every time.
-  const suggested = (getSuggestedNextStart?.() || '');
+  const suggested = (typeof getSuggestedNextStartForSelect === 'function')
+    ? getSuggestedNextStartForSelect(selectEl)
+    : (getSuggestedNextStart?.() || '');
   const isStartSelect = (selectEl?.id === 'intermission' || selectEl?.id === 'editIntermission');
 
   const sortedAll = [...TRACKS].sort((a,b)=>String(a).localeCompare(String(b)));
@@ -106,7 +108,9 @@ function fillTrackSelectFromList(selectEl, placeholder, list){
   selectEl.appendChild(opt0);
 
   const arr = Array.isArray(list) ? list : [];
-  const suggested = (getSuggestedNextStart?.() || '');
+  const suggested = (typeof getSuggestedNextStartForSelect === 'function')
+    ? getSuggestedNextStartForSelect(selectEl)
+    : (getSuggestedNextStart?.() || '');
   const isStartSelect = (selectEl?.id === 'intermission' || selectEl?.id === 'editIntermission');
 
   // Always keep the non-suggested part strictly alphabetical.
@@ -133,6 +137,21 @@ function fillTrackSelectFromList(selectEl, placeholder, list){
 // Apply special end-display suffixes (Reverse / Water Section / Beach Section / etc.)
 // ONLY for the Intermission End dropdown display.
 // Values stay unchanged (e.g., "DK Pass"), only the option text is adjusted.
+function intermissionRouteKeyCandidates(startVal, endVal){
+  const start = String(startVal || '').trim();
+  const end = String(endVal || '').trim();
+  if (!start || !end) return [];
+  return [`${start}\u2192${end}`, `${start}>${end}`, `${start} -> ${end}`];
+}
+
+function lookupIntermissionRouteMeta(metaIM, startVal, endVal){
+  if (!metaIM || typeof metaIM !== 'object') return null;
+  for (const key of intermissionRouteKeyCandidates(startVal, endVal)){
+    if (Object.prototype.hasOwnProperty.call(metaIM, key)) return metaIM[key];
+  }
+  return null;
+}
+
 function applySpecialEndLabelsToSelect(endSelectEl, startVal){
   try {
     if (!endSelectEl) return;
@@ -146,8 +165,7 @@ function applySpecialEndLabelsToSelect(endSelectEl, startVal){
       const end = String(opt.value);
       let label = end;
       if (start && metaIM){
-        const k = `${start}>${end}`;
-        const m = metaIM[k];
+        const m = lookupIntermissionRouteMeta(metaIM, start, end);
         // Use the same naming/grouping as the Intermission Destiny chart.
         // DISPLAY-ONLY: option.value (and saved data) stays as the plain end track.
         const dg = (m && m.destiny_group) ? String(m.destiny_group).trim() : '';
@@ -239,16 +257,14 @@ function initSelects(){
   );
 }
 
-// Reset helper for create-form Intermission selects (values + full options + suggestion)
-// Uses the existing bidirectional filter logic via change-events.
+// Reset helper for create-form Intermission selects (values + full options + suggestion).
+// Keep this event-light because mode switching can otherwise rebuild both selects repeatedly.
 function resetIntermissionSelects(){
   const a = $("intermission");
   const b = $("track");
   if (!a || !b) return;
+  fillTrackSelect(a, " ");
+  fillTrackSelect(b, " ");
   a.value = "";
   b.value = "";
-  try {
-    a.dispatchEvent(new Event("change", { bubbles: true }));
-    b.dispatchEvent(new Event("change", { bubbles: true }));
-  } catch(e) {}
 }

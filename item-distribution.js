@@ -41,7 +41,7 @@
     const isWide = itemId === "dash_food";
     return `
       <div class="itemDistIconChip${isWide ? " itemDistIconChip--wide" : ""}" title="${escapeHtml(item.name)}" aria-label="${escapeHtml(item.name)}">
-        <img src="${escapeHtml(item.icon)}" alt="${escapeHtml(item.name)}" loading="eager" />
+        <img src="${escapeHtml(item.icon)}" alt="${escapeHtml(item.name)}" loading="lazy" decoding="async" fetchpriority="low" />
       </div>
     `;
   }
@@ -109,6 +109,7 @@
       setMode(DEFAULT_MODE);
     } catch (error) {
       const message = `Item Distribution failed to load: ${error.message || error}`;
+      window.MKWT?.showToast?.(message, false);
       const targets = ["itemDistBandGrid"];
       targets.forEach((id) => {
         const el = $(id);

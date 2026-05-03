@@ -115,6 +115,15 @@ async function requireSession(){
     }
   }
 
+  function fmtDuration(ms){
+    const minutes = Math.max(0, Math.round(Number(ms || 0) / 60000));
+    if (minutes < 1) return "<1m";
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    if (!hours) return `${rest}m`;
+    return rest ? `${hours}h ${rest}m` : `${hours}h`;
+  }
+
   function groupSessions(matchesAsc, gapMinutes=45){
     const gapMs = gapMinutes * 60 * 1000;
     const sessions = [];
@@ -181,6 +190,7 @@ async function requireSession(){
     // If we have only after values, we can improve startVr by using (end of first) - delta if possible
     if (startVr != null && endVr == null) endVr = startVr;
     const gain = (startVr != null && endVr != null) ? (endVr - startVr) : null;
+    const playtimeMs = (sess?.start && sess?.end) ? Math.max(0, sess.end.getTime() - sess.start.getTime()) : 0;
 
     const avg = (arr) => arr.length ? (arr.reduce((a,v)=>a+v,0)/arr.length) : null;
     return {
@@ -190,12 +200,135 @@ async function requireSession(){
       trackCount,
       startVr,
       endVr,
-      gain
+      gain,
+      playtimeMs,
+      playtimeText: fmtDuration(playtimeMs)
     };
   }
+
+  function cleanTrackKey(value){
+    return String(value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  }
+
+  function sessionTrackKey(match){
+    return cleanTrackKey(match?.track);
+  }
+
+  function buildTrackForecastStats(matchesAsc){
+    const buckets = new Map();
+    for (const match of (matchesAsc || [])) {
+      const key = sessionTrackKey(match);
+      const delta = Number(match?.vr_change);
+      if (!key || !Number.isFinite(delta)) continue;
+      const row = buckets.get(key) || { count: 0, sum: 0 };
+      row.count += 1;
+      row.sum += delta;
+      buckets.set(key, row);
+    }
+    for (const row of buckets.values()) {
+      row.avg = row.count ? row.sum / row.count : 0;
+    }
+    return buckets;
+  }
+
+  function signedNumber(value, digits = 2){
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "-";
+    const text = digits == null ? String(Math.round(n)) : n.toFixed(digits);
+    return n > 0 ? `+${text}` : text;
+  }
+
+  function computeSessionForecast(sess, st){
+    const matches = (sess?.matches || []).filter(match => sessionTrackKey(match));
+    if (!matches.length) return null;
+    let projectedSum = 0;
+    let neutralCount = 0;
+    let knownCount = 0;
+    for (const match of matches) {
+      const stat = trackForecastStats.get(sessionTrackKey(match));
+      if (stat && Number(stat.count || 0) >= FORECAST_MIN_PLAYS) {
+        projectedSum += Number(stat.avg || 0);
+        knownCount += 1;
+      } else {
+        neutralCount += 1;
+      }
+    }
+    const projectedAvg = projectedSum / matches.length;
+    const actualTotal = Number.isFinite(Number(st?.gain))
+      ? Number(st.gain)
+      : matches.reduce((sum, match) => sum + (Number.isFinite(Number(match?.vr_change)) ? Number(match.vr_change) : 0), 0);
+    const actualAvg = matches.length ? actualTotal / matches.length : null;
+    const forecastEpsilon = 0.005;
+    const pool = projectedAvg < -forecastEpsilon ? "unfavorable" : (projectedAvg > forecastEpsilon ? "favorable" : "neutral");
+    const actualGood = Number(actualAvg) >= 0;
+    const beatProjection = Number(actualAvg) >= projectedAvg;
+    const intro = pool === "unfavorable"
+      ? "Track pool was unfavorable for you"
+      : (pool === "favorable" ? "Track pool looked favorable" : "Track pool looked neutral");
+    let outcome = actualGood ? "and you finished above break-even." : "and the result landed below break-even.";
+    if (pool === "unfavorable") {
+      outcome = actualGood
+        ? "but you still finished above break-even."
+        : (beatProjection ? "you beat that projection, but stayed below break-even." : "the bad result was likely partly track-driven.");
+    } else if (pool === "favorable") {
+      outcome = beatProjection
+        ? "and you beat the projection."
+        : (actualGood ? "but you landed below projection while still above break-even." : "but the result landed below expectation.");
+    }
+    return {
+      projectedAvg,
+      actualTotal,
+      actualAvg,
+      neutralCount,
+      knownCount,
+      trackCount: matches.length,
+      pool,
+      message: `${intro}: projected ${signedNumber(projectedAvg)} VR avg, ${outcome}`,
+    };
+  }
+
+  function renderSessionForecast(forecast, open){
+    if (!forecast) return "";
+    const neutralNote = forecast.neutralCount
+      ? `<div class="sessionForecastNote">${forecast.neutralCount} track${forecast.neutralCount === 1 ? "" : "s"} under ${FORECAST_MIN_PLAYS} plays counted as neutral.</div>`
+      : "";
+    return `
+      <div class="sessionForecast">
+        <button class="sessionForecastToggle" type="button" data-session-forecast-toggle aria-expanded="${open ? "true" : "false"}">
+          <span class="sessionForecastToggle__label">Track Forecast</span>
+          <span class="sessionForecastToggle__value">${signedNumber(forecast.projectedAvg)} avg</span>
+        </button>
+        <div class="sessionForecastPanel"${open ? "" : " hidden"}>
+          <div class="sessionForecastGrid">
+            <div><span>Actual</span><b>${signedNumber(forecast.actualTotal, 0)} total</b><em>${signedNumber(forecast.actualAvg)} avg</em></div>
+            <div><span>Projected</span><b>${signedNumber(forecast.projectedAvg)} avg</b><em>0 VR break-even</em></div>
+            <div><span>Known maps</span><b>${forecast.knownCount}/${forecast.trackCount}</b><em>${FORECAST_MIN_PLAYS}+ plays</em></div>
+          </div>
+          <p>${forecast.message}</p>
+          ${neutralNote}
+        </div>
+      </div>`;
+  }
+
+  const FORECAST_MIN_PLAYS = 5;
+  let trackForecastStats = new Map();
+  let openForecasts = {};
   let sessionsDesc = [];
   let page = 1;
   const pageSize = 10;
+
+  function renderSessionSummary(){
+    const total = sessionsDesc.length;
+    const allStats = sessionsDesc.map(computeSessionStats);
+    const totalMatches = sessionsDesc.reduce((sum, sess) => sum + ((sess?.matches || []).length), 0);
+    const totalPlaytime = allStats.reduce((sum, st) => sum + Number(st.playtimeMs || 0), 0);
+    const avgMatches = total ? (totalMatches / total) : null;
+    const avgPlaytime = total ? (totalPlaytime / total) : null;
+
+    if ($("summaryTotalSessions")) $("summaryTotalSessions").textContent = total ? String(total) : "-";
+    if ($("summaryAvgMatches")) $("summaryAvgMatches").textContent = avgMatches == null ? "-" : avgMatches.toFixed(1);
+    if ($("summaryAvgPlaytime")) $("summaryAvgPlaytime").textContent = avgPlaytime == null ? "-" : fmtDuration(avgPlaytime);
+  }
 
   function renderPage(){
     const total = sessionsDesc.length;
@@ -208,6 +341,7 @@ async function requireSession(){
 
     if ($("pageInfo")) $("pageInfo").textContent = page + " / " + totalPages;
     if ($("sessionCount")) $("sessionCount").textContent = String(total);
+    renderSessionSummary();
 
     const list = $("sessionList");
     if (!list) return;
@@ -227,7 +361,7 @@ async function requireSession(){
         return "muted";
       };
 
-    let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+    let html = '<div class="sessStack">';
     for (let i = 0; i < slice.length; i++) {
       const s = slice[i];
       const st = computeSessionStats(s);
@@ -253,30 +387,64 @@ async function requireSession(){
       const trAvg = st.trackAvg == null ? "-" : st.trackAvg.toFixed(2);
       const imAvgClass = classForVal(imAvg);
       const trAvgClass = classForVal(trAvg);
+      const matchCount = (s.matches || []).length;
+      const sessionNo = total - (start + i);
+      const forecast = computeSessionForecast(s, st);
+      const forecastKey = String(start + i);
+      const forecastOpen = !!openForecasts[forecastKey];
 
       html += `
         <div class="card sessCard">
           <div class="sessHeader">
-            <div class="sessTitle">${rangeLine}</div>
+            <div>
+              <div class="sessKicker">Session #${sessionNo}</div>
+              <div class="sessTitle">${rangeLine}</div>
+            </div>
             <div class="sessBadge ${gainClass}">Gain ${gainTxt}</div>
           </div>
 
-          <div class="sessMeta">
-            <div class="muted sessVR">VR <b class="sessNum">${startVr}</b> > <b class="sessNum">${endVr}</b></div>
+          <div class="sessStatsGrid">
+            <div class="sessMetric">
+              <span>Matches</span>
+              <b class="sessNum">${matchCount}</b>
+            </div>
+            <div class="sessMetric">
+              <span>Playtime</span>
+              <b class="sessNum">${st.playtimeText}</b>
+            </div>
+            <div class="sessMetric sessMetric--wide">
+              <span>VR</span>
+              <b><span class="sessNum">${startVr}</span> <span class="sessArrow">-></span> <span class="sessNum">${endVr}</span></b>
+            </div>
+            <div class="sessMetric sessModeStat">
+              <span>Intermission</span>
+              <b class="sessNum">${st.interCount}</b>
+              <em>Avg <strong class="${imAvgClass} sessNum">${imAvg}</strong></em>
+            </div>
+            <div class="sessMetric sessModeStat">
+              <span>3-Lap tracks</span>
+              <b class="sessNum">${st.trackCount}</b>
+              <em>Avg <strong class="${trAvgClass} sessNum">${trAvg}</strong></em>
+            </div>
           </div>
-
-          <div class="muted sessGrid">
-            <div class="label">Intermission</div>
-            <div class="val"><b class="sessNum">${st.interCount}</b> - Avg <span class="sessAvg ${imAvgClass} sessNum">${imAvg}</span></div>
-
-            <div class="label">Tracks (3 Laps)</div>
-            <div class="val"><b class="sessNum">${st.trackCount}</b> - Avg <span class="sessAvg ${trAvgClass} sessNum">${trAvg}</span></div>
-          </div>
+          ${renderSessionForecast(forecast, forecastOpen)}
         </div>
       `;
     }
     html += "</div>";
     list.innerHTML = html;
+
+    list.querySelectorAll("[data-session-forecast-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".sessCard");
+        const cards = Array.from(list.querySelectorAll(".sessCard"));
+        const localIndex = cards.indexOf(card);
+        if (localIndex < 0) return;
+        const key = String(start + localIndex);
+        openForecasts[key] = !openForecasts[key];
+        renderPage();
+      });
+    });
   }
 
   function wirePager(){
@@ -291,6 +459,8 @@ async function requireSession(){
 
     setStatus("Loading matches...", true);
     const matchesAsc = await getAllMatchesAsc();
+    trackForecastStats = buildTrackForecastStats(matchesAsc);
+    openForecasts = {};
 
     if (!Array.isArray(matchesAsc) || matchesAsc.length === 0) {
       setStatus("No matches yet.", true);

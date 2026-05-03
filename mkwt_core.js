@@ -7,8 +7,55 @@ const SUPABASE_URL  = "https://imxlssgtzzdfgdscubdx.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
 const SUPABASE_PROJECT_REF = "imxlssgtzzdfgdscubdx";
 const GUEST_KEY = "mkwt_guest_matches_v1";
+const BACKUP_SCHEMA_VERSION = 3;
 const BACKUP_KEY_LOCAL = "mkwt_backup_session_local_v1";
 const BACKUP_KEY_SESS  = "mkwt_backup_session_session_v1";
+const RESTORE_SAFETY_BACKUP_KEY = "mkwt_last_restore_safety_backup_v1";
+const GUEST_PROFILE_KEY = "mkwt_guest_profile_v1";
+const GUEST_TIME_TRIAL_KEY = "mkwt_guest_time_trial_entries_v1";
+const THEME_KEY = "mkwt_theme";
+const MIN_VR_FILTER_KEY = "mkwt_min_vr_filter";
+const MKCENTRAL_PLAYER_KEY = "mkwt_mkcentral_player_ref_v1";
+const PROFILE_ICON_KEY = "mkwt_profile_icon_slug_v1";
+const MKCENTRAL_SCOPE_KEY = "mkwt_mkcentral_scope_v1";
+const COMBO_BUILDER_SELECTION_KEY = "mkwt_combo_builder_selection_v1";
+const LOUNGE_BACKUP_STORES = [
+  { key: "12", playerCount: 12, currentKey: "mkwt_lounge_current_v1", sessionsKey: "mkwt_lounge_sessions_v1" },
+  { key: "24", playerCount: 24, currentKey: "mkwt_lounge24_current_v1", sessionsKey: "mkwt_lounge24_sessions_v1" },
+];
+const MKCENTRAL_LOUNGE_BACKUP_FIELDS = [
+  "mkcentral_event_id",
+  "mkcentral_event_name",
+  "mkcentral_table_url",
+  "mkcentral_tier",
+  "mkcentral_table_rank",
+  "mkcentral_table_score",
+  "mkcentral_mmr_before",
+  "mkcentral_mmr_delta",
+  "mkcentral_mmr_after",
+  "mkcentral_event_created_at",
+  "mkcentral_synced_at",
+  "mkcentral_sync_status",
+  "mkcentral_confidence_label",
+  "mkcentral_confidence_note",
+  "mkcentral_confidence_score",
+].join(", ");
+const LOUNGE_MOGI_BACKUP_SELECT = [
+  "id",
+  "created_at",
+  "completed_at",
+  "updated_at",
+  "status",
+  "total_points",
+  "race_count",
+  "disconnects",
+  "player_count",
+  "lounge_format_tag",
+  "lounge_format_source",
+  "stats_excluded",
+  "mkcentral_format_tag",
+  MKCENTRAL_LOUNGE_BACKUP_FIELDS,
+].join(", ");
 
 window.MKWT = window.MKWT || {};
 
@@ -42,6 +89,9 @@ function getSupabaseClient({
   const auth = { persistSession, autoRefreshToken, detectSessionInUrl };
   if(mode === "local" || mode === "session"){
     auth.storage = authStorageForMode(mode);
+  }
+  if (!window.supabase?.createClient) {
+    throw new Error("Supabase could not load. Please check your connection and reload the page.");
   }
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth });
   cache[key] = client;
@@ -309,48 +359,292 @@ window.mkwtRequireAuth = async function(options = {}){
 
   async function ensureSession(){
     try{
-      if (window.SESSION && window.SESSION.user) return;
+      if (window.SESSION && window.SESSION.user) {
+        SESSION = window.SESSION;
+        supabaseClient = window.supabaseClient || supabaseClient;
+        return;
+      }
       if (!window.supabaseClient?.auth?.getSession) return;
-      const { data } = await supabaseClient.auth.getSession();
-      window.SESSION = data?.session || null;
+      const { data } = await window.supabaseClient.auth.getSession();
+      syncSharedSession(window.supabaseClient, data?.session || null);
     }catch(e){ console.warn(e); }
   }
 
   async function ensureProfile(){
     try{
-      if (typeof window.loadProfile === "function") { await window.loadProfile(); return; }
+      if (typeof window.loadProfile === "function") await window.loadProfile();
       if (!window.supabaseClient || !window.SESSION?.user) return;
-      const { data, error } = await supabaseClient
+      const columns = "nickname,current_vr,mkcentral_player_id,theme_preference,profile_icon_slug";
+      let { data, error } = await supabaseClient
         .from("profiles")
-        .select("nickname,current_vr")
-        .or(`id.eq.${SESSION.user.id},user_id.eq.${SESSION.user.id}`)
+        .select(columns)
+        .eq("id", SESSION.user.id)
         .maybeSingle();
+      if (error && String(error.message || "").includes("column profiles.id")) {
+        ({ data, error } = await supabaseClient
+          .from("profiles")
+          .select(columns)
+          .eq("user_id", SESSION.user.id)
+          .maybeSingle());
+      }
       if (!error) window.PROFILE = data || null;
     }catch(e){ console.warn(e); }
   }
 
-  async function readLoungeCloudForBackup(){
+  const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
+  const safeReadJson = (key, fallback) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch(e) {
+      return fallback;
+    }
+  };
+  const safeWriteJson = (key, value) => {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch(e) { return false; }
+  };
+  const safeReadString = (key, fallback = null) => {
+    try {
+      const value = localStorage.getItem(key);
+      return value == null ? fallback : value;
+    } catch(e) {
+      return fallback;
+    }
+  };
+  const safeWriteString = (key, value) => {
+    try {
+      if (value == null || String(value).trim() === "") localStorage.removeItem(key);
+      else localStorage.setItem(key, String(value));
+      return true;
+    } catch(e) {
+      return false;
+    }
+  };
+  const toIntOrNull = (value) => {
+    if (value == null || String(value).trim() === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.round(parsed) : null;
+  };
+  const cleanString = (value) => String(value ?? "").trim();
+  const sanitizeFilePart = (value) => cleanString(value || "user")
+    .replace(/[\\/:*?"<>|]+/g, "")
+    .replace(/\s+/g, "_")
+    .slice(0, 64) || "user";
+
+  function readLocalPreferencesForBackup(){
+    const minVr = toIntOrNull(safeReadString(MIN_VR_FILTER_KEY, "0"));
+    const comboSelection = safeReadJson(COMBO_BUILDER_SELECTION_KEY, null);
+    return {
+      theme: safeReadString(THEME_KEY, null),
+      min_vr_filter: minVr && minVr > 0 ? minVr : 0,
+      mkcentral_player_id: safeReadString(MKCENTRAL_PLAYER_KEY, null),
+      profile_icon_slug: safeReadString(PROFILE_ICON_KEY, null),
+      mkcentral_scope: safeReadString(MKCENTRAL_SCOPE_KEY, null),
+      combo_builder_selection: comboSelection && typeof comboSelection === "object" ? comboSelection : null,
+    };
+  }
+
+  function applyLocalPreferencesFromBackup(backup){
+    const prefs = backup?.preferences || {};
+    const profile = backup?.profile || {};
+    if (hasOwn(prefs, "theme")) safeWriteString(THEME_KEY, prefs.theme);
+    else if (hasOwn(profile, "theme_preference")) safeWriteString(THEME_KEY, profile.theme_preference);
+
+    if (hasOwn(prefs, "min_vr_filter")) {
+      const minVr = toIntOrNull(prefs.min_vr_filter);
+      safeWriteString(MIN_VR_FILTER_KEY, minVr && minVr > 0 ? String(minVr) : "0");
+    }
+
+    if (hasOwn(prefs, "mkcentral_player_id")) safeWriteString(MKCENTRAL_PLAYER_KEY, prefs.mkcentral_player_id);
+    else if (hasOwn(profile, "mkcentral_player_id")) safeWriteString(MKCENTRAL_PLAYER_KEY, profile.mkcentral_player_id);
+
+    if (hasOwn(prefs, "profile_icon_slug")) safeWriteString(PROFILE_ICON_KEY, prefs.profile_icon_slug);
+    else if (hasOwn(profile, "profile_icon_slug")) safeWriteString(PROFILE_ICON_KEY, profile.profile_icon_slug);
+
+    if (hasOwn(prefs, "mkcentral_scope")) safeWriteString(MKCENTRAL_SCOPE_KEY, prefs.mkcentral_scope);
+
+    if (hasOwn(prefs, "combo_builder_selection")) {
+      if (prefs.combo_builder_selection && typeof prefs.combo_builder_selection === "object") {
+        safeWriteJson(COMBO_BUILDER_SELECTION_KEY, prefs.combo_builder_selection);
+      } else {
+        try { localStorage.removeItem(COMBO_BUILDER_SELECTION_KEY); } catch(e) {}
+      }
+    }
+  }
+
+  function normalizeProfile(raw, prefs = {}){
+    const currentVr = toIntOrNull(raw?.current_vr);
+    return {
+      nickname: cleanString(raw?.nickname) || null,
+      current_vr: currentVr,
+      mkcentral_player_id: cleanString(raw?.mkcentral_player_id ?? prefs.mkcentral_player_id) || null,
+      theme_preference: cleanString(raw?.theme_preference ?? prefs.theme) || null,
+      profile_icon_slug: cleanString(raw?.profile_icon_slug ?? prefs.profile_icon_slug) || null,
+    };
+  }
+
+  function readGuestProfileForBackup(prefs){
+    const profile = (window.MKWT?.loadGuestProfile ? window.MKWT.loadGuestProfile() : safeReadJson(GUEST_PROFILE_KEY, null)) || {};
+    return normalizeProfile(profile, prefs);
+  }
+
+  function writeGuestProfileFromBackup(backup){
+    const profile = normalizeProfile(backup?.profile || {}, backup?.preferences || {});
+    if (!profile.nickname && profile.current_vr == null) return false;
+    const payload = {
+      nickname: profile.nickname || "Guest",
+      current_vr: profile.current_vr == null ? 0 : profile.current_vr,
+      created_at: backup?.profile?.created_at || new Date().toISOString(),
+    };
+    if (window.MKWT?.saveGuestProfile) window.MKWT.saveGuestProfile(payload);
+    else safeWriteJson(GUEST_PROFILE_KEY, payload);
+    return true;
+  }
+
+  function readMkcentralStatsCacheForBackup(prefs = {}, profile = {}){
+    const playerId = cleanString(profile.mkcentral_player_id || prefs.mkcentral_player_id);
+    if (!playerId) return { source: "local_storage", player_id: "", record_count: 0, records: [] };
+    const prefix = `mkwt_mkcentral_${playerId}_`;
+    const records = [];
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(prefix) || !key.endsWith("_v1")) continue;
+        const payload = safeReadJson(key, null);
+        if (payload && typeof payload === "object") records.push({ key, payload });
+      }
+    } catch(e) {
+      return { source: "local_storage", player_id: playerId, record_count: records.length, records };
+    }
+    return { source: "local_storage", player_id: playerId, record_count: records.length, records };
+  }
+
+  function writeMkcentralStatsCacheFromBackup(backup){
+    const payload = backup?.mkcentral_stats || backup?.mkcentralStats || null;
+    const records = Array.isArray(payload?.records) ? payload.records : [];
+    let written = 0;
+    for (const record of records) {
+      const key = cleanString(record?.key);
+      if (!/^mkwt_mkcentral_\d+_[a-z0-9_-]+_v1$/i.test(key)) continue;
+      if (!record?.payload || typeof record.payload !== "object") continue;
+      if (safeWriteJson(key, record.payload)) written += 1;
+    }
+    return { written, skipped: !records.length };
+  }
+
+  function normalizeVrMatches(rawMatches){
+    const sorted = (Array.isArray(rawMatches) ? rawMatches : [])
+      .filter(Boolean)
+      .slice()
+      .sort((a, b) => String(a?.created_at || "").localeCompare(String(b?.created_at || "")));
+    return sorted.map((raw) => {
+      const vrChange = Number(raw?.vr_change ?? 0);
+      const vrAfter = Number(raw?.vr_after);
+      return {
+        id: raw?.id ? String(raw.id) : "",
+        created_at: raw?.created_at || new Date().toISOString(),
+        intermission: raw?.intermission ?? null,
+        track: raw?.track ?? "",
+        vr_change: Number.isFinite(vrChange) ? vrChange : 0,
+        vr_after: Number.isFinite(vrAfter) ? vrAfter : null,
+        opponents: raw?.opponents ?? null,
+        placement: raw?.placement ?? null,
+      };
+    });
+  }
+
+  function uniqueVrMatchesByFingerprint(rawMatches){
+    const result = [];
+    const seen = new Set();
+    for (const match of normalizeVrMatches(rawMatches)) {
+      const fp = fingerprintMatch(match);
+      if (seen.has(fp)) continue;
+      seen.add(fp);
+      result.push(match);
+    }
+    return result;
+  }
+
+  function writeGuestMatchesFromBackup(rawMatches, { append = false } = {}){
+    const incoming = normalizeVrMatches(rawMatches);
+    const current = append ? loadGuestMatches() : [];
+    const usedIds = new Set(current.map(match => String(match.id || "")));
+    for (const match of incoming) {
+      let id = match.id || `g_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      if (usedIds.has(id)) id = `${id}_${Math.random().toString(16).slice(2)}`;
+      usedIds.add(id);
+      current.push({ ...match, id });
+    }
+    saveGuestMatches(current);
+    return { matches: incoming.length, total: current.length };
+  }
+
+  function readLocalLoungePayloadForStore(store){
+    const sessions = safeReadJson(store.sessionsKey, []);
+    return {
+      source: "local_storage",
+      playerCount: store.playerCount,
+      current_mogi: safeReadJson(store.currentKey, null),
+      session_count: Array.isArray(sessions) ? sessions.length : 0,
+      sessions: Array.isArray(sessions) ? sessions : [],
+    };
+  }
+
+  function withLegacyLoungeAlias(payload){
+    const byPlayerCount = payload.by_player_count || {};
+    const legacy = byPlayerCount["12"] || byPlayerCount["24"] || null;
+    if (!legacy) return payload;
+    return {
+      ...payload,
+      playerCount: legacy.playerCount,
+      current_mogi: legacy.current_mogi,
+      session_count: legacy.session_count,
+      sessions: legacy.sessions,
+    };
+  }
+
+  function readLocalLoungeBackups(){
+    const byPlayerCount = {};
+    for (const store of LOUNGE_BACKUP_STORES) {
+      byPlayerCount[store.key] = readLocalLoungePayloadForStore(store);
+    }
+    const total = Object.values(byPlayerCount).reduce((sum, payload) => sum + Number(payload?.session_count || 0), 0);
+    return withLegacyLoungeAlias({
+      source: "local_storage",
+      by_player_count: byPlayerCount,
+      total_session_count: total,
+    });
+  }
+
+  async function readLoungeCloudForBackup(playerCount){
     if (!window.supabaseClient || !window.SESSION?.user?.id) return null;
     const uid = window.SESSION.user.id;
-    const loungePlayerCount = Number(window.MKWT_LOUNGE_CONFIG?.playerCount || 12);
+    const loungePlayerCount = Number(playerCount || 12);
 
     const { data: mogis, error: mogiError } = await supabaseClient
       .from("lounge_mogis")
-      .select("id, created_at, completed_at, updated_at, status, total_points, race_count, disconnects, player_count")
+      .select(LOUNGE_MOGI_BACKUP_SELECT)
       .eq("user_id", uid)
       .eq("player_count", loungePlayerCount)
       .order("created_at", { ascending: false });
     if (mogiError) throw mogiError;
 
-    const { data: races, error: raceError } = await supabaseClient
-      .from("lounge_races")
-      .select("id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at")
-      .eq("user_id", uid)
-      .order("race_number", { ascending: true });
-    if (raceError) throw raceError;
+    const mogiIds = (mogis || []).map(mogi => mogi.id).filter(Boolean);
+    const races = [];
+    for (let i = 0; i < mogiIds.length; i += 100) {
+      const batchIds = mogiIds.slice(i, i + 100);
+      const { data, error } = await supabaseClient
+        .from("lounge_races")
+        .select("id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at")
+        .eq("user_id", uid)
+        .in("mogi_id", batchIds)
+        .order("race_number", { ascending: true });
+      if (error) throw error;
+      races.push(...(data || []));
+    }
 
     const racesByMogi = new Map();
-    for (const race of races || []) {
+    for (const race of races) {
       if (!racesByMogi.has(race.mogi_id)) racesByMogi.set(race.mogi_id, []);
       racesByMogi.get(race.mogi_id).push(race);
     }
@@ -377,6 +671,25 @@ window.mkwtRequireAuth = async function(options = {}){
         races: mogiRaces,
         totalPoints: mogi.total_points,
         disconnects: mogi.disconnects,
+        statsExcluded: !!mogi.stats_excluded,
+        loungeFormatTag: mogi.lounge_format_tag || "",
+        loungeFormatSource: mogi.lounge_format_source || "",
+        mkcentralFormatTag: mogi.mkcentral_format_tag || "",
+        mkcentralEventId: mogi.mkcentral_event_id || "",
+        mkcentralEventName: mogi.mkcentral_event_name || "",
+        mkcentralTableUrl: mogi.mkcentral_table_url || "",
+        mkcentralTier: mogi.mkcentral_tier || "",
+        mkcentralTableRank: mogi.mkcentral_table_rank ?? null,
+        mkcentralTableScore: mogi.mkcentral_table_score ?? null,
+        mkcentralMmrBefore: mogi.mkcentral_mmr_before ?? null,
+        mkcentralMmrDelta: mogi.mkcentral_mmr_delta ?? null,
+        mkcentralMmrAfter: mogi.mkcentral_mmr_after ?? null,
+        mkcentralEventCreatedAt: mogi.mkcentral_event_created_at || "",
+        mkcentralSyncedAt: mogi.mkcentral_synced_at || "",
+        mkcentralSyncStatus: mogi.mkcentral_sync_status || "",
+        mkcentralConfidenceLabel: mogi.mkcentral_confidence_label || "",
+        mkcentralConfidenceNote: mogi.mkcentral_confidence_note || "",
+        mkcentralConfidenceScore: mogi.mkcentral_confidence_score ?? null,
         saved: mogi.status === "completed",
         completed_at: mogi.completed_at,
       };
@@ -397,130 +710,399 @@ window.mkwtRequireAuth = async function(options = {}){
     };
   }
 
-  if (typeof window.exportBackupJSON !== "function") {
-    window.exportBackupJSON = async function(){
-      try{
-        if (typeof window.setStatus === "function") window.setStatus("Creating backup...", true);
-        await ensureSession();
-        await ensureProfile();
+  async function readAllLoungeCloudForBackup(){
+    const byPlayerCount = {};
+    for (const store of LOUNGE_BACKUP_STORES) {
+      byPlayerCount[store.key] = await readLoungeCloudForBackup(store.playerCount);
+    }
+    const total = Object.values(byPlayerCount).reduce((sum, payload) => sum + Number(payload?.session_count || 0), 0);
+    return withLegacyLoungeAlias({
+      source: "supabase",
+      by_player_count: byPlayerCount,
+      total_session_count: total,
+    });
+  }
 
-        const exportedAt = new Date().toISOString();
-        const loungeKeys = window.MKWT_LOUNGE_STORAGE || { current: 'mkwt_lounge_current_v1', sessions: 'mkwt_lounge_sessions_v1' };
-        const safeReadJson = (key, fallback) => {
-          try {
-            const raw = localStorage.getItem(key);
-            return raw ? JSON.parse(raw) : fallback;
-          } catch(e) {
-            return fallback;
-          }
-        };
-        const loungeCurrent = safeReadJson(loungeKeys.current, null);
-        const loungeSessions = safeReadJson(loungeKeys.sessions, []);
-
-        if (!window.SESSION?.user) {
-          const guestMatches = loadGuestMatches();
-          const backup = {
-            app: "MKWT",
-            version: 2,
-            exported_at: exportedAt,
-            mode: "guest",
-            vr_tracker: {
-              source: "local_storage",
-              match_count: guestMatches.length,
-              matches: guestMatches
-            },
-            lounge_tracker: {
-              source: "local_storage",
-              playerCount: Number(window.MKWT_LOUNGE_CONFIG?.playerCount || 12),
-              current_mogi: loungeCurrent,
-              session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
-              sessions: Array.isArray(loungeSessions) ? loungeSessions : []
-            },
-            matches: guestMatches
-          };
-          downloadTextFile("mkwt_guest_backup.json", JSON.stringify(backup, null, 2));
-          if (typeof window.setStatus === "function") window.setStatus(`Guest export created (${guestMatches.length} VR matches, ${(Array.isArray(loungeSessions) ? loungeSessions.length : 0)} Lounge Mogis).`, true);
-          return;
-        }
-
-        const allMatches = [];
-        const chunk = 1000;
-        let from = 0;
-
-        while (true) {
-          const to = from + chunk - 1;
-          const { data, error } = await supabaseClient
-            .from("matches")
-            .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
-            .eq("user_id", SESSION.user.id)
-            .order("created_at", { ascending: true })
-            .range(from, to);
-
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-
-          allMatches.push(...data);
-          if (data.length < chunk) break;
-          from += chunk;
-        }
-
-        let loungeBackup = {
-          source: "local_storage",
-          playerCount: Number(window.MKWT_LOUNGE_CONFIG?.playerCount || 12),
-          current_mogi: loungeCurrent,
-          session_count: Array.isArray(loungeSessions) ? loungeSessions.length : 0,
-          sessions: Array.isArray(loungeSessions) ? loungeSessions : []
-        };
-        try {
-          loungeBackup = await readLoungeCloudForBackup() || loungeBackup;
-        } catch(e) {
-          console.warn("Lounge cloud export fallback:", e);
-        }
-
-        const backup = {
-          app: "MKWT",
-          version: 2,
-          exported_at: exportedAt,
-          user: { id: SESSION.user.id, email: SESSION.user.email || null },
-          profile: {
-            nickname: window.PROFILE?.nickname ?? null,
-            current_vr: window.PROFILE?.current_vr ?? null
-          },
-          vr_tracker: {
-            source: "supabase",
-            match_count: allMatches.length,
-            matches: allMatches
-          },
-          lounge_tracker: loungeBackup,
-          matches: allMatches
-        };
-
-        const filename =
-          `mkwt_backup_${String(window.PROFILE?.nickname || "user").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.json`;
-
-        window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
-        if (typeof window.setStatus === "function") window.setStatus(`Backup created (${allMatches.length} VR matches, ${loungeBackup.session_count || 0} Lounge Mogis).`, true);
-      } catch(e){
-        if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
-        if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
-        console.error(e);
-      }
+  function normalizeLoungePayload(raw, fallbackPlayerCount){
+    if (!raw || typeof raw !== "object") return null;
+    const playerCount = Number(raw.playerCount || raw.player_count || fallbackPlayerCount || 12);
+    const sessions = Array.isArray(raw.sessions) ? raw.sessions : [];
+    return {
+      source: raw.source || "backup",
+      playerCount,
+      current_mogi: raw.current_mogi ?? raw.currentMogi ?? null,
+      session_count: sessions.length,
+      sessions,
     };
   }
 
-  // Always override to ensure consistent navbar import behavior across pages.
-  // TRUE RESTORE: dedupes by fingerprint, deletes DB rows not in backup, inserts missing rows
+  function getLoungePayloadsFromBackup(backup){
+    const root = backup?.lounge_tracker;
+    const payloads = [];
+    if (!root || typeof root !== "object") return payloads;
+    const byPlayerCount = root.by_player_count || root.byPlayerCount;
+    if (byPlayerCount && typeof byPlayerCount === "object") {
+      for (const [key, raw] of Object.entries(byPlayerCount)) {
+        const payload = normalizeLoungePayload(raw, Number(key));
+        if (payload) payloads.push(payload);
+      }
+      return payloads;
+    }
+    const legacy = normalizeLoungePayload(root, Number(root.playerCount || root.player_count || 12));
+    if (legacy) payloads.push(legacy);
+    return payloads;
+  }
+
+  function writeLocalLoungePayloadsFromBackup(payloads){
+    let sessions = 0;
+    let current = 0;
+    for (const payload of payloads || []) {
+      const playerCount = Number(payload?.playerCount || payload?.player_count || 12);
+      const store = LOUNGE_BACKUP_STORES.find(item => item.playerCount === playerCount) || LOUNGE_BACKUP_STORES[0];
+      const normalized = normalizeLoungePayload(payload, store.playerCount);
+      if (!normalized) continue;
+      safeWriteJson(store.currentKey, normalized.current_mogi ?? null);
+      safeWriteJson(store.sessionsKey, normalized.sessions || []);
+      sessions += normalized.sessions.length;
+      if (normalized.current_mogi) current += 1;
+    }
+    return { sessions, current };
+  }
+
+  function normalizeTimeTrialEntry(raw){
+    if (!raw || typeof raw !== "object") return null;
+    const trackName = cleanString(raw.track_name ?? raw.trackName ?? raw.track);
+    const category = cleanString(raw.category || "shroom").toLowerCase();
+    const timeText = cleanString(raw.time_text ?? raw.timeText ?? raw.time);
+    const timeMs = Number(raw.time_ms ?? raw.timeMs);
+    const characterName = cleanString(raw.character_name ?? raw.characterName);
+    const kartName = cleanString(raw.kart_name ?? raw.kartName);
+    if (!trackName || !["shroom", "shroomless"].includes(category) || !timeText || !Number.isFinite(timeMs)) return null;
+    if (!characterName || !kartName) return null;
+    const now = new Date().toISOString();
+    return {
+      id: raw.id ? String(raw.id) : "",
+      track_name: trackName,
+      category,
+      time_text: timeText,
+      time_ms: Math.round(timeMs),
+      character_name: characterName,
+      kart_name: kartName,
+      created_at: raw.created_at || now,
+      updated_at: raw.updated_at || raw.created_at || now,
+    };
+  }
+
+  function normalizeTimeTrialEntries(rawEntries){
+    const byRecord = new Map();
+    for (const entry of (Array.isArray(rawEntries) ? rawEntries : [])) {
+      const normalized = normalizeTimeTrialEntry(entry);
+      if (!normalized) continue;
+      byRecord.set(`${normalized.track_name.toLowerCase()}|${normalized.category}`, normalized);
+    }
+    return Array.from(byRecord.values())
+      .sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || "")));
+  }
+
+  function readGuestTimeTrialBackup(){
+    const entries = normalizeTimeTrialEntries(safeReadJson(GUEST_TIME_TRIAL_KEY, []));
+    return { source: "local_storage", entry_count: entries.length, raw_count: entries.length, entries };
+  }
+
+  async function readAccountTimeTrialBackup(){
+    const entries = [];
+    const chunk = 1000;
+    let from = 0;
+    while (true) {
+      const to = from + chunk - 1;
+      const { data, error } = await supabaseClient
+        .from("time_trial_entries")
+        .select("id, track_name, category, time_text, time_ms, character_name, kart_name, created_at, updated_at")
+        .eq("user_id", SESSION.user.id)
+        .order("created_at", { ascending: true })
+        .range(from, to);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      entries.push(...data);
+      if (data.length < chunk) break;
+      from += chunk;
+    }
+    const normalized = normalizeTimeTrialEntries(entries);
+    return { source: "supabase", entry_count: normalized.length, raw_count: entries.length, entries: normalized };
+  }
+
+  function getTimeTrialPayloadFromBackup(backup){
+    const present = !!(backup && (hasOwn(backup, "time_trial") || hasOwn(backup, "timeTrial")));
+    const payload = backup?.time_trial || backup?.timeTrial || null;
+    const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
+    const entries = normalizeTimeTrialEntries(rawEntries);
+    return { source: payload?.source || "backup", entry_count: entries.length, raw_count: rawEntries.length, entries, present };
+  }
+
+  function writeGuestTimeTrialFromBackup(timeTrialPayload){
+    if (!timeTrialPayload?.present) return { entries: 0, skipped: true };
+    const entries = normalizeTimeTrialEntries(timeTrialPayload?.entries || []).map((entry) => ({
+      ...entry,
+      id: entry.id || `guest_tt_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    }));
+    safeWriteJson(GUEST_TIME_TRIAL_KEY, entries);
+    return { entries: entries.length };
+  }
+
+  async function restoreAccountTimeTrial(timeTrialPayload){
+    if (!timeTrialPayload?.present) return { deleted: 0, inserted: 0, entries: 0, skipped: true };
+    const entries = normalizeTimeTrialEntries(timeTrialPayload?.entries || []);
+    if (Number(timeTrialPayload?.raw_count || 0) > 0 && entries.length === 0) {
+      throw new Error("Time Trial backup entries are invalid. Existing PBs were not changed.");
+    }
+    const uid = SESSION.user.id;
+    const { data: existing, error: loadErr } = await supabaseClient
+      .from("time_trial_entries")
+      .select("id")
+      .eq("user_id", uid);
+    if (loadErr) throw loadErr;
+
+    const existingIds = (existing || []).map(row => row.id).filter(Boolean);
+    for (let i = 0; i < existingIds.length; i += 500) {
+      const batchIds = existingIds.slice(i, i + 500);
+      const { error } = await supabaseClient
+        .from("time_trial_entries")
+        .delete()
+        .in("id", batchIds)
+        .eq("user_id", uid);
+      if (error) throw error;
+    }
+
+    let inserted = 0;
+    for (let i = 0; i < entries.length; i += 500) {
+      const batch = entries.slice(i, i + 500).map(entry => ({
+        user_id: uid,
+        track_name: entry.track_name,
+        category: entry.category,
+        time_text: entry.time_text,
+        time_ms: entry.time_ms,
+        character_name: entry.character_name,
+        kart_name: entry.kart_name,
+        created_at: entry.created_at,
+        updated_at: entry.updated_at,
+      }));
+      if (!batch.length) continue;
+      const { error } = await supabaseClient.from("time_trial_entries").insert(batch);
+      if (error) throw error;
+      inserted += batch.length;
+    }
+    return { deleted: existingIds.length, inserted, entries: entries.length };
+  }
+
+  async function readAccountMatchesForBackup(){
+    const allMatches = [];
+    const chunk = 1000;
+    let from = 0;
+    while (true) {
+      const to = from + chunk - 1;
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("id, created_at, intermission, track, vr_change, vr_after, opponents, placement")
+        .eq("user_id", SESSION.user.id)
+        .order("created_at", { ascending: true })
+        .range(from, to);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allMatches.push(...data);
+      if (data.length < chunk) break;
+      from += chunk;
+    }
+    return allMatches;
+  }
+
+  function getBackupMatches(backup){
+    if (Array.isArray(backup)) return backup;
+    if (Array.isArray(backup?.matches)) return backup.matches;
+    if (Array.isArray(backup?.vr_tracker?.matches)) return backup.vr_tracker.matches;
+    return null;
+  }
+
+  function normalizeBackupObject(parsed){
+    if (Array.isArray(parsed)) {
+      return { app: "MKWT", version: 1, schemaVersion: 1, mode: "legacy", matches: parsed, vr_tracker: { matches: parsed } };
+    }
+    if (!parsed || typeof parsed !== "object" || parsed.app !== "MKWT") {
+      throw new Error("This file is not a valid MKWT backup.");
+    }
+    return parsed;
+  }
+
+  async function restoreVrMatchesCloud(rawMatches){
+    const uniqueBackup = uniqueVrMatchesByFingerprint(rawMatches);
+    const backupFp = new Set(uniqueBackup.map(fingerprintMatch));
+    const existingKeepFp = new Set();
+    const toDeleteIds = [];
+    const chunk = 1000;
+    let from = 0;
+
+    while (true) {
+      const to = from + chunk - 1;
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("id, created_at, intermission, track, vr_change, opponents, placement")
+        .eq("user_id", SESSION.user.id)
+        .range(from, to);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+
+      for (const row of data) {
+        const fp = fingerprintMatch(row);
+        if (!backupFp.has(fp)) { toDeleteIds.push(row.id); continue; }
+        if (existingKeepFp.has(fp)) { toDeleteIds.push(row.id); continue; }
+        existingKeepFp.add(fp);
+      }
+      if (data.length < chunk) break;
+      from += chunk;
+    }
+
+    let deleted = 0;
+    for (let i = 0; i < toDeleteIds.length; i += 500) {
+      const batchIds = toDeleteIds.slice(i, i + 500);
+      const { error } = await supabaseClient
+        .from("matches")
+        .delete()
+        .in("id", batchIds)
+        .eq("user_id", SESSION.user.id);
+      if (error) throw error;
+      deleted += batchIds.length;
+    }
+
+    const toInsert = [];
+    for (const match of uniqueBackup) {
+      const fp = fingerprintMatch(match);
+      if (existingKeepFp.has(fp)) continue;
+      toInsert.push({
+        user_id: SESSION.user.id,
+        created_at: match.created_at,
+        intermission: match.intermission ?? null,
+        track: match.track ?? null,
+        vr_change: match.vr_change ?? 0,
+        vr_after: match.vr_after ?? null,
+        opponents: match.opponents ?? null,
+        placement: match.placement ?? null,
+      });
+      existingKeepFp.add(fp);
+    }
+
+    let inserted = 0;
+    for (let i = 0; i < toInsert.length; i += 500) {
+      const batch = toInsert.slice(i, i + 500);
+      const { error } = await supabaseClient.from("matches").insert(batch);
+      if (error) throw error;
+      inserted += batch.length;
+    }
+    return { backup: uniqueBackup.length, deleted, inserted };
+  }
+
+  async function getLatestVrAfterImport(){
+    try{
+      const { data, error } = await supabaseClient
+        .from("matches")
+        .select("vr_after, created_at")
+        .eq("user_id", SESSION.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!error && data?.[0] && Number.isFinite(Number(data[0].vr_after))) return Number(data[0].vr_after);
+    }catch(e){ console.warn(e); }
+    return null;
+  }
+
+  async function restoreAccountProfileFromBackup(backup, fallbackVr){
+    const uid = SESSION.user.id;
+    const prefs = backup?.preferences || {};
+    const profile = normalizeProfile(backup?.profile || {}, prefs);
+    const payload = {
+      id: uid,
+      updated_at: new Date().toISOString(),
+    };
+    if (profile.nickname) payload.nickname = profile.nickname;
+    if (profile.current_vr != null) payload.current_vr = profile.current_vr;
+    else if (fallbackVr != null) payload.current_vr = fallbackVr;
+    if (hasOwn(backup?.profile, "mkcentral_player_id") || hasOwn(prefs, "mkcentral_player_id")) payload.mkcentral_player_id = profile.mkcentral_player_id;
+    if (hasOwn(backup?.profile, "theme_preference") || hasOwn(prefs, "theme")) payload.theme_preference = profile.theme_preference;
+    if (hasOwn(backup?.profile, "profile_icon_slug") || hasOwn(prefs, "profile_icon_slug")) payload.profile_icon_slug = profile.profile_icon_slug;
+
+    if (Object.keys(payload).length <= 2) return { updated: false };
+    const { error } = await supabaseClient.from("profiles").upsert(payload, { onConflict: "id" });
+    if (error) throw error;
+    window.PROFILE = { ...(window.PROFILE || {}), ...payload };
+    return { updated: true };
+  }
+
   async function restoreLoungeCloud(loungePayload){
     if (!loungePayload || !window.supabaseClient || !window.SESSION?.user?.id) {
       return { mogis: 0, races: 0 };
     }
 
     const uid = window.SESSION.user.id;
-    const loungePlayerCount = Number(window.MKWT_LOUNGE_CONFIG?.playerCount || loungePayload.playerCount || 12);
-    const sessions = Array.isArray(loungePayload.sessions) ? loungePayload.sessions : [];
+    const loungePlayerCount = Number(loungePayload.playerCount || loungePayload.player_count || 12);
+    const rawSessions = Array.isArray(loungePayload.sessions) ? loungePayload.sessions : [];
     const current = loungePayload.current_mogi && Array.isArray(loungePayload.current_mogi.races)
       ? loungePayload.current_mogi
       : null;
+
+    function restoreRaceKey(race){
+      return [
+        race?.track || "",
+        race?.raceKind || race?.race_kind || "",
+        race?.intermissionStart || race?.intermission_start || "",
+        race?.intermissionEnd || race?.intermission_end || "",
+        race?.lobbySize ?? race?.lobby_size ?? "",
+        race?.placement ?? "",
+        race?.points ?? "",
+        race?.disconnect === true ? "dc" : "",
+      ].join("|");
+    }
+
+    function restoreSessionKey(raw){
+      const eventId = raw?.mkcentralEventId || raw?.mkcentral_event_id;
+      if (eventId) return `mkcentral:${loungePlayerCount}:${eventId}`;
+      const rawRaces = Array.isArray(raw?.races) ? raw.races : [];
+      return [
+        "fingerprint",
+        loungePlayerCount,
+        raw?.created_at || "",
+        raw?.completed_at || "",
+        raw?.loungeFormatTag || raw?.matchFormatTag || raw?.lounge_format_tag || "",
+        rawRaces.map(restoreRaceKey).join(";"),
+      ].join("::");
+    }
+
+    const seenSessionKeys = new Set();
+    const sessions = [];
+    for (const session of rawSessions) {
+      const key = restoreSessionKey(session);
+      if (seenSessionKeys.has(key)) continue;
+      seenSessionKeys.add(key);
+      sessions.push(session);
+    }
+
+    function restorableRaces(raw, status){
+      const rawRaces = Array.isArray(raw?.races) ? raw.races : [];
+      if (!raw || rawRaces.length === 0) return null;
+      const raceCount = Math.min(rawRaces.length, 12);
+      const keptRaces = rawRaces.slice(0, raceCount);
+      const totalPoints = keptRaces.reduce((sum, race) => sum + Number(race?.points || 0), 0);
+      if (status === "completed" && raceCount !== 12) {
+        throw new Error("Lounge backup contains an incomplete completed Mogi. Restore cancelled before cloud data changed.");
+      }
+      if (status === "completed" && totalPoints <= 0) {
+        throw new Error("Lounge backup contains a 0-point completed Mogi. Restore cancelled before cloud data changed.");
+      }
+      return { rawRaces, raceCount, keptRaces, totalPoints };
+    }
+
+    for (const session of sessions) {
+      restorableRaces(session, "completed");
+    }
+    if (current && current.races.length) {
+      restorableRaces(current, "active");
+    }
 
     const { data: existing, error: loadErr } = await supabaseClient
       .from("lounge_mogis")
@@ -532,24 +1114,30 @@ window.mkwtRequireAuth = async function(options = {}){
     const existingIds = (existing || []).map(row => row.id);
     for (let i = 0; i < existingIds.length; i += 100) {
       const batchIds = existingIds.slice(i, i + 100);
-      const { error } = await supabaseClient
+      const { error: raceDeleteErr } = await supabaseClient
+        .from("lounge_races")
+        .delete()
+        .in("mogi_id", batchIds)
+        .eq("user_id", uid);
+      if (raceDeleteErr) throw raceDeleteErr;
+
+      const { error: mogiDeleteErr } = await supabaseClient
         .from("lounge_mogis")
         .delete()
         .in("id", batchIds)
         .eq("user_id", uid);
-      if (error) throw error;
+      if (mogiDeleteErr) throw mogiDeleteErr;
     }
 
     let mogis = 0;
     let races = 0;
+    const insertedIds = [];
 
     async function insertMogi(raw, status){
-      const rawRaces = Array.isArray(raw?.races) ? raw.races : [];
-      if (!raw || (status === "active" && rawRaces.length === 0)) return;
+      const restorable = restorableRaces(raw, status);
+      if (!restorable) return;
 
-      const raceCount = Math.min(rawRaces.length, 12);
-      const keptRaces = rawRaces.slice(0, raceCount);
-      const totalPoints = keptRaces.reduce((sum, race) => sum + Number(race?.points || 0), 0);
+      const { raceCount, keptRaces, totalPoints } = restorable;
       const disconnects = keptRaces.filter(race => !!race?.disconnect).length;
       const createdAt = raw.created_at || new Date().toISOString();
       const completedAt = status === "completed" ? (raw.completed_at || createdAt) : null;
@@ -565,10 +1153,30 @@ window.mkwtRequireAuth = async function(options = {}){
           total_points: totalPoints,
           race_count: raceCount,
           disconnects,
+          stats_excluded: !!(raw.statsExcluded ?? raw.stats_excluded),
+          lounge_format_tag: raw.loungeFormatTag || raw.matchFormatTag || raw.lounge_format_tag || null,
+          lounge_format_source: raw.loungeFormatSource || raw.lounge_format_source || null,
+          mkcentral_format_tag: raw.mkcentralFormatTag || raw.mkcentral_format_tag || null,
+          mkcentral_event_id: raw.mkcentralEventId || raw.mkcentral_event_id || null,
+          mkcentral_event_name: raw.mkcentralEventName || raw.mkcentral_event_name || null,
+          mkcentral_table_url: raw.mkcentralTableUrl || raw.mkcentral_table_url || null,
+          mkcentral_tier: raw.mkcentralTier || raw.mkcentral_tier || null,
+          mkcentral_table_rank: raw.mkcentralTableRank ?? raw.mkcentral_table_rank ?? null,
+          mkcentral_table_score: raw.mkcentralTableScore ?? raw.mkcentral_table_score ?? null,
+          mkcentral_mmr_before: raw.mkcentralMmrBefore ?? raw.mkcentral_mmr_before ?? null,
+          mkcentral_mmr_delta: raw.mkcentralMmrDelta ?? raw.mkcentral_mmr_delta ?? null,
+          mkcentral_mmr_after: raw.mkcentralMmrAfter ?? raw.mkcentral_mmr_after ?? null,
+          mkcentral_event_created_at: raw.mkcentralEventCreatedAt || raw.mkcentral_event_created_at || null,
+          mkcentral_synced_at: raw.mkcentralSyncedAt || raw.mkcentral_synced_at || null,
+          mkcentral_sync_status: raw.mkcentralSyncStatus || raw.mkcentral_sync_status || null,
+          mkcentral_confidence_label: raw.mkcentralConfidenceLabel || raw.mkcentral_confidence_label || null,
+          mkcentral_confidence_note: raw.mkcentralConfidenceNote || raw.mkcentral_confidence_note || null,
+          mkcentral_confidence_score: raw.mkcentralConfidenceScore ?? raw.mkcentral_confidence_score ?? null,
         })
         .select("id")
         .single();
       if (mogiErr) throw mogiErr;
+      insertedIds.push(mogi.id);
       mogis++;
 
       const raceRows = keptRaces.map((race, index) => {
@@ -591,190 +1199,507 @@ window.mkwtRequireAuth = async function(options = {}){
 
       if (raceRows.length) {
         const { error: raceErr } = await supabaseClient.from("lounge_races").insert(raceRows);
-        if (raceErr) throw raceErr;
+        if (raceErr) {
+          try {
+            await supabaseClient
+              .from("lounge_mogis")
+              .delete()
+              .eq("id", mogi.id)
+              .eq("user_id", uid);
+          } catch(cleanupErr) {
+            console.warn("Lounge restore single-mogi cleanup failed:", cleanupErr);
+          }
+          throw raceErr;
+        }
         races += raceRows.length;
       }
     }
 
-    for (const session of sessions) {
-      await insertMogi(session, "completed");
-    }
-    if (current && current.races.length) {
-      await insertMogi(current, "active");
+    try {
+      for (const session of sessions) {
+        await insertMogi(session, "completed");
+      }
+      if (current && current.races.length) {
+        await insertMogi(current, "active");
+      }
+    } catch(e) {
+      if (insertedIds.length) {
+        try {
+          await supabaseClient
+            .from("lounge_races")
+            .delete()
+            .in("mogi_id", insertedIds)
+            .eq("user_id", uid);
+          await supabaseClient
+            .from("lounge_mogis")
+            .delete()
+            .in("id", insertedIds)
+            .eq("user_id", uid);
+        } catch(cleanupErr) {
+          console.warn("Lounge restore partial cleanup failed:", cleanupErr);
+        }
+      }
+      throw e;
     }
 
     return { mogis, races };
   }
 
+  function buildBackupSummary(vrCount, loungePayloads, timeTrialCount){
+    const loungeText = (loungePayloads || [])
+      .map(payload => `${payload.playerCount}p ${payload.session_count || payload.sessions?.length || 0}`)
+      .join(", ");
+    return `WW ${vrCount} | Lounge ${loungeText || "0"} | TT ${timeTrialCount}`;
+  }
+
+  function countBackupLoungeMogis(loungePayloads){
+    return (loungePayloads || []).reduce((sum, payload) => {
+      const sessions = Array.isArray(payload?.sessions) ? payload.sessions.length : Number(payload?.session_count || 0);
+      const active = payload?.current_mogi && Array.isArray(payload.current_mogi.races) && payload.current_mogi.races.length ? 1 : 0;
+      return sum + Math.max(0, Number(sessions || 0)) + active;
+    }, 0);
+  }
+
+  function formatLoungePayloadCounts(loungePayloads){
+    const parts = (loungePayloads || []).map((payload) => {
+      const playerCount = Number(payload?.playerCount || payload?.player_count || 12);
+      const sessions = Array.isArray(payload?.sessions) ? payload.sessions.length : Number(payload?.session_count || 0);
+      const active = payload?.current_mogi && Array.isArray(payload.current_mogi.races) && payload.current_mogi.races.length ? 1 : 0;
+      const total = Math.max(0, Number(sessions || 0)) + active;
+      return `${playerCount}p ${total}`;
+    }).filter(Boolean);
+    return parts.length ? parts.join(", ") : "0";
+  }
+
+  async function readCurrentAccountRestoreCounts(){
+    const uid = window.SESSION?.user?.id;
+    if (!window.supabaseClient || !uid) return null;
+
+    const [matchesRes, loungeRes, timeTrialRes] = await Promise.all([
+      supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("user_id", uid),
+      supabaseClient.from("lounge_mogis").select("player_count, status, stats_excluded").eq("user_id", uid),
+      supabaseClient.from("time_trial_entries").select("id", { count: "exact", head: true }).eq("user_id", uid),
+    ]);
+    if (matchesRes.error) throw matchesRes.error;
+    if (loungeRes.error) throw loungeRes.error;
+    if (timeTrialRes.error) throw timeTrialRes.error;
+
+    const loungeRows = Array.isArray(loungeRes.data) ? loungeRes.data : [];
+    return {
+      ww: Number(matchesRes.count || 0),
+      lounge: loungeRows.length,
+      lounge12: loungeRows.filter(row => Number(row.player_count) === 12).length,
+      lounge24: loungeRows.filter(row => Number(row.player_count) === 24).length,
+      loungeExcluded: loungeRows.filter(row => row.stats_excluded === true).length,
+      tt: Number(timeTrialRes.count || 0),
+    };
+  }
+
+  function formatCurrentAccountCounts(counts){
+    if (!counts) return "Current account: could not be checked.";
+    const excluded = counts.loungeExcluded ? `, ${counts.loungeExcluded} excluded` : "";
+    return `Current account: WW ${counts.ww} | Lounge ${counts.lounge} (${counts.lounge12}x 12p, ${counts.lounge24}x 24p${excluded}) | TT ${counts.tt}`;
+  }
+
+  function buildRestoreWarnings({ backupMatches, loungePayloads, timeTrialPayload, currentCounts } = {}){
+    if (!currentCounts) return [];
+    const warnings = [];
+    const backupLounge = countBackupLoungeMogis(loungePayloads);
+    if (Number(backupMatches || 0) < currentCounts.ww) {
+      warnings.push(`WW backup has fewer matches (${backupMatches}) than the account (${currentCounts.ww}).`);
+    }
+    if (backupLounge < currentCounts.lounge) {
+      warnings.push(`Lounge backup has fewer Mogis (${backupLounge}) than the account (${currentCounts.lounge}).`);
+    }
+    if (timeTrialPayload?.present && Number(timeTrialPayload.entry_count || 0) < currentCounts.tt) {
+      warnings.push(`Time Trial backup has fewer PBs (${timeTrialPayload.entry_count || 0}) than the account (${currentCounts.tt}).`);
+    }
+    return warnings;
+  }
+
+  async function createAccountRestoreSafetyBackup(){
+    const exportedAt = new Date().toISOString();
+    const preferences = readLocalPreferencesForBackup();
+    const allMatches = await readAccountMatchesForBackup();
+    let loungeBackup = readLocalLoungeBackups();
+    try {
+      loungeBackup = await readAllLoungeCloudForBackup() || loungeBackup;
+    } catch(e) {
+      console.warn("Lounge safety backup cloud fallback:", e);
+    }
+    const timeTrialBackup = await readAccountTimeTrialBackup();
+    const profile = normalizeProfile(window.PROFILE || {}, preferences);
+    const mkcentralStats = readMkcentralStatsCacheForBackup(preferences, profile);
+    const backup = {
+      app: "MKWT",
+      version: BACKUP_SCHEMA_VERSION,
+      schemaVersion: BACKUP_SCHEMA_VERSION,
+      exported_at: exportedAt,
+      mode: "account-safety-before-restore",
+      user: { id: SESSION.user.id, email: SESSION.user.email || null },
+      profile,
+      preferences,
+      vr_tracker: {
+        source: "supabase",
+        match_count: allMatches.length,
+        matches: allMatches,
+      },
+      lounge_tracker: loungeBackup,
+      mkcentral_stats: mkcentralStats,
+      time_trial: timeTrialBackup,
+      matches: allMatches,
+    };
+    const filename = `mkwt_safety_before_restore_${sanitizeFilePart(profile.nickname || "account")}_${exportedAt.replace(/[:.]/g, "-")}.json`;
+    window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
+    try {
+      localStorage.setItem(RESTORE_SAFETY_BACKUP_KEY, JSON.stringify({
+        filename,
+        exported_at: exportedAt,
+        summary: buildBackupSummary(allMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count),
+      }));
+    } catch(e) { /* safe to ignore */ }
+    return { filename, backup };
+  }
+
+  window.exportBackupJSON = async function(){
+    try{
+      if (typeof window.setStatus === "function") window.setStatus("Creating backup...", true);
+      await ensureSession();
+      await ensureProfile();
+
+      const exportedAt = new Date().toISOString();
+      const preferences = readLocalPreferencesForBackup();
+
+      if (!window.SESSION?.user) {
+        const guestMatches = loadGuestMatches();
+        const loungeBackup = readLocalLoungeBackups();
+        const timeTrialBackup = readGuestTimeTrialBackup();
+        const guestProfile = readGuestProfileForBackup(preferences);
+        const mkcentralStats = readMkcentralStatsCacheForBackup(preferences, guestProfile);
+        const backup = {
+          app: "MKWT",
+          version: BACKUP_SCHEMA_VERSION,
+          schemaVersion: BACKUP_SCHEMA_VERSION,
+          exported_at: exportedAt,
+          mode: "guest",
+          profile: guestProfile,
+          preferences,
+          vr_tracker: {
+            source: "local_storage",
+            match_count: guestMatches.length,
+            matches: guestMatches,
+          },
+          lounge_tracker: loungeBackup,
+          mkcentral_stats: mkcentralStats,
+          time_trial: timeTrialBackup,
+          matches: guestMatches,
+        };
+        const filename = `mkwt_backup_guest_${exportedAt.slice(0, 10)}.json`;
+        downloadTextFile(filename, JSON.stringify(backup, null, 2));
+        const summary = buildBackupSummary(guestMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count);
+        if (typeof window.setStatus === "function") window.setStatus(`Guest backup created (${summary}).`, true);
+        return;
+      }
+
+      const allMatches = await readAccountMatchesForBackup();
+      let loungeBackup = readLocalLoungeBackups();
+      try {
+        loungeBackup = await readAllLoungeCloudForBackup() || loungeBackup;
+      } catch(e) {
+        console.warn("Lounge cloud export fallback:", e);
+      }
+      const timeTrialBackup = await readAccountTimeTrialBackup();
+      const profile = normalizeProfile(window.PROFILE || {}, preferences);
+      const mkcentralStats = readMkcentralStatsCacheForBackup(preferences, profile);
+      const backup = {
+        app: "MKWT",
+        version: BACKUP_SCHEMA_VERSION,
+        schemaVersion: BACKUP_SCHEMA_VERSION,
+        exported_at: exportedAt,
+        mode: "account",
+        user: { id: SESSION.user.id, email: SESSION.user.email || null },
+        profile,
+        preferences,
+        vr_tracker: {
+          source: "supabase",
+          match_count: allMatches.length,
+          matches: allMatches,
+        },
+        lounge_tracker: loungeBackup,
+        mkcentral_stats: mkcentralStats,
+        time_trial: timeTrialBackup,
+        matches: allMatches,
+      };
+
+      const filename = `mkwt_backup_${sanitizeFilePart(profile.nickname || "account")}_${exportedAt.slice(0, 10)}.json`;
+      window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
+      const summary = buildBackupSummary(allMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count);
+      if (typeof window.setStatus === "function") window.setStatus(`Backup created (${summary}).`, true);
+    } catch(e){
+      if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
+      if (typeof window.setDebug === "function") window.setDebug(e?.stack || String(e));
+      console.error(e);
+    }
+  };
+
+  function ensureBackupConfirmDialog(){
+    if (typeof document === "undefined" || !document.body) return null;
+    let dialog = document.getElementById("mkwtBackupConfirmDialog");
+    if (dialog) return dialog;
+
+    dialog = document.createElement("dialog");
+    dialog.id = "mkwtBackupConfirmDialog";
+    dialog.className = "mkwtConfirmDialog";
+    dialog.innerHTML = `
+      <form class="mkwtConfirmDialog__panel">
+        <div class="mkwtConfirmDialog__eyebrow" data-mkwt-confirm-eyebrow>Backup import</div>
+        <h2 class="mkwtConfirmDialog__title" id="mkwtBackupConfirmTitle" data-mkwt-confirm-title></h2>
+        <p class="mkwtConfirmDialog__body" data-mkwt-confirm-body></p>
+        <div class="mkwtConfirmDialog__actions">
+          <button class="btn2" data-mkwt-confirm-cancel type="button">Cancel</button>
+          <button class="danger" data-mkwt-confirm-accept type="submit">Restore backup</button>
+        </div>
+      </form>
+    `;
+    dialog.setAttribute("aria-labelledby", "mkwtBackupConfirmTitle");
+    document.body.appendChild(dialog);
+    return dialog;
+  }
+
+  function confirmBackupAction({ eyebrow = "Backup import", title, body, confirmLabel = "Continue", cancelLabel = "Cancel", danger = true } = {}){
+    const fallbackText = `${title || "Confirm"}\n\n${body || ""}`.trim();
+    if (typeof window.HTMLDialogElement === "undefined" || !window.HTMLDialogElement.prototype.showModal) {
+      return Promise.resolve(Boolean(window.confirm(fallbackText)));
+    }
+
+    const dialog = ensureBackupConfirmDialog();
+    if (!dialog) return Promise.resolve(Boolean(window.confirm(fallbackText)));
+
+    const form = dialog.querySelector("form");
+    const titleEl = dialog.querySelector("[data-mkwt-confirm-title]");
+    const bodyEl = dialog.querySelector("[data-mkwt-confirm-body]");
+    const eyebrowEl = dialog.querySelector("[data-mkwt-confirm-eyebrow]");
+    const confirmBtn = dialog.querySelector("[data-mkwt-confirm-accept]");
+    const cancelBtn = dialog.querySelector("[data-mkwt-confirm-cancel]");
+    if (!form || !titleEl || !bodyEl || !confirmBtn || !cancelBtn) {
+      return Promise.resolve(Boolean(window.confirm(fallbackText)));
+    }
+
+    if (eyebrowEl) eyebrowEl.textContent = eyebrow || "Confirm";
+    titleEl.textContent = title || "Confirm";
+    bodyEl.textContent = body || "";
+    confirmBtn.textContent = confirmLabel;
+    confirmBtn.className = danger ? "danger" : "btn";
+    cancelBtn.textContent = cancelLabel;
+
+    return new Promise((resolve) => {
+      let done = false;
+      const previousFocus = document.activeElement;
+
+      function cleanup(){
+        form.removeEventListener("submit", onSubmit);
+        cancelBtn.removeEventListener("click", onCancelClick);
+        dialog.removeEventListener("cancel", onCancel);
+        dialog.removeEventListener("click", onBackdropClick);
+        dialog.removeEventListener("close", onClose);
+      }
+
+      function finish(ok){
+        if (done) return;
+        done = true;
+        cleanup();
+        if (dialog.open) dialog.close(ok ? "confirm" : "cancel");
+        if (previousFocus && typeof previousFocus.focus === "function") {
+          requestAnimationFrame(() => {
+            try{ previousFocus.focus({ preventScroll: true }); }catch{ /* safe to ignore */ }
+          });
+        }
+        resolve(Boolean(ok));
+      }
+
+      function onSubmit(ev){
+        ev.preventDefault();
+        finish(true);
+      }
+
+      function onCancelClick(){
+        finish(false);
+      }
+
+      function onCancel(ev){
+        ev.preventDefault();
+        finish(false);
+      }
+
+      function onBackdropClick(ev){
+        if (ev.target === dialog) finish(false);
+      }
+
+      function onClose(){
+        finish(dialog.returnValue === "confirm");
+      }
+
+      form.addEventListener("submit", onSubmit);
+      cancelBtn.addEventListener("click", onCancelClick);
+      dialog.addEventListener("cancel", onCancel);
+      dialog.addEventListener("click", onBackdropClick);
+      dialog.addEventListener("close", onClose);
+
+      try {
+        dialog.returnValue = "";
+        dialog.showModal();
+        requestAnimationFrame(() => {
+          try{ cancelBtn.focus({ preventScroll: true }); }catch{ /* safe to ignore */ }
+        });
+      } catch(e) {
+        cleanup();
+        resolve(Boolean(window.confirm(fallbackText)));
+      }
+    });
+  }
+
+  window.MKWT.confirmAction = confirmBackupAction;
+
   window.importBackupJSON = async function(file){
     try{
       if (!file) return;
-
       await ensureSession();
-      if (!window.SESSION?.user) {
-        // Guest: import into local storage
-        const text = await file.text();
-        const parsed = JSON.parse(text || "{}");
-        const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.matches) ? parsed.matches : (Array.isArray(parsed?.vr_tracker?.matches) ? parsed.vr_tracker.matches : []));
-        if (!Array.isArray(incoming)) throw new Error("Invalid backup file.");
-        const loungePayload = parsed?.lounge_tracker || null;
-        if (loungePayload && typeof localStorage !== 'undefined') {
-          try {
-            if ('current_mogi' in loungePayload) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.current || 'mkwt_lounge_current_v1'), JSON.stringify(loungePayload.current_mogi ?? null));
-            if (Array.isArray(loungePayload.sessions)) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.sessions || 'mkwt_lounge_sessions_v1'), JSON.stringify(loungePayload.sessions));
-          } catch(e){}
-        }
-        const current = loadGuestMatches();
-        const ids = new Set(current.map(m => String(m.id)));
-        let added = 0;
-        for (const raw of incoming) {
-          if (!raw) continue;
-          const m = {
-            id: String(raw.id || ("g_" + Date.now() + "_" + Math.random().toString(16).slice(2))),
-            created_at: raw.created_at || new Date().toISOString(),
-            intermission: raw.intermission ?? null,
-            track: raw.track ?? "",
-            vr_change: Number(raw.vr_change ?? 0),
-            vr_after: Number(raw.vr_after ?? 0),
-            opponents: raw.opponents ?? null,
-            placement: raw.placement ?? null
-          };
-          if (ids.has(m.id)) m.id = m.id + "_" + Math.random().toString(16).slice(2);
-          ids.add(m.id);
-          current.push(m);
-          added++;
-        }
-        saveGuestMatches(current);
-        if (typeof window.setStatus === "function") window.setStatus(`Guest import complete. Added ${added} matches.`, true);
-        try { if (typeof window.refreshAll === "function") window.refreshAll(); } catch(e) {}
-        return;
-      }
 
       const text = await file.text();
-      const backup = JSON.parse(text);
-      const backupMatches = Array.isArray(backup?.matches) ? backup.matches : (Array.isArray(backup?.vr_tracker?.matches) ? backup.vr_tracker.matches : null);
-      const loungePayload = backup?.lounge_tracker || null;
-      if (loungePayload && typeof localStorage !== 'undefined') {
-        try {
-          if ('current_mogi' in loungePayload) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.current || 'mkwt_lounge_current_v1'), JSON.stringify(loungePayload.current_mogi ?? null));
-          if (Array.isArray(loungePayload.sessions)) localStorage.setItem((window.MKWT_LOUNGE_STORAGE?.sessions || 'mkwt_lounge_sessions_v1'), JSON.stringify(loungePayload.sessions));
-        } catch(e){}
-      }
+      const parsed = JSON.parse(text || "{}");
+      const backup = normalizeBackupObject(parsed);
+      const backupMatches = getBackupMatches(backup);
+      if (!Array.isArray(backupMatches)) throw new Error("Backup has no match list.");
+      const loungePayloads = getLoungePayloadsFromBackup(backup);
+      const timeTrialPayload = getTimeTrialPayloadFromBackup(backup);
+      const legacyArrayImport = Array.isArray(parsed);
 
-      if (!backup || backup.app !== "MKWT" || !Array.isArray(backupMatches)) {
-        if (typeof window.setStatus === "function") window.setStatus("This file is not a valid MKWT backup.", false);
+      if (!window.SESSION?.user) {
+        const guestMatchCount = normalizeVrMatches(backupMatches).length;
+        const loungeCount = loungePayloads.reduce((sum, payload) => sum + Number(payload?.session_count || payload?.sessions?.length || 0), 0);
+        const ttLabel = timeTrialPayload.present ? String(timeTrialPayload.entry_count) : "kept";
+        const ok = legacyArrayImport ? true : await confirmBackupAction({
+          title: "Import backup into Guest mode?",
+          body:
+            `WW matches: ${guestMatchCount}\n` +
+            `Lounge Mogis: ${loungeCount}\n` +
+            `Time Trial PBs: ${ttLabel}\n\n` +
+            `Guest data in this browser will be replaced.`,
+          confirmLabel: "Import backup",
+          danger: true,
+        });
+        if (!ok) return;
+
+        const vrResult = writeGuestMatchesFromBackup(backupMatches, { append: legacyArrayImport });
+        const loungeResult = writeLocalLoungePayloadsFromBackup(loungePayloads);
+        const ttResult = writeGuestTimeTrialFromBackup(timeTrialPayload);
+        if (!legacyArrayImport) {
+          writeGuestProfileFromBackup(backup);
+          applyLocalPreferencesFromBackup(backup);
+          writeMkcentralStatsCacheFromBackup(backup);
+        }
+        const action = legacyArrayImport ? "Legacy guest import added" : "Guest restore complete";
+        if (typeof window.setStatus === "function") {
+          window.setStatus(`${action}. WW ${vrResult.matches} | Lounge ${loungeResult.sessions} | TT ${ttResult.skipped ? "kept" : ttResult.entries}. Reloading...`, true);
+        }
+        setTimeout(() => location.reload(), 350);
         return;
       }
 
-      // Deduplicate backup by fingerprint (keep first occurrence in chronological order)
-      const sortedBackup = [...backupMatches].sort((a,b)=> String(a?.created_at||"").localeCompare(String(b?.created_at||"")));
-      const uniqueBackup = [];
-      const backupFp = new Set();
-      for (const r of sortedBackup) {
-        const fp = fingerprintMatch(r);
-        if (!backupFp.has(fp)) { backupFp.add(fp); uniqueBackup.push(r); }
+      if (backup.mode === "guest") {
+        const okGuest = await confirmBackupAction({
+          title: "Import Guest backup?",
+          body:
+            `This looks like a Guest backup.\n\n` +
+            `Import it into the currently signed-in account?\n` +
+            `Only this account will be changed.`,
+          confirmLabel: "Import into account",
+          danger: true,
+        });
+        if (!okGuest) return;
       }
 
-      const loungeCount = Array.isArray(loungePayload?.sessions) ? loungePayload.sessions.length : 0;
-      const ok = confirm(
-        `Restore from backup?\n\n` +
-        `Matches in file: ${uniqueBackup.length}\n\n` +
-        `Lounge Mogis in file: ${loungeCount}\n\n` +
-        `This will make your match history EXACTLY match the backup.\n` +
-        `All matches and Lounge Mogis NOT in the backup will be deleted.`
-      );
+      const uniqueBackup = uniqueVrMatchesByFingerprint(backupMatches);
+      const loungeCount = countBackupLoungeMogis(loungePayloads);
+      const ttLabel = timeTrialPayload.present ? String(timeTrialPayload.entry_count) : "kept";
+      let currentCounts = null;
+      try {
+        currentCounts = await readCurrentAccountRestoreCounts();
+      } catch(e) {
+        console.warn("Could not read current account counts before restore:", e);
+      }
+      const warnings = buildRestoreWarnings({
+        backupMatches: uniqueBackup.length,
+        loungePayloads,
+        timeTrialPayload,
+        currentCounts,
+      });
+      const ok = await confirmBackupAction({
+        title: "Restore from backup?",
+        body:
+          `Backup file: WW ${uniqueBackup.length} | Lounge ${loungeCount} (${formatLoungePayloadCounts(loungePayloads)}) | TT ${ttLabel}\n` +
+          `${formatCurrentAccountCounts(currentCounts)}\n\n` +
+          `${warnings.length ? `Warning:\n${warnings.join("\n")}\n\n` : ""}` +
+          `A safety backup of the current account will be downloaded before anything is replaced.`,
+        confirmLabel: "Restore backup",
+        danger: true,
+      });
       if (!ok) return;
 
-      if (typeof window.setStatus === "function") window.setStatus("Restoring... (VR + Lounge cloud)", true);
-
-      // --- Load all existing matches ---
-      const existingKeepFp = new Set();
-      const toDeleteIds = [];
-      const chunk = 1000;
-      let from = 0;
-
-      while (true) {
-        const to = from + chunk - 1;
-        const { data, error } = await supabaseClient
-          .from("matches")
-          .select("id, created_at, intermission, track, vr_change, opponents, placement")
-          .eq("user_id", SESSION.user.id)
-          .range(from, to);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-
-        for (const row of data) {
-          const fp = fingerprintMatch(row);
-          if (!backupFp.has(fp)) { toDeleteIds.push(row.id); continue; }
-          if (existingKeepFp.has(fp)) { toDeleteIds.push(row.id); continue; }
-          existingKeepFp.add(fp);
-        }
-
-        if (data.length < chunk) break;
-        from += chunk;
+      if (warnings.length) {
+        const okRisk = await confirmBackupAction({
+          title: "Backup has fewer saved items",
+          body:
+            `${warnings.join("\n")}\n\n` +
+            `Continuing can remove current cloud rows. Only continue if this is the exact backup you want to restore.`,
+          confirmLabel: "Replace anyway",
+          danger: true,
+        });
+        if (!okRisk) return;
       }
 
-      // --- Delete extras ---
-      let deleted = 0;
-      const delBatchSize = 500;
-      for (let i = 0; i < toDeleteIds.length; i += delBatchSize) {
-        const batchIds = toDeleteIds.slice(i, i + delBatchSize);
-        const { error } = await supabaseClient.from("matches").delete().in("id", batchIds);
-        if (error) throw error;
-        deleted += batchIds.length;
-      }
-
-      // --- Insert missing rows ---
-      const toInsert = [];
-      for (const r of uniqueBackup) {
-        const fp = fingerprintMatch(r);
-        if (!existingKeepFp.has(fp)) {
-          toInsert.push({
-            user_id: SESSION.user.id,
-            created_at: r.created_at,
-            intermission: r.intermission ?? null,
-            track: r.track ?? null,
-            vr_change: r.vr_change ?? 0,
-            vr_after: r.vr_after ?? null,
-            opponents: r.opponents ?? null,
-            placement: r.placement ?? null,
-          });
-          existingKeepFp.add(fp);
+      if (typeof window.setStatus === "function") window.setStatus("Creating safety backup before restore...", true);
+      try {
+        const safety = await createAccountRestoreSafetyBackup();
+        if (typeof window.setStatus === "function") window.setStatus(`Safety backup downloaded: ${safety.filename}`, true);
+      } catch(e) {
+        const okNoSafety = await confirmBackupAction({
+          title: "Safety backup failed",
+          body:
+            `The current account could not be exported before restore:\n` +
+            `${e?.message || e}\n\n` +
+            `Restoring without a safety backup is risky.`,
+          confirmLabel: "Continue without safety backup",
+          danger: true,
+        });
+        if (!okNoSafety) {
+          if (typeof window.setStatus === "function") window.setStatus("Restore cancelled. Safety backup failed.", false);
+          return;
         }
       }
 
-      let inserted = 0;
-      const insBatchSize = 500;
-      for (let i = 0; i < toInsert.length; i += insBatchSize) {
-        const batch = toInsert.slice(i, i + insBatchSize);
-        const { error } = await supabaseClient.from("matches").insert(batch);
-        if (error) throw error;
-        inserted += batch.length;
+      if (typeof window.setStatus === "function") window.setStatus("Restoring backup...", true);
+      const vrResult = await restoreVrMatchesCloud(uniqueBackup);
+
+      let loungeRestored = { mogis: 0, races: 0 };
+      for (const payload of loungePayloads) {
+        const restored = await restoreLoungeCloud(payload);
+        loungeRestored.mogis += restored.mogis;
+        loungeRestored.races += restored.races;
+      }
+      const restoredCounts = await readCurrentAccountRestoreCounts();
+      if (restoredCounts && restoredCounts.lounge !== loungeCount) {
+        throw new Error(`Restore verification failed: backup has ${loungeCount} Lounge Mogis, cloud now has ${restoredCounts.lounge}.`);
       }
 
-      const loungeRestored = await restoreLoungeCloud(loungePayload);
-
-      // Update profile current_vr from latest match
-      try{
-        const { data: latestData, error: latestErr } = await supabaseClient
-          .from("matches")
-          .select("vr_after, created_at")
-          .eq("user_id", SESSION.user.id)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (!latestErr && latestData && latestData[0] && Number.isFinite(Number(latestData[0].vr_after))) {
-          const latestVr = Number(latestData[0].vr_after);
-          const payload = { current_vr: latestVr, updated_at: new Date().toISOString() };
-          let up = await supabaseClient.from("profiles").update(payload).or(`id.eq.${SESSION.user.id},user_id.eq.${SESSION.user.id}`);
-          if (up?.error) {
-            await supabaseClient.from("profiles").update(payload).eq("id", SESSION.user.id);
-          }
-        }
-      }catch(e){ console.warn(e); }
+      const ttResult = await restoreAccountTimeTrial(timeTrialPayload);
+      applyLocalPreferencesFromBackup(backup);
+      writeMkcentralStatsCacheFromBackup(backup);
+      const latestVr = await getLatestVrAfterImport();
+      await restoreAccountProfileFromBackup(backup, latestVr);
 
       if (typeof window.setStatus === "function") window.setStatus(
-        `Restore complete. VR Backup: ${uniqueBackup.length} | Deleted: ${deleted} | Inserted: ${inserted} | Lounge Mogis: ${loungeRestored.mogis} | Lounge races: ${loungeRestored.races}. Reloading...`,
+        `Restore complete. WW ${vrResult.backup} | Lounge ${loungeRestored.mogis} | TT ${ttResult.skipped ? "kept" : ttResult.inserted}. Reloading...`,
         true
       );
       setTimeout(()=>location.reload(), 350);

@@ -31,11 +31,20 @@
   padding-inline:16px;
 }
 
+.ttStatGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+
 .ttStatGrid .statBox{
   min-height:92px;
   display:flex;
   flex-direction:column;
   justify-content:center;
+}
+
+.ttStatBox--closest{
+  grid-column:1 / -1;
 }
 
 .ttStatMeta{
@@ -67,10 +76,24 @@
   flex-wrap:wrap;
 }
 
+.ttProfilePrimaryActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
 .timeTrialSectionCopy{
   display:flex;
   flex-direction:column;
   gap:4px;
+}
+
+.ttProfileWrUpdate{
+  font-size:13px;
+  font-weight:800;
+  line-height:1.25;
 }
 
 .timeTrialSectionHead--center{
@@ -125,8 +148,8 @@
     var(--card-2);
   padding:0;
   min-width:0;
-  overflow-x:auto;
-  overflow-y:hidden;
+  overflow:hidden;
+  transition:border-color .16s ease, background .16s ease, transform .12s ease;
 }
 
 .ttEntryCard--band-gold{
@@ -158,9 +181,19 @@
 
 .ttEntryRow{
   display:grid;
-  grid-template-columns:minmax(96px, 0.7fr) minmax(280px, 1.35fr) minmax(150px, 0.85fr) auto;
+  grid-template-columns:minmax(96px, .55fr) minmax(260px, 1.45fr) minmax(132px, .7fr);
   align-items:stretch;
-  min-width:640px;
+  min-width:0;
+  cursor:pointer;
+  outline:0;
+}
+
+.ttEntryRow:focus-visible{
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--primary) 72%, white 8%);
+}
+
+.ttEntryCard.is-open .ttEntryRow{
+  border-bottom:1px solid color-mix(in srgb, var(--border) 78%, transparent);
 }
 
 .ttEntryCell{
@@ -194,16 +227,9 @@
   gap:12px;
 }
 
-.ttEntryActionGroup{
-  display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  gap:8px;
-}
-
 .ttTrackIconWrap{
-  width:78px;
-  height:78px;
+  width:88px;
+  height:88px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -211,8 +237,8 @@
 }
 
 .ttTrackIcon{
-  width:78px;
-  height:78px;
+  width:88px;
+  height:88px;
   object-fit:contain;
   display:block;
   filter:drop-shadow(0 8px 16px rgba(0,0,0,.28));
@@ -221,8 +247,8 @@
 }
 
 .ttTrackIconFallback{
-  width:78px;
-  height:78px;
+  width:88px;
+  height:88px;
   border-radius:14px;
   border:1px solid var(--border);
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)), var(--hover);
@@ -288,9 +314,9 @@
 }
 
 .ttWrCardHead{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  align-items:start;
   gap:12px;
 }
 
@@ -299,6 +325,7 @@
   align-items:center;
   gap:12px;
   min-width:0;
+  width:100%;
 }
 
 .ttWrTrackVisual{
@@ -326,12 +353,17 @@
   display:flex;
   flex-direction:column;
   gap:6px;
+  width:100%;
 }
 
 .ttWrTrackName{
   font-size:18px;
   font-weight:950;
   line-height:1.1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .ttWrTrackSubline{
@@ -339,6 +371,22 @@
   align-items:center;
   gap:8px;
   flex-wrap:wrap;
+}
+
+.ttWrNewBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:24px;
+  padding:5px 9px;
+  border:1px solid rgba(96, 211, 148, 0.42);
+  border-radius:999px;
+  background:rgba(96, 211, 148, 0.14);
+  color:var(--good, #60d394);
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.08em;
+  line-height:1;
 }
 
 .ttWrTimeBlock{
@@ -401,20 +449,15 @@
   display:flex;
   align-items:center;
   gap:10px;
+  min-height:44px;
 }
 
 .ttWrComboIcons{
   display:flex;
   align-items:center;
+  justify-content:center;
   gap:6px;
   flex:0 0 auto;
-}
-
-.ttWrComboNames{
-  min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
 }
 
 .ttTimeStack{
@@ -429,18 +472,33 @@
   display:none;
 }
 
+.ttTimeStack--pb,
+.ttTimeStack--wr{
+  align-items:flex-start;
+}
+
+.ttEntryMiniLabel{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  line-height:1;
+  text-transform:uppercase;
+}
+
 .ttComboStack{
   min-width:0;
   display:flex;
   flex-direction:column;
   justify-content:center;
+  align-items:center;
   gap:4px;
 }
 
 .ttComboTopRow{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:center;
   gap:8px;
 }
 
@@ -452,8 +510,8 @@
 }
 
 .ttComboIcon{
-  width:34px;
-  height:34px;
+  width:44px;
+  height:44px;
   object-fit:contain;
   display:block;
   background:transparent;
@@ -461,8 +519,9 @@
 }
 
 .ttComboIconFallback{
-  min-width:34px;
-  height:34px;
+  width:44px;
+  min-width:44px;
+  height:44px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -502,6 +561,52 @@
 
 .ttWrValue{
   color:var(--muted);
+}
+
+.ttEntryExpanded{
+  padding:12px 14px 14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006));
+}
+
+.ttEntryExpanded[hidden]{
+  display:none;
+}
+
+.ttEntryExpandedMeta{
+  display:none;
+}
+
+.ttEntryExpandedInfo{
+  border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius:10px;
+  background:rgba(255,255,255,0.026);
+  padding:9px 10px;
+  min-width:0;
+}
+
+.ttEntryExpandedLabel{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  line-height:1;
+  margin-bottom:5px;
+  text-transform:uppercase;
+}
+
+.ttEntryExpandedInfo strong{
+  display:block;
+  font-size:15px;
+  font-weight:950;
+  line-height:1.1;
+}
+
+.ttEntryActionGroup{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  align-items:stretch;
+  gap:10px;
 }
 
 .ttInfoBtn{
@@ -598,13 +703,146 @@
   line-height:1.05;
 }
 
+.ttStatus{
+  position:fixed;
+  left:50%;
+  bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index:10050;
+  width:min(520px, calc(100vw - 28px));
+  margin:0;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-2);
+  color:var(--text);
+  font-size:14px;
+  font-weight:850;
+  line-height:1.35;
+  text-align:center;
+  box-shadow:0 14px 36px rgba(0,0,0,.42);
+  opacity:0;
+  pointer-events:none;
+  transform:translate(-50%, calc(100% + 20px));
+  transition:transform .2s ease, opacity .2s ease;
+  will-change:transform, opacity;
+}
+
+.ttStatus.is-visible{
+  opacity:1;
+  transform:translate(-50%, 0);
+}
+
+.ttStatus.bad{
+  border-color:color-mix(in srgb, var(--danger) 58%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--danger) 18%, transparent), transparent 70%),
+    var(--card);
+}
+
+.ttStatus.ok{
+  border-color:color-mix(in srgb, var(--chart-positive-stroke) 48%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-positive-stroke) 16%, transparent), transparent 70%),
+    var(--card);
+}
+
+.ttPbForm{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.ttPickerField,
+.ttTimeInputField{
+  min-width:0;
+}
+
+.ttNativeSelect{
+  display:none !important;
+}
+
+.ttPbForm .trackPicker{
+  margin-top:0;
+}
+
+.ttPbForm .trackPicker__trigger,
+.ttTimeInputField input{
+  min-height:58px;
+  font-size:18px;
+  font-weight:900;
+}
+
+.ttPbForm .trackPicker__trigger{
+  border-radius:12px;
+}
+
+.ttPbForm .trackPicker__value{
+  overflow:visible;
+  text-overflow:clip;
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+}
+
+.ttComboPickRow{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.ttCategoryToggle{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+  margin:0;
+}
+
+.ttCategoryToggle .modeBtn{
+  width:100%;
+  min-width:0;
+  min-height:54px;
+  font-size:18px;
+  font-weight:900;
+}
+
+.ttTimeInputField input::placeholder{
+  color:color-mix(in srgb, var(--muted) 82%, var(--text));
+  opacity:1;
+  font-weight:900;
+}
+
+.ttTimeHint{
+  margin-top:7px;
+  font-size:12px;
+  font-weight:750;
+}
+
+.ttPickerBackdrop{
+  background:rgba(0,0,0,.32);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+
+.ttPickerIconSlot .ttPickerComboIcon{
+  width:24px;
+  height:24px;
+  object-fit:contain;
+}
+
 .ttDialogClose{
   border:1px solid var(--border);
-  background:var(--hover);
-  color:var(--text);
+  background:var(--action-edit-fill);
+  color:var(--action-edit-text);
   border-radius:10px;
-  padding:10px 14px;
+  min-height:36px;
+  padding:8px 12px;
   font-weight:900;
+  transition:border-color .16s ease, background .16s ease, transform .12s ease, opacity .16s ease;
+}
+
+.ttDialogClose:hover{
+  border-color:var(--action-edit-border);
+  background:var(--hover);
 }
 
 .ttDialogActions{
@@ -842,9 +1080,14 @@
   border-radius:10px;
 }
 
+.ttActionBtn:disabled{
+  cursor:not-allowed;
+  opacity:.58;
+}
+
 @media (max-width: 900px){
   .ttEntryRow{
-    min-width:680px;
+    grid-template-columns:minmax(88px, .5fr) minmax(230px, 1.35fr) minmax(112px, .62fr);
   }
 }
 
@@ -859,6 +1102,30 @@
 
   .ttDialogBox{
     padding:16px;
+  }
+
+  .ttPbForm{
+    gap:10px;
+  }
+
+  .ttPbForm .trackPicker__trigger,
+  .ttTimeInputField input{
+    min-height:56px;
+    padding:10px 12px;
+    font-size:16px;
+  }
+
+  .ttCategoryToggle{
+    gap:8px;
+  }
+
+  .ttCategoryToggle .modeBtn{
+    min-height:52px;
+    font-size:16px;
+  }
+
+  .ttComboPickRow{
+    gap:8px;
   }
 
   .ttDialogHead{
@@ -891,6 +1158,24 @@
 
   .ttEntriesHeadActions{
     width:100%;
+    justify-content:stretch;
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .ttProfilePrimaryActions{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+    width:100%;
+  }
+
+  .ttProfilePrimaryActions .btn{
+    min-width:0;
+    width:100%;
+  }
+
+  .ttProfilePrimaryActions .ttSymbolBtn{
+    min-width:64px;
   }
 
   .ttCategoryFilter{
@@ -925,14 +1210,38 @@
     padding:14px 12px;
   }
 
+  .ttEntryCell--main{
+    padding-left:5px;
+    padding-right:5px;
+  }
+
+  .ttTrackIconWrap,
+  .ttTrackIcon,
+  .ttTrackIconFallback{
+    width:70px;
+    height:70px;
+  }
+
+  .ttTrackIcon{
+    transform:scale(1.1);
+  }
+
   .ttEntryRow{
-    grid-template-columns:minmax(84px, 0.6fr) minmax(250px, 1.3fr) auto;
-    min-width:500px;
+    grid-template-columns:82px minmax(0, 1fr) 62px;
+    min-width:0;
   }
 
   .ttEntryCell--timings{
-    grid-template-columns:minmax(0, 1.15fr) minmax(0, 0.95fr);
-    gap:8px;
+    grid-template-columns:1fr;
+    align-content:center;
+    justify-items:center;
+    gap:5px;
+    text-align:center;
+  }
+
+  .ttTimeStack--pb,
+  .ttTimeStack--wr{
+    align-items:center;
   }
 
   .ttTimeStack--wr{
@@ -940,11 +1249,27 @@
   }
 
   .ttTimeStack--setupMobile{
-    display:flex;
+    display:none;
   }
 
   .ttEntryCell--setup{
-    display:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding-left:4px;
+    padding-right:10px;
+  }
+
+  .ttComboIcons{
+    flex-direction:column;
+    gap:4px;
+  }
+
+  .ttComboIcon,
+  .ttComboIconFallback{
+    width:40px;
+    min-width:40px;
+    height:40px;
   }
 
   .ttTimePrimary{
@@ -961,6 +1286,22 @@
     font-size:12px;
   }
 
+  .ttEntryExpanded{
+    padding:10px;
+  }
+
+  .ttEntryExpandedMeta{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+    margin-bottom:8px;
+  }
+
+  .ttEntryActionGroup{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:8px;
+  }
+
   .ttWrInfoGrid{
     grid-template-columns:1fr;
   }
@@ -974,8 +1315,7 @@
   }
 
   .ttWrCardHead{
-    align-items:flex-start;
-    flex-direction:column;
+    grid-template-columns:1fr;
   }
 
   .ttWrTimeBlock{
@@ -988,8 +1328,8 @@
   .ttTrackIconWrap,
   .ttTrackIcon,
   .ttTrackIconFallback{
-    width:64px;
-    height:64px;
+    width:62px;
+    height:62px;
   }
 
   .ttTrackIcon{
@@ -1001,7 +1341,8 @@
   }
 
   .ttEntryRow{
-    min-width:470px;
+    grid-template-columns:70px minmax(0, 1fr) 56px;
+    min-width:0;
   }
 
   .ttEntryCell{
@@ -1014,8 +1355,9 @@
 
   .ttComboIcon,
   .ttComboIconFallback{
-    width:30px;
-    height:30px;
+    width:36px;
+    min-width:36px;
+    height:36px;
   }
 
   .ttComboInfoIcons .ttComboIcon,
@@ -1032,8 +1374,18 @@
   }
 
   .ttActionBtn{
-    padding:5px 8px;
-    font-size:11px;
+    min-width:0;
+    padding:8px 8px;
+    font-size:12px;
+  }
+
+  .ttPbForm .trackPicker__trigger,
+  .ttTimeInputField input{
+    font-size:16px;
+  }
+
+  .ttCategoryToggle .modeBtn{
+    font-size:16px;
   }
 
   .ttComboInfoGrid{
@@ -1062,15 +1414,4 @@
   .ttWrCardBody{
     grid-template-columns:1fr;
   }
-
-  .ttWrMetricValue--combo{
-    align-items:flex-start;
-    flex-direction:column;
-    gap:8px;
-  }
-
-  .ttWrComboNames{
-    white-space:normal;
-  }
-
 }

@@ -45,7 +45,7 @@
 
 </head>
 <body>
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
+<noscript><div class="noscriptNotice"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
 <nav class="nav">
 <div class="navInner">
 <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
@@ -75,18 +75,18 @@
 <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
 </div>
 </nav>
-<div class="wrap">
+<main class="wrap">
 <div class="card profileCard">
 <div class="profileTop">
 <div>
 <h2 class="heroTitle">Sessions <span class="byAytee">by Aytee</span></h2>
-<div class="pageInfoLines" style="display:none">
+<div class="pageInfoLines hidden">
 <div class="muted heroSubtitle" id="userInfo">Loading session...</div>
 <div class="muted">Sessions: <b id="sessionCount">-</b></div>
 </div>
 </div>
 </div>
-<div class="pageInfoLines" style="display:none">
+<div class="pageInfoLines hidden">
 <div class="muted" id="status"></div>
 <div class="muted" id="debug"></div>
 </div>
@@ -103,9 +103,23 @@
 <button class="navAction navAction--sm" id="btnNext" type="button">Next</button>
 </div>
 </div>
-<div id="sessionList" style="margin-top:12px;"></div>
+<div class="sessionSummaryGrid" aria-label="Session summary">
+<div class="sessionSummaryCard">
+<div class="sessionSummaryLabel">Total sessions</div>
+<div class="sessionSummaryValue" id="summaryTotalSessions">-</div>
+</div>
+<div class="sessionSummaryCard">
+<div class="sessionSummaryLabel">Avg matches/session</div>
+<div class="sessionSummaryValue" id="summaryAvgMatches">-</div>
+</div>
+<div class="sessionSummaryCard">
+<div class="sessionSummaryLabel">Avg playtime/session</div>
+<div class="sessionSummaryValue" id="summaryAvgPlaytime">-</div>
 </div>
 </div>
+<div class="mt-12" id="sessionList"></div>
+</div>
+</main>
 
 <script src="mkwt_public.js"></script>
 <script src="sessions.js"></script>

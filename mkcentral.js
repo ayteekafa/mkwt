@@ -50,6 +50,7 @@
   let chartDelta = null;
   let chartMmr = null;
   let chartWeeklyMmr = null;
+  let chartMkcModeCompare = null;
   let supabaseClient = null;
   let SESSION = null;
   let activeScope = { ...DEFAULT_SCOPE };
@@ -57,6 +58,10 @@
   let scopeOptionsCache = null;
   let isUpdating = false;
   let lastRenderedPayload = null;
+  let mkcCompareOpen = false;
+  let mkcSummaryWindowState = "all";
+  let mkcSummaryFilterBound = false;
+  let mkcMmrDeckPanel = 0;
   const LOUNGE_TRACKS = [
     "Acorn Heights",
     "Airship Fortress",
@@ -93,6 +98,9 @@
     "12": "mkwt_lounge_sessions_v1",
     "24": "mkwt_lounge24_sessions_v1",
   };
+  const NON_LOUNGE_FORMAT_TAG = "Non-Lounge";
+  const LOUNGE_TRACKER_CHART_MODES = ["tracks", "im_destiny", "im_special_destiny", "im_routes", "placement"];
+  const LOUNGE_TRACKER_INTERMISSION_MODES = new Set(["im_destiny", "im_special_destiny", "im_routes"]);
   const loungeTrackerChartsState = {
     mode: "12",
     sessionsByMode: { "12": [], "24": [] },
@@ -101,6 +109,7 @@
     trackMode: "tracks",
     placementMode: "all",
     placementItem: "",
+    panel: "track",
     lastTrackStats: [],
     lastSelectedTrack: null,
     trackChart: null,
@@ -113,11 +122,142 @@
     return { name, min, ...MKWORLD_RANK_COLORS[name] };
   }
 
+  const MKC_INFO_TEXTS = {
+    mkcMmrHistory: {
+      title: "MMR History",
+      body: "Shows your MMR after each saved MKCentral event."
+    },
+    mkcWeeklyMmr: {
+      title: "Weekly Average MMR",
+      body: "Shows your MMR by week, so the trend is easier to read."
+    },
+    mkcPlayTime: {
+      title: "Daily Play Time",
+      body: "Estimates how much Lounge time each day represents."
+    },
+    mkcTrackerCharts: {
+      title: "Lounge Tracker Charts",
+      body: "Uses your saved Lounge tracker Mogis. Switch between 12p and 24p at the top."
+    },
+    mkcTrackPerformance: {
+      title: "Track Performance",
+      body: "Shows where you score best. Use the buttons to switch chart mode and the filter to sort."
+    },
+    mkcPlacementDistribution: {
+      title: "Placement Distribution",
+      body: "Shows how often you land in each placement. Filter by tracks, intermissions, or one selected track."
+    },
+    mkcModeCompare: {
+      title: "Compare Stats",
+      body: "Compares shared tracks between Lounge and World Wides. When both colored bars are high and even, you are strong and consistent on that track in both modes. If one side is much lower, review that track in that mode and look for what feels different."
+    }
+  };
+
+  window.MKWT?.bindInfoOverlay?.({
+    texts: MKC_INFO_TEXTS,
+    titleFallback: "Info"
+  });
+
   function setStatus(message, ok = true){
     const el = $("mkcStatus");
+    const text = String(message || "").trim();
+    if(window.MKWT?.showToast){
+      if(el){
+        el.textContent = "";
+        el.className = "muted statusLine hidden";
+        el.hidden = true;
+      }
+      window.MKWT.showToast(text, ok);
+      return;
+    }
     if(!el) return;
-    el.textContent = message || "";
-    el.className = "muted statusLine " + (message ? (ok ? "ok" : "bad") : "");
+    el.hidden = !text;
+    el.textContent = text;
+    el.className = "muted statusLine " + (text ? (ok ? "ok" : "bad") : "hidden");
+  }
+
+  function bindSwipeNavigation(target, { onLeft, onRight, threshold = 56 } = {}){
+    if(!target || target.dataset.swipeBound === "1") return;
+    target.dataset.swipeBound = "1";
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    target.addEventListener("touchstart", (event) => {
+      if(event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      tracking = true;
+    }, { passive: true });
+    target.addEventListener("touchend", (event) => {
+      if(!tracking || event.changedTouches.length !== 1) return;
+      tracking = false;
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if(Math.abs(dx) < threshold) return;
+      if(Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      if(dx < 0) onLeft?.();
+      else onRight?.();
+    }, { passive: true });
+    target.addEventListener("touchcancel", () => { tracking = false; }, { passive: true });
+  }
+
+  function resizeMkcChart(chart){
+    try{ chart?.resize?.(); }catch{}
+  }
+
+  function setMkcChartEmpty(canvasId, message = ""){
+    const canvas = $(canvasId);
+    if(!canvas) return;
+    const wrap = canvas.closest(".mkcChartWrap, .mkcChartWrapCompare");
+    if(!wrap) return;
+    Array.from(wrap.children).forEach((child) => {
+      if(child.classList?.contains("mkcChartEmpty")) child.remove();
+    });
+    let next = wrap.nextElementSibling;
+    while(next?.classList?.contains("mkcChartEmpty") && next.dataset.forChart === canvasId){
+      const remove = next;
+      next = next.nextElementSibling;
+      remove.remove();
+    }
+    const text = cleanText(message || "");
+    if(!text){
+      try{
+        const ctx = canvas.getContext?.("2d");
+        if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }catch{}
+      canvas.hidden = false;
+      wrap.classList.remove("isEmpty");
+      return;
+    }
+    try{
+      const ctx = canvas.getContext?.("2d");
+      if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }catch{}
+    canvas.hidden = false;
+    wrap.classList.remove("isEmpty");
+    const empty = document.createElement("div");
+    empty.className = "mkcChartEmpty";
+    empty.dataset.forChart = canvasId;
+    empty.setAttribute("role", "status");
+    empty.textContent = text;
+    wrap.insertAdjacentElement("afterend", empty);
+  }
+
+  function renderLoungeTrackerEmptyNotice(targetId, message){
+    const el = $(targetId);
+    if(!el) return;
+    const text = cleanText(message || "");
+    if(!text){
+      el.classList.remove("mkcTrackerInsight--empty");
+      el.innerHTML = "";
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.classList.add("mkcTrackerInsight--empty");
+    el.innerHTML = `<div>${escapeHtml(text)}</div>`;
   }
 
   function setUpdateBusy(active){
@@ -209,9 +349,14 @@
     return playerId;
   }
 
-  function setLastUpdateDisplay(value){
+  function setLastUpdateDisplay(value, eventCount = null){
     const el = $("mkcLastUpdateDisplay");
-    if(el) el.textContent = value ? fmtDate(value) : "-";
+    if(!el) return;
+    const count = Number(eventCount);
+    const hasCount = Number.isFinite(count);
+    const mogiText = hasCount ? `${fmtNumber(count)} ${count === 1 ? "mogi" : "mogis"}` : "";
+    const dateText = value ? fmtDate(value) : "";
+    el.textContent = dateText && mogiText ? `${dateText} · ${mogiText}` : (dateText || mogiText || "-");
   }
 
   function makeSupabaseClient(storage){
@@ -373,6 +518,18 @@
     return String(value || "").replace(/\s+/g, " ").trim();
   }
 
+  function normalizeLoungeStatsFormatTag(value){
+    const raw = cleanText(value);
+    if(!raw) return "";
+    return raw.replace(/[\s_-]+/g, "").toLowerCase() === "nonlounge" ? NON_LOUNGE_FORMAT_TAG : raw;
+  }
+
+  function loungeTrackerSessionStatsExcluded(session){
+    const tag = normalizeLoungeStatsFormatTag(session?.loungeFormatTag || session?.lounge_format_tag || "");
+    const excluded = session?.statsExcluded === true || session?.stats_excluded === true;
+    return tag === NON_LOUNGE_FORMAT_TAG && excluded;
+  }
+
   function parseNumber(value){
     const raw = cleanText(value).replace(/,/g, "");
     const normalized = raw.replace(/[^\d.-]/g, "");
@@ -532,6 +689,23 @@
     const n = Number(value);
     if(!Number.isFinite(n) || n === 0) return "gainFlat";
     return n > 0 ? "gainGood" : "gainBad";
+  }
+
+  function avgScoreBreakEven(){
+    return 82;
+  }
+
+  function avgScoreToneClass(value){
+    if(value == null || value === "") return "";
+    const score = Number(value);
+    if(!Number.isFinite(score)) return "";
+    const delta = score - avgScoreBreakEven();
+    if(delta <= -12) return "scoreTone--darkred";
+    if(delta <= -5) return "scoreTone--red";
+    if(delta < -1) return "scoreTone--orange";
+    if(Math.abs(delta) <= 1) return "scoreTone--green";
+    if(delta < 6) return "scoreTone--blue";
+    return "scoreTone--lightblue";
   }
 
   function getMkworldRank(value){
@@ -997,8 +1171,15 @@
     return `<div class="mkcStat ${cardCls}"${style ? ` style="${style}"` : ""}>
       <div class="mkcStatLabel">${escapeHtml(label)}</div>
       <div class="mkcStatValue ${cls}">${escapeHtml(value)}</div>
-      <div class="mkcStatMeta">${escapeHtml(meta)}</div>
+      ${meta ? `<div class="mkcStatMeta">${escapeHtml(meta)}</div>` : ""}
     </div>`;
+  }
+
+  function rankBadgeGlowClass(rank){
+    if(!rank) return "";
+    return ["Silver", "Gold", "Platinum", "Sapphire", "Ruby", "Diamond", "Master", "Grandmaster"].includes(rank.name)
+      ? " mkcRankBadgeGlow"
+      : "";
   }
 
   function rankCard(label, mmrValue, meta = "", extraClass = ""){
@@ -1009,319 +1190,441 @@
     return `<div class="mkcStat mkcStatRanked ${extraClass}" style="${style}">
       <div class="mkcStatTop">
         <div class="mkcStatLabel">${escapeHtml(label)}</div>
-        <div class="mkcRankBadge">${escapeHtml(rank.name)}</div>
+        <div class="mkcRankBadge${rankBadgeGlowClass(rank)}">${escapeHtml(rank.name)}</div>
       </div>
       <div class="mkcStatValue">${escapeHtml(displayValue)}</div>
+      ${meta ? `<div class="mkcStatMeta">${escapeHtml(meta)}</div>` : ""}
+    </div>`;
+  }
+
+  function eventTitle(event){
+    if(!event) return "";
+    const parts = [];
+    const title = cleanText(event.event);
+    const tier = cleanText(event.tier);
+    const format = cleanText(event.format);
+    if(title) parts.push(title);
+    [tier, format].forEach((value) => {
+      if(value && !parts.some((part) => part.toLowerCase().includes(value.toLowerCase()))) parts.push(value);
+    });
+    return parts.length ? ` title="${escapeHtml(parts.join(" · "))}"` : "";
+  }
+
+  function eventComboCard(bestEvent, worstEvent){
+    const row = (label, event) => {
+      const deltaValue = parsedNumber(event?.mmr_delta);
+      const delta = deltaValue == null ? "-" : fmtNumber(Math.abs(deltaValue));
+      return `<div class="mkcEventComboRow mkcEventComboRow--tight"${eventTitle(event)}>
+        <div class="mkcEventComboValue ${gainClass(event?.mmr_delta)}">${escapeHtml(delta)}</div>
+        <div class="mkcEventComboMeta">
+          <span class="mkcEventComboTag">${escapeHtml(label)}</span>
+        </div>
+      </div>`;
+    };
+    return `<div class="mkcStat mkcEventCombo mkcStatCompactMobile">
+      <div class="mkcStatLabel">Best / Worst Gain</div>
+      <div class="mkcGainPair">
+        ${row("Best", bestEvent)}
+        ${row("Worst", worstEvent)}
+      </div>
+    </div>`;
+  }
+
+  function pointsCard(highestScoreEvent, lowestScoreEvent){
+    const point = (label, event) => {
+      const score = finiteNumber(event?.table_score);
+      return `<div class="mkcMiniStat"${eventTitle(event)}>
+        <span>${escapeHtml(label)}</span>
+        <b>${escapeHtml(score == null ? "-" : fmtNumber(score))}</b>
+      </div>`;
+    };
+    return `<div class="mkcStat mkcEventCombo mkcStatCompactMobile">
+      <div class="mkcStatLabel">Points</div>
+      <div class="mkcMiniValueGrid">
+        ${point("High", highestScoreEvent)}
+        ${point("Low", lowestScoreEvent)}
+      </div>
+    </div>`;
+  }
+
+  function summaryWindowData(derived){
+    const mode = ["all", "l10", "l30"].includes(mkcSummaryWindowState) ? mkcSummaryWindowState : "all";
+    const labels = { all: "All", l10: "L10", l30: "L30" };
+    const winStats = mode === "l10" ? derived.winrateLast10 : mode === "l30" ? derived.winrateLast30 : derived.winrateAll;
+    const scoreCounts = derived.avgScoreCounts || {};
+    const count = mode === "l10" ? derived.last10Count : mode === "l30" ? derived.last30Count : derived.eventCount;
+    const scoreCount = mode === "l10" ? scoreCounts.last10 : mode === "l30" ? scoreCounts.last30 : scoreCounts.all;
+    return {
+      mode,
+      label: labels[mode],
+      count,
+      avgGain: mode === "l10" ? derived.avgGainLast10 : mode === "l30" ? derived.avgGainLast30 : derived.avgGain,
+      winrate: winStats?.winrate,
+      wins: winStats?.wins || 0,
+      losses: winStats?.losses || 0,
+      neutral: winStats?.neutral || 0,
+      avgScore: mode === "l10" ? derived.officialAvgLast10 : mode === "l30" ? derived.avgScoreLast30 : derived.officialAvgScore,
+      scoreCount: scoreCount || 0,
+    };
+  }
+
+  function avgScoreCard(summary){
+    const meta = summary.scoreCount ? `${fmtNumber(summary.scoreCount)} events` : summary.label;
+    const score = finiteNumber(summary.avgScore);
+    const breakEven = avgScoreBreakEven();
+    const title = score == null
+      ? `Break even: ${fmtNumber(breakEven, 1)} avg score`
+      : `Break even: ${fmtNumber(breakEven, 1)} avg score. Current: ${fmtNumber(score, 1)}.`;
+    return `<div class="mkcStat mkcScoreStat mkcScoreStat--avgScore mkcStatCompactMobile" data-mkc-break-even="${escapeHtml(breakEven)}" data-mkc-score="${escapeHtml(score == null ? "" : score)}" title="${escapeHtml(title)}" tabindex="0" role="button" aria-label="${escapeHtml(title)}">
+      <div class="mkcStatLabel">Avg Score</div>
+      <div class="mkcStatValue mkcAvgScoreValue ${escapeHtml(avgScoreToneClass(score))}">${escapeHtml(score == null ? "-" : fmtNumber(score, 1))}</div>
       <div class="mkcStatMeta">${escapeHtml(meta)}</div>
     </div>`;
   }
 
-  function mobileOverviewCard(derived){
-    const rankTone = (value) => {
-      const rank = getMkworldRank(value);
-      return rank ? ` style="--rank-color:${rank.color};--rank-bg:${rank.bg};"` : "";
-    };
-    const mmrCell = (label, value, meta = "") => `
-      <div class="mkcOverviewMmrCell"${rankTone(value)}>
-        <div class="mkcOverviewMmrLabel">${escapeHtml(label)}</div>
-        <div class="mkcOverviewMmrValue">${escapeHtml(value == null ? "-" : fmtNumber(value))}</div>
-        <div class="mkcOverviewMmrMeta">${escapeHtml(meta || rankName(value) || "-")}</div>
-      </div>`;
-    const metric = (label, value, meta = "", valueCls = "") => `
-      <div class="mkcOverviewMetric">
-        <div class="mkcOverviewMetricLabel">${escapeHtml(label)}</div>
-        <div class="mkcOverviewMetricValue ${escapeHtml(valueCls)}">${escapeHtml(value)}</div>
-        <div class="mkcOverviewMetricMeta">${escapeHtml(meta)}</div>
-      </div>`;
-    return `<div class="mkcMobileOverview card">
-      <div class="mkcOverviewHead">
-        <div class="mkcOverviewTitle">Lounge Summary</div>
-        <div class="mkcOverviewSubtitle">${escapeHtml(scopeLabel(activeScope))}</div>
-      </div>
-      <div class="mkcOverviewMmr">
-        ${mmrCell("Current", derived.currentMmr, `Start ${fmtNumber(derived.startMmr)}`)}
-        ${mmrCell("Peak", derived.peakMmr, "Peak MMR")}
-        ${mmrCell("Last 50", derived.last50MmrAvg, `${derived.last50Count} events avg`)}
-      </div>
-      <div class="mkcOverviewMetrics">
-        ${metric("Events", fmtNumber(derived.eventCount), derived.officialEvents ? `Official ${fmtNumber(derived.officialEvents)}` : "Local synced")}
-        ${metric("Season Hours", fmtDurationMinutes(derived.seasonMinutes), `${derived.eventCount} mogis x ${AVG_MOGI_MINUTES}m`)}
-        ${metric("Avg Gain", derived.avgGain == null ? "-" : fmtSigned(derived.avgGain), `${derived.eventCount} events | all`, gainClass(derived.avgGain))}
-        ${metric("Total Gain", fmtDelta(derived.totalGain), "Merged local history", gainClass(derived.totalGain))}
-        ${metric("Winrate", derived.winrate == null ? "-" : fmtPct(derived.winrate), `${derived.wins} W / ${derived.losses} L / ${derived.neutral} even`)}
-        ${metric("Avg Score", derived.officialAvgScore == null ? "-" : fmtNumber(derived.officialAvgScore, 1), derived.avgScoreCounts.all ? `${derived.avgScoreCounts.all} scored events` : "Official MKCentral")}
-      </div>
-      <div class="mkcOverviewMetrics mkcOverviewMetricsTight">
-        ${metric("Best Gain", fmtDelta(derived.bestEvent?.mmr_delta), derived.bestEvent?.event || "-", gainClass(derived.bestEvent?.mmr_delta))}
-        ${metric("Worst Gain", fmtDelta(derived.worstEvent?.mmr_delta), derived.worstEvent?.event || "-", gainClass(derived.worstEvent?.mmr_delta))}
-        ${metric("High pts", scoreValue(derived.highestScoreEvent), derived.highestScoreEvent?.event || "-")}
-        ${metric("Low pts", scoreValue(derived.lowestScoreEvent), derived.lowestScoreEvent?.event || "-")}
-      </div>
+  function showAvgScoreBreakEvenHint(target){
+    const card = target?.closest?.(".mkcScoreStat--avgScore");
+    if(!card) return;
+    const breakEven = Number(card.dataset.mkcBreakEven);
+    const score = Number(card.dataset.mkcScore);
+    if(!Number.isFinite(breakEven)) return;
+    let text = `Break even: ${fmtNumber(breakEven, 1)} avg score.`;
+    if(Number.isFinite(score)){
+      const delta = score - breakEven;
+      if(Math.abs(delta) <= 0.05) text += " Right on break even.";
+      else text += ` ${fmtNumber(Math.abs(delta), 1)} ${delta > 0 ? "over" : "under"} break even.`;
+    }
+    if(window.MKWT?.showToast) window.MKWT.showToast(text, true, { timeout: 2600 });
+    else card.title = text;
+  }
+
+  function bindMkcScoreHints(){
+    document.addEventListener("click", (event) => {
+      if(event.target?.closest?.(".mkcScoreStat--avgScore")) showAvgScoreBreakEvenHint(event.target);
+    });
+    document.addEventListener("keydown", (event) => {
+      if(event.key !== "Enter" && event.key !== " ") return;
+      if(!event.target?.closest?.(".mkcScoreStat--avgScore")) return;
+      event.preventDefault();
+      showAvgScoreBreakEvenHint(event.target);
+    });
+  }
+
+  function avgGainCard(summary){
+    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile">
+      <div class="mkcStatLabel">Avg Gain</div>
+      <div class="mkcStatValue ${gainClass(summary.avgGain)}">${escapeHtml(summary.avgGain == null ? "-" : fmtSigned(summary.avgGain))}</div>
+      <div class="mkcStatMeta">${escapeHtml(`${fmtNumber(summary.count)} events`)}</div>
     </div>`;
   }
 
-  function eventComboCard(bestEvent, worstEvent, highestScoreEvent, lowestScoreEvent){
-    const row = (label, event) => {
-      const delta = event ? fmtDelta(event.mmr_delta) : "-";
-      return `<div class="mkcEventComboRow">
-        <div class="mkcEventComboValue ${gainClass(event?.mmr_delta)}">${escapeHtml(delta)}</div>
-        <div class="mkcEventComboMeta">
-          <span class="mkcEventComboTag">${escapeHtml(label)}</span>
-          ${escapeHtml(event?.event || "-")}
-        </div>
-      </div>`;
-    };
-    const point = (label, event) => {
-      const score = finiteNumber(event?.table_score);
-      const title = event?.event ? ` title="${escapeHtml(event.event)}"` : "";
-      return `<span class="mkcEventPoint"${title}><span>${escapeHtml(label)}</span><b>${escapeHtml(score == null ? "-" : fmtNumber(score))}</b></span>`;
-    };
-    return `<div class="mkcStat mkcEventCombo mkcStatCompactMobile mkcStatDesktopOnly">
-      <div class="mkcStatLabel">Best / Worst Gain</div>
-      <div class="mkcEventComboRows">
-        ${row("Best", bestEvent)}
-        ${row("Worst", worstEvent)}
-      </div>
-      <div class="mkcEventPointsMini">
-        ${point("High pts", highestScoreEvent)}
-        ${point("Low pts", lowestScoreEvent)}
-      </div>
+  function winrateCard(summary){
+    const neutralText = summary.neutral > 0 ? ` / ${summary.neutral} even` : "";
+    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile">
+      <div class="mkcStatLabel">Winrate</div>
+      <div class="mkcStatValue">${escapeHtml(summary.winrate == null ? "-" : fmtPct(summary.winrate))}</div>
+      <div class="mkcStatMeta">${escapeHtml(`${summary.wins} W / ${summary.losses} L${neutralText}`)}</div>
     </div>`;
   }
 
-  function activityCard(derived){
-    const officialText = derived.officialEvents ? `Official: ${fmtNumber(derived.officialEvents)}` : "Local synced";
-    return `<div class="mkcStat mkcEventCombo mkcStatCompactMobile mkcStatDesktopOnly">
-      <div class="mkcStatLabel">Events / Season Hours</div>
-      <div class="mkcEventComboRows">
-        <div class="mkcEventComboRow">
-          <div class="mkcEventComboValue">${escapeHtml(fmtNumber(derived.eventCount))}</div>
-          <div class="mkcEventComboMeta">
-            <span class="mkcEventComboTag">Events</span>
-            ${escapeHtml(officialText)}
-          </div>
-        </div>
-        <div class="mkcEventComboRow">
-          <div class="mkcEventComboValue">${escapeHtml(fmtDurationMinutes(derived.seasonMinutes))}</div>
-          <div class="mkcEventComboMeta">
-            <span class="mkcEventComboTag">Season Hours</span>
-            ${escapeHtml(`${derived.eventCount} mogis x ${AVG_MOGI_MINUTES}m`)}
-          </div>
-        </div>
-      </div>
-    </div>`;
+  function closeMkcSummaryFilter(){
+    const menu = $("menuMkcSummaryFilter");
+    const btn = $("btnMkcSummaryFilter");
+    if(menu) menu.hidden = true;
+    if(btn) btn.setAttribute("aria-expanded", "false");
   }
 
-  function avgScoreCard(derived){
-    const options = [
-      {
-        key: "all",
-        label: "All",
-        value: derived.officialAvgScore,
-        meta: derived.avgScoreCounts.all ? `${derived.avgScoreCounts.all} events` : "Official MKCentral",
-      },
-      {
-        key: "l10",
-        label: "Last 10",
-        value: derived.officialAvgLast10,
-        meta: derived.avgScoreCounts.last10 ? `${derived.avgScoreCounts.last10} events` : "Last 10",
-      },
-      {
-        key: "l30",
-        label: "Last 30",
-        value: derived.avgScoreLast30,
-        meta: derived.avgScoreCounts.last30 ? `${derived.avgScoreCounts.last30} events` : "Last 30",
-      },
-    ];
-    const first = options[0];
-    const buttons = options.map((option, index) => {
-      const valueText = option.value == null ? "-" : fmtNumber(option.value, 1);
-      return `<button class="mkcScoreTab${index === 0 ? " active" : ""}" type="button" data-value="${escapeHtml(valueText)}" data-meta="${escapeHtml(option.meta)}">${escapeHtml(option.label)}</button>`;
-    }).join("");
-    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile mkcStatDesktopOnly">
-      <div class="mkcStatTop">
-        <div class="mkcStatLabel">Avg Score</div>
-        <div class="mkcScoreTabs">${buttons}</div>
-      </div>
-      <div class="mkcStatValue mkcScoreValue">${escapeHtml(first.value == null ? "-" : fmtNumber(first.value, 1))}</div>
-      <div class="mkcStatMeta mkcScoreMeta">${escapeHtml(first.meta)}</div>
-    </div>`;
+  function updateMkcSummaryFilterUi(hasData = false){
+    const labels = { all: "All", l10: "L10", l30: "L30" };
+    const root = $("mkcSummaryFilterRoot");
+    if(root) root.hidden = !hasData;
+    if(!hasData) closeMkcSummaryFilter();
+    const valueEl = $("mkcSummaryFilterValue");
+    if(valueEl) valueEl.textContent = labels[mkcSummaryWindowState] || "All";
+    document.querySelectorAll("[data-mkc-summary-window]").forEach((button) => {
+      button.classList.toggle("active", button.getAttribute("data-mkc-summary-window") === mkcSummaryWindowState);
+    });
   }
 
-  function avgGainCard(derived){
-    const options = [
-      {
-        label: "All",
-        value: derived.avgGain,
-        format: "signed",
-        meta: `${derived.eventCount} events | per event`,
-      },
-      {
-        label: "L10",
-        value: derived.avgGainLast10,
-        format: "signed",
-        meta: `${derived.last10Count} events | per event`,
-      },
-      {
-        label: "L30",
-        value: derived.avgGainLast30,
-        format: "signed",
-        meta: `${derived.last30Count} events | per event`,
-      },
-      {
-        label: "Total",
-        value: derived.totalGain,
-        format: "delta",
-        meta: "Merged local history",
-      },
-    ];
-    const first = options[0];
-    const formatGainValue = (option) => option.value == null ? "-" : (option.format === "delta" ? fmtDelta(option.value) : fmtSigned(option.value));
-    const firstValue = formatGainValue(first);
-    const buttons = options.map((option, index) => {
-      const valueText = formatGainValue(option);
-      return `<button class="mkcScoreTab${index === 0 ? " active" : ""}" type="button" data-value="${escapeHtml(valueText)}" data-meta="${escapeHtml(option.meta)}" data-value-class="${escapeHtml(gainClass(option.value))}">${escapeHtml(option.label)}</button>`;
-    }).join("");
-    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile mkcStatDesktopOnly">
-      <div class="mkcStatTop">
-        <div class="mkcStatLabel">Avg Gain</div>
-        <div class="mkcScoreTabs">${buttons}</div>
-      </div>
-      <div class="mkcStatValue mkcScoreValue ${gainClass(first.value)}">${escapeHtml(firstValue)}</div>
-      <div class="mkcStatMeta mkcScoreMeta">${escapeHtml(first.meta)}</div>
-    </div>`;
-  }
-
-  function winrateCard(derived){
-    const meta = (stats) => `${stats.wins} W / ${stats.losses} L / ${stats.neutral} even`;
-    const options = [
-      { label: "All", value: derived.winrateAll?.winrate, meta: meta(derived.winrateAll) },
-      { label: "L10", value: derived.winrateLast10?.winrate, meta: meta(derived.winrateLast10) },
-      { label: "L30", value: derived.winrateLast30?.winrate, meta: meta(derived.winrateLast30) },
-    ];
-    const first = options[0];
-    const buttons = options.map((option, index) => {
-      const valueText = option.value == null ? "-" : fmtPct(option.value);
-      return `<button class="mkcScoreTab${index === 0 ? " active" : ""}" type="button" data-value="${escapeHtml(valueText)}" data-meta="${escapeHtml(option.meta)}">${escapeHtml(option.label)}</button>`;
-    }).join("");
-    return `<div class="mkcStat mkcScoreStat mkcStatCompactMobile mkcStatDesktopOnly">
-      <div class="mkcStatTop">
-        <div class="mkcStatLabel">Winrate</div>
-        <div class="mkcScoreTabs">${buttons}</div>
-      </div>
-      <div class="mkcStatValue mkcScoreValue">${escapeHtml(first.value == null ? "-" : fmtPct(first.value))}</div>
-      <div class="mkcStatMeta mkcScoreMeta">${escapeHtml(first.meta)}</div>
-    </div>`;
-  }
-
-  function bindScoreTabs(){
-    document.querySelectorAll(".mkcScoreTab").forEach((button) => {
+  function bindMkcSummaryFilter(){
+    if(mkcSummaryFilterBound) return;
+    mkcSummaryFilterBound = true;
+    const btn = $("btnMkcSummaryFilter");
+    const menu = $("menuMkcSummaryFilter");
+    if(btn && menu && window.MKWT_UI?.bindFilterToggle){
+      window.MKWT_UI.bindFilterToggle(btn, menu, { type: "mkcTracker" });
+    }else{
+      btn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if(!menu) return;
+        const willOpen = menu.hidden;
+        closeMkcSummaryFilter();
+        menu.hidden = !willOpen;
+        btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      });
+    }
+    $("menuMkcSummaryFilter")?.addEventListener("click", (event) => event.stopPropagation());
+    document.querySelectorAll("[data-mkc-summary-window]").forEach((button) => {
       button.addEventListener("click", () => {
-        const cardEl = button.closest(".mkcScoreStat");
-        if(!cardEl) return;
-        cardEl.querySelectorAll(".mkcScoreTab").forEach((tab) => tab.classList.toggle("active", tab === button));
-        const valueEl = cardEl.querySelector(".mkcScoreValue");
-        const metaEl = cardEl.querySelector(".mkcScoreMeta");
-        if(valueEl){
-          valueEl.textContent = button.dataset.value || "-";
-          valueEl.className = `mkcStatValue mkcScoreValue ${button.dataset.valueClass || ""}`.trim();
-        }
-        if(metaEl) metaEl.textContent = button.dataset.meta || "";
+        const next = button.getAttribute("data-mkc-summary-window") || "all";
+        mkcSummaryWindowState = ["all", "l10", "l30"].includes(next) ? next : "all";
+        if(window.MKWT_UI?.closeFilterMenus) window.MKWT_UI.closeFilterMenus("mkcTracker");
+        else closeMkcSummaryFilter();
+        if(lastRenderedPayload?.events?.length) renderCards(lastRenderedPayload);
+        else updateMkcSummaryFilterUi(false);
       });
     });
+    if(!window.MKWT_UI?.bindFilterToggle){
+      document.addEventListener("click", (event) => {
+        const root = $("mkcSummaryFilterRoot");
+        if(root?.contains(event.target)) return;
+        closeMkcSummaryFilter();
+      });
+      document.addEventListener("keydown", (event) => {
+        if(event.key === "Escape") closeMkcSummaryFilter();
+      });
+    }
   }
 
   function renderCards(payload){
     const cards = $("mkcCards");
     if(!cards) return;
     const derived = calcDerived(payload.events || [], payload.profile || {}, payload.summary || {});
+    const summary = summaryWindowData(derived);
     cards.innerHTML = [
-      mobileOverviewCard(derived),
-      rankCard("Current MMR", derived.currentMmr, `Start est. ${fmtNumber(derived.startMmr)}`, "mkcStatMmrTop mkcStatDesktopOnly"),
-      rankCard("Peak MMR", derived.peakMmr, "Official if available", "mkcStatMmrTop mkcStatDesktopOnly"),
-      rankCard("Avg Last 50", derived.last50MmrAvg, `${derived.last50Count} events | average MMR`, "mkcStatMmrTop mkcStatDesktopOnly"),
-      activityCard(derived),
-      avgGainCard(derived),
-      winrateCard(derived),
-      eventComboCard(derived.bestEvent, derived.worstEvent, derived.highestScoreEvent, derived.lowestScoreEvent),
-      avgScoreCard(derived),
+      rankCard("Current", derived.currentMmr, "", "mkcStatMmrTop"),
+      rankCard("Peak", derived.peakMmr, "", "mkcStatMmrTop"),
+      rankCard("Avg50", derived.last50MmrAvg, "", "mkcStatMmrTop"),
+      avgGainCard(summary),
+      winrateCard(summary),
+      eventComboCard(derived.bestEvent, derived.worstEvent),
+      pointsCard(derived.highestScoreEvent, derived.lowestScoreEvent),
+      avgScoreCard(summary),
     ].join("");
-    bindScoreTabs();
+    updateMkcSummaryFilterUi(true);
   }
 
-  function setMkcReportEnabled(enabled){
-    const btn = $("btnDownloadMkcImage");
-    if(btn) btn.disabled = !enabled;
+  function mkcComparePlayerCount(){
+    const scope = normalizeScope(activeScope);
+    if(scope.split && (scope.playerCount === "12" || scope.playerCount === "24")) return scope.playerCount;
+    return String(loungeTrackerChartsState.mode || "12");
   }
 
-  function rankName(value){
-    return getMkworldRank(value)?.name || "";
+  function updateMkcCompareButton(){
+    const btn = $("btnCompareMkcStats");
+    if(!btn) return;
+    btn.classList.toggle("active", mkcCompareOpen);
   }
 
-  function scoreValue(event){
-    const score = finiteNumber(event?.table_score);
-    return score == null ? "-" : fmtNumber(score);
+  function closeMkcCompareDialog(){
+    mkcCompareOpen = false;
+    updateMkcCompareButton();
+    if($("mkcCompareDialog")?.open) $("mkcCompareDialog").close();
   }
 
-  function buildMkcReportItems(payload){
-    const derived = calcDerived(payload.events || [], payload.profile || {}, payload.summary || {});
-    const positiveColor = cssVar("--chart-positive-stroke", "#4da319");
-    const negativeColor = cssVar("--chart-negative-stroke", "#ff5050");
-    return [
-      { label: "Current MMR", value: fmtNumber(derived.currentMmr), meta: rankName(derived.currentMmr) },
-      { label: "Peak MMR", value: fmtNumber(derived.peakMmr), meta: rankName(derived.peakMmr) },
-      { label: "Avg Last 50", value: fmtNumber(derived.last50MmrAvg), meta: `${derived.last50Count} events | ${rankName(derived.last50MmrAvg)}` },
-      { label: "Events", value: fmtNumber(derived.eventCount), meta: `${fmtDurationMinutes(derived.seasonMinutes)} season` },
-      { label: "Avg Gain", value: fmtSigned(derived.avgGain, 2), meta: "per event", color: derived.avgGain >= 0 ? positiveColor : negativeColor },
-      { label: "Winrate", value: fmtPct(derived.winrate), meta: `${derived.wins} W / ${derived.losses} L` },
-      { label: "Avg Score", value: fmtNumber(derived.officialAvgScore, 1), meta: "official MKCentral" },
-      { label: "Best Gain", value: fmtDelta(derived.bestEvent?.mmr_delta), meta: derived.bestEvent?.event || "", color: positiveColor },
-      { label: "Worst Gain", value: fmtDelta(derived.worstEvent?.mmr_delta), meta: derived.worstEvent?.event || "", color: negativeColor },
-      { label: "High pts", value: scoreValue(derived.highestScoreEvent), meta: derived.highestScoreEvent?.event || "" },
-      { label: "Low pts", value: scoreValue(derived.lowestScoreEvent), meta: derived.lowestScoreEvent?.event || "" },
-    ];
-  }
-
-  async function downloadMkcReport(){
-    const payload = lastRenderedPayload;
-    if(!payload || !Array.isArray(payload.events) || !payload.events.length) return;
-    const btn = $("btnDownloadMkcImage");
-    const previous = btn?.textContent || "Download image";
-    try{
-      if(!window.MKWTReport?.downloadImage) throw new Error("Report exporter unavailable.");
-      if(btn){
-        btn.disabled = true;
-        btn.textContent = "Preparing...";
-      }
-      await window.MKWTReport.downloadImage({
-        title: "MKWT Lounge Stats",
-        subtitle: `${payload.playerName || "MKCentral Player"} | ${scopeLabel(activeScope)} | ${payload.events.length} events`,
-        filename: `mkwt-lounge-stats-${scopeStorageSuffix(activeScope)}-${new Date().toISOString().slice(0,10)}.jpg`,
-        stats: buildMkcReportItems(payload),
-        charts: [
-          { title: "MMR History", canvasId: "chartMkcMmr" },
-          { title: "Weekly Average MMR", canvasId: "chartMkcWeeklyMmr" },
-          { title: "Daily Play Time", canvasId: "chartMkcDelta" },
-        ],
-        width: 2500,
-        columns: 3,
-        chartHeight: 500,
-        quality: 0.86,
-      });
-      setStatus("Image report downloaded.", true);
-    }catch(e){
-      setStatus("Image export failed: " + (e?.message || e), false);
-    }finally{
-      if(btn){
-        btn.textContent = previous;
-        btn.disabled = !(lastRenderedPayload?.events || []).length;
-      }
+  function setMkcCompareStatus(message){
+    const meta = $("mkcCompareMeta");
+    const text = String(message || "").trim();
+    if(meta){
+      meta.textContent = text;
+      meta.hidden = !text;
+      meta.classList.toggle("hidden", !text);
     }
   }
 
-  function bindMkcReport(){
-    $("btnDownloadMkcImage")?.addEventListener("click", downloadMkcReport);
-    setMkcReportEnabled(false);
+  function clearMkcCompareChart(message){
+    const notes = $("mkcCompareNotes");
+    setMkcCompareStatus(message);
+    setMkcChartEmpty("chartModeCompareMkc", message || "No comparison data available yet.");
+    if(notes){
+      notes.innerHTML = "";
+      notes.hidden = true;
+    }
+    try{ chartMkcModeCompare?.destroy(); }catch(e){}
+    chartMkcModeCompare = null;
+  }
+
+  function renderMkcCompareNotes(compareRows, primaryLabel, secondaryLabel){
+    const notesEl = $("mkcCompareNotes");
+    if(!notesEl) return;
+    notesEl.innerHTML = "";
+    const notes = window.MKWTModeCompare?.buildComparisonNotes?.(compareRows, {
+      primaryLabel,
+      secondaryLabel,
+      gapThreshold: 10,
+      limit: 6,
+    }) || [];
+    if(!notes.length){
+      const div = document.createElement("div");
+      div.className = "mkcModeCompareNote muted";
+      div.textContent = "Shared tracks look fairly even right now.";
+      notesEl.appendChild(div);
+      notesEl.hidden = false;
+      return;
+    }
+    for(const note of notes){
+      const div = document.createElement("div");
+      div.className = "mkcModeCompareNote";
+      const strong = document.createElement("b");
+      strong.textContent = `"${note.track}"`;
+      div.appendChild(strong);
+      div.appendChild(document.createTextNode(` strong in ${note.strongerLabel} but weak in ${note.weakerLabel}.`));
+      notesEl.appendChild(div);
+    }
+    notesEl.hidden = false;
+  }
+
+  async function renderMkcCompareChart(){
+    const dialog = $("mkcCompareDialog");
+    const canvas = $("chartModeCompareMkc");
+    const meta = $("mkcCompareMeta");
+    if(!canvas || !meta) return;
+    if(dialog && !dialog.open){
+      try{ dialog.showModal(); }catch(e){ dialog.setAttribute("open", "open"); }
+    }
+    if(!window.MKWTModeCompare){
+      clearMkcCompareChart("Comparison helper unavailable.");
+      return;
+    }
+
+    const playerCount = mkcComparePlayerCount();
+    const loungeLabel = `Lounge ${playerCount}p`;
+    setMkcCompareStatus(`Loading ${loungeLabel} comparison...`);
+    await resolveSession();
+    const authOptions = {
+      isGuest: !SESSION?.user?.id || !supabaseClient,
+      supabaseClient,
+      session: SESSION,
+    };
+    const [loungeRows, worldRows] = await Promise.all([
+      window.MKWTModeCompare.loadLoungeTrackRowsByPlayerCount({
+        ...authOptions,
+        playerCount: Number(playerCount),
+      }),
+      window.MKWTModeCompare.loadWorldWideTrackRows(authOptions),
+    ]);
+
+    if(!loungeRows?.length){
+      clearMkcCompareChart(`No saved ${loungeLabel} track data found yet.`);
+      return;
+    }
+    if(!worldRows?.length){
+      clearMkcCompareChart("No saved World Wide track data found yet.");
+      return;
+    }
+
+    const compareRows = window.MKWTModeCompare.buildRankComparisonRows(loungeRows, worldRows, {
+      primaryLabel: loungeLabel,
+      secondaryLabel: "World Wides",
+      limit: 30,
+      minCount: 10,
+    });
+    if(!compareRows.length){
+      clearMkcCompareChart(`No shared tracks yet with at least 10 plays in both ${loungeLabel} and World Wides.`);
+      return;
+    }
+
+    const labels = compareRows.map((row) => row.track);
+    const loungeData = compareRows.map((row) => Number(row.primaryPoints || 0));
+    const worldData = compareRows.map((row) => Number(row.secondaryPoints || 0));
+    const maxPoints = Math.max(6, compareRows.length * 2);
+    const splitAFill = colorWithAlpha(cssVar("--chart-split-a-stroke", "#4e7cff"), 0.68);
+    const splitBFill = colorWithAlpha(cssVar("--chart-split-b-stroke", "#f6c945"), 0.66);
+
+    setMkcChartEmpty("chartModeCompareMkc", "");
+    try{ chartMkcModeCompare?.destroy(); }catch(e){}
+    chartMkcModeCompare = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: loungeLabel,
+            data: loungeData,
+            backgroundColor: splitAFill,
+            borderColor: cssVar("--chart-split-a-stroke", "#4e7cff"),
+            borderWidth: 1,
+          },
+          {
+            label: "World Wides",
+            data: worldData,
+            backgroundColor: splitBFill,
+            borderColor: cssVar("--chart-split-b-stroke", "#f6c945"),
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: "y",
+        interaction: { mode: "nearest", axis: "y", intersect: true },
+        scales: {
+          x: {
+            min: 0,
+            max: maxPoints,
+            stacked: true,
+            ticks: { callback: (value) => Number(value).toFixed(0) },
+          },
+          y: { ticks: { autoSkip: false }, stacked: true },
+        },
+        plugins: {
+          legend: { display: true },
+          tooltip: {
+            callbacks: {
+              title: (items) => items?.[0]?.label || "",
+              label: (ctx) => {
+                const row = compareRows[ctx.dataIndex];
+                if(!row) return "";
+                if(ctx.datasetIndex === 0){
+                  return `${loungeLabel}: rank #${row.primaryRank}, avg ${fmtNumber(row.primary, 2)} pts, ${row.primaryCount} races`;
+                }
+                return `World Wides: rank #${row.secondaryRank}, avg ${fmtSigned(row.secondary, 2)} VR, ${row.secondaryCount} matches`;
+              },
+              footer: (items) => {
+                const row = compareRows[items?.[0]?.dataIndex];
+                if(!row) return "";
+                const stronger = row.pointGap >= 0 ? loungeLabel : "World Wides";
+                return `Edge: ${stronger}`;
+              },
+            },
+          },
+        },
+      },
+    });
+
+    renderMkcCompareNotes(compareRows, loungeLabel, "World Wides");
+    setMkcCompareStatus("");
+  }
+
+  function bindMkcCompare(){
+    const dialog = $("mkcCompareDialog");
+    if(dialog){
+      dialog.onclose = () => {
+        mkcCompareOpen = false;
+        updateMkcCompareButton();
+      };
+      dialog.oncancel = () => {
+        mkcCompareOpen = false;
+        updateMkcCompareButton();
+      };
+    }
+    $("btnCloseMkcCompare")?.addEventListener("click", closeMkcCompareDialog);
+    $("btnCompareMkcStats")?.addEventListener("click", async () => {
+      if(dialog?.open){
+        closeMkcCompareDialog();
+        return;
+      }
+      mkcCompareOpen = true;
+      updateMkcCompareButton();
+      try{
+        await renderMkcCompareChart();
+      }catch(err){
+        console.error("[mkcentral] compare chart failed", err);
+        clearMkcCompareChart("Comparison failed. Please try again.");
+      }
+    });
   }
 
   function renderGroupTable(id, rows){
@@ -1369,13 +1672,14 @@
     chartDelta = null;
     chartMmr = null;
     chartWeeklyMmr = null;
-    ["chartMkcDelta", "chartMkcMmr", "chartMkcWeeklyMmr"].forEach((id) => {
-      const canvas = $(id);
-      const ctx = canvas?.getContext?.("2d");
-      if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    });
+    setMkcChartEmpty("chartMkcDelta", "No play time data yet. Sync MKCentral events first.");
+    setMkcChartEmpty("chartMkcMmr", "No MMR history yet. Sync MKCentral events first.");
+    setMkcChartEmpty("chartMkcWeeklyMmr", "No weekly MMR data yet. Sync MKCentral events first.");
     const chartMeta = $("mkcChartMeta");
-    if(chartMeta) chartMeta.textContent = `No synced events for ${scopeLabel(activeScope)}.`;
+    if(chartMeta){
+      chartMeta.textContent = "";
+      chartMeta.classList.add("hidden");
+    }
   }
 
   function cssVar(name, fallback){
@@ -1434,7 +1738,7 @@
   }
 
   function parseLoungeTrackerRoute(value){
-    const match = String(value || "").match(/^\s*(.*?)\s*->\s*(.*?)\s*$/);
+    const match = String(value || "").match(/^\s*(.*?)\s*(?:->|→|>)\s*(.*?)\s*$/);
     if(!match) return null;
     const start = cleanText(match[1]);
     const end = cleanText(match[2]);
@@ -1455,6 +1759,26 @@
     return parseLoungeTrackerRoute(race?.track) || { start: "", end: "" };
   }
 
+  function loungeTrackerRouteKeyCandidates(start, end){
+    const s = cleanText(start || "");
+    const e = cleanText(end || "");
+    return s && e ? [`${s}→${e}`, `${s}>${e}`, `${s} -> ${e}`] : [];
+  }
+
+  function loungeTrackerRouteMeta(start, end){
+    const meta = loungeTrackerChartsState.intermissionMeta || {};
+    for(const key of loungeTrackerRouteKeyCandidates(start, end)){
+      if(Object.prototype.hasOwnProperty.call(meta, key)) return meta[key];
+    }
+    return null;
+  }
+
+  function loungeTrackerCleanMetaLabel(value){
+    const label = cleanText(value || "");
+    const lower = label.toLowerCase();
+    return !label || lower === "null" || lower === "undefined" ? "" : label;
+  }
+
   async function loadLoungeTrackerIntermissionMeta(){
     if(loungeTrackerChartsState.intermissionMeta) return loungeTrackerChartsState.intermissionMeta;
     try{
@@ -1470,16 +1794,26 @@
   }
 
   function loungeTrackerDestinyGroup(start, end){
-    const key = start && end ? `${start} -> ${end}` : "";
-    const meta = key ? loungeTrackerChartsState.intermissionMeta?.[key] : null;
-    const group = cleanText(meta?.destiny_group || "");
+    const meta = loungeTrackerRouteMeta(start, end);
+    const group = loungeTrackerCleanMetaLabel(meta?.destiny_group);
     return group || cleanText(end || "");
+  }
+
+  function loungeTrackerSpecialDestinyGroup(start, end){
+    const meta = loungeTrackerRouteMeta(start, end);
+    if(!meta?.is_special) return "";
+    const plainEnd = cleanText(end || "").toLowerCase();
+    const group = loungeTrackerCleanMetaLabel(meta.destiny_group);
+    const tag = loungeTrackerCleanMetaLabel(meta.special_tag);
+    if(group && group.toLowerCase() !== plainEnd) return group;
+    if(tag && tag.toLowerCase() !== plainEnd) return tag;
+    return start && end ? loungeTrackerRouteLabel(start, end) : group || tag;
   }
 
   function loungeTrackerShouldIncludeRace(race, mode){
     const isIntermission = isLoungeTrackerIntermissionRace(race);
     if(mode === "tracks") return !isIntermission;
-    if(mode === "intermission" || mode === "im_destiny" || mode === "im_routes") return isIntermission;
+    if(mode === "intermission" || mode === "im_destiny" || mode === "im_special_destiny" || mode === "im_routes") return isIntermission;
     return true;
   }
 
@@ -1487,6 +1821,10 @@
     if(mode === "im_destiny"){
       const { start, end } = loungeTrackerRouteParts(race);
       return start && end ? loungeTrackerDestinyGroup(start, end) : cleanText(race?.track || "");
+    }
+    if(mode === "im_special_destiny"){
+      const { start, end } = loungeTrackerRouteParts(race);
+      return start && end ? loungeTrackerSpecialDestinyGroup(start, end) : "";
     }
     if(mode === "im_routes"){
       const { start, end } = loungeTrackerRouteParts(race);
@@ -1519,6 +1857,8 @@
       completed_at: normalizeIsoTime(session?.completed_at || ""),
       updated_at: normalizeIsoTime(session?.updated_at || ""),
       playerCount,
+      loungeFormatTag: normalizeLoungeStatsFormatTag(session?.loungeFormatTag || session?.lounge_format_tag || ""),
+      statsExcluded: session?.statsExcluded === true || session?.stats_excluded === true,
       races,
     };
   }
@@ -1544,6 +1884,8 @@
       created_at: row.created_at,
       completed_at: row.completed_at,
       updated_at: row.updated_at,
+      lounge_format_tag: row.lounge_format_tag,
+      stats_excluded: row.stats_excluded,
       races: (races || []).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)).map((race) => dbLoungeTrackerRaceToLocal(race, playerCount)),
     }, playerCount);
   }
@@ -1562,7 +1904,7 @@
 
     const { data: mogis, error: mogiError } = await resolved.client
       .from("lounge_mogis")
-      .select("id, created_at, completed_at, updated_at, status, player_count")
+      .select("id, created_at, completed_at, updated_at, status, player_count, lounge_format_tag, stats_excluded")
       .eq("user_id", uid)
       .eq("player_count", playerCount)
       .eq("status", "completed")
@@ -1602,9 +1944,13 @@
     return loungeTrackerChartsState.sessionsByMode[String(mode)] || [];
   }
 
+  function getLoungeTrackerStatSessions(mode = loungeTrackerChartsState.mode){
+    return getLoungeTrackerSessions(mode).filter((session) => !loungeTrackerSessionStatsExcluded(session));
+  }
+
   function aggregateLoungeTrackerTrackStats(mode = loungeTrackerChartsState.trackMode, loungeMode = loungeTrackerChartsState.mode){
     const bucket = new Map((mode === "tracks" ? LOUNGE_TRACKS : []).map((track) => [track, []]));
-    for(const session of getLoungeTrackerSessions(loungeMode)){
+    for(const session of getLoungeTrackerStatSessions(loungeMode)){
       for(const race of (session.races || [])){
         if(race.disconnect) continue;
         if(!loungeTrackerShouldIncludeRace(race, mode)) continue;
@@ -1630,7 +1976,7 @@
     const effectiveMode = loungeTrackerEffectivePlacementMode(mode, loungeMode);
     const maxPlacement = loungeTrackerPlayerCount(loungeMode);
     const counts = Array.from({ length: maxPlacement }, (_, index) => ({ placement: index + 1, count: 0 }));
-    for(const session of getLoungeTrackerSessions(loungeMode)){
+    for(const session of getLoungeTrackerStatSessions(loungeMode)){
       for(const race of (session.races || [])){
         if(race.disconnect) continue;
         if(!loungeTrackerShouldIncludeRace(race, effectiveMode)) continue;
@@ -1669,6 +2015,7 @@
 
   function loungeTrackerTrackModeLabel(mode = loungeTrackerChartsState.trackMode){
     if(mode === "im_destiny") return "Intermission Destiny";
+    if(mode === "im_special_destiny") return "Special Destinies";
     if(mode === "im_routes") return "Intermission Separated";
     return "Tracks";
   }
@@ -1709,7 +2056,7 @@
     const type = loungeTrackerPlacementItemType(mode, loungeMode);
     const counts = new Map();
     const order = type === "tracks" ? [...LOUNGE_TRACKS] : [];
-    for(const session of getLoungeTrackerSessions(loungeMode)){
+    for(const session of getLoungeTrackerStatSessions(loungeMode)){
       for(const race of (session.races || [])){
         if(race.disconnect) continue;
         if(!loungeTrackerShouldIncludeRace(race, effectiveMode)) continue;
@@ -1877,7 +2224,13 @@
     const deltas = statEvents.map((event) => parsedNumber(event.mmr_delta));
     const mmr = statEvents.map((event) => parsedNumber(event.mmr_after));
     const chartMeta = $("mkcChartMeta");
-    if(chartMeta) chartMeta.textContent = `Estimated daily play time from ${fmtDateShort(seasonStartDate(events))} to ${fmtDateShort(new Date())}. 1 mogi = ${AVG_MOGI_MINUTES} minutes.`;
+    if(chartMeta){
+      const totalMogis = dailySeries.mogis.reduce((total, value) => total + (Number(value) || 0), 0);
+      chartMeta.textContent = totalMogis
+        ? `${fmtNumber(totalMogis)} mogis x ${AVG_MOGI_MINUTES}m = ${fmtDurationMinutes(totalMogis * AVG_MOGI_MINUTES)}`
+        : "";
+      chartMeta.classList.toggle("hidden", !totalMogis);
+    }
 
     const textColor = cssVar("--text", "#fff");
     const gridColor = cssVar("--border", "rgba(255,255,255,.2)");
@@ -1899,6 +2252,9 @@
     const mmrColors = mmr.map((value) => rankChartBorder(value));
     const fallbackMmrColor = mmrColors.find(Boolean) || "rgba(255,255,255,.28)";
 
+    setMkcChartEmpty("chartMkcDelta", "");
+    setMkcChartEmpty("chartMkcMmr", "");
+    setMkcChartEmpty("chartMkcWeeklyMmr", "");
     chartDelta?.destroy();
     chartDelta = new Chart($("chartMkcDelta"), {
       type: "bar",
@@ -2043,20 +2399,138 @@
         },
       });
     }
+    updateMkcMmrDeckUi();
+  }
+
+  function updateMkcMmrDeckUi(){
+    const isWeekly = mkcMmrDeckPanel === 1;
+    const track = $("mkcMmrDeckTrack");
+    if(track) track.style.transform = isWeekly ? "translateX(-50%)" : "translateX(0%)";
+    document.querySelectorAll("#mkcMmrDeckPager [data-mkc-mmr-panel]").forEach((button) => {
+      const active = Number(button.getAttribute("data-mkc-mmr-panel")) === mkcMmrDeckPanel;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    const title = $("mkcMmrDeckTitle");
+    if(title) title.textContent = isWeekly ? "Weekly Average MMR" : "MMR History";
+    const info = $("btnMkcMmrDeckInfo");
+    if(info) info.dataset.info = isWeekly ? "mkcWeeklyMmr" : "mkcMmrHistory";
+    requestAnimationFrame(() => {
+      resizeMkcChart(chartMmr);
+      resizeMkcChart(chartWeeklyMmr);
+    });
+  }
+
+  function setMkcMmrDeckPanel(panel){
+    mkcMmrDeckPanel = Math.max(0, Math.min(1, Number(panel) || 0));
+    closeLoungeTrackerMenus();
+    updateMkcMmrDeckUi();
+  }
+
+  function bindMkcMmrDeckControls(){
+    document.querySelectorAll("#mkcMmrDeckPager [data-mkc-mmr-panel]").forEach((button) => {
+      button.addEventListener("click", () => setMkcMmrDeckPanel(button.getAttribute("data-mkc-mmr-panel")));
+    });
+    bindSwipeNavigation($("mkcMmrDeckViewport"), {
+      onLeft: () => { if(mkcMmrDeckPanel < 1) setMkcMmrDeckPanel(mkcMmrDeckPanel + 1); },
+      onRight: () => { if(mkcMmrDeckPanel > 0) setMkcMmrDeckPanel(mkcMmrDeckPanel - 1); },
+    });
+    updateMkcMmrDeckUi();
+  }
+
+  function loungeTrackerAvailableChartModes(mode = loungeTrackerChartsState.mode){
+    const allowIntermission = loungeTrackerAllowsIntermission(mode);
+    return LOUNGE_TRACKER_CHART_MODES.filter((chartMode) => allowIntermission || !LOUNGE_TRACKER_INTERMISSION_MODES.has(chartMode));
+  }
+
+  function loungeTrackerActiveChartMode(){
+    if(loungeTrackerChartsState.panel === "placement") return "placement";
+    return loungeTrackerAvailableChartModes().includes(loungeTrackerChartsState.trackMode)
+      ? loungeTrackerChartsState.trackMode
+      : "tracks";
+  }
+
+  function loungeTrackerChartModeTitle(mode = loungeTrackerActiveChartMode()){
+    if(mode === "placement") return "Placement Distribution";
+    if(mode === "im_destiny") return "Destiny Performance";
+    if(mode === "im_special_destiny") return "Special Destiny Performance";
+    if(mode === "im_routes") return "Separated Performance";
+    return "Track Performance";
+  }
+
+  function updateLoungeTrackerDeckUi(){
+    const activeMode = loungeTrackerActiveChartMode();
+    const isPlacement = activeMode === "placement";
+    const availableModes = loungeTrackerAvailableChartModes();
+    const track = $("mkcLoungeDeckTrack");
+    if(track) track.style.transform = isPlacement ? "translateX(-50%)" : "translateX(0%)";
+    document.querySelectorAll("#mkcLoungeDeckPager [data-mkc-lounge-chart-mode]").forEach((button) => {
+      const mode = button.getAttribute("data-mkc-lounge-chart-mode");
+      const disabled = !availableModes.includes(mode);
+      const active = !disabled && mode === activeMode;
+      button.hidden = disabled;
+      button.disabled = disabled;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+      button.setAttribute("aria-disabled", disabled ? "true" : "false");
+    });
+    const title = $("mkcLoungeDeckTitle");
+    if(title) title.textContent = loungeTrackerChartModeTitle(activeMode);
+    const info = $("btnMkcLoungeDeckInfo");
+    if(info) info.dataset.info = isPlacement ? "mkcPlacementDistribution" : "mkcTrackPerformance";
+    const trackActions = $("mkcLoungeTrackActions");
+    const placementActions = $("mkcLoungePlacementActions");
+    if(trackActions) trackActions.hidden = isPlacement;
+    if(placementActions) placementActions.hidden = !isPlacement;
+    requestAnimationFrame(() => {
+      resizeMkcChart(loungeTrackerChartsState.trackChart);
+      resizeMkcChart(loungeTrackerChartsState.placementChart);
+    });
+  }
+
+  function setLoungeTrackerChartMode(mode){
+    const next = LOUNGE_TRACKER_CHART_MODES.includes(mode) ? mode : "tracks";
+    if(!loungeTrackerAvailableChartModes().includes(next)) return;
+    if(next === "placement"){
+      loungeTrackerChartsState.panel = "placement";
+    }else{
+      loungeTrackerChartsState.panel = "track";
+      loungeTrackerChartsState.trackMode = next;
+      loungeTrackerChartsState.lastSelectedTrack = null;
+    }
+    closeLoungeTrackerMenus();
+    renderLoungeTrackerSection();
+  }
+
+  function stepLoungeTrackerChartMode(step){
+    const modes = loungeTrackerAvailableChartModes();
+    const current = loungeTrackerActiveChartMode();
+    const currentIndex = Math.max(0, modes.indexOf(current));
+    const nextIndex = currentIndex + step;
+    if(nextIndex < 0 || nextIndex >= modes.length) return;
+    setLoungeTrackerChartMode(modes[nextIndex]);
+  }
+
+  function bindLoungeTrackerDeckControls(){
+    document.querySelectorAll("#mkcLoungeDeckPager [data-mkc-lounge-chart-mode]").forEach((button) => {
+      button.addEventListener("click", () => setLoungeTrackerChartMode(button.getAttribute("data-mkc-lounge-chart-mode")));
+    });
+    bindSwipeNavigation($("mkcLoungeDeckViewport"), {
+      onLeft: () => stepLoungeTrackerChartMode(1),
+      onRight: () => stepLoungeTrackerChartMode(-1),
+    });
+    updateLoungeTrackerDeckUi();
   }
 
   function updateLoungeTrackerModeButtons(){
     const is24 = loungeTrackerChartsState.mode === "24";
     const effectivePlacementMode = loungeTrackerEffectivePlacementMode();
-    const modeValue = $("mkcLoungeModeFilterValue");
-    if(modeValue) modeValue.textContent = loungeTrackerModeLabel();
     document.querySelectorAll("[data-mkc-lounge-mode]").forEach((button) => {
       const active = button.getAttribute("data-mkc-lounge-mode") === loungeTrackerChartsState.mode;
       button.classList.toggle("active", active);
+      button.classList.toggle("isActive", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
     });
-
-    const pager = $("mkcLoungeTrackPager");
-    if(pager) pager.hidden = !is24;
 
     const placementFilterRoot = $("mkcLoungePlacementFilterRoot");
     if(placementFilterRoot) placementFilterRoot.hidden = !is24;
@@ -2068,12 +2542,6 @@
     if(placementMeta) {
       placementMeta.textContent = effectivePlacementMode === "intermission" ? "Intermission" : effectivePlacementMode === "all" ? "All" : "Tracks";
     }
-
-    document.querySelectorAll("[data-mkc-track-mode]").forEach((button) => {
-      const active = button.getAttribute("data-mkc-track-mode") === loungeTrackerChartsState.trackMode;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", active ? "true" : "false");
-    });
 
     const trackSortLabel = loungeTrackerChartsState.trackSortKey === "count" ? "Most played" : "Performance";
     const trackSortArrow = loungeTrackerChartsState.trackSortDir === "desc" ? "v" : "^";
@@ -2105,11 +2573,15 @@
     if(placementItemFilterRoot) {
       placementItemFilterRoot.hidden = is24 && effectivePlacementMode === "all";
     }
+    updateLoungeTrackerDeckUi();
   }
 
   function closeLoungeTrackerMenus(){
+    if(window.MKWT_UI?.closeFilterMenus){
+      window.MKWT_UI.closeFilterMenus("mkcTracker");
+      return;
+    }
     [
-      ["btnMkcLoungeModeFilter", "menuMkcLoungeModeFilter"],
       ["btnMkcLoungeTrackFilter", "menuMkcLoungeTrackFilter"],
       ["btnMkcLoungePlacementFilter", "menuMkcLoungePlacementFilter"],
       ["btnMkcLoungePlacementItemFilter", "menuMkcLoungePlacementItemFilter"],
@@ -2122,6 +2594,10 @@
   }
 
   function toggleLoungeTrackerMenu(buttonId, menuId){
+    if(window.MKWT_UI?.toggleFilterMenu){
+      window.MKWT_UI.toggleFilterMenu(buttonId, menuId, { type: "mkcTracker" });
+      return;
+    }
     const button = $(buttonId);
     const menu = $(menuId);
     if(!button || !menu) return;
@@ -2135,11 +2611,14 @@
     loungeTrackerChartsState.lastSelectedTrack = trackName || null;
     const el = $("mkcLoungeTrackInsight");
     if(!el) return;
+    el.classList.remove("mkcTrackerInsight--empty");
     const stat = loungeTrackerChartsState.lastTrackStats.find((entry) => entry.track === trackName);
     if(!stat){
-      el.innerHTML = '<div class="muted">Click on a bar to see AVG points and times played.</div>';
+      el.innerHTML = "";
+      el.hidden = true;
       return;
     }
+    el.hidden = false;
     el.innerHTML = `
       <div class="mkcTrackerInsightTitle">${escapeHtml(stat.track)}</div>
       <div class="mkcTrackerInsightMeta">${escapeHtml(loungeTrackerTrackModeLabel())} details from saved ${escapeHtml(loungeTrackerModeLabel())} Mogis</div>
@@ -2149,7 +2628,7 @@
           <span class="mkcTrackerInsightValue">${stat.count ? stat.avg.toFixed(2) : "-"}</span>
         </div>
         <div class="mkcTrackerInsightStat">
-          <span class="mkcTrackerInsightLabel">Times played</span>
+          <span class="mkcTrackerInsightLabel">Plays</span>
           <span class="mkcTrackerInsightValue">${stat.count}</span>
         </div>
       </div>
@@ -2159,20 +2638,14 @@
   function renderLoungeTrackerPlacementInsight(message, selectedLabel = ""){
     const el = $("mkcLoungePlacementInsight");
     if(!el) return;
+    el.classList.remove("mkcTrackerInsight--empty");
     if(message){
+      el.hidden = false;
       el.innerHTML = `<div class="muted">${escapeHtml(message)}</div>`;
       return;
     }
-    const effectiveMode = loungeTrackerEffectivePlacementMode();
-    if(effectiveMode === "all"){
-      el.innerHTML = `<div class="muted">${escapeHtml(`All saved races in ${loungeTrackerModeLabel()} Mogis.`)}</div>`;
-      return;
-    }
-    const type = loungeTrackerPlacementItemType();
-    const label = selectedLabel
-      ? `${selectedLabel} placements in saved ${loungeTrackerModeLabel()} Mogis`
-      : `${type === "routes" ? "All intermission routes" : "All tracks"} in saved ${loungeTrackerModeLabel()} Mogis`;
-    el.innerHTML = `<div class="muted">${escapeHtml(label)}</div>`;
+    el.innerHTML = "";
+    el.hidden = true;
   }
 
   function renderLoungeTrackerTrackChart(stats){
@@ -2184,13 +2657,12 @@
       loungeTrackerChartsState.trackChart?.destroy();
       loungeTrackerChartsState.trackChart = null;
       renderLoungeTrackerInsight(null);
-      const emptyMode = loungeTrackerTrackModeLabel();
-      const insight = $("mkcLoungeTrackInsight");
-      if(insight){
-        insight.innerHTML = `<div class="muted">No saved ${escapeHtml(emptyMode)} data found yet for ${escapeHtml(loungeTrackerModeLabel())}.</div>`;
-      }
+      setMkcChartEmpty("chartMkcLoungeTrack", "");
+      renderLoungeTrackerEmptyNotice("mkcLoungeTrackInsight", "No data for this chart yet.");
       return;
     }
+    setMkcChartEmpty("chartMkcLoungeTrack", "");
+    renderLoungeTrackerEmptyNotice("mkcLoungeTrackInsight", "");
 
     const positiveStroke = cssVar("--chart-positive-stroke", "#4da319");
     const negativeStroke = cssVar("--chart-negative-stroke", "#ff5050");
@@ -2280,9 +2752,12 @@
     if(!stats.some((row) => Number(row.count || 0) > 0)){
       loungeTrackerChartsState.placementChart?.destroy();
       loungeTrackerChartsState.placementChart = null;
-      renderLoungeTrackerPlacementInsight(`No saved placement data found for ${loungeTrackerPlacementItemLabel()} in ${loungeTrackerModeLabel()}.`);
+      setMkcChartEmpty("chartMkcLoungePlacement", "");
+      renderLoungeTrackerEmptyNotice("mkcLoungePlacementInsight", "No placement data for this chart yet.");
       return;
     }
+    setMkcChartEmpty("chartMkcLoungePlacement", "");
+    renderLoungeTrackerEmptyNotice("mkcLoungePlacementInsight", "");
     renderLoungeTrackerPlacementInsight("", loungeTrackerChartsState.placementItem);
     const labels = stats.map((row) => String(row.placement));
     const values = stats.map((row) => Number(row.count || 0));
@@ -2338,18 +2813,26 @@
   function renderLoungeTrackerSection(){
     updateLoungeTrackerModeButtons();
     const meta = $("mkcLocalTrackerMeta");
-    const sessions = getLoungeTrackerSessions();
+    const savedSessions = getLoungeTrackerSessions();
+    const sessions = getLoungeTrackerStatSessions();
     const races = sessions.flatMap((session) => session.races || []);
     const nonDcCount = races.filter((race) => !race.disconnect).length;
     if(meta){
       meta.textContent = sessions.length
         ? `${loungeTrackerModeLabel()} from saved tracker Mogis: ${sessions.length} Mogis / ${nonDcCount} non-DC races.`
-        : `No saved ${loungeTrackerModeLabel()} tracker Mogis found yet in this browser/account.`;
+        : (savedSessions.length
+          ? `No ${loungeTrackerModeLabel()} tracker Mogis are included in stats.`
+          : `No saved ${loungeTrackerModeLabel()} tracker Mogis found yet in this browser/account.`);
     }
     if(!sessions.length || !races.length){
       destroyLoungeTrackerCharts();
-      renderLoungeTrackerInsight(null);
-      renderLoungeTrackerPlacementInsight(`No saved ${loungeTrackerModeLabel()} tracker Mogis found yet in this browser/account.`);
+      const message = savedSessions.length
+        ? `No ${loungeTrackerModeLabel()} Mogis are included in stats.`
+        : `No saved ${loungeTrackerModeLabel()} Mogis yet.`;
+      setMkcChartEmpty("chartMkcLoungeTrack", "");
+      setMkcChartEmpty("chartMkcLoungePlacement", "");
+      renderLoungeTrackerEmptyNotice("mkcLoungeTrackInsight", message);
+      renderLoungeTrackerEmptyNotice("mkcLoungePlacementInsight", message);
       return;
     }
 
@@ -2384,9 +2867,11 @@
     const placementStats = aggregateLoungeTrackerPlacementStats(placementMode, loungeTrackerChartsState.mode, loungeTrackerChartsState.placementItem);
     renderLoungeTrackerTrackChart(trackStats);
     renderLoungeTrackerPlacementChart(placementStats);
-    const selectedTrack = loungeTrackerChartsState.lastSelectedTrack;
-    if(selectedTrack && trackStats.some((row) => row.track === selectedTrack)) renderLoungeTrackerInsight(selectedTrack);
-    else renderLoungeTrackerInsight(null);
+    if(trackStats.length){
+      const selectedTrack = loungeTrackerChartsState.lastSelectedTrack;
+      if(selectedTrack && trackStats.some((row) => row.track === selectedTrack)) renderLoungeTrackerInsight(selectedTrack);
+      else renderLoungeTrackerInsight(null);
+    }
   }
 
   function setLoungeTrackerMode(mode){
@@ -2397,6 +2882,7 @@
     if(!loungeTrackerAllowsIntermission(next)){
       loungeTrackerChartsState.trackMode = "tracks";
       loungeTrackerChartsState.placementMode = "all";
+      if(loungeTrackerChartsState.panel !== "placement") loungeTrackerChartsState.panel = "track";
     }
     closeLoungeTrackerMenus();
     renderLoungeTrackerSection();
@@ -2404,7 +2890,8 @@
 
   function setLoungeTrackerTrackMode(mode){
     if(!loungeTrackerAllowsIntermission()) mode = "tracks";
-    if(!["tracks", "im_destiny", "im_routes"].includes(mode)) mode = "tracks";
+    if(!["tracks", "im_destiny", "im_special_destiny", "im_routes"].includes(mode)) mode = "tracks";
+    loungeTrackerChartsState.panel = "track";
     loungeTrackerChartsState.trackMode = mode;
     loungeTrackerChartsState.lastSelectedTrack = null;
     renderLoungeTrackerSection();
@@ -2434,10 +2921,6 @@
   }
 
   function bindLoungeTrackerControls(){
-    $("btnMkcLoungeModeFilter")?.addEventListener("click", (event) => {
-      event.stopPropagation();
-      toggleLoungeTrackerMenu("btnMkcLoungeModeFilter", "menuMkcLoungeModeFilter");
-    });
     $("btnMkcLoungeTrackFilter")?.addEventListener("click", (event) => {
       event.stopPropagation();
       toggleLoungeTrackerMenu("btnMkcLoungeTrackFilter", "menuMkcLoungeTrackFilter");
@@ -2462,9 +2945,6 @@
         setLoungeTrackerTrackSort(button.getAttribute("data-mkc-track-sort"));
       });
     });
-    document.querySelectorAll("[data-mkc-track-mode]").forEach((button) => {
-      button.addEventListener("click", () => setLoungeTrackerTrackMode(button.getAttribute("data-mkc-track-mode")));
-    });
     document.querySelectorAll("[data-mkc-placement-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         closeLoungeTrackerMenus();
@@ -2472,11 +2952,10 @@
       });
     });
     document.addEventListener("click", (event) => {
-      const modeRoot = $("mkcLoungeModeFilterRoot");
       const trackRoot = $("mkcLoungeTrackFilterRoot");
       const placementRoot = $("mkcLoungePlacementFilterRoot");
       const placementItemRoot = $("mkcLoungePlacementItemFilterRoot");
-      if(modeRoot?.contains(event.target) || trackRoot?.contains(event.target) || placementRoot?.contains(event.target) || placementItemRoot?.contains(event.target)) return;
+      if(trackRoot?.contains(event.target) || placementRoot?.contains(event.target) || placementItemRoot?.contains(event.target)) return;
       closeLoungeTrackerMenus();
     });
   }
@@ -2503,13 +2982,13 @@
     setScopeDisplay();
     if(!payload || !Array.isArray(payload.events) || !payload.events.length){
       lastRenderedPayload = payload || null;
-      setMkcReportEnabled(false);
+      updateMkcSummaryFilterUi(false);
       const nameEl = $("mkcPlayerNameDisplay");
       if(nameEl){
         nameEl.textContent = payload?.playerName || "MKCentral Player";
         nameEl.classList.toggle("isEmpty", !payload?.playerName);
       }
-      setLastUpdateDisplay(payload?.updated_at || "");
+      setLastUpdateDisplay(payload?.updated_at || "", Array.isArray(payload?.events) ? payload.events.length : null);
       const emptyText = payload?.updated_at
         ? `Synced ${escapeHtml(scopeLabel(activeScope))}: no MKCentral events found.`
         : `No local Lounge Stats data yet for ${escapeHtml(scopeLabel(activeScope))}. Press Update data and sync this season from MKCentral.`;
@@ -2526,13 +3005,12 @@
       nameEl.classList.remove("isEmpty");
     }
     lastRenderedPayload = payload;
-    setLastUpdateDisplay(payload.updated_at);
+    setLastUpdateDisplay(payload.updated_at, payload.events.length);
     renderCards(payload);
     renderGroupTable("mkcTypeRows", groupedRows(payload.events, "format"));
     renderGroupTable("mkcTierRows", groupedRows(payload.events, "tier"));
     renderEvents(payload.events);
     renderCharts(payload.events);
-    setMkcReportEnabled(true);
   }
 
   async function loadInitialPlayerRef(){
@@ -2671,7 +3149,11 @@
   }
 
   async function init(){
-    bindMkcReport();
+    bindMkcSummaryFilter();
+    bindMkcScoreHints();
+    bindMkcCompare();
+    bindMkcMmrDeckControls();
+    bindLoungeTrackerDeckControls();
     bindLoungeTrackerControls();
     activeScope = readScope();
     pendingScope = normalizeScope(activeScope);

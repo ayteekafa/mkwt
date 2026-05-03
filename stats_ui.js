@@ -2,23 +2,27 @@
   const INFO_TEXTS = {
     vrHistory: {
       title: "VR History",
-      body: "This chart shows your VR over time, ordered by match number (X-axis), with VR on the Y-axis. Use it to spot trends, streaks, and turning points in your progression. In Last month and Last week, the line reflects your raw VR after each match. In Overall, very large histories are automatically sampled so the chart stays fast and readable while preserving the broader trend. Use the filter button to switch between Overall, Last month, and Last week. Swipe left to move into the weekly VR panel, or swipe right to come back."
+      body: "Shows how your VR changed after each race. Use the filter to view all races, the last month, or the last week."
     },
     performance: {
       title: "Performance",
-      body: "This is a per-track or per-intermission performance ranking. Each bar summarizes how well you perform on that item across your stored matches, combining average VR gain and win rate. Swipe the chart to move between Tracks, Intermission Destiny, and Intermission Separated. Use the filter button for sorting (Average VR gain, Win rate, Times played, A-Z). Clicking the same active sort again reverses the order. Tap a bar to see the details line for the selected item."
+      body: "Shows where you gain the most VR. Destiny keeps special variants separate, and Special shows only those variant endings."
     },
     trackDistribution: {
-      title: "Track Distribution",
-      body: "This pie chart shows how your matches split between Tracks and Intermission. It helps you understand what you have actually been playing and how that affects your stats. Use the filter button to switch between Overall, Last month, and Last week. The three summary cards below update with the selected window and show Avg VR and Win rate for Matches, Tracks, and Intermission separately."
+      title: "Tracks & Intermissions",
+      body: "Separates regular tracks from intermissions, so you can compare how often each type appears and how your average VR and win rate look for each side."
     },
     buckets: {
       title: "VR Performance Sweetspot",
-      body: "This chart shows how you perform below vs. above your own average VR. Matches are grouped into VR-before buckets around your average VR - the 0 bucket represents your average VR baseline.\n\nLeft buckets = matches played under your average, right buckets = over your average. Bar height is your average VR gain in that bucket.\n\nUse the filter button to switch between Overall, Track only, and Intermission only. This chart needs many matches to be representative."
+      body: "Tries to estimate your average VR level from World Wide results. Switch between Overall, Tracks, and Intermission to see what your VR could look like if World Wides only played that type."
     },
     weekly: {
       title: "VR History (Weekly)",
-      body: "This chart aggregates your data by week to smooth out daily noise. In 'VR Average' mode, each bar represents your average VR for that week. In 'VR Gain Avg' mode, it shows your weekly average VR gain split by Tracks vs Intermission so you can compare them at a glance. Use the filter button to switch the mode, and tap a bar to pin the details. This chart lives as the second swipe panel after VR History."
+      body: "Shows your VR by week. Choose average VR or average gain to see the trend more calmly."
+    },
+    modeCompare: {
+      title: "Mode Compare",
+      body: "Compares shared tracks between World Wides and Lounge 12p. When both colored bars are high and even, you are strong and consistent on that track in both modes. If one side is much lower, review that track in that mode and look for what feels different."
     }
   };
 

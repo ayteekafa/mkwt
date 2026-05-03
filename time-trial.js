@@ -7,6 +7,7 @@
   const COMBO_ICON_MANIFEST_URL = "combo_icon_map.json";
   const COMBO_BUILDER_SELECTION_KEY = "mkwt_combo_builder_selection_v1";
   const CATEGORY_LABELS = { shroom: "Shroom", shroomless: "Shroomless" };
+  const WR_CHANGE_FIELDS = ["wr_time_text", "wr_time_ms", "holder_name", "character_name", "kart_name", "last_recorded_at"];
   const COMBO_CHARACTER_ALIASES = {
     Swooper: "Swoop",
     Fishbone: "Fish Bone",
@@ -92,12 +93,20 @@
   let trackOrder = TRACKS_FALLBACK.slice();
   let worldRecords = [];
   let entries = [];
+  let expandedEntryCards = new Set();
   let characters = [];
   let karts = [];
   let editingEntryId = null;
   let entryCategoryFilter = "all";
   let wrCategoryFilter = "all";
+  let pendingWrNewRecordKeys = new Set();
   let ttFilterBindingsReady = false;
+  let ttPickerBindingsReady = false;
+  let ttPickerBackdrop = null;
+  let ttPickerScrollY = 0;
+  let activeTtLetterPicker = null;
+  let ttStatusHideTimer = null;
+  let ttStatusExitTimer = null;
   let trackIconPaths = new Map();
   let comboBuilderData = null;
   let comboIconManifest = { characters: {}, vehicles: {} };
@@ -105,6 +114,12 @@
   let comboVehicleMap = new Map();
   let currentWrComboContext = null;
   let currentComboInfoContext = null;
+  const ttPickerIconReadyPaths = new Set();
+  const ttPickerIconFailedPaths = new Set();
+  const ttPickerIconPreloadPromises = new Map();
+  let ttPickerIconWarmupPromise = null;
+  let ttPickerIconWarmupKey = "";
+  let ttPickerIconRefreshQueued = false;
   const PUBLIC_AUTH_STORAGE = {
     getItem() { return null; },
     setItem() {},
@@ -113,6 +128,29 @@
 
   function cleanText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function repairUtf8Mojibake(value) {
+    const text = cleanText(value);
+    const looksMisdecoded = Array.from(text).some((char, index, chars) => {
+      const first = char.charCodeAt(0);
+      const second = chars[index + 1]?.charCodeAt(0) || 0;
+      return [0xc2, 0xc3, 0xe2, 0xe3].includes(first) && second >= 0x80 && second <= 0xbf;
+    });
+    if (!looksMisdecoded) return text;
+    try {
+      const bytes = Uint8Array.from(Array.from(text, (char) => char.charCodeAt(0) & 0xff));
+      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      const hasAsianText = Array.from(decoded).some((char) => {
+        const code = char.charCodeAt(0);
+        return (code >= 0x3040 && code <= 0x30ff)
+          || (code >= 0x3400 && code <= 0x9fff)
+          || (code >= 0xac00 && code <= 0xd7af);
+      });
+      return hasAsianText ? cleanText(decoded) : text;
+    } catch (e) {
+      return text;
+    }
   }
 
   function themeCssValue(name, fallback) {
@@ -154,7 +192,9 @@
 
   function canonicalComboCharacterName(value) {
     const raw = cleanText(value);
-    return COMBO_CHARACTER_ALIASES[raw] || raw;
+    const withoutSkin = raw.replace(/\s*\([^)]*\)\s*$/, "").trim();
+    const baseName = withoutSkin || raw;
+    return COMBO_CHARACTER_ALIASES[raw] || COMBO_CHARACTER_ALIASES[baseName] || baseName;
   }
 
   function canonicalComboVehicleName(value) {
@@ -214,10 +254,100 @@
     return raw ? encodeURI(raw) : "";
   }
 
+  function pickerIconPathFromSource(iconPath, group) {
+    const cleanPath = cleanText(iconPath).replace(/\\/g, "/");
+    const fileName = cleanPath.split("/").pop();
+    return fileName ? `assets/picker-icons/${group}/${fileName}` : "";
+  }
+
+  function trackPickerIconPath(trackName) {
+    const sourcePath = trackIconPaths.get(canonicalTrackName(trackName)) || "";
+    return pickerIconPathFromSource(sourcePath, "tracks") || sourcePath;
+  }
+
+  function comboPickerIconPath(type, slug) {
+    const sourcePath = comboIconPath(type, slug);
+    const group = type === "character" ? "characters" : "vehicles";
+    return pickerIconPathFromSource(sourcePath, group) || sourcePath;
+  }
+
+  function scheduleTimeTrialPickerIconRefresh() {
+    if (ttPickerIconRefreshQueued) return;
+    ttPickerIconRefreshQueued = true;
+    window.requestAnimationFrame(() => {
+      ttPickerIconRefreshQueued = false;
+      document.querySelectorAll(".ttPicker.is-open").forEach((root) => {
+        renderTimeTrialPickerPanel(root);
+        alignTimeTrialPickerPanel(root);
+      });
+    });
+  }
+
+  function preloadTimeTrialPickerIconPath(iconPath) {
+    if (!iconPath || ttPickerIconReadyPaths.has(iconPath) || ttPickerIconFailedPaths.has(iconPath)) {
+      return Promise.resolve(ttPickerIconReadyPaths.has(iconPath));
+    }
+    if (ttPickerIconPreloadPromises.has(iconPath)) return ttPickerIconPreloadPromises.get(iconPath);
+    const promise = new Promise((resolve) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.fetchPriority = "low";
+      img.onload = async () => {
+        try { await img.decode?.(); } catch (e) {}
+        ttPickerIconReadyPaths.add(iconPath);
+        scheduleTimeTrialPickerIconRefresh();
+        resolve(true);
+      };
+      img.onerror = () => {
+        ttPickerIconFailedPaths.add(iconPath);
+        resolve(false);
+      };
+      img.src = iconPath;
+    });
+    ttPickerIconPreloadPromises.set(iconPath, promise);
+    return promise;
+  }
+
+  function collectTimeTrialPickerIconPaths() {
+    const paths = [];
+    for (const track of trackOrder) {
+      const src = trackPickerIconPath(track);
+      if (src) paths.push(src);
+    }
+    for (const character of comboBuilderData?.characters || []) {
+      const src = comboPickerIconPath("character", character.slug || character.iconKey || "");
+      if (src) paths.push(src);
+    }
+    for (const vehicle of comboBuilderData?.vehicles || []) {
+      const src = comboPickerIconPath("vehicle", vehicle.slug || vehicle.iconKey || "");
+      if (src) paths.push(src);
+    }
+    return Array.from(new Set(paths));
+  }
+
+  function preloadTimeTrialPickerIcons() {
+    const paths = collectTimeTrialPickerIconPaths();
+    if (!paths.length) return Promise.resolve([]);
+    const nextKey = paths.join("|");
+    if (ttPickerIconWarmupPromise && ttPickerIconWarmupKey === nextKey) return ttPickerIconWarmupPromise;
+    ttPickerIconWarmupKey = nextKey;
+    ttPickerIconWarmupPromise = Promise.allSettled(paths.map(preloadTimeTrialPickerIconPath));
+    return ttPickerIconWarmupPromise;
+  }
+
+  function scheduleTimeTrialPickerIconWarmup() {
+    const run = () => preloadTimeTrialPickerIcons();
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: 1800 });
+    } else {
+      window.setTimeout(run, 250);
+    }
+  }
+
   function comboIconMarkup(type, name, slug) {
-    const src = comboIconPath(type, slug);
+    const src = comboPickerIconPath(type, slug);
     if (src) {
-      return `<img class="ttComboIcon ttComboIcon--${escapeHtml(type)}" src="${escapeHtml(src)}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" loading="eager" decoding="async" fetchpriority="high" />`;
+      return `<img class="ttComboIcon ttComboIcon--${escapeHtml(type)}" src="${escapeHtml(src)}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" loading="lazy" decoding="async" fetchpriority="low" />`;
     }
     return `<span class="ttComboIconFallback" title="${escapeHtml(name)}">${escapeHtml(comboIconLetters(name))}</span>`;
   }
@@ -227,16 +357,15 @@
   }
 
   function trackIconMarkup(trackName, extraClass = "") {
-    const iconPath = trackIconPaths.get(canonicalTrackName(trackName));
+    const iconPath = trackPickerIconPath(trackName);
     if (iconPath) {
-      return `<img class="ttTrackIcon ${escapeHtml(extraClass)}" src="${escapeHtml(iconPath)}" alt="${escapeHtml(trackName)}" title="${escapeHtml(trackName)}" loading="eager" decoding="async" fetchpriority="high" />`;
+      return `<img class="ttTrackIcon ${escapeHtml(extraClass)}" src="${escapeHtml(iconPath)}" alt="${escapeHtml(trackName)}" title="${escapeHtml(trackName)}" loading="lazy" decoding="async" fetchpriority="low" />`;
     }
     return `<div class="ttTrackIconFallback ${escapeHtml(extraClass)}" title="${escapeHtml(trackName)}">${escapeHtml(trackAbbrev(trackName))}</div>`;
   }
 
-  function renderEntryComboMarkup(entry, placement) {
+  function renderEntryComboMarkup(entry) {
     const combo = resolveComboStats(entry.character_name, entry.kart_name);
-    const button = combo ? comboInfoButtonMarkup(entry.id, "Show combo stats") : "";
     const charIcon = comboIconMarkup(
       "character",
       combo?.character?.name || entry.character_name || "Character",
@@ -248,16 +377,13 @@
       combo?.vehicle?.slug || combo?.vehicle?.iconKey || ""
     );
     return `
-      <div class="ttComboStack ${placement === "mobile" ? "ttComboStack--mobile" : ""}">
+      <div class="ttComboStack" aria-label="Saved combo">
         <div class="ttComboTopRow">
-          <div class="ttComboIcons">
+          <div class="ttComboIcons" title="${escapeHtml([entry.character_name, entry.kart_name].filter(Boolean).join(" + "))}">
             ${charIcon}
             ${vehicleIcon}
           </div>
-          ${button}
         </div>
-        <div class="ttSetupValue" title="${escapeHtml(entry.character_name)}">${escapeHtml(entry.character_name)}</div>
-        <div class="ttSetupSubValue" title="${escapeHtml(entry.kart_name)}">${escapeHtml(entry.kart_name)}</div>
       </div>
     `;
   }
@@ -402,16 +528,45 @@
     return !(SESSION && SESSION.user);
   }
 
-  function setStatus(message, ok = true) {
+  function setStatus(message, ok = true, autoHide = true) {
     const el = $("ttStatus");
     if (!el) return;
     const hasText = !!cleanText(message);
-    if (window.MKWT?.setStatus) {
-      window.MKWT.setStatus(el, hasText ? String(message) : "", ok);
-    } else {
-      el.textContent = hasText ? String(message) : "";
+    if (ttStatusHideTimer) {
+      clearTimeout(ttStatusHideTimer);
+      ttStatusHideTimer = null;
     }
-    el.classList.toggle("hidden", !hasText);
+    if (ttStatusExitTimer) {
+      clearTimeout(ttStatusExitTimer);
+      ttStatusExitTimer = null;
+    }
+    if (!hasText) {
+      el.textContent = "";
+      el.className = "ttStatus hidden";
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = String(message);
+    el.className = `ttStatus ${ok ? "ok" : "bad"}`;
+    requestAnimationFrame(() => {
+      if (el.textContent === String(message)) el.classList.add("is-visible");
+    });
+    if (autoHide) {
+      const currentMessage = String(message);
+      ttStatusHideTimer = setTimeout(() => {
+        if (el.textContent !== currentMessage) return;
+        el.classList.remove("is-visible");
+        ttStatusHideTimer = null;
+        ttStatusExitTimer = setTimeout(() => {
+          if (el.textContent !== currentMessage) return;
+          el.textContent = "";
+          el.className = "ttStatus hidden";
+          el.hidden = true;
+          ttStatusExitTimer = null;
+        }, 220);
+      }, 2000);
+    }
   }
 
   function setUpdateBusy(active) {
@@ -434,6 +589,7 @@
   }
 
   function closeDialog(id) {
+    closeTimeTrialPickers();
     const dialog = $(id);
     if (!dialog) return;
     if (typeof dialog.close === "function") dialog.close();
@@ -526,6 +682,10 @@
     return `<span class="ttCategoryChip ttCategoryChip--${key}">${categoryLabel(key)}</span>`;
   }
 
+  function isShroomCategory(value) {
+    return String(value || "").toLowerCase() === "shroom";
+  }
+
   function diffBandClass(diffMs) {
     const key = diffBandKey(diffMs);
     return key ? `ttEntryCard--band-${key}` : "";
@@ -541,6 +701,14 @@
     }[char]));
   }
 
+  function safeDomId(value) {
+    return String(value ?? "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+
+  function entryActionsId(entryId) {
+    return `ttEntryActions-${safeDomId(entryId)}`;
+  }
+
   function fmtDateTime(value) {
     if (!value) return "-";
     const date = new Date(value);
@@ -551,6 +719,17 @@
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+    });
+  }
+
+  function fmtDateOnly(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   }
 
@@ -590,9 +769,8 @@
     let closest = null;
 
     for (const entry of list) {
-      const wr = worldRecordMap.get(recordKey(entry.track_name, entry.category));
-      if (!wr || !Number.isFinite(entry.time_ms) || !Number.isFinite(wr.wr_time_ms)) continue;
-      const diff = entry.time_ms - wr.wr_time_ms;
+      const diff = getEntryDiffMs(entry, worldRecordMap);
+      if (!Number.isFinite(diff)) continue;
       const abs = Math.abs(diff);
       if (!closest || abs < closest.abs) {
         closest = {
@@ -621,6 +799,10 @@
   }
 
   function closeTtFilterMenus(exceptRoot = null) {
+    if (window.MKWT_UI?.closeFilterMenus) {
+      window.MKWT_UI.closeFilterMenus("chart", exceptRoot);
+      return;
+    }
     document.querySelectorAll(".chartFilter").forEach((root) => {
       if (exceptRoot && root === exceptRoot) return;
       const btn = root.querySelector(".chartFilterBtn");
@@ -631,6 +813,10 @@
   }
 
   function bindGlobalTtFilterClosers() {
+    if (window.MKWT_UI?.bindGlobalFilterClosers) {
+      window.MKWT_UI.bindGlobalFilterClosers("chart");
+      return;
+    }
     if (ttFilterBindingsReady) return;
     ttFilterBindingsReady = true;
     document.addEventListener("click", (event) => {
@@ -646,6 +832,10 @@
     const btn = $(btnId);
     const menu = $(menuId);
     if (!btn || !menu) return;
+    if (window.MKWT_UI?.bindFilterToggle) {
+      window.MKWT_UI.bindFilterToggle(btn, menu, { type: "chart" });
+      return;
+    }
     btn.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -686,22 +876,80 @@
 
   function setWrCategoryFilter(nextFilter) {
     const key = String(nextFilter || "all").toLowerCase();
-    wrCategoryFilter = ["all", "shroom", "shroomless"].includes(key) ? key : "all";
+    wrCategoryFilter = ["all", "shroom"].includes(key) ? key : "all";
     updateWrFilterButtons();
     closeTtFilterMenus();
     renderWorldRecords();
   }
 
+  function updateTimeTrialCategoryToggle() {
+    const current = String($("ttCategory")?.value || "shroom").toLowerCase() === "shroomless" ? "shroomless" : "shroom";
+    if ($("ttCategory")) $("ttCategory").value = current;
+    document.querySelectorAll("#ttCategoryToggle [data-tt-category]").forEach((button) => {
+      const active = button.getAttribute("data-tt-category") === current;
+      button.classList.toggle("isActive", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function setTimeTrialCategory(nextCategory) {
+    const key = String(nextCategory || "").toLowerCase() === "shroomless" ? "shroomless" : "shroom";
+    if ($("ttCategory")) $("ttCategory").value = key;
+    updateTimeTrialCategoryToggle();
+  }
+
   function buildWorldRecordMap() {
     const map = new Map();
     for (const record of worldRecords) {
+      if (!isShroomCategory(record.category)) continue;
       map.set(recordKey(record.track_name, record.category), record);
     }
     return map;
   }
 
+  function getEntryWorldRecord(entry, worldRecordMap) {
+    if (!isShroomCategory(entry?.category)) return null;
+    return worldRecordMap.get(recordKey(entry.track_name, entry.category)) || null;
+  }
+
+  function normalizeWrChangeValue(record, field) {
+    if (field === "wr_time_ms") {
+      const value = Number(record?.[field]);
+      return Number.isFinite(value) ? value : null;
+    }
+    if (field === "last_recorded_at") {
+      return cleanText(record?.[field] || "").slice(0, 10);
+    }
+    return cleanText(record?.[field] || "");
+  }
+
+  function hasMeaningfulWrChange(currentRecord, nextRecord) {
+    return WR_CHANGE_FIELDS.some((field) => normalizeWrChangeValue(currentRecord, field) !== normalizeWrChangeValue(nextRecord, field));
+  }
+
+  function collectChangedWorldRecordKeys(currentRecords, nextRecords) {
+    const currentMap = new Map();
+    for (const record of currentRecords || []) {
+      if (!isShroomCategory(record?.category)) continue;
+      currentMap.set(recordKey(record.track_name, record.category), record);
+    }
+    if (!currentMap.size) return [];
+
+    const changedKeys = [];
+    for (const record of nextRecords || []) {
+      if (!isShroomCategory(record?.category)) continue;
+      const key = recordKey(record.track_name, record.category);
+      const currentRecord = currentMap.get(key);
+      if (!currentRecord || hasMeaningfulWrChange(currentRecord, record)) {
+        changedKeys.push(key);
+      }
+    }
+    return changedKeys;
+  }
+
   function getEntryDiffMs(entry, worldRecordMap) {
-    const wr = worldRecordMap.get(recordKey(entry.track_name, entry.category));
+    const wr = getEntryWorldRecord(entry, worldRecordMap);
     if (!wr || !Number.isFinite(entry?.time_ms) || !Number.isFinite(wr?.wr_time_ms)) return null;
     return entry.time_ms - wr.wr_time_ms;
   }
@@ -765,36 +1013,453 @@
   }
 
   function refreshTrackSelect() {
-    populateSelect($("ttTrack"), trackOrder, "Select track", (track) => ({
+    populateSelect($("ttTrack"), trackOrder, "Track", (track) => ({
       value: track,
       label: track,
     }));
+    refreshTimeTrialPickers();
+  }
+
+  function readPickerOptions(selectEl) {
+    return Array.from(selectEl?.options || [])
+      .filter((option) => option.value)
+      .map((option) => ({
+        value: option.value,
+        label: cleanText(option.textContent || option.label || option.value),
+      }));
+  }
+
+  function selectedPickerLabel(selectEl, placeholder = "") {
+    const selected = selectEl?.selectedOptions?.[0];
+    if (selectEl?.value && selected) return cleanText(selected.textContent || selected.label || selectEl.value);
+    return placeholder || cleanText(selectEl?.options?.[0]?.textContent || "");
+  }
+
+  function pickerLetters(options) {
+    const letters = options
+      .map((option) => cleanText(option.label || option.value).charAt(0).toUpperCase())
+      .filter((letter) => /^[A-Z0-9]$/.test(letter));
+    return Array.from(new Set(letters)).sort((a, b) => a.localeCompare(b));
+  }
+
+  function filterPickerOptions(options, letter) {
+    if (!letter || letter === "all") return options;
+    return options.filter((option) => cleanText(option.label || option.value).charAt(0).toUpperCase() === letter);
+  }
+
+  function groupPickerOptions(options) {
+    const groups = new Map();
+    for (const option of options) {
+      const letter = cleanText(option.label || option.value).charAt(0).toUpperCase() || "#";
+      if (!groups.has(letter)) groups.set(letter, []);
+      groups.get(letter).push(option);
+    }
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, groupOptions]) => ({ label, options: groupOptions }));
+  }
+
+  function pickerIconSlot(kind, value) {
+    const slot = document.createElement("span");
+    slot.className = "trackPicker__iconSlot ttPickerIconSlot";
+    slot.setAttribute("aria-hidden", "true");
+    let src = "";
+    let fallbackText = "";
+
+    if (kind === "track") {
+      src = trackPickerIconPath(value);
+      fallbackText = trackAbbrev(value);
+    } else {
+      const isCharacter = kind === "character";
+      const combo = isCharacter
+        ? comboCharacterMap.get(comboLookupKey(value))
+        : comboVehicleMap.get(comboLookupKey(value));
+      const slug = combo?.slug || combo?.iconKey || "";
+      src = comboPickerIconPath(isCharacter ? "character" : "vehicle", slug);
+      fallbackText = comboIconLetters(value);
+    }
+
+    if (src && ttPickerIconReadyPaths.has(src)) {
+      const img = document.createElement("img");
+      img.className = kind === "track" ? "trackPicker__icon" : "trackPicker__icon ttPickerComboIcon";
+      img.src = src;
+      img.alt = "";
+      img.width = 24;
+      img.height = 24;
+      img.decoding = "async";
+      img.loading = "eager";
+      slot.appendChild(img);
+      return slot;
+    }
+
+    if (src) preloadTimeTrialPickerIconPath(src);
+    const fallback = document.createElement("span");
+    fallback.className = "trackPicker__iconFallback";
+    fallback.textContent = fallbackText || "?";
+    slot.appendChild(fallback);
+    return slot;
+  }
+
+  function refreshTimeTrialPickers() {
+    document.querySelectorAll(".ttPicker").forEach((root) => {
+      const select = $(root.dataset.selectId || "");
+      const valueEl = root.querySelector(".trackPicker__value");
+      const trigger = root.querySelector(".trackPicker__trigger");
+      if (!select || !valueEl || !trigger) return;
+      const text = selectedPickerLabel(select, root.dataset.placeholder || "Select");
+      valueEl.textContent = text;
+      trigger.title = text;
+      trigger.classList.toggle("is-placeholder", !select.value);
+      const panel = root.querySelector(".trackPicker__panel");
+      if (panel && !panel.hidden) renderTimeTrialPickerPanel(root);
+    });
+  }
+
+  function closeTimeTrialPickers(exceptRoot = null) {
+    if (!exceptRoot) activeTtLetterPicker = null;
+    document.querySelectorAll(".ttPicker").forEach((root) => {
+      if (exceptRoot && root === exceptRoot) return;
+      root.classList.remove("is-open");
+      root.querySelector(".trackPicker__trigger")?.setAttribute("aria-expanded", "false");
+      const panel = root.querySelector(".trackPicker__panel");
+      if (panel) panel.hidden = true;
+    });
+    if (!exceptRoot) {
+      if (ttPickerBackdrop) ttPickerBackdrop.hidden = true;
+      document.documentElement.classList.remove("trackPickerScrollLocked");
+      document.body.classList.remove("trackPickerScrollLocked");
+      document.body.style.top = "";
+      if (ttPickerScrollY) window.scrollTo(0, ttPickerScrollY);
+      ttPickerScrollY = 0;
+    }
+  }
+
+  function alignTimeTrialPickerPanel(root) {
+    const panel = root.querySelector(".trackPicker__panel");
+    if (!panel) return;
+    panel.style.left = "";
+    panel.style.top = "";
+    panel.style.width = "";
+    const viewport = window.visualViewport || {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      offsetLeft: 0,
+      offsetTop: 0,
+    };
+    const isMobile = viewport.width < 760;
+    const margin = isMobile ? 10 : 16;
+    const desiredWidth = Number(root.dataset.panelWidth || 900);
+    const panelWidth = Math.min(isMobile ? 760 : desiredWidth, viewport.width - (margin * 2));
+    panel.style.width = `${Math.round(panelWidth)}px`;
+    panel.style.left = `${Math.round(viewport.offsetLeft + ((viewport.width - panelWidth) / 2))}px`;
+    const rect = panel.getBoundingClientRect();
+    const preferredTop = viewport.offsetTop + ((viewport.height - rect.height) / 2);
+    const maxTop = viewport.offsetTop + viewport.height - rect.height - margin;
+    panel.style.top = `${Math.round(Math.max(viewport.offsetTop + margin, Math.min(preferredTop, maxTop)))}px`;
+  }
+
+  function setTimeTrialLetterFilter(root, letter, focusLetter = false) {
+    const select = $(root?.dataset?.selectId || "");
+    const panel = root?.querySelector?.(".trackPicker__panel");
+    if (!root || !select || !panel || panel.hidden) return false;
+    const letters = pickerLetters(readPickerOptions(select));
+    const requested = letter && letter !== "all" ? String(letter).trim().charAt(0).toUpperCase() : "all";
+    const next = requested !== "all" && letters.includes(requested) ? requested : "all";
+    if ((root.dataset.letterFilter || "all") === next) return false;
+    root.dataset.letterFilter = next;
+    renderTimeTrialPickerPanel(root);
+    alignTimeTrialPickerPanel(root);
+    if (focusLetter) {
+      window.requestAnimationFrame(() => {
+        root.querySelector(`[data-letter-filter="${CSS.escape(next)}"]`)?.focus?.();
+      });
+    }
+    return true;
+  }
+
+  function resetTimeTrialLetterFilter(root, focusAll = true) {
+    if (!root || (root.dataset.letterFilter || "all") === "all") return false;
+    return setTimeTrialLetterFilter(root, "all", focusAll);
+  }
+
+  function applyTimeTrialLetterFilterFromPoint(clientX, clientY) {
+    if (!activeTtLetterPicker) return;
+    const target = document.elementFromPoint(clientX, clientY);
+    const button = target?.closest?.("[data-letter-filter]");
+    if (!button || !activeTtLetterPicker.querySelector(".trackPicker__panel")?.contains(button)) return;
+    setTimeTrialLetterFilter(activeTtLetterPicker, button.dataset.letterFilter || "all");
+  }
+
+  function applyTimeTrialKeyboardLetterFilter(root, key) {
+    const select = $(root?.dataset?.selectId || "");
+    if (!root || !select) return false;
+    const letter = String(key || "").trim().charAt(0).toUpperCase();
+    if (!/^[A-Z0-9]$/.test(letter)) return false;
+    if (!pickerLetters(readPickerOptions(select)).includes(letter)) return false;
+    return setTimeTrialLetterFilter(root, letter, true);
+  }
+
+  function findOpenTimeTrialPickerRoot() {
+    return Array.from(document.querySelectorAll(".ttPicker"))
+      .find((root) => !root.querySelector(".trackPicker__panel")?.hidden) || null;
+  }
+
+  function renderTimeTrialPickerPanel(root) {
+    const select = $(root.dataset.selectId || "");
+    const panel = root.querySelector(".trackPicker__panel");
+    if (!select || !panel) return;
+    const kind = root.dataset.kind || "track";
+    const options = readPickerOptions(select);
+    const letters = pickerLetters(options);
+    const currentLetter = letters.includes(root.dataset.letterFilter || "") ? root.dataset.letterFilter : "all";
+    root.dataset.letterFilter = currentLetter;
+    const visibleOptions = filterPickerOptions(options, currentLetter);
+    const railLetters = ["all", ...letters];
+    panel.innerHTML = "";
+    panel.style.setProperty("--track-picker-letter-count", String(railLetters.length));
+    panel.style.setProperty("--track-picker-mobile-height", `${32 + (railLetters.length * 24) + ((railLetters.length - 1) * 4)}px`);
+
+    const layout = document.createElement("div");
+    layout.className = "trackPicker__layout";
+    const rail = document.createElement("div");
+    rail.className = "trackPicker__letterRail";
+    rail.setAttribute("aria-label", `${root.dataset.placeholder || "Picker"} filter`);
+
+    railLetters.forEach((letter) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "trackPicker__letterBtn";
+      if (letter === "all") button.classList.add("trackPicker__letterBtn--all");
+      if (letter === currentLetter) button.classList.add("is-active");
+      button.dataset.letterFilter = letter;
+      button.setAttribute("aria-pressed", letter === currentLetter ? "true" : "false");
+      button.textContent = letter === "all" ? "All" : letter;
+      rail.appendChild(button);
+    });
+
+    rail.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-letter-filter]");
+      if (!button) return;
+      event.preventDefault();
+      setTimeTrialLetterFilter(root, button.dataset.letterFilter || "all");
+    });
+    rail.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const button = event.target.closest("[data-letter-filter]");
+      if (!button) return;
+      event.preventDefault();
+      if ((root.dataset.letterFilter || "all") !== "all") {
+        resetTimeTrialLetterFilter(root);
+        return;
+      }
+      setTimeTrialLetterFilter(root, button.dataset.letterFilter || "all");
+    });
+    rail.addEventListener("pointerdown", (event) => {
+      if (!event.target.closest("[data-letter-filter]")) return;
+      event.preventDefault();
+      activeTtLetterPicker = root;
+      applyTimeTrialLetterFilterFromPoint(event.clientX, event.clientY);
+    });
+
+    const trackArea = document.createElement("div");
+    trackArea.className = "trackPicker__trackArea";
+    const groupsEl = document.createElement("div");
+    groupsEl.className = "trackPicker__groups";
+    for (const group of groupPickerOptions(visibleOptions)) {
+      const groupEl = document.createElement("div");
+      groupEl.className = "trackPicker__group";
+      const head = document.createElement("div");
+      head.className = "trackPicker__groupLabel";
+      head.textContent = group.label;
+      groupEl.appendChild(head);
+      for (const option of group.options) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "trackPicker__option";
+        item.dataset.value = option.value;
+        item.setAttribute("role", "option");
+        item.setAttribute("aria-selected", select.value === option.value ? "true" : "false");
+        item.title = option.label;
+        item.appendChild(pickerIconSlot(kind, option.value));
+        const text = document.createElement("span");
+        text.className = "trackPicker__optionText";
+        text.textContent = option.label;
+        item.appendChild(text);
+        groupEl.appendChild(item);
+      }
+      groupsEl.appendChild(groupEl);
+    }
+    if (!groupsEl.children.length) {
+      const empty = document.createElement("div");
+      empty.className = "trackPicker__empty";
+      empty.textContent = "No options";
+      groupsEl.appendChild(empty);
+    }
+    trackArea.appendChild(groupsEl);
+    layout.appendChild(rail);
+    layout.appendChild(trackArea);
+    panel.appendChild(layout);
+  }
+
+  function openTimeTrialPicker(root) {
+    closeTimeTrialPickers(root);
+    root.dataset.letterFilter = "all";
+    preloadTimeTrialPickerIcons();
+    renderTimeTrialPickerPanel(root);
+    const panel = root.querySelector(".trackPicker__panel");
+    const trigger = root.querySelector(".trackPicker__trigger");
+    if (!panel || !trigger) return;
+    panel.hidden = false;
+    root.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    if (!ttPickerBackdrop) {
+      ttPickerBackdrop = document.createElement("div");
+      ttPickerBackdrop.className = "trackPickerBackdrop ttPickerBackdrop";
+      ttPickerBackdrop.hidden = true;
+      document.body.appendChild(ttPickerBackdrop);
+      ttPickerBackdrop.addEventListener("click", () => closeTimeTrialPickers());
+    }
+    ttPickerScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.documentElement.classList.add("trackPickerScrollLocked");
+    document.body.classList.add("trackPickerScrollLocked");
+    document.body.style.top = `-${ttPickerScrollY}px`;
+    ttPickerBackdrop.hidden = false;
+    alignTimeTrialPickerPanel(root);
+  }
+
+  function initTimeTrialPickers() {
+    const configs = [
+      { id: "ttTrack", kind: "track", placeholder: "Track", width: 900 },
+      { id: "ttCharacter", kind: "character", placeholder: "Character", width: 760 },
+      { id: "ttKart", kind: "vehicle", placeholder: "Kart", width: 760 },
+    ];
+    for (const config of configs) {
+      const select = $(config.id);
+      if (!select || select.dataset.ttPickerReady === "1") continue;
+      select.dataset.ttPickerReady = "1";
+      select.classList.add("trackNativeSelect", "ttNativeSelect");
+      const root = document.createElement("div");
+      root.className = "trackPicker loungePicker ttPicker trackPicker--track";
+      root.dataset.selectId = config.id;
+      root.dataset.kind = config.kind;
+      root.dataset.placeholder = config.placeholder;
+      root.dataset.panelWidth = String(config.width || 900);
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "trackPicker__trigger";
+      trigger.setAttribute("aria-haspopup", "listbox");
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.setAttribute("aria-label", config.placeholder);
+      const valueEl = document.createElement("span");
+      valueEl.className = "trackPicker__value";
+      trigger.appendChild(valueEl);
+      const chevron = document.createElement("span");
+      chevron.className = "trackPicker__chevron";
+      chevron.setAttribute("aria-hidden", "true");
+      chevron.textContent = "v";
+      trigger.appendChild(chevron);
+      const panel = document.createElement("div");
+      panel.className = "trackPicker__panel";
+      panel.setAttribute("role", "listbox");
+      panel.hidden = true;
+      root.appendChild(trigger);
+      root.appendChild(panel);
+      select.insertAdjacentElement("afterend", root);
+
+      trigger.addEventListener("click", () => {
+        if (panel.hidden) openTimeTrialPicker(root);
+        else closeTimeTrialPickers();
+      });
+      trigger.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        if (!panel.hidden && (root.dataset.letterFilter || "all") !== "all") {
+          resetTimeTrialLetterFilter(root);
+          return;
+        }
+        if (panel.hidden) openTimeTrialPicker(root);
+        else closeTimeTrialPickers();
+      });
+      panel.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const optionButton = event.target.closest("[data-value]");
+        if (!optionButton) return;
+        select.value = optionButton.dataset.value || "";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        closeTimeTrialPickers();
+        refreshTimeTrialPickers();
+        trigger.focus();
+      });
+      select.addEventListener("change", refreshTimeTrialPickers);
+      const observer = new MutationObserver(refreshTimeTrialPickers);
+      observer.observe(select, { childList: true, subtree: true, characterData: true });
+      refreshTimeTrialPickers();
+    }
+
+    if (!ttPickerBindingsReady) {
+      ttPickerBindingsReady = true;
+      document.addEventListener("click", (event) => {
+        if (event.target.closest(".ttPicker") || event.target.closest(".trackPicker__panel")) return;
+        closeTimeTrialPickers();
+      });
+      document.addEventListener("pointermove", (event) => {
+        if (!activeTtLetterPicker) return;
+        event.preventDefault();
+        applyTimeTrialLetterFilterFromPoint(event.clientX, event.clientY);
+      }, { passive: false });
+      document.addEventListener("pointerup", () => {
+        activeTtLetterPicker = null;
+      });
+      document.addEventListener("pointercancel", () => {
+        activeTtLetterPicker = null;
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (findOpenTimeTrialPickerRoot()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          closeTimeTrialPickers();
+          return;
+        }
+        const openRoot = findOpenTimeTrialPickerRoot();
+        if (!openRoot) return;
+        const target = event.target;
+        const isTextTarget = target?.matches?.("input, textarea, select") || target?.isContentEditable;
+        if (isTextTarget || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.key.length === 1 && /^[a-z0-9]$/i.test(event.key)) {
+          if (applyTimeTrialKeyboardLetterFilter(openRoot, event.key)) event.preventDefault();
+          return;
+        }
+        if ((event.key === "Enter" || event.key === " ")
+          && !target?.closest?.(".trackPicker__option, .trackPicker__trigger")
+          && resetTimeTrialLetterFilter(openRoot)) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener("resize", () => closeTimeTrialPickers());
+    }
   }
 
   function updateWrInfo() {
     const info = $("ttWrInfo");
     if (!info) return;
     if (!worldRecords.length) {
-      info.textContent = "No WR data in the database yet. Open WR and press Update WRs after login.";
+      info.textContent = "WR update unavailable";
       return;
     }
     const latest = worldRecords.reduce((max, record) => {
       const value = record?.fetched_at ? new Date(record.fetched_at).getTime() : 0;
       return value > max ? value : max;
     }, 0);
-    const trackCount = new Set(worldRecords.map((record) => canonicalTrackName(record.track_name))).size;
-    info.textContent = `${worldRecords.length} WR rows across ${trackCount} tracks - last update ${latest ? fmtDateTime(latest) : "-"}`;
+    info.textContent = latest ? `WR updated ${fmtDateOnly(latest)}` : "WR update unavailable";
   }
 
   function renderSummary() {
     const summary = computeTimeTrialSummary(entries);
 
-    $("ttStatEntries").textContent = String(summary.entryCount);
-    $("ttStatEntriesMeta").textContent = isGuest() ? "Guest local PB rows" : "Cloud PB rows";
-    $("ttStatShroom").textContent = String(summary.shroomCount);
-    $("ttStatShroomMeta").textContent = "Saved PBs";
-    $("ttStatShroomless").textContent = String(summary.shroomlessCount);
-    $("ttStatShroomlessMeta").textContent = "Saved PBs";
+    if ($("ttStatShroom")) $("ttStatShroom").textContent = `${summary.shroomCount}/30`;
+    if ($("ttStatShroomless")) $("ttStatShroomless").textContent = `${summary.shroomlessCount}/30`;
 
     if (summary.closest) {
       $("ttStatClosest").textContent = formatDiffMs(summary.closest.diff);
@@ -811,6 +1476,7 @@
     const body = $("ttWrRows");
     if (!body) return;
     const rows = worldRecords
+      .filter((record) => isShroomCategory(record.category))
       .filter((record) => wrCategoryFilter === "all" ? true : record.category === wrCategoryFilter)
       .slice()
       .sort(compareTrackOrder);
@@ -820,15 +1486,21 @@
       return;
     }
 
+    const displayedNewKeys = new Set();
     body.innerHTML = rows.map((record) => {
+      const key = recordKey(record.track_name, record.category);
+      const newBadge = pendingWrNewRecordKeys.has(key)
+        ? '<span class="ttWrNewBadge">NEW</span>'
+        : "";
+      if (newBadge) displayedNewKeys.add(key);
       const combo = resolveComboStats(record.character_name, record.kart_name);
+      const comboMeta = [record.character_name || "-", record.kart_name || "-"].filter(Boolean).join(" + ");
       const comboIcons = combo ? `
-        <div class="ttWrComboIcons">
+        <div class="ttWrComboIcons" title="${escapeHtml(comboMeta)}" aria-label="${escapeHtml(comboMeta)}">
           ${comboIconMarkup("character", combo.character.name, combo.character.slug || combo.character.iconKey || "")}
           ${comboIconMarkup("vehicle", combo.vehicle.name, combo.vehicle.slug || combo.vehicle.iconKey || "")}
         </div>
-      ` : "";
-      const comboMeta = [record.character_name || "-", record.kart_name || "-"].filter(Boolean).join(" + ");
+      ` : "-";
       return `
         <article class="ttWrCard">
           <div class="ttWrCardHead">
@@ -837,8 +1509,8 @@
                 ${trackIconMarkup(record.track_name, "ttTrackIcon--wrCard")}
               </div>
               <div class="ttWrTrackMeta">
-                <div class="ttWrTrackName">${escapeHtml(record.track_name)}</div>
-                <div class="ttWrTrackSubline">${categoryChip(record.category)}</div>
+                <div class="ttWrTrackName" title="${escapeHtml(record.track_name)}">${escapeHtml(record.track_name)}</div>
+                <div class="ttWrTrackSubline">${categoryChip(record.category)}${newBadge}</div>
               </div>
             </div>
             <div class="ttWrTimeBlock">
@@ -855,13 +1527,13 @@
               <div class="ttWrMetricLabel">Combo</div>
               <div class="ttWrMetricValue ttWrMetricValue--combo">
                 ${comboIcons}
-                <span class="ttWrComboNames">${escapeHtml(comboMeta)}</span>
               </div>
             </div>
           </div>
         </article>
       `;
     }).join("");
+    displayedNewKeys.forEach((key) => pendingWrNewRecordKeys.delete(key));
   }
 
   function resetEditMode() {
@@ -870,7 +1542,10 @@
     const subtitle = $("ttEntryDialogSubtitle");
     const saveBtn = $("btnSaveTimeTrial");
     if (title) title.textContent = "Track Time Trial";
-    if (subtitle) subtitle.textContent = "Save one PB per track and category.";
+    if (subtitle) {
+      subtitle.textContent = "Save one PB per track and category.";
+      subtitle.classList.remove("hidden");
+    }
     if (saveBtn) saveBtn.textContent = "Save PB";
   }
 
@@ -883,11 +1558,16 @@
     if ($("ttTime")) $("ttTime").value = entry.time_text || "";
     if ($("ttCharacter")) $("ttCharacter").value = entry.character_name || "";
     if ($("ttKart")) $("ttKart").value = entry.kart_name || "";
+    updateTimeTrialCategoryToggle();
+    refreshTimeTrialPickers();
     const title = $("ttEntryDialogTitle");
     const subtitle = $("ttEntryDialogSubtitle");
     const saveBtn = $("btnSaveTimeTrial");
     if (title) title.textContent = "Edit Time Trial PB";
-    if (subtitle) subtitle.textContent = "Update your saved PB and keep the WR diff in sync.";
+    if (subtitle) {
+      subtitle.textContent = "";
+      subtitle.classList.add("hidden");
+    }
     if (saveBtn) saveBtn.textContent = "Update PB";
     setStatus("", true);
     openDialog("ttEntryDialog");
@@ -896,7 +1576,11 @@
   function openWrInfoDialogForEntry(entryId) {
     const entry = entries.find((item) => String(item.id) === String(entryId));
     if (!entry) return;
-    const wr = buildWorldRecordMap().get(recordKey(entry.track_name, entry.category));
+    if (!isShroomCategory(entry.category)) {
+      setStatus("Shroomless PBs are not compared to shroom-only WR data.", false);
+      return;
+    }
+    const wr = getEntryWorldRecord(entry, buildWorldRecordMap());
     if (!wr) {
       setStatus("No current WR data is available for this entry yet.", false);
       return;
@@ -952,6 +1636,17 @@
     openDialog("ttWrInfoDialog");
   }
 
+  function toggleEntryCard(entryId) {
+    const id = String(entryId || "");
+    if (!id) return;
+    if (expandedEntryCards.has(id)) {
+      expandedEntryCards.delete(id);
+    } else {
+      expandedEntryCards.add(id);
+    }
+    renderEntries();
+  }
+
   function renderEntries() {
     const body = $("ttEntryRows");
     if (!body) return;
@@ -966,46 +1661,66 @@
     }
 
     if (!filteredRows.length) {
-      body.innerHTML = '<div class="ttEmptyState">No saved PBs for this category yet.</div>';
+      body.innerHTML = '<div class="ttEmptyState">No PBs for this category yet.</div>';
       renderSummary();
       return;
     }
 
     body.innerHTML = filteredRows.map((entry) => {
-      const wr = map.get(recordKey(entry.track_name, entry.category));
+      const canCompareWr = isShroomCategory(entry.category);
+      const wr = getEntryWorldRecord(entry, map);
       const diff = getEntryDiffMs(entry, map);
-      const diffText = diff == null ? "-" : formatDiffMs(diff);
-      const comboDesktopMarkup = renderEntryComboMarkup(entry, "desktop");
-      const comboMobileMarkup = renderEntryComboMarkup(entry, "mobile");
+      const diffText = !canCompareWr ? "No WR compare" : diff == null ? "-" : formatDiffMs(diff);
+      const wrTimeText = canCompareWr ? (wr?.wr_time_text || "-") : "Shroom only";
+      const entryId = String(entry.id);
+      const expanded = expandedEntryCards.has(entryId);
+      const actionsId = entryActionsId(entryId);
+      const comboMarkup = renderEntryComboMarkup(entry);
+      const wrInfoButton = canCompareWr
+        ? `<button class="btn2 ttActionBtn" data-entry-action="wr-info" data-entry-id="${escapeHtml(entryId)}" type="button">Show WR infos</button>`
+        : '<button class="btn2 ttActionBtn" type="button" disabled title="Shroomless PBs are not compared to shroom-only WR data.">WR shroom only</button>';
       return `
-        <article class="ttEntryCard ${diffBandClass(diff)}">
-          <div class="ttEntryRow">
+        <article class="ttEntryCard ${diffBandClass(diff)} ${expanded ? "is-open" : ""}">
+          <div
+            aria-controls="${escapeHtml(actionsId)}"
+            aria-expanded="${expanded ? "true" : "false"}"
+            aria-label="Toggle actions for ${escapeHtml(entry.track_name)} ${escapeHtml(categoryLabel(entry.category))}"
+            class="ttEntryRow"
+            data-entry-toggle="${escapeHtml(entryId)}"
+            role="button"
+            tabindex="0"
+          >
             <div class="ttEntryCell ttEntryCell--main">
               <div class="ttTrackIconWrap">${trackIconMarkup(entry.track_name)}</div>
             </div>
             <div class="ttEntryCell ttEntryCell--timings">
-              <div class="ttTimeStack">
+              <div class="ttTimeStack ttTimeStack--pb">
                 <div class="ttTimePrimary">${escapeHtml(entry.time_text)}</div>
                 <div class="ttTimeDiffRow">
                   <div class="ttTimeSecondary ${diffClass(diff)}">${escapeHtml(diffText)}</div>
-                  ${wr ? `<button class="ttInfoBtn" data-entry-action="wr-info" data-entry-id="${escapeHtml(entry.id)}" type="button" title="Current WR holder info" aria-label="Current WR holder info">!</button>` : ""}
                 </div>
               </div>
               <div class="ttTimeStack ttTimeStack--wr">
-                <div class="ttWrValue">${escapeHtml(wr?.wr_time_text || "-")}</div>
-              </div>
-              <div class="ttTimeStack ttTimeStack--setupMobile">
-                ${comboMobileMarkup}
+                <div class="ttEntryMiniLabel">WR Time</div>
+                <div class="ttWrValue">${escapeHtml(wrTimeText)}</div>
               </div>
             </div>
             <div class="ttEntryCell ttEntryCell--setup">
-              ${comboDesktopMarkup}
+              ${comboMarkup}
             </div>
-            <div class="ttEntryCell ttEntryCell--action">
-              <div class="ttEntryActionGroup">
-                <button class="btn2 ttActionBtn" data-entry-action="edit" data-entry-id="${escapeHtml(entry.id)}" type="button">Edit</button>
-                <button class="btn2 danger ttActionBtn ttDeleteBtn" data-entry-action="delete" data-entry-id="${escapeHtml(entry.id)}" type="button">Delete</button>
+          </div>
+          <div class="ttEntryExpanded" id="${escapeHtml(actionsId)}" ${expanded ? "" : "hidden"}>
+            <div class="ttEntryExpandedMeta">
+              <div class="ttEntryExpandedInfo">
+                <span class="ttEntryExpandedLabel">WR Time</span>
+                <strong>${escapeHtml(wrTimeText)}</strong>
               </div>
+            </div>
+            <div class="ttEntryActionGroup">
+              ${wrInfoButton}
+              <button class="btn2 ttActionBtn" data-entry-action="combo-info" data-entry-id="${escapeHtml(entryId)}" type="button">Show my combo</button>
+              <button class="btn2 ttActionBtn" data-entry-action="edit" data-entry-id="${escapeHtml(entryId)}" type="button">Edit</button>
+              <button class="btn2 danger ttActionBtn ttDeleteBtn" data-entry-action="delete" data-entry-id="${escapeHtml(entryId)}" type="button">Delete</button>
             </div>
           </div>
         </article>
@@ -1017,7 +1732,7 @@
 
   async function loadProfileInfo() {
     if (isGuest()) {
-      $("ttUserInfo").textContent = "Guest Time Trial profile (local only)";
+      $("ttUserInfo").textContent = "Guest profile";
       setUpdateBusy(false);
       return;
     }
@@ -1030,10 +1745,10 @@
         .maybeSingle();
       if (error) throw error;
       PROFILE = data || null;
-      const label = cleanText(data?.nickname) || "Account";
-      $("ttUserInfo").textContent = `${label} - ${typeof maskEmail === "function" ? maskEmail(SESSION.user?.email) : cleanText(SESSION.user?.email)}`;
+      const label = cleanText(data?.nickname) || "Account profile";
+      $("ttUserInfo").textContent = label;
     } catch (e) {
-      $("ttUserInfo").textContent = cleanText(SESSION.user?.email) || "Signed in";
+      $("ttUserInfo").textContent = "Account profile";
     }
     setUpdateBusy(false);
   }
@@ -1054,15 +1769,17 @@
       .slice()
       .sort((a, b) => cleanText(a?.name).localeCompare(cleanText(b?.name), undefined, { sensitivity: "base" }));
 
-    populateSelect($("ttCharacter"), characters, "Select character", (item) => ({
+    populateSelect($("ttCharacter"), characters, "Character", (item) => ({
       value: item.name,
       label: item.name,
     }));
-    populateSelect($("ttKart"), karts, "Select kart", (item) => ({
+    populateSelect($("ttKart"), karts, "Kart", (item) => ({
       value: item.name,
       label: `${item.name} (${item.vehicle_type})`,
     }));
     refreshTrackSelect();
+    preloadTimeTrialPickerIcons();
+    refreshTimeTrialPickers();
   }
 
   async function loadWorldRecords() {
@@ -1077,7 +1794,9 @@
         track_name: canonicalTrackName(record.track_name),
         category: String(record.category || "").toLowerCase(),
         wr_time_ms: Number(record.wr_time_ms),
+        holder_name: repairUtf8Mojibake(record.holder_name),
       }))
+      .filter((record) => isShroomCategory(record.category))
       .sort(compareTrackOrder);
 
     const recordTracks = Array.from(new Set(worldRecords.map((record) => canonicalTrackName(record.track_name))));
@@ -1133,6 +1852,8 @@
     if ($("ttTime")) $("ttTime").value = "";
     if ($("ttCharacter")) $("ttCharacter").value = "";
     if ($("ttKart")) $("ttKart").value = "";
+    updateTimeTrialCategoryToggle();
+    refreshTimeTrialPickers();
     resetEditMode();
   }
 
@@ -1228,7 +1949,17 @@
 
   async function deleteEntry(entryId) {
     if (!entryId) return;
-    if (!confirm("Delete this Time Trial PB?")) return;
+    const ok = window.MKWT?.confirmAction
+      ? await window.MKWT.confirmAction({
+          eyebrow: "Delete",
+          title: "Delete Time Trial PB?",
+          body: "This removes the saved PB for this track and category.",
+          confirmLabel: "Delete",
+          cancelLabel: "Cancel",
+          danger: true,
+        })
+      : confirm("Delete this Time Trial PB?");
+    if (!ok) return;
 
     try {
       if (isGuest()) {
@@ -1244,6 +1975,7 @@
       }
 
       setStatus("PB removed.", true);
+      expandedEntryCards.delete(String(entryId));
       await loadEntries();
     } catch (e) {
       setStatus(e?.message || "Could not delete the PB.", false);
@@ -1312,13 +2044,6 @@
     return tracks.length ? Array.from(new Set(tracks)) : TRACKS_FALLBACK.slice();
   }
 
-  function parseShroomCategory(raw) {
-    const digits = String(raw || "").match(/\d+/g);
-    if (!digits || !digits.length) return null;
-    const total = digits.reduce((sum, value) => sum + Number(value || 0), 0);
-    return total > 0 ? "shroom" : "shroomless";
-  }
-
   function findHeadingTable(doc, headingText) {
     const heading = Array.from(doc.querySelectorAll("h2")).find((node) => cleanText(node.textContent).toLowerCase() === headingText.toLowerCase());
     if (!heading) return null;
@@ -1340,9 +2065,13 @@
     return map;
   }
 
-  function cellText(cells, headerMap, fallbackIndex, headerKey) {
+  function rowCellTexts(row) {
+    return Array.from(row?.querySelectorAll("td") || []).map((cell) => cleanText(cell.textContent || ""));
+  }
+
+  function cellTextFromValues(values, headerMap, fallbackIndex, headerKey) {
     const byHeader = headerMap?.has(headerKey) ? headerMap.get(headerKey) : fallbackIndex;
-    return cleanText(cells[byHeader]?.textContent || "");
+    return cleanText(values?.[byHeader] || "");
   }
 
   function parseTrackPage(trackName, html) {
@@ -1351,17 +2080,22 @@
     const currentTable = findHeadingTable(doc, "Current WR:");
     const bestByCategory = new Map();
 
-    function considerRow(cells, headerMap) {
-      if (!cells || cells.length < 4) return;
-      const timeText = cellText(cells, headerMap, 1, "time");
-      const holderName = cellText(cells, headerMap, 2, "player");
-      const shrooms = cellText(cells, headerMap, 9, "shrooms");
-      const characterName = cellText(cells, headerMap, 10, "character");
-      const kartName = cellText(cells, headerMap, 11, "kart");
-      const lastRecordedAt = cellText(cells, headerMap, 0, "date");
-      const category = parseShroomCategory(shrooms);
+    function considerRow(values, headerMap, nextValues) {
+      if (!values || values.length < 4) return;
+      const splitCombination = headerMap?.has("combination") && !headerMap.has("character") && !headerMap.has("kart");
+      const combinationIndex = headerMap?.has("combination") ? headerMap.get("combination") : values.length - 1;
+      const timeText = cellTextFromValues(values, headerMap, 1, "time");
+      const holderName = cellTextFromValues(values, headerMap, 2, "player");
+      const characterName = splitCombination
+        ? cleanText(values[combinationIndex] || "")
+        : cellTextFromValues(values, headerMap, 10, "character");
+      const kartName = splitCombination
+        ? cleanText(nextValues?.[nextValues.length - 1] || "")
+        : cellTextFromValues(values, headerMap, 11, "kart");
+      const lastRecordedAt = cellTextFromValues(values, headerMap, 0, "date");
+      const category = "shroom";
       const timeMs = parseTimeMs(timeText);
-      if (!category || !Number.isFinite(timeMs) || !holderName) return;
+      if (!Number.isFinite(timeMs) || !holderName) return;
 
       const key = category;
       const nextRecord = {
@@ -1383,16 +2117,18 @@
     }
 
     const historyHeaders = tableHeaders(historyTable);
-    for (const row of Array.from(historyTable?.querySelectorAll("tr") || [])) {
-      const cells = Array.from(row.querySelectorAll("td"));
-      if (cells.length) considerRow(cells, historyHeaders);
+    const historyRows = Array.from(historyTable?.querySelectorAll("tr") || []);
+    for (let index = 0; index < historyRows.length; index++) {
+      const values = rowCellTexts(historyRows[index]);
+      if (values.length) considerRow(values, historyHeaders, rowCellTexts(historyRows[index + 1]));
     }
 
     if (!bestByCategory.size && currentTable) {
       const currentHeaders = tableHeaders(currentTable);
-      for (const row of Array.from(currentTable.querySelectorAll("tr"))) {
-        const cells = Array.from(row.querySelectorAll("td"));
-        if (cells.length) considerRow(cells, currentHeaders);
+      const currentRows = Array.from(currentTable.querySelectorAll("tr"));
+      for (let index = 0; index < currentRows.length; index++) {
+        const values = rowCellTexts(currentRows[index]);
+        if (values.length) considerRow(values, currentHeaders, rowCellTexts(currentRows[index + 1]));
       }
     }
 
@@ -1429,14 +2165,14 @@
 
     try {
       setUpdateBusy(true);
-      setStatus("Fetching mkwrs.com track list...", true);
+      setStatus("Fetching mkwrs.com track list...", true, false);
 
       const indexPayload = await fetchTimeTrialIndex();
       const fetchedTracks = parseTrackListFromIndex(indexPayload.html);
       trackOrder = fetchedTracks.length ? fetchedTracks : TRACKS_FALLBACK.slice();
       refreshTrackSelect();
 
-      setStatus(`Fetching ${trackOrder.length} WR track pages...`, true);
+      setStatus(`Fetching ${trackOrder.length} WR track pages...`, true, false);
       const fetchedPages = await fetchTrackPages(trackOrder);
       if (fetchedPages.errors.length) {
         throw new Error(`Could not fetch all track pages. ${fetchedPages.errors[0]}`);
@@ -1455,12 +2191,14 @@
         throw new Error("No world records were parsed from mkwrs.com.");
       }
 
-      setStatus(`Writing ${records.length} WR rows to Supabase...`, true);
+      const changedWrKeys = collectChangedWorldRecordKeys(worldRecords, records);
+      setStatus(`Writing ${records.length} WR rows to Supabase...`, true, false);
       const { data, error } = await supabaseClient.rpc("refresh_time_trial_world_records", {
         p_records: records,
       });
       if (error) throw error;
 
+      pendingWrNewRecordKeys = new Set(changedWrKeys);
       setStatus(`WR database updated. ${Number(data || records.length)} rows refreshed.`, true);
       await loadWorldRecords();
       await loadEntries();
@@ -1505,15 +2243,19 @@
     await loadCatalog();
     await loadWorldRecords();
     await loadEntries();
+    scheduleTimeTrialPickerIconWarmup();
   }
 
   document.addEventListener("DOMContentLoaded", () => {
     bindGlobalTtFilterClosers();
     bindTtFilterToggle("btnTtEntryFilter", "menuTtEntryFilter");
     bindTtFilterToggle("btnTtWrFilter", "menuTtWrFilter");
+    initTimeTrialPickers();
+    updateTimeTrialCategoryToggle();
     $("btnOpenTimeTrialForm")?.addEventListener("click", () => {
       clearForm();
       setStatus("", true);
+      refreshTimeTrialPickers();
       openDialog("ttEntryDialog");
     });
     $("btnCloseTimeTrialForm")?.addEventListener("click", () => {
@@ -1524,7 +2266,10 @@
       clearForm();
       closeDialog("ttEntryDialog");
     });
-    $("btnOpenWrDialog")?.addEventListener("click", () => openDialog("ttWrDialog"));
+    $("btnOpenWrDialog")?.addEventListener("click", () => {
+      renderWorldRecords();
+      openDialog("ttWrDialog");
+    });
     $("btnCloseWrDialog")?.addEventListener("click", () => closeDialog("ttWrDialog"));
     $("btnCloseWrInfoDialog")?.addEventListener("click", () => closeDialog("ttWrInfoDialog"));
     $("btnCloseComboInfoDialog")?.addEventListener("click", () => closeDialog("ttComboInfoDialog"));
@@ -1545,6 +2290,10 @@
       clearForm();
       setStatus("", true);
     });
+    document.querySelectorAll("#ttCategoryToggle [data-tt-category]").forEach((button) => {
+      button.addEventListener("click", () => setTimeTrialCategory(button.getAttribute("data-tt-category")));
+    });
+    $("ttCategory")?.addEventListener("change", updateTimeTrialCategoryToggle);
     $("btnRefreshTimeTrialWr")?.addEventListener("click", updateWorldRecords);
     document.querySelectorAll("#menuTtEntryFilter [data-tt-filter]").forEach((button) => {
       button.addEventListener("click", () => setEntryCategoryFilter(button.getAttribute("data-tt-filter")));
@@ -1553,23 +2302,35 @@
       button.addEventListener("click", () => setWrCategoryFilter(button.getAttribute("data-tt-wr-filter")));
     });
     $("ttEntryRows")?.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-entry-id]");
-      if (!button) return;
-      const entryId = button.getAttribute("data-entry-id");
-      const action = button.getAttribute("data-entry-action");
-      if (action === "edit") {
-        beginEditEntry(entryId);
+      const button = event.target.closest("[data-entry-action][data-entry-id]");
+      if (button) {
+        const entryId = button.getAttribute("data-entry-id");
+        const action = button.getAttribute("data-entry-action");
+        if (action === "edit") {
+          beginEditEntry(entryId);
+          return;
+        }
+        if (action === "wr-info") {
+          openWrInfoDialogForEntry(entryId);
+          return;
+        }
+        if (action === "combo-info") {
+          openComboInfoDialogForEntry(entryId);
+          return;
+        }
+        deleteEntry(entryId);
         return;
       }
-      if (action === "wr-info") {
-        openWrInfoDialogForEntry(entryId);
-        return;
-      }
-      if (action === "combo-info") {
-        openComboInfoDialogForEntry(entryId);
-        return;
-      }
-      deleteEntry(entryId);
+      const toggle = event.target.closest("[data-entry-toggle]");
+      if (!toggle) return;
+      toggleEntryCard(toggle.getAttribute("data-entry-toggle"));
+    });
+    $("ttEntryRows")?.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const toggle = event.target.closest("[data-entry-toggle]");
+      if (!toggle) return;
+      event.preventDefault();
+      toggleEntryCard(toggle.getAttribute("data-entry-toggle"));
     });
     document.querySelectorAll(".ttDialog").forEach((dialog) => {
       dialog.addEventListener("click", (event) => {

@@ -11,7 +11,10 @@ function setStatus(msg, ok = true) {
 
 function createClient(storage, key) {
   if (CLIENT_CACHE[key]) return CLIENT_CACHE[key];
-  CLIENT_CACHE[key] = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  if (!window.supabase?.createClient) {
+    throw new Error("Supabase could not load. Please check your connection and reload the page.");
+  }
+  CLIENT_CACHE[key] = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
     auth: {
       persistSession: true,
       storage,

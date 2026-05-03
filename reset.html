@@ -35,20 +35,20 @@
 
 </head>
 <body>
-<noscript><div style="text-align:center;padding:40px;font-family:Arial,sans-serif;color:#fff;background:#07080a;min-height:100vh;"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
-  <div class="cardWrap">
+<noscript><div class="noscriptNotice"><h2>MKWT requires JavaScript</h2><p>Please enable JavaScript or disable your adblocker for this site.</p></div></noscript>
+  <main class="cardWrap">
     <div class="card resetCard">
       <div class="logo">MKWT</div>
       <h2>Set a new password</h2>
 
       <form id="resetForm">
-        <input type="email" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
+        <input class="visuallyHiddenInput" type="email" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" />
         <div class="field">
-          <label>New password</label>
+          <label for="p1">New password</label>
           <input id="p1" type="password" autocomplete="new-password" placeholder="........"/>
         </div>
         <div class="field">
-          <label>Confirm new password</label>
+          <label for="p2">Confirm new password</label>
           <input id="p2" type="password" autocomplete="new-password" placeholder="........"/>
         </div>
 
@@ -56,7 +56,7 @@
         <div class="status" id="status"></div>
       </form>
     </div>
-  </div>
+  </main>
 
   
 
