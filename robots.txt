@@ -1,13 +1,27 @@
 User-agent: *
 
-# Public pages (index + about) are allowed.
+# Public marketing/tool pages are allowed and listed in the sitemap.
 
 # Keep app/internal pages out of search results.
+Disallow: /login
 Disallow: /login.html
+Disallow: /reset
 Disallow: /reset.html
+Disallow: /tracker
 Disallow: /tracker.html
+Disallow: /stats
 Disallow: /stats.html
+Disallow: /sessions
 Disallow: /sessions.html
+Disallow: /settings
 Disallow: /settings.html
+Disallow: /lounge
+Disallow: /lounge.html
+Disallow: /lounge-24
+Disallow: /lounge-24.html
+Disallow: /lounge-stats
+Disallow: /lounge-stats.html
+Disallow: /mkcentral
+Disallow: /mkcentral.html
 
 Sitemap: https://mkwt.app/sitemap.xml

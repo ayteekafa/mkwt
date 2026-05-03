@@ -1,7 +1,7 @@
 ﻿// MKWT Service Worker (Safari-safe)
 // Goal: cache static assets for speed/offline Guest, but NEVER serve redirected responses.
 // Also: avoid precaching HTML during install to prevent Safari "redirected response" crash.
-const CACHE = "mkwt-v483"; // bump to force refresh
+const CACHE = "mkwt-v484"; // bump to force refresh
 
 const STATIC_ASSETS = [
   "/mkwt_theme_v3.css",
@@ -47,6 +47,8 @@ const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/icons/mkwt-dendo-192.png",
+  "/icons/mkwt-dendo-512.png",
   "/assets/picker-icons/characters/rocky-wrench.png",
   "/assets/picker-icons/characters/wiggler.png",
   "/assets/picker-icons/characters/king-boo.png",
@@ -58,6 +60,7 @@ const PWA_ICON_ASSETS = [
   "/apple-touch-icon.png",
   "/favicon-32.png",
   "/favicon.ico",
+  "/og-card.png",
 ];
 
 const PICKER_ICON_ASSETS = [
