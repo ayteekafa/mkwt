@@ -14,11 +14,7 @@ const htmlEntries = Object.fromEntries(
 
 const copyDirs = new Set([
   "assets",
-  "combo-icons",
-  "functions",
   "icons",
-  "Track Icons MKW",
-  "Track Icons MKW Transparent"
 ]);
 
 const copyFiles = new Set([

@@ -9,7 +9,7 @@ This repo is intentionally plain HTML/CSS/JS with a small shared runtime layer. 
 - `tracker.*` - World Wide match entry and recent matches
 - `stats.*` - World Wide charts and comparisons
 - `sessions.*` - World Wide session history
-- `time-trial.*` - PB entry, WR sync, and WR comparison
+- `time-trial.*` - PB entry plus locally cached WR fetch/comparison
 - `combo-builder.*` - combo stats, filters, similar combos, compare
 - `lounge.*` - Lounge 12p tracker
 - `lounge-24.*` - Lounge 24p tracker
@@ -45,8 +45,8 @@ If one of those needs to change structurally, check the scripts in `tools/` firs
 - `sw.js` - service worker cache list and route fallbacks
 - `_headers` - response headers
 - `_redirects` - route rewrites/redirects
-- `_worker.js` - edge/runtime worker for API proxying and asset serving
-- `functions/api/` - local serverless-style endpoint files
+- `_worker.js` - Cloudflare Pages Advanced Mode worker for API proxying and asset serving
+- `functions/api/` - local/legacy endpoint references; production API routes are handled by `_worker.js`
 
 ## Practical editing guidance
 

@@ -10,41 +10,43 @@ function json(status, payload){
   });
 }
 
+async function fetchMkcentralHtml(target){
+  const res = await fetch(target, {
+    headers: {
+      "accept": "text/html,application/xhtml+xml",
+      "user-agent": "MKWT MKCentral sync (+https://mkwt.app)",
+    },
+    cf: { cacheTtl: 30, cacheEverything: false },
+  });
+
+  const html = await res.text();
+  if(!res.ok){
+    const err = new Error(`MKCentral returned HTTP ${res.status}.`);
+    err.status = res.status;
+    throw err;
+  }
+  return html;
+}
+
 export async function onRequestGet({ request }){
   const url = new URL(request.url);
   const playerId = String(url.searchParams.get("playerId") || "").trim();
   const season = String(url.searchParams.get("season") || "2").trim();
-  const p = String(url.searchParams.get("p") || "12").trim();
+  const p = String(url.searchParams.get("p") || "").trim();
 
   if(!/^\d{1,10}$/.test(playerId)){
     return json(400, { ok: false, error: "Invalid MKCentral player ID." });
   }
-  if(season !== "2"){
-    return json(400, { ok: false, error: "Only season 2 is enabled for this test." });
+  if(!/^\d{1,4}$/.test(season)){
+    return json(400, { ok: false, error: "Invalid MKCentral season." });
   }
-  if(p !== "12"){
-    return json(400, { ok: false, error: "Only 12 player stats are enabled for this test." });
+  if(p && p !== "12" && p !== "24"){
+    return json(400, { ok: false, error: "Invalid MKCentral player count." });
   }
 
-  const target = `https://lounge.mkcentral.com/mkworld/PlayerDetails/${playerId}?season=${season}&p=${p}`;
+  const target = `https://lounge.mkcentral.com/mkworld/PlayerDetails/${playerId}?season=${season}${p ? `&p=${p}` : ""}`;
   try{
-    const res = await fetch(target, {
-      headers: {
-        "accept": "text/html,application/xhtml+xml",
-        "user-agent": "MKWT MKCentral sync test (+https://mkwt.app)",
-      },
-      cf: { cacheTtl: 30, cacheEverything: false },
-    });
-
-    const html = await res.text();
-    if(!res.ok){
-      return json(res.status, {
-        ok: false,
-        error: `MKCentral returned HTTP ${res.status}.`,
-        status: res.status,
-        url: target,
-      });
-    }
+    const html = await fetchMkcentralHtml(target);
 
     return json(200, {
       ok: true,
@@ -53,7 +55,7 @@ export async function onRequestGet({ request }){
       html,
     });
   }catch(e){
-    return json(502, {
+    return json(e?.status || 502, {
       ok: false,
       error: e?.message || "Could not fetch MKCentral.",
       url: target,

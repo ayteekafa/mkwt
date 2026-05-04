@@ -3,6 +3,7 @@
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlteGxzc2d0enpkZmdkc2N1YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMjI2NDYsImV4cCI6MjA4MzY5ODY0Nn0.b5nRQ1ryAC4_TMrmC5qIXx7Gm2hDzrR51Z6RVks2Wg4";
   const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
   const GUEST_ENTRIES_KEY = "mkwt_guest_time_trial_entries_v1";
+  const WORLD_RECORDS_CACHE_KEY = "mkwt_time_trial_world_records_cache_v1";
   const COMBO_BUILDER_DATA_URL = "combo_builder_data.json";
   const COMBO_ICON_MANIFEST_URL = "combo_icon_map.json";
   const COMBO_BUILDER_SELECTION_KEY = "mkwt_combo_builder_selection_v1";
@@ -573,12 +574,8 @@
     isUpdatingWr = !!active;
     const btn = $("btnRefreshTimeTrialWr");
     if (!btn) return;
-    btn.disabled = isUpdatingWr || isGuest();
-    if (isGuest()) {
-      btn.textContent = "Login to update WRs";
-    } else {
-      btn.textContent = isUpdatingWr ? "Updating WRs..." : "Update WRs";
-    }
+    btn.disabled = isUpdatingWr;
+    btn.textContent = isUpdatingWr ? "Updating WRs..." : "Update WRs";
   }
 
   function openDialog(id) {
@@ -745,6 +742,42 @@
       kart_name: cleanText(entry.kart_name || ""),
     };
     return normalized;
+  }
+
+  function normalizeWorldRecord(record) {
+    if (!record || typeof record !== "object") return null;
+    const normalized = {
+      ...record,
+      track_name: canonicalTrackName(record.track_name || record.track || ""),
+      category: String(record.category || "").toLowerCase(),
+      wr_time_text: cleanText(record.wr_time_text || ""),
+      wr_time_ms: Number(record.wr_time_ms),
+      holder_name: repairUtf8Mojibake(record.holder_name || ""),
+      character_name: cleanText(record.character_name || "") || null,
+      kart_name: cleanText(record.kart_name || "") || null,
+      source_url: cleanText(record.source_url || ""),
+      fetched_at: record.fetched_at || null,
+    };
+    if (!normalized.track_name || !isShroomCategory(normalized.category)) return null;
+    if (!normalized.wr_time_text || !Number.isFinite(normalized.wr_time_ms)) return null;
+    if (!normalized.holder_name) return null;
+    return normalized;
+  }
+
+  function loadCachedWorldRecords() {
+    try {
+      const raw = localStorage.getItem(WORLD_RECORDS_CACHE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCachedWorldRecords(records) {
+    try {
+      localStorage.setItem(WORLD_RECORDS_CACHE_KEY, JSON.stringify(records || []));
+    } catch (e) {}
   }
 
   function recordKey(trackName, category) {
@@ -1445,14 +1478,14 @@
     const info = $("ttWrInfo");
     if (!info) return;
     if (!worldRecords.length) {
-      info.textContent = "WR update unavailable";
+      info.textContent = "WRs not loaded yet";
       return;
     }
     const latest = worldRecords.reduce((max, record) => {
       const value = record?.fetched_at ? new Date(record.fetched_at).getTime() : 0;
       return value > max ? value : max;
     }, 0);
-    info.textContent = latest ? `WR updated ${fmtDateOnly(latest)}` : "WR update unavailable";
+    info.textContent = latest ? `WR updated ${fmtDateOnly(latest)}` : "WR cache loaded";
   }
 
   function renderSummary() {
@@ -1783,19 +1816,8 @@
   }
 
   async function loadWorldRecords() {
-    const { data, error } = await publicClient
-      .from("time_trial_world_records")
-      .select("*");
-    if (error) throw error;
-
-    worldRecords = (Array.isArray(data) ? data : [])
-      .map((record) => ({
-        ...record,
-        track_name: canonicalTrackName(record.track_name),
-        category: String(record.category || "").toLowerCase(),
-        wr_time_ms: Number(record.wr_time_ms),
-        holder_name: repairUtf8Mojibake(record.holder_name),
-      }))
+    worldRecords = loadCachedWorldRecords()
+      .map(normalizeWorldRecord)
       .filter((record) => isShroomCategory(record.category))
       .sort(compareTrackOrder);
 
@@ -2158,11 +2180,6 @@
   }
 
   async function updateWorldRecords() {
-    if (isGuest()) {
-      setStatus("Login to update WR data in the cloud database.", false);
-      return;
-    }
-
     try {
       setUpdateBusy(true);
       setStatus("Fetching mkwrs.com track list...", true, false);
@@ -2192,15 +2209,17 @@
       }
 
       const changedWrKeys = collectChangedWorldRecordKeys(worldRecords, records);
-      setStatus(`Writing ${records.length} WR rows to Supabase...`, true, false);
-      const { data, error } = await supabaseClient.rpc("refresh_time_trial_world_records", {
-        p_records: records,
-      });
-      if (error) throw error;
-
+      const fetchedAt = new Date().toISOString();
+      const normalizedRecords = records
+        .map((record) => normalizeWorldRecord({ ...record, fetched_at: fetchedAt }))
+        .filter(Boolean)
+        .sort(compareTrackOrder);
+      saveCachedWorldRecords(normalizedRecords);
+      worldRecords = normalizedRecords;
       pendingWrNewRecordKeys = new Set(changedWrKeys);
-      setStatus(`WR database updated. ${Number(data || records.length)} rows refreshed.`, true);
-      await loadWorldRecords();
+      setStatus(`WR data refreshed locally. ${normalizedRecords.length} rows loaded.`, true);
+      updateWrInfo();
+      renderWorldRecords();
       await loadEntries();
     } catch (e) {
       setStatus(e?.message || "Could not update world records.", false);

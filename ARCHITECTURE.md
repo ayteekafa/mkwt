@@ -49,9 +49,9 @@ Each main page is usually represented by a matching HTML/CSS/JS trio or pair in 
 - `sw.js`: service worker and static asset cache list
 - `_headers`: response headers for deployment
 - `_redirects`: route rewrites/redirects for deployment
-- `_worker.js`: edge/runtime worker entry
-- `functions/api/mkcentral-player.js`: serverless MKCentral fetch proxy endpoint
-- `functions/api/time-trial-index.js`, `functions/api/time-trial-track.js`: serverless mkwrs.com fetch proxy endpoints
+- `_worker.js`: Cloudflare Pages Advanced Mode worker entry for production API routes and static asset serving
+- `functions/api/mkcentral-player.js`: local/legacy MKCentral fetch proxy reference
+- `functions/api/time-trial-index.js`, `functions/api/time-trial-track.js`: local/legacy mkwrs.com fetch proxy references
 
 ### Utility/assets folders
 - `tools/`: local utility scripts such as `mkcentral-local-proxy.ps1`
@@ -69,9 +69,9 @@ There is no framework build step in the current structure.
 ### Data sources
 The app combines:
 - local browser storage for guest mode and page settings
-- Supabase for account-backed profile, match, and lounge data
+- Supabase for account-backed profile, match, lounge, and Time Trial PB data
 - MKCentral scraping/sync logic for Lounge Stats
-- mkwrs.com scraping/sync logic for Time Trial world records
+- mkwrs.com scraping/fetch logic for Time Trial world records; WR data is cached in the browser, not stored in Supabase
 
 ### Page composition
 Most pages follow this pattern:
@@ -92,7 +92,7 @@ Picker dropdowns should use the small generated assets in `assets/picker-icons/`
 - `stats.*` renders World Wide charts and distribution analysis
 
 ### Time Trial flow
-- `time-trial.*` handles Time Trial personal best entry, WR sync, and WR comparison
+- `time-trial.*` handles Time Trial personal best entry, locally cached WR fetches, and WR comparison
 
 ### Lounge flow
 - `lounge.*` handles 12p mogi tracking

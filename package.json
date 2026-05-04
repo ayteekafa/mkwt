@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "assets:brand": "node tools/generate-brand-assets.cjs",
+    "check": "npm run check:js && npm run check:build",
+    "check:build": "npm run build",
+    "check:js": "node tools/check-js-syntax.cjs",
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1"
