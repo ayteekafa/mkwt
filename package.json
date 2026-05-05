@@ -2,6 +2,9 @@
   "name": "mkwt",
   "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "assets:brand": "node tools/generate-brand-assets.cjs",
     "check": "npm run check:js && npm run check:build",

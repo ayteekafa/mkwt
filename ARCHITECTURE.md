@@ -64,7 +64,7 @@ Each main page is usually represented by a matching HTML/CSS/JS trio or pair in 
 
 ### Frontend style
 The app is plain HTML/CSS/JS with CDN-loaded libraries where needed.
-There is no framework build step in the current structure.
+Vite is used as a light static-site build/copy step; page logic stays root-oriented and framework-free.
 
 ### Data sources
 The app combines:

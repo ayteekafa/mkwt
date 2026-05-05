@@ -1,7 +1,7 @@
 ﻿// MKWT Service Worker (Safari-safe)
 // Goal: cache static assets for speed/offline Guest, but NEVER serve redirected responses.
 // Also: avoid precaching HTML during install to prevent Safari "redirected response" crash.
-const CACHE = "mkwt-v485"; // bump to force refresh
+const CACHE = "mkwt-v487"; // bump to force refresh
 
 const STATIC_ASSETS = [
   "/mkwt_theme_v3.css",
@@ -16,7 +16,7 @@ const STATIC_ASSETS = [
   "/tracker_suggestions.js",
   "/tracker_intermission.js",
   "/time-trial.css",
-  "/time-trial.js",
+  "/time-trial.js?v=20260505",
   "/combo-builder.css",
   "/combo-builder.js",
   "/combo_builder_data.json",
