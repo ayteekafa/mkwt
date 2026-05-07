@@ -1386,7 +1386,7 @@
   function resultValueText(values = state.selectedPlacements){
     const list = Array.isArray(values) ? values : Array.from(values || []);
     if(!list.length) return "Result";
-    return list.slice().sort((a, b) => a - b).map((place) => `#${place}`).join(", ");
+    return list.slice().sort((a, b) => a - b).map((place) => String(place)).join(", ");
   }
 
   function updatePlacementOptions(){
@@ -1423,7 +1423,7 @@
         if([1, 2, 3].includes(place)) button.classList.add(`numberPicker__option--place${place}`);
         button.dataset.place = String(place);
         button.setAttribute("aria-selected", state.pendingPlacements.has(place) ? "true" : "false");
-        button.textContent = `#${place}`;
+        button.textContent = String(place);
         grid.appendChild(button);
       }
     }
@@ -1720,24 +1720,26 @@
 
       const options = readOptions(selectEl);
       const letters = Array.from(new Set(options.map(trackLetter))).sort((a, b) => a.localeCompare(b));
+      const hasIntermission = options.some((option) => option.value === "Intermission");
+      const railLetters = hasIntermission && letters.includes("I") ? ["I", ...letters.filter((letter) => letter !== "I")] : letters;
       const activeLetter = picker.letterFilter || "all";
       const layout = document.createElement("div");
       layout.className = "trackPicker__layout";
       const rail = document.createElement("div");
       rail.className = "trackPicker__letterRail";
       rail.setAttribute("aria-label", "Track letter filter");
-      const letterValues = ["all", ...letters];
+      const letterValues = ["all", ...railLetters];
       panel.style.setProperty("--track-picker-letter-count", String(letterValues.length));
       panel.style.setProperty("--track-picker-mobile-height", `${34 + (letterValues.length * 24)}px`);
       letterValues.forEach((letter) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = letter === "all" ? "trackPicker__letterBtn trackPicker__letterBtn--all" : "trackPicker__letterBtn";
-        if(letter === "I" && options.some((option) => option.value === "Intermission")) button.classList.add("trackPicker__letterBtn--intermission");
+        if(letter === "I" && hasIntermission) button.classList.add("trackPicker__letterBtn--intermission");
         if(letter === activeLetter) button.classList.add("is-active");
         button.dataset.letterFilter = letter;
         button.setAttribute("aria-pressed", letter === activeLetter ? "true" : "false");
-        button.textContent = letter === "all" ? "All" : (letter === "I" && options.some((option) => option.value === "Intermission") ? "IM!" : letter);
+        button.textContent = letter === "all" ? "All" : (letter === "I" && hasIntermission ? "IM!" : letter);
         rail.appendChild(button);
       });
       rail.addEventListener("click", (event) => {
@@ -2623,7 +2625,7 @@
       if([1, 2, 3].includes(place)) button.classList.add(`numberPicker__option--place${place}`);
       button.dataset.cwEditPlace = String(place);
       button.setAttribute("aria-selected", state.editPlacements.has(place) ? "true" : "false");
-      button.textContent = `#${place}`;
+      button.textContent = String(place);
       grid.appendChild(button);
     }
     if(hint) hint.textContent = `${state.editPlacements.size} / ${TEAM_SIZE} selected`;
