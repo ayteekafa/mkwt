@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="mkwt_bootstrap.js"></script>
+  <title>MKWT - Clan Wars</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b111f">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+  <script src="mkwt_core.js"></script>
+  <script src="mkwt_page_helpers.js"></script>
+  <link href="mkwt_theme_v3.css" rel="stylesheet"/>
+  <link href="tracker.css" rel="stylesheet"/>
+  <link href="stats.css" rel="stylesheet"/>
+  <link href="lounge.css" rel="stylesheet"/>
+  <link href="clan-wars.css" rel="stylesheet"/>
+</head>
+<body>
+  <nav class="nav">
+    <div class="navInner">
+      <div class="brand">MKWT <span class="byAytee">by Aytee</span></div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="tracker.html">World Wides</a>
+          <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+          <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+          <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
+          <a class="navDropdownItem active" href="clan-wars.html">Clan Wars</a>
+        </div>
+      </div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
+          <a class="navDropdownItem" href="lounge-stats.html">Lounge Stats</a>
+          <a class="navDropdownItem" href="clan-wars-stats.html">Clan Wars Stats</a>
+        </div>
+      </div>
+      <div class="navDropdown">
+        <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Race Lab</button>
+        <div class="navDropdownMenu">
+          <a class="navDropdownItem" href="combo-builder.html">Combo Builder</a>
+          <a class="navDropdownItem" href="item-distribution.html">Item Distribution</a>
+        </div>
+      </div>
+      <a aria-label="Settings" class="navLink navIcon" href="settings.html" title="Settings">&#9881;</a>
+    </div>
+  </nav>
+
+  <main class="wrap clanWarsWrap">
+    <section class="card profileCard clanWarsHero">
+      <button class="btn2 clanWarsHeroAction" id="btnClanInfo" type="button">Join clan</button>
+      <div class="profileTop clanWarsHeroTop">
+        <div>
+          <p class="eyebrow">Tracker</p>
+          <h2 class="heroTitle">Clan Wars <span class="byAytee">by Aytee</span></h2>
+          <div class="muted heroSubtitle" id="cwUserInfo" hidden></div>
+        </div>
+        <div class="clanWarsScopeBox">
+          <button class="clanWarsScopeLabel" id="cwScopeLabel" type="button" disabled>No clan joined</button>
+        </div>
+      </div>
+      <div class="clanWarsDivisionStart" id="cwDivisionStart" hidden>
+        <div class="clanWarsDivisionStart__head">
+          <div class="clanWarsDivisionStart__title">Choose match slot</div>
+          <button class="clanWarsEventSwitch" id="btnClanWarsEventSwitch" type="button" role="switch" aria-checked="false" aria-label="6v18 mode">
+            <span class="clanWarsEventSwitch__copy">
+              <span class="clanWarsEventSwitch__label">6v18</span>
+              <span class="clanWarsEventSwitch__status" id="cwEventSwitchStatus">6v6 active</span>
+            </span>
+            <span class="clanWarsEventSwitch__track" aria-hidden="true">
+              <span class="clanWarsEventSwitch__thumb"></span>
+            </span>
+          </button>
+        </div>
+        <div class="clanWarsDivisionSlots" id="cwDivisionSlots"></div>
+      </div>
+    </section>
+
+    <section class="card cardSection clanWarsEntryCard" aria-labelledby="cwEntryTitle" hidden>
+      <div class="sectionHead sectionHead--split">
+        <div>
+          <h3 class="sectionTitle" id="cwEntryTitle">Race entry</h3>
+        </div>
+        <div aria-live="polite" class="clanWarsDestinyNotice" hidden id="cwDestinyNotice" role="status">
+          <span class="clanWarsDestinyNotice__label">Special Destiny</span>
+          <span class="clanWarsDestinyNotice__value" id="cwDestinyNoticeValue">-</span>
+        </div>
+      </div>
+
+      <div class="controlSurface">
+        <div class="entryPanel clanWarsEntryPanel">
+          <div class="modeToggle loungeModeToggle clanWarsIntermissionMode" id="cwIntermissionMode" aria-label="Race kind" role="tablist" hidden>
+            <button class="modeBtn isActive" data-cw-kind="track" type="button" aria-selected="true">Track</button>
+            <button class="modeBtn" data-cw-kind="intermission" type="button" aria-selected="false">Intermission</button>
+          </div>
+
+          <div class="formGrid formGrid--single" id="cwTrackField">
+            <label>
+              <select id="cwTrackSelect" aria-label="Track"></select>
+            </label>
+          </div>
+
+          <div class="formGrid clanWarsIntermissionFields" id="cwIntermissionFields" hidden>
+            <label>
+              <select id="cwIntermissionStart" aria-label="Intermission start"></select>
+            </label>
+            <label>
+              <select id="cwIntermissionEnd" aria-label="Intermission end"></select>
+            </label>
+          </div>
+
+          <div class="clanWarsPlacementBlock">
+            <div class="clanWarsResultPicker" id="cwResultPicker">
+              <button class="trackPicker__trigger clanWarsResultTrigger" id="cwResultTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                <span class="trackPicker__value" id="cwResultValue">Result</span>
+                <span class="trackPicker__chevron" aria-hidden="true">v</span>
+              </button>
+              <div class="trackPicker__panel trackPicker__panel--number clanWarsResultPanel" id="cwResultPanel" role="listbox" hidden>
+                <div class="clanWarsResultPanelHead">
+                  <span id="cwResultPanelHint">0 / 6 selected</span>
+                  <button class="navAction navAction--sm" id="btnResultClear" type="button">Clear</button>
+                </div>
+                <div class="numberPicker__grid clanWarsResultGridSelect" id="cwResultGrid"></div>
+                <div class="clanWarsResultPanelActions">
+                  <button class="navAction" id="btnResultCancel" type="button">Cancel</button>
+                  <button class="navAction active" id="btnResultOk" type="button">OK</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actionStrip clanWarsActionStrip" aria-label="Race actions">
+            <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add Race</button>
+            <button id="cwDcToggle" class="navAction actionStripBtn tagToggle" type="button" aria-pressed="false">DC</button>
+            <button id="btnClearPlacements" class="navAction actionStripBtn" type="button">Clear</button>
+            <button id="btnUndoRace" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last"><span class="undoMark" aria-hidden="true">&#8630;</span><span class="undoLabel">Undo</span></button>
+          </div>
+          <div class="statGrid clanWarsTotals" aria-label="Current match totals">
+            <div class="statBox"><div class="statLabel">Races</div><div class="statValue" id="cwRaceCount">0 / 12</div></div>
+            <div class="statBox"><div class="statLabel">Own total</div><div class="statValue" id="cwOwnTotal">0</div></div>
+            <div class="statBox" id="cwOpponentTotalCard"><div class="statLabel">Opponent total</div><div class="statValue" id="cwOpponentTotal">0</div></div>
+            <div class="statBox"><div class="statLabel">DC races</div><div class="statValue" id="cwDcCount">0</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card clanWarsHistoryCard" aria-labelledby="cwCurrentTitle">
+      <div class="sectionHead">
+        <h3 class="sectionTitle" id="cwCurrentTitle">Current match</h3>
+      </div>
+      <div class="clanWarsRaceList" id="cwCurrentRaceList">
+        <div class="emptyState">Start a match by saving the first race.</div>
+      </div>
+    </section>
+
+    <section class="card clanWarsHistoryCard" aria-labelledby="cwSavedTitle">
+      <div class="sectionHead">
+        <h3 class="sectionTitle" id="cwSavedTitle">Saved matches</h3>
+      </div>
+      <div class="clanWarsMatchList" id="cwSavedMatchList">
+        <div class="emptyState">No saved Clan Wars matches yet.</div>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="mkwtConfirmDialog clanWarsResultDialog" id="cwResultDialog" aria-labelledby="cwResultTitle">
+    <form class="mkwtConfirmDialog__panel" method="dialog">
+      <div class="mkwtConfirmDialog__eyebrow">Match complete</div>
+      <h2 class="mkwtConfirmDialog__title" id="cwResultTitle">Clan War result</h2>
+      <div class="clanWarsResultBody" id="cwResultBody"></div>
+      <div class="mkwtConfirmDialog__actions">
+        <button class="btn2" value="close" type="submit">Close</button>
+        <button class="btn" id="btnResultNewMatch" value="new" type="submit">New match</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="mkwtConfirmDialog clanWarsEditDialog" id="cwEditDialog" aria-labelledby="cwEditTitle">
+    <form class="mkwtConfirmDialog__panel clanWarsEditPanel" method="dialog">
+      <div class="mkwtConfirmDialog__eyebrow">Clan Wars</div>
+      <h2 class="mkwtConfirmDialog__title" id="cwEditTitle">Edit race</h2>
+      <div class="clanWarsEditBody" id="cwEditBody"></div>
+      <div class="mkwtConfirmDialog__actions">
+        <button class="btn2" value="cancel" type="submit">Cancel</button>
+        <button class="btn" id="btnSaveRaceEdit" value="save" type="button">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="mkwtConfirmDialog clanJoinDialog" id="cwClanDialog" aria-labelledby="cwClanTitle">
+    <form class="mkwtConfirmDialog__panel clanJoinPanel" method="dialog">
+      <div class="mkwtConfirmDialog__eyebrow">Clan Wars</div>
+      <h2 class="mkwtConfirmDialog__title" id="cwClanTitle">Join clan</h2>
+      <div class="clanJoinBody">
+        <div class="clanJoinField clanJoinPickerField">
+          <span>Choose clan</span>
+          <button class="clanJoinChoose" id="btnClanPicker" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="cwClanPickerPanel">
+            <span id="cwClanValue">Choose clan</span>
+            <span class="trackPicker__chevron" aria-hidden="true">v</span>
+          </button>
+          <div class="trackPicker__panel clanJoinPickerPanel" id="cwClanPickerPanel" hidden>
+            <div class="trackPicker__layout clanJoinPickerLayout">
+              <div class="trackPicker__letterRail" id="cwClanLetterRail" aria-label="Clan letter filter"></div>
+              <div class="trackPicker__trackArea clanJoinTrackArea">
+                <div class="trackPicker__groups clanJoinSuggestions" id="cwClanSuggestions" role="listbox" aria-label="Clan suggestions"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <label class="clanJoinField">
+          <span>Password</span>
+          <input id="cwClanPassword" type="password" autocomplete="current-password" placeholder="Clan password" aria-describedby="cwClanError">
+        </label>
+        <div class="clanJoinError" id="cwClanError" role="alert" hidden></div>
+      </div>
+      <div class="mkwtConfirmDialog__actions">
+        <button class="btn2" value="cancel" type="submit">Cancel</button>
+        <button class="btn" id="btnJoinClanConfirm" value="join" type="button">Join clan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="mkwtConfirmDialog clanMembersDialog" id="cwMembersDialog" aria-labelledby="cwMembersTitle">
+    <form class="mkwtConfirmDialog__panel clanMembersPanel" method="dialog">
+      <div class="mkwtConfirmDialog__eyebrow">Clan Wars</div>
+      <h2 class="mkwtConfirmDialog__title" id="cwMembersTitle">Members</h2>
+      <div class="clanMembersBody" id="cwMembersBody">
+        <div class="emptyState">Loading members...</div>
+      </div>
+      <div class="mkwtConfirmDialog__actions">
+        <button class="btn2" value="close" type="submit">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="mkwt_public.js"></script>
+  <script src="tracker_intermission.js"></script>
+  <script src="clan-wars.js"></script>
+</body>
+</html>

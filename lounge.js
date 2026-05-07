@@ -35,6 +35,9 @@
     24: ['FFA', '2v2', '3v3', '4v4', '6v6', '8v8', '12v12', 'SQ2v2', 'SQ3v3', 'SQ4v4', 'SQ6v6', 'SQ8v8', 'SQ12v12', NON_LOUNGE_FORMAT_TAG]
   };
   const ALL_LOUNGE_FORMAT_TAGS = new Set(Object.values(LOUNGE_FORMAT_TAGS).flat());
+  const LOUNGE_TIER_CODES = ['X', 'S', 'A', 'AB', 'B', 'BC', 'C', 'CD', 'D', 'DE', 'E', 'F'];
+  const LOUNGE_TIER_TAGS = LOUNGE_TIER_CODES.map(code => `Tier ${code}`);
+  const LOUNGE_TIER_ORDER = new Map(LOUNGE_TIER_CODES.map((code, index) => [`Tier ${code}`, index]));
   const STORAGE_CURRENT = PAGE_CONFIG.storageSuffix === '12' ? 'mkwt_lounge_current_v1' : `mkwt_lounge${PAGE_CONFIG.storageSuffix}_current_v1`;
   const STORAGE_SESSIONS = PAGE_CONFIG.storageSuffix === '12' ? 'mkwt_lounge_sessions_v1' : `mkwt_lounge${PAGE_CONFIG.storageSuffix}_sessions_v1`;
   const MKCENTRAL_SETTINGS_KEY = 'mkwt_mkcentral_player_ref_v1';
@@ -69,6 +72,7 @@
     'player_count',
     'lounge_format_tag',
     'lounge_format_source',
+    'lounge_tier',
     'stats_excluded',
     'mkcentral_format_tag',
     MKCENTRAL_MOGI_DB_FIELDS,
@@ -120,6 +124,7 @@
     openSessionDetails: {},
     openSessionTagEditors: {},
     sessionTagDrafts: {},
+    sessionTierDrafts: {},
     editingSessionIndex: null,
     raceEdit: null,
     mkcentralMatches: {},
@@ -327,6 +332,18 @@
   function sessionFormatTag(session){
     return normalizeLoungeFormatTag(session?.loungeFormatTag || session?.matchFormatTag || session?.lounge_format_tag || '');
   }
+  function normalizeLoungeTierTag(value){
+    const raw = String(value || '').trim();
+    if(!raw) return '';
+    const withoutPrefix = raw.replace(/^tier\s+/i, '').trim();
+    const code = withoutPrefix.replace(/[\s_-]+/g, '').toUpperCase();
+    if(!code || code === 'OTHER' || /^\d{5,}$/.test(code)) return '';
+    if(!/^[A-Z]{1,3}$/.test(code)) return '';
+    return `Tier ${code}`;
+  }
+  function sessionTierTag(session){
+    return normalizeLoungeTierTag(session?.loungeTier || session?.lounge_tier || session?.tierTag || session?.tier || '');
+  }
   function sessionMkcentralFormatTag(session, match = null){
     return normalizeLoungeFormatTag(match?.format || session?.mkcentralFormatTag || session?.mkcentral_format_tag || '');
   }
@@ -355,6 +372,27 @@
     const normalized = normalizeLoungeFormatTag(tag);
     if(!normalized) return '';
     return `<span class="${className} ${formatTagClass(normalized)}">${escapeHtml(normalized)}</span>`;
+  }
+  function tierTagPillHtml(tag, className = 'sessionFormatTag sessionTierTag'){
+    const normalized = normalizeLoungeTierTag(tag);
+    if(!normalized) return '';
+    return `<span class="${className}">${escapeHtml(normalized)}</span>`;
+  }
+  function compareLoungeTierTags(a, b){
+    const ai = LOUNGE_TIER_ORDER.has(a) ? LOUNGE_TIER_ORDER.get(a) : LOUNGE_TIER_ORDER.size;
+    const bi = LOUNGE_TIER_ORDER.has(b) ? LOUNGE_TIER_ORDER.get(b) : LOUNGE_TIER_ORDER.size;
+    return ai - bi || a.localeCompare(b, 'en', { numeric: true });
+  }
+  function collectLoungeTierTags(){
+    const seen = new Set(LOUNGE_TIER_TAGS);
+    const add = (value) => {
+      const normalized = normalizeLoungeTierTag(value);
+      if(normalized) seen.add(normalized);
+    };
+    [...(state.sessions || []), state.current].forEach(session => add(sessionTierTag(session)));
+    const payload = readMkcentralPayload();
+    (payload?.events || []).forEach(event => add(mkcentralGroupValue(event, 'tier')));
+    return Array.from(seen).sort(compareLoungeTierTags);
   }
   function sessionTagMismatchWithMkcentral(session, match = null){
     const localTag = sessionFormatTag(session);
@@ -1694,6 +1732,7 @@
       saved: false,
       loungeFormatTag: '',
       loungeFormatSource: '',
+      loungeTier: '',
       statsExcluded: false,
       mkcentralFormatTag: '',
       mkcentralEventId: '',
@@ -1918,6 +1957,7 @@
     const payload = {
       lounge_format_tag: sessionFormatTag(session) || null,
       lounge_format_source: sessionFormatSource(session) || null,
+      lounge_tier: sessionTierTag(session) || null,
       mkcentral_format_tag: sessionMkcentralFormatTag(session) || null,
       ...mkcentralDbPatchFromSession(session),
     };
@@ -1940,6 +1980,12 @@
       if(currentTag !== tag) changed = true;
       session.loungeFormatTag = tag;
       session.loungeFormatSource = 'mkcentral';
+    }
+    const tier = normalizeLoungeTierTag(match?.tier);
+    const currentTier = sessionTierTag(session);
+    if(tier && !currentTier){
+      session.loungeTier = tier;
+      changed = true;
     }
     const patch = mkcentralSessionPatchFromMatch(match);
     for(const [key, value] of Object.entries(patch)){
@@ -2151,14 +2197,17 @@
     if(!match) return '';
     const bits = [];
     const localTag = sessionFormatTag(session);
+    const localTier = sessionTierTag(session);
     const matchFormat = normalizeLoungeFormatTag(match.format) || (match.format && match.format !== 'Other' ? match.format : '');
+    const matchTier = normalizeLoungeTierTag(match.tier);
     const syncStatus = String(match.sync_status || '').toLowerCase();
     const statusLabel = syncStatus === 'mismatch' || syncStatus === 'stale'
       ? 'Check sync'
       : (syncStatus === 'linked' ? 'Saved match' : 'Matched');
     if(matchFormat) bits.push(`<span class="sessionMkcDatum">${escapeHtml(matchFormat)}</span>`);
     if(localTag && (!matchFormat || normalizeLoungeFormatTag(matchFormat) !== localTag)) bits.push(formatTagPillHtml(localTag, 'sessionMkcDatum sessionFormatTag'));
-    if(match.tier && match.tier !== 'Other') bits.push(`<span class="sessionMkcDatum">Tier ${escapeHtml(match.tier)}</span>`);
+    if(matchTier) bits.push(`<span class="sessionMkcDatum">${escapeHtml(matchTier)}</span>`);
+    if(localTier && localTier !== matchTier) bits.push(tierTagPillHtml(localTier, 'sessionMkcDatum sessionFormatTag sessionTierTag'));
     if(Number.isFinite(match.table_rank)) bits.push(`<span class="sessionMkcDatum">Place #${escapeHtml(String(match.table_rank))}</span>`);
     if(Number.isFinite(match.table_score)) bits.push(`<span class="sessionMkcDatum">${escapeHtml(String(match.table_score))} pts</span>`);
     if(Number.isFinite(match.mmr_delta)) bits.push(`<span class="sessionMkcDatum ${mkcentralGainClass(match.mmr_delta)}">${escapeHtml(fmtDelta(match.mmr_delta))}</span>`);
@@ -2177,6 +2226,7 @@
   }
   function renderSessionMkcentralUnmatched(session, sessionIndex = null){
     const localTag = sessionFormatTag(session);
+    const localTier = sessionTierTag(session);
     const nonLounge = localTag === NON_LOUNGE_FORMAT_TAG;
     const statsExcluded = sessionStatsExcluded(session);
     const toggleTitle = statsExcluded
@@ -2194,7 +2244,10 @@
               : '<button class="sessionMkcMatched sessionMkcMatched--unmatched" type="button" data-session-unsynced-info>Not synced</button>'}
           </div>
         </div>
-        ${localTag && !nonLounge ? `<div class="sessionMkcMeta">${formatTagPillHtml(localTag, 'sessionMkcDatum sessionFormatTag')}</div>` : ''}
+        ${(!nonLounge && localTag) || localTier ? `<div class="sessionMkcMeta">${[
+          localTag && !nonLounge ? formatTagPillHtml(localTag, 'sessionMkcDatum sessionFormatTag') : '',
+          tierTagPillHtml(localTier, 'sessionMkcDatum sessionFormatTag sessionTierTag')
+        ].filter(Boolean).join('')}</div>` : ''}
       </div>`;
   }
   function dbRaceToLocal(row){
@@ -2230,6 +2283,7 @@
       disconnects: row.disconnects,
       loungeFormatTag: normalizeLoungeFormatTag(row.lounge_format_tag || ''),
       loungeFormatSource: String(row.lounge_format_source || '').trim(),
+      loungeTier: normalizeLoungeTierTag(row.lounge_tier || ''),
       statsExcluded: !!row.stats_excluded,
       mkcentralFormatTag: normalizeLoungeFormatTag(row.mkcentral_format_tag || ''),
       mkcentralEventId: String(row.mkcentral_event_id || ''),
@@ -2272,6 +2326,7 @@
       ...session,
       loungeFormatTag: sessionFormatTag(session),
       loungeFormatSource: sessionFormatSource(session),
+      loungeTier: sessionTierTag(session),
       statsExcluded: normalizeStatsExcluded(session),
       mkcentralFormatTag: sessionMkcentralFormatTag(session),
       mkcentralEventId: sessionMkcentralEventId(session),
@@ -2296,6 +2351,7 @@
     else {
       state.current.loungeFormatTag = sessionFormatTag(state.current);
       state.current.loungeFormatSource = sessionFormatSource(state.current);
+      state.current.loungeTier = sessionTierTag(state.current);
       state.current.statsExcluded = normalizeStatsExcluded(state.current);
       state.current.mkcentralFormatTag = sessionMkcentralFormatTag(state.current);
       state.current.mkcentralEventId = sessionMkcentralEventId(state.current);
@@ -2327,6 +2383,7 @@
       state.openSessionDetails = {};
       state.openSessionTagEditors = {};
       state.sessionTagDrafts = {};
+      state.sessionTierDrafts = {};
       state.editingSessionIndex = null;
       return;
     }
@@ -2355,6 +2412,7 @@
     state.openSessionDetails = {};
     state.openSessionTagEditors = {};
     state.sessionTagDrafts = {};
+    state.sessionTierDrafts = {};
     state.editingSessionIndex = null;
   }
   async function ensureCloudCurrentMogi(){
@@ -2834,17 +2892,32 @@
   }
   function renderSessionTagEditor(session, sessionIndex, mkcMatch){
     const selected = draftSessionFormatTag(sessionIndex, session);
+    const selectedTier = draftSessionTierTag(sessionIndex, session);
     const warning = sessionTagMismatchWithMkcentral(session, mkcMatch);
     const choices = pageLoungeFormatTags();
+    const tierChoices = collectLoungeTierTags();
     return `
       <div class="sessionTagEditor" data-session-tag-editor="${sessionIndex}">
-        <div class="sessionTagEditorGrid">
-          ${choices.map((tag) => {
-            const label = tag;
-            const active = selected === tag;
-            const extra = tag === NON_LOUNGE_FORMAT_TAG ? 'sessionTagChoice--nonLounge' : (isSquadQueueFormatTag(tag) ? 'sessionTagChoice--sq' : '');
-            return `<button class="sessionTagChoice ${extra}${active ? ' active' : ''}" type="button" data-session-set-tag="${sessionIndex}" data-format-tag="${escapeHtml(tag)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
-          }).join('')}
+        <div class="sessionTagEditorSection">
+          <div class="sessionTagEditorTitle">Format</div>
+          <div class="sessionTagEditorGrid">
+            ${choices.map((tag) => {
+              const label = tag;
+              const active = selected === tag;
+              const extra = tag === NON_LOUNGE_FORMAT_TAG ? 'sessionTagChoice--nonLounge' : (isSquadQueueFormatTag(tag) ? 'sessionTagChoice--sq' : '');
+              return `<button class="sessionTagChoice ${extra}${active ? ' active' : ''}" type="button" data-session-set-tag="${sessionIndex}" data-format-tag="${escapeHtml(tag)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="sessionTagEditorSection">
+          <div class="sessionTagEditorTitle">Tier</div>
+          <div class="sessionTagEditorGrid sessionTagEditorGrid--tier">
+            <button class="sessionTagChoice sessionTierChoice${!selectedTier ? ' active' : ''}" type="button" data-session-set-tier="${sessionIndex}" data-tier-tag="" aria-pressed="${!selectedTier ? 'true' : 'false'}">No Tier</button>
+            ${tierChoices.map((tag) => {
+              const active = selectedTier === tag;
+              return `<button class="sessionTagChoice sessionTierChoice${active ? ' active' : ''}" type="button" data-session-set-tier="${sessionIndex}" data-tier-tag="${escapeHtml(tag)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(tag)}</button>`;
+            }).join('')}
+          </div>
         </div>
         ${warning ? `<button class="sessionTagWarning" type="button" data-session-tag-warning="${sessionIndex}">Tag differs from MKCentral</button>` : ''}
       </div>`;
@@ -2856,22 +2929,33 @@
     }
     return sessionFormatTag(session);
   }
+  function draftSessionTierTag(index, session){
+    const key = String(index);
+    if(Object.prototype.hasOwnProperty.call(state.sessionTierDrafts, key)){
+      return normalizeLoungeTierTag(state.sessionTierDrafts[key]);
+    }
+    return sessionTierTag(session);
+  }
   function openSessionTagEditor(index, session){
     state.openSessionTagEditors[index] = true;
     state.sessionTagDrafts[index] = sessionFormatTag(session);
+    state.sessionTierDrafts[index] = sessionTierTag(session);
     state.openSessionDetails[index] = true;
   }
   function closeSessionTagEditor(index){
     delete state.openSessionTagEditors[index];
     delete state.sessionTagDrafts[index];
+    delete state.sessionTierDrafts[index];
   }
-  async function setSavedSessionFormatTag(index, tag){
+  async function setSavedSessionFormatTag(index, tag, tierTag = null){
     const session = state.sessions[index];
     if(!session){ setStatus('Mogi not found.', false); return; }
     const normalized = normalizeLoungeFormatTag(tag);
+    const normalizedTier = normalizeLoungeTierTag(tierTag);
     const mkcMatch = state.mkcentralMatches[index] || null;
     const mkcTag = sessionMkcentralFormatTag(session, mkcMatch);
     session.loungeFormatTag = normalized;
+    session.loungeTier = normalizedTier;
     session.loungeFormatSource = normalized ? 'manual' : (mkcTag ? 'manual' : '');
     if(normalized !== NON_LOUNGE_FORMAT_TAG) session.statsExcluded = false;
     if(mkcTag) session.mkcentralFormatTag = mkcTag;
@@ -2882,11 +2966,12 @@
         await updateCloudMogi(session, {
           lounge_format_tag: normalized || null,
           lounge_format_source: sessionFormatSource(session) || null,
+          lounge_tier: normalizedTier || null,
           stats_excluded: sessionStatsExcluded(session),
           mkcentral_format_tag: sessionMkcentralFormatTag(session) || null,
         });
       }
-      const label = normalized || 'No tag';
+      const label = [normalized || 'No format', normalizedTier || 'No Tier'].join(' / ');
       const mismatch = sessionTagMismatchWithMkcentral(session, mkcMatch);
       setStatus(mismatch ? `${label} saved. Check MKCentral format.` : `${label} saved.`, !mismatch);
       closeSessionTagEditor(index);
@@ -3050,10 +3135,25 @@
         const session = state.sessions[originalIndex];
         if(!session) return;
         if(state.openSessionTagEditors[originalIndex]){
-          setSavedSessionFormatTag(originalIndex, draftSessionFormatTag(originalIndex, session));
+          setSavedSessionFormatTag(
+            originalIndex,
+            draftSessionFormatTag(originalIndex, session),
+            draftSessionTierTag(originalIndex, session)
+          );
           return;
         }
         openSessionTagEditor(originalIndex, session);
+        renderSessions();
+      });
+    });
+
+    wrap.querySelectorAll('[data-session-set-tier]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const originalIndex = Number(btn.getAttribute('data-session-set-tier'));
+        if (!Number.isInteger(originalIndex) || originalIndex < 0) return;
+        state.sessionTierDrafts[originalIndex] = normalizeLoungeTierTag(btn.getAttribute('data-tier-tag') || '');
+        state.openSessionTagEditors[originalIndex] = true;
+        state.openSessionDetails[originalIndex] = true;
         renderSessions();
       });
     });
@@ -3492,16 +3592,29 @@
     renderMogiResultFormatTags();
     if(!isCloud()) persist();
   }
+  function setMogiResultTierTag(tag){
+    const normalized = normalizeLoungeTierTag(tag);
+    if(!state.current) return;
+    state.current.loungeTier = sessionTierTag(state.current) === normalized ? '' : normalized;
+    renderMogiResultFormatTags();
+    if(!isCloud()) persist();
+  }
   function renderMogiResultFormatTags(){
     const wrap = $('mogiResultFormatTags');
     if(!wrap) return;
     const selected = sessionFormatTag(state.current);
-    const renderButton = (tag) => {
+    const selectedTier = sessionTierTag(state.current);
+    const renderFormatButton = (tag) => {
       const active = selected === tag;
       const extra = tag === NON_LOUNGE_FORMAT_TAG ? 'mogiResultFormatTag--nonLounge' : (isSquadQueueFormatTag(tag) ? 'mogiResultFormatTag--sq' : '');
       return `<button class="mogiResultFormatTag ${extra}${active ? ' active' : ''}" type="button" data-mogi-format-tag="${escapeHtml(tag)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(tag)}</button>`;
     };
-    const renderGroup = (label, tags, modifier) => {
+    const renderTierButton = (tag) => {
+      const active = selectedTier === tag;
+      const label = tag || 'No Tier';
+      return `<button class="mogiResultFormatTag mogiResultFormatTag--tier${active ? ' active' : ''}" type="button" data-mogi-tier-tag="${escapeHtml(tag)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
+    };
+    const renderGroup = (label, tags, modifier, renderButton = renderFormatButton) => {
       if(!tags.length) return '';
       return `
         <div class="mogiResultFormatGroup ${modifier}">
@@ -3516,6 +3629,7 @@
     wrap.innerHTML = [
       renderGroup('Formats', standardTags, 'mogiResultFormatGroup--standard'),
       renderGroup('SQ', sqTags, 'mogiResultFormatGroup--sq'),
+      renderGroup('Tier', ['', ...collectLoungeTierTags()], 'mogiResultFormatGroup--tier', renderTierButton),
       renderGroup('Non-Lounge', nonLoungeTags, 'mogiResultFormatGroup--nonLounge')
     ].join('');
   }
@@ -3575,6 +3689,7 @@
   async function confirmMogiResult(options = {}){
     if((state.current.races || []).length < 12){ closeMogiResultDialog(); return; }
     const selectedTag = sessionFormatTag(state.current);
+    const selectedTier = sessionTierTag(state.current);
     if(!selectedTag && !options.allowMissingTag){
       if(openMissingFormatConfirmDialog()) return;
       const ok = window.MKWT?.confirmAction
@@ -3594,6 +3709,7 @@
       const finished = {
         ...state.current,
         loungeFormatTag: selectedTag,
+        loungeTier: selectedTier,
         loungeFormatSource: selectedTag ? 'result' : '',
         statsExcluded: false,
         completed_at: currentTs(),
@@ -3606,6 +3722,7 @@
           completed_at: finished.completed_at,
           lounge_format_tag: selectedTag || null,
           lounge_format_source: selectedTag ? 'result' : null,
+          lounge_tier: selectedTier || null,
           stats_excluded: false,
           mkcentral_format_tag: sessionMkcentralFormatTag(finished) || null,
         });
@@ -3614,7 +3731,7 @@
       state.sessionPage = 1;
       state.current = makeFreshMogi();
       closeMogiResultDialog();
-      setStatus(selectedTag ? `Mogi saved: ${selectedTag}` : 'Mogi completed and saved as one session.', true);
+      setStatus(selectedTag ? `Mogi saved: ${[selectedTag, selectedTier].filter(Boolean).join(' / ')}` : 'Mogi completed and saved as one session.', true);
       refresh();
     } catch(e) {
       setStatus('Mogi confirm failed: ' + (e?.message || e), false);
@@ -3698,11 +3815,34 @@
   }
   async function undoLast(){
     if(!(state.current.races || []).length){ setEntryStatus('Nothing to undo.', false); return; }
+    const last = state.current.races[state.current.races.length - 1];
+    const label = displayRaceLabel(last) || 'Unknown track';
+    const placement = ordinalLabel(last?.placement);
+    const points = Number(last?.points || 0);
+    const details = [
+      `Track: ${label}`,
+      `Placement: ${placement}`,
+      `Points: ${Number.isFinite(points) ? points : 0} pts`,
+    ];
+    const lobby = Number(last?.lobbySize || PAGE_CONFIG.playerCount);
+    if(PAGE_CONFIG.allowLobbyTags && lobby !== PAGE_CONFIG.playerCount) details.push(`Lobby: ${lobby}p`);
+    if(last?.disconnect) details.push('Flag: DC');
+    if(last?.repick) details.push('Flag: Repick');
+    const body = `This will remove the last tracked race from the current Mogi.\n\nLast race:\n${details.join('\n')}`;
+    const ok = window.MKWT?.confirmAction
+      ? await window.MKWT.confirmAction({
+          eyebrow: 'Undo race',
+          title: 'Undo last race?',
+          body,
+          confirmLabel: 'Yes',
+          cancelLabel: 'No',
+          danger: true,
+        })
+      : window.confirm(`Undo last race?\n\n${body}`);
+    if(!ok) return;
     try {
-      const last = state.current.races[state.current.races.length - 1];
       const removedParts = [`Removed: ${displayRaceLabel(last) || 'race'}`];
       if(last?.placement) removedParts.push(`Result ${last.placement}`);
-      const lobby = Number(last?.lobbySize || PAGE_CONFIG.playerCount);
       if(PAGE_CONFIG.allowLobbyTags && lobby !== PAGE_CONFIG.playerCount) removedParts.push(`${lobby}p`);
       if(last?.disconnect) removedParts.push('DC');
       if(last?.repick) removedParts.push('Repick');
@@ -3806,6 +3946,7 @@
       state.openSessionDetails = {};
       state.openSessionTagEditors = {};
       state.sessionTagDrafts = {};
+      state.sessionTierDrafts = {};
       state.raceEdit = null;
       setStatus('Saved Mogi deleted.', true);
       refresh();
@@ -4305,9 +4446,13 @@
     $('mogiResultRaceStrip')?.addEventListener('click', handleCurrentRaceEditClick);
     $('btnConfirmMogiResult')?.addEventListener('click', confirmMogiResult);
     $('mogiResultFormatTags')?.addEventListener('click', (event) => {
-      const button = event.target.closest('[data-mogi-format-tag]');
-      if(!button) return;
-      setMogiResultFormatTag(button.getAttribute('data-mogi-format-tag'));
+      const formatButton = event.target.closest('[data-mogi-format-tag]');
+      if(formatButton){
+        setMogiResultFormatTag(formatButton.getAttribute('data-mogi-format-tag'));
+        return;
+      }
+      const tierButton = event.target.closest('[data-mogi-tier-tag]');
+      if(tierButton) setMogiResultTierTag(tierButton.getAttribute('data-mogi-tier-tag'));
     });
     $('btnKeepMogiResult')?.addEventListener('click', () => {
       closeMogiResultDialog();

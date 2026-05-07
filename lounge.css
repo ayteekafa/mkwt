@@ -1126,8 +1126,14 @@ tbody tr.raceRow--dc{
   border:1px solid rgba(255,255,255,.08);
   border-radius:12px;
   background:rgba(8,12,20,.42);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
+.sessionTagEditorSection{display:flex;flex-direction:column;gap:7px}
+.sessionTagEditorTitle{color:var(--muted);font-size:10px;font-weight:950;line-height:1;letter-spacing:.12em;text-transform:uppercase}
 .sessionTagEditorGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:7px}
+.sessionTagEditorGrid--tier{grid-template-columns:repeat(auto-fit,minmax(82px,1fr))}
 .sessionTagChoice{
   min-height:36px;
   border:1px solid var(--border);
@@ -1143,6 +1149,7 @@ tbody tr.raceRow--dc{
 .sessionTagChoice--sq.active{background:linear-gradient(135deg,#10244d,#1f3f87)}
 .sessionTagChoice--nonLounge{border-style:dashed;color:var(--muted)}
 .sessionTagChoice--nonLounge.active{background:linear-gradient(135deg,#252936,#121722);color:#f0f3ff;border-color:rgba(159,174,205,.45)}
+.sessionTierChoice.active{background:linear-gradient(135deg,#24345b,#15233f)}
 .sessionTagWarning{
   border:1px solid rgba(224,171,70,.42);
   border-radius:999px;
@@ -1402,7 +1409,7 @@ body[data-lounge-player-count="24"] .loungePlacementGrid > label{
 .mogiResultRaceStripSlot .sessionRaceStrip{grid-template-columns:repeat(12,minmax(52px,1fr));min-width:0}
 .mogiResultRaceStripSlot .sessionRaceTile{min-height:86px;border-radius:10px}
 .mogiResultFormatBox{margin-top:12px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(8,12,20,.42)}
-.mogiResultFormatTags{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.1fr) minmax(126px,.45fr);gap:10px;align-items:start}
+.mogiResultFormatTags{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.1fr) minmax(0,.95fr) minmax(126px,.45fr);gap:10px;align-items:start}
 .mogiResultFormatGroup{min-width:0;display:flex;flex-direction:column;gap:7px}
 .mogiResultFormatGroupTitle{color:var(--muted);font-size:10px;font-weight:950;line-height:1;letter-spacing:.12em;text-transform:uppercase}
 .mogiResultFormatGroupTags{display:grid;grid-template-columns:repeat(auto-fit,minmax(68px,1fr));gap:7px}
@@ -1423,6 +1430,7 @@ body[data-lounge-player-count="24"] .loungePlacementGrid > label{
 .mogiResultFormatTag--sq.active{background:linear-gradient(135deg,#10244d,#1f3f87)}
 .mogiResultFormatTag--nonLounge{border-style:dashed;color:var(--muted)}
 .mogiResultFormatTag--nonLounge.active{background:linear-gradient(135deg,#252936,#121722);color:#f0f3ff;border-color:rgba(159,174,205,.45)}
+.mogiResultFormatTag--tier.active{background:linear-gradient(135deg,#24345b,#15233f)}
 .mogiResultActions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
 .mogiFormatConfirmDialog{width:min(460px,calc(100vw - 28px))}
 .mogiFormatConfirmPanel{display:flex;flex-direction:column;gap:10px}
@@ -1451,6 +1459,7 @@ body[data-lounge-player-count="24"] .loungePlacementGrid > label{
 .sessionFormatTag{font-weight:900}
 .sessionFormatTag--sq{border-color:rgba(78,124,255,.34);background:rgba(78,124,255,.12)}
 .sessionFormatTag--nonLounge{border-style:dashed;color:var(--muted);background:rgba(255,255,255,.03)}
+.sessionTierTag{border-color:rgba(159,174,205,.28);background:rgba(78,124,255,.09);color:var(--muted)}
 .sessionMkcMatched--nonLounge{border-style:dashed;background:rgba(255,255,255,.035);color:var(--muted)}
 .sessionMkcMatched--nonLounge.sessionStatsToggle.is-excluded{background:rgba(255,64,72,.08);color:rgba(255,210,214,.84)}
 .raceEditDialog{width:min(720px,calc(100vw - 24px))}

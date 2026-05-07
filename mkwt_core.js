@@ -13,6 +13,8 @@ const BACKUP_KEY_SESS  = "mkwt_backup_session_session_v1";
 const RESTORE_SAFETY_BACKUP_KEY = "mkwt_last_restore_safety_backup_v1";
 const GUEST_PROFILE_KEY = "mkwt_guest_profile_v1";
 const GUEST_TIME_TRIAL_KEY = "mkwt_guest_time_trial_entries_v1";
+const GUEST_CLAN_WARS_CURRENT_KEY = "mkwt_clan_wars_current_v1";
+const GUEST_CLAN_WARS_MATCHES_KEY = "mkwt_clan_wars_matches_v1";
 const THEME_KEY = "mkwt_theme";
 const MIN_VR_FILTER_KEY = "mkwt_min_vr_filter";
 const MKCENTRAL_PLAYER_KEY = "mkwt_mkcentral_player_ref_v1";
@@ -52,6 +54,7 @@ const LOUNGE_MOGI_BACKUP_SELECT = [
   "player_count",
   "lounge_format_tag",
   "lounge_format_source",
+  "lounge_tier",
   "stats_excluded",
   "mkcentral_format_tag",
   MKCENTRAL_LOUNGE_BACKUP_FIELDS,
@@ -674,6 +677,7 @@ window.mkwtRequireAuth = async function(options = {}){
         statsExcluded: !!mogi.stats_excluded,
         loungeFormatTag: mogi.lounge_format_tag || "",
         loungeFormatSource: mogi.lounge_format_source || "",
+        loungeTier: mogi.lounge_tier || "",
         mkcentralFormatTag: mogi.mkcentral_format_tag || "",
         mkcentralEventId: mogi.mkcentral_event_id || "",
         mkcentralEventName: mogi.mkcentral_event_name || "",
@@ -767,6 +771,280 @@ window.mkwtRequireAuth = async function(options = {}){
       if (normalized.current_mogi) current += 1;
     }
     return { sessions, current };
+  }
+
+  function clanWarScoreMap(eventType){
+    return eventType === "6v6v6v6"
+      ? [15,12,10,9,9,8,8,7,7,6,6,6,5,5,5,4,4,4,3,3,3,2,2,1]
+      : [15,12,10,9,8,7,6,5,4,3,2,1];
+  }
+
+  function clanWarFieldTotal(eventType){
+    return clanWarScoreMap(eventType).reduce((sum, value) => sum + Number(value || 0), 0);
+  }
+
+  function clanWarOwnPoints(placements, eventType){
+    const map = clanWarScoreMap(eventType);
+    return (placements || []).reduce((sum, place) => sum + Number(map[Number(place) - 1] || 0), 0);
+  }
+
+  function normalizeClanWarRace(raw){
+    if (!raw || typeof raw !== "object") return null;
+    const eventType = cleanString((raw.event_type ?? raw.eventType) || "6v6v6v6") === "6v6v6v6" ? "6v6v6v6" : "6v6";
+    const placements = Array.isArray(raw.placements)
+      ? raw.placements.map(Number).filter(Number.isFinite)
+      : [];
+    const track = cleanString(raw.track);
+    if (!track || placements.length !== 6) return null;
+    const raceKind = cleanString((raw.race_kind ?? raw.raceKind) || "track") === "intermission" ? "intermission" : "track";
+    const now = new Date().toISOString();
+    const fieldPoints = Number(raw.fieldPoints ?? raw.field_points ?? clanWarFieldTotal(eventType));
+    const ownPoints = Number(raw.ownPoints ?? raw.own_points ?? clanWarOwnPoints(placements, eventType));
+    return {
+      id: raw.id ? String(raw.id) : "",
+      raceNumber: Number(raw.raceNumber ?? raw.race_number ?? 1),
+      eventType,
+      raceKind,
+      track,
+      intermissionStart: raw.intermissionStart ?? raw.intermission_start ?? null,
+      intermissionEnd: raw.intermissionEnd ?? raw.intermission_end ?? null,
+      placements,
+      maxPlacement: Number(raw.maxPlacement ?? raw.max_placement ?? (eventType === "6v6v6v6" ? 24 : 12)),
+      ownPoints,
+      opponentPoints: raw.opponentPoints ?? raw.opponent_points ?? (eventType === "6v6" ? fieldPoints - ownPoints : null),
+      fieldPoints,
+      dc: raw.dc === true,
+      ruleWarning: cleanString(raw.ruleWarning ?? raw.rule_warning ?? ""),
+      createdAt: raw.createdAt ?? raw.created_at ?? now,
+    };
+  }
+
+  function summarizeClanWarMatch(match){
+    const races = Array.isArray(match?.races) ? match.races : [];
+    const ownTotal = races.reduce((sum, race) => sum + Number(race?.ownPoints || race?.own_points || 0), 0);
+    const fieldTotal = races.reduce((sum, race) => sum + Number(race?.fieldPoints || race?.field_points || 0), 0);
+    const eventType = cleanString((match?.eventType ?? match?.event_type) || "6v6") === "6v6v6v6" ? "6v6v6v6" : "6v6";
+    return {
+      ownTotal,
+      fieldTotal,
+      opponentTotal: eventType === "6v6" ? fieldTotal - ownTotal : null,
+      raceCount: races.length,
+      dcCount: races.filter(race => race?.dc === true).length,
+    };
+  }
+
+  function normalizeClanWarMatch(raw){
+    if (!raw || typeof raw !== "object") return null;
+    const eventType = cleanString((raw.event_type ?? raw.eventType) || "6v6") === "6v6v6v6" ? "6v6v6v6" : "6v6";
+    const races = (Array.isArray(raw.races) ? raw.races : []).map(normalizeClanWarRace).filter(Boolean)
+      .sort((a, b) => Number(a.raceNumber || 0) - Number(b.raceNumber || 0));
+    const now = new Date().toISOString();
+    const summary = summarizeClanWarMatch({ eventType, races });
+    return {
+      id: raw.id ? String(raw.id) : "",
+      eventType,
+      status: cleanString(raw.status || (races.length >= 12 ? "completed" : "active")) === "completed" ? "completed" : "active",
+      scopeType: "personal",
+      clanId: null,
+      createdAt: raw.createdAt ?? raw.created_at ?? now,
+      completedAt: raw.completedAt ?? raw.completed_at ?? null,
+      divisionTag: cleanString(raw.divisionTag ?? raw.division_tag ?? raw.clanDivisionTag ?? raw.clan_division_tag ?? ""),
+      races,
+      ...summary,
+    };
+  }
+
+  function mergeClanWarMatches(matches){
+    const seen = new Set();
+    return (matches || []).filter(Boolean).filter((match) => {
+      const key = match.id || `${match.eventType}|${match.createdAt}|${match.races?.length || 0}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a, b) => String(b.completedAt || b.createdAt || "").localeCompare(String(a.completedAt || a.createdAt || "")));
+  }
+
+  function isUuid(value){
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+  }
+
+  function readLocalClanWarsBackup(){
+    const current = normalizeClanWarMatch(safeReadJson(GUEST_CLAN_WARS_CURRENT_KEY, null));
+    const matches = mergeClanWarMatches((safeReadJson(GUEST_CLAN_WARS_MATCHES_KEY, []) || []).map(normalizeClanWarMatch).filter(Boolean));
+    return {
+      source: "local_storage",
+      current_match: current,
+      match_count: matches.length,
+      matches,
+    };
+  }
+
+  async function readAccountClanWarsBackup(){
+    if (!window.supabaseClient || !window.SESSION?.user?.id) return { source: "supabase", current_match: null, match_count: 0, matches: [] };
+    const uid = window.SESSION.user.id;
+    const { data: matches, error: matchError } = await supabaseClient
+      .from("clan_wars_matches")
+      .select("id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, completed_at, created_at")
+      .eq("owner_user_id", uid)
+      .is("clan_id", null)
+      .order("created_at", { ascending: false });
+    if (matchError) throw matchError;
+
+    const ids = (matches || []).map(match => match.id).filter(Boolean);
+    const races = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const batchIds = ids.slice(i, i + 100);
+      const { data, error } = await supabaseClient
+        .from("clan_wars_races")
+        .select("id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at")
+        .in("match_id", batchIds)
+        .order("race_number", { ascending: true });
+      if (error) throw error;
+      races.push(...(data || []));
+    }
+    const racesByMatch = new Map();
+    for (const race of races) {
+      if (!racesByMatch.has(race.match_id)) racesByMatch.set(race.match_id, []);
+      racesByMatch.get(race.match_id).push(race);
+    }
+    const normalized = mergeClanWarMatches((matches || []).map(match => normalizeClanWarMatch({
+      id: match.id,
+      event_type: match.event_type,
+      status: match.status,
+      completed_at: match.completed_at,
+      created_at: match.created_at,
+      races: (racesByMatch.get(match.id) || []).map(race => ({
+        id: race.id,
+        race_number: race.race_number,
+        event_type: race.event_type,
+        race_kind: race.race_kind,
+        track: race.track,
+        intermission_start: race.intermission_start,
+        intermission_end: race.intermission_end,
+        placements: race.placements,
+        max_placement: race.max_placement,
+        own_points: race.own_points,
+        opponent_points: race.opponent_points,
+        field_points: race.field_points,
+        dc: race.dc,
+        rule_warning: race.rule_warning,
+        created_at: race.created_at,
+      })),
+    })));
+    const active = normalized.find(match => match.status === "active") || null;
+    const completed = normalized.filter(match => match.id !== active?.id);
+    return {
+      source: "supabase",
+      current_match: active,
+      match_count: completed.length,
+      matches: completed,
+    };
+  }
+
+  function getClanWarsPayloadFromBackup(backup){
+    const present = !!(backup && (hasOwn(backup, "clan_wars") || hasOwn(backup, "clanWars")));
+    const payload = backup?.clan_wars || backup?.clanWars || null;
+    const current = normalizeClanWarMatch(payload?.current_match ?? payload?.currentMatch ?? null);
+    const matches = mergeClanWarMatches((Array.isArray(payload?.matches) ? payload.matches : []).map(normalizeClanWarMatch).filter(Boolean));
+    return {
+      source: payload?.source || "backup",
+      current_match: current,
+      match_count: matches.length,
+      matches,
+      present,
+    };
+  }
+
+  function countClanWarsBackupMatches(payload){
+    if (!payload) return 0;
+    return Number(payload.match_count || payload.matches?.length || 0) + (payload.current_match ? 1 : 0);
+  }
+
+  function writeLocalClanWarsFromBackup(clanWarsPayload){
+    if (!clanWarsPayload?.present) return { matches: 0, current: 0, skipped: true };
+    safeWriteJson(GUEST_CLAN_WARS_CURRENT_KEY, clanWarsPayload.current_match || null);
+    safeWriteJson(GUEST_CLAN_WARS_MATCHES_KEY, clanWarsPayload.matches || []);
+    return { matches: clanWarsPayload.matches?.length || 0, current: clanWarsPayload.current_match ? 1 : 0 };
+  }
+
+  async function restoreAccountClanWars(clanWarsPayload){
+    if (!clanWarsPayload?.present) return { deleted: 0, inserted: 0, races: 0, skipped: true };
+    const uid = SESSION.user.id;
+    const allMatches = mergeClanWarMatches([clanWarsPayload.current_match, ...(clanWarsPayload.matches || [])]);
+    if (countClanWarsBackupMatches(clanWarsPayload) > 0 && allMatches.length === 0) {
+      throw new Error("Clan Wars backup entries are invalid. Existing Clan Wars data was not changed.");
+    }
+
+    const { data: existing, error: existingError } = await supabaseClient
+      .from("clan_wars_matches")
+      .select("id")
+      .eq("owner_user_id", uid)
+      .is("clan_id", null);
+    if (existingError) throw existingError;
+    const existingIds = (existing || []).map(row => row.id).filter(Boolean);
+    for (let i = 0; i < existingIds.length; i += 100) {
+      const batchIds = existingIds.slice(i, i + 100);
+      const { error } = await supabaseClient.from("clan_wars_matches").delete().in("id", batchIds);
+      if (error) throw error;
+    }
+
+    if (!allMatches.length) return { deleted: existingIds.length, inserted: 0, races: 0 };
+    const matchRows = allMatches.map((match) => {
+      const normalized = normalizeClanWarMatch(match);
+      const summary = summarizeClanWarMatch(normalized);
+      return {
+        id: isUuid(normalized.id) ? normalized.id : undefined,
+        owner_user_id: uid,
+        clan_id: null,
+        event_type: normalized.eventType,
+        status: normalized.status,
+        own_total: summary.ownTotal,
+        opponent_total: normalized.eventType === "6v6" ? summary.opponentTotal : null,
+        field_total: summary.fieldTotal,
+        race_count: summary.raceCount,
+        dc_count: summary.dcCount,
+        created_by_user_id: uid,
+        completed_at: normalized.completedAt,
+        created_at: normalized.createdAt,
+      };
+    });
+    const { data: insertedMatches, error: insertMatchError } = await supabaseClient
+      .from("clan_wars_matches")
+      .insert(matchRows)
+      .select("id, created_at");
+    if (insertMatchError) throw insertMatchError;
+
+    const idByCreatedAt = new Map((insertedMatches || []).map(row => [row.created_at, row.id]));
+    const raceRows = [];
+    allMatches.forEach((match) => {
+      const normalized = normalizeClanWarMatch(match);
+      const matchId = isUuid(normalized.id) ? normalized.id : idByCreatedAt.get(normalized.createdAt);
+      if (!matchId) return;
+      normalized.races.forEach((race) => {
+        raceRows.push({
+          match_id: matchId,
+          race_number: race.raceNumber,
+          event_type: race.eventType,
+          race_kind: race.raceKind,
+          track: race.track,
+          intermission_start: race.intermissionStart,
+          intermission_end: race.intermissionEnd,
+          placements: race.placements,
+          max_placement: race.maxPlacement,
+          own_points: race.ownPoints,
+          opponent_points: race.opponentPoints,
+          field_points: race.fieldPoints,
+          dc: race.dc,
+          rule_warning: race.ruleWarning || null,
+          created_at: race.createdAt,
+        });
+      });
+    });
+    for (let i = 0; i < raceRows.length; i += 500) {
+      const { error } = await supabaseClient.from("clan_wars_races").insert(raceRows.slice(i, i + 500));
+      if (error) throw error;
+    }
+    return { deleted: existingIds.length, inserted: allMatches.length, races: raceRows.length };
   }
 
   function normalizeTimeTrialEntry(raw){
@@ -1069,6 +1347,7 @@ window.mkwtRequireAuth = async function(options = {}){
         raw?.created_at || "",
         raw?.completed_at || "",
         raw?.loungeFormatTag || raw?.matchFormatTag || raw?.lounge_format_tag || "",
+        raw?.loungeTier || raw?.lounge_tier || raw?.tierTag || "",
         rawRaces.map(restoreRaceKey).join(";"),
       ].join("::");
     }
@@ -1156,6 +1435,7 @@ window.mkwtRequireAuth = async function(options = {}){
           stats_excluded: !!(raw.statsExcluded ?? raw.stats_excluded),
           lounge_format_tag: raw.loungeFormatTag || raw.matchFormatTag || raw.lounge_format_tag || null,
           lounge_format_source: raw.loungeFormatSource || raw.lounge_format_source || null,
+          lounge_tier: raw.loungeTier || raw.lounge_tier || raw.tierTag || null,
           mkcentral_format_tag: raw.mkcentralFormatTag || raw.mkcentral_format_tag || null,
           mkcentral_event_id: raw.mkcentralEventId || raw.mkcentral_event_id || null,
           mkcentral_event_name: raw.mkcentralEventName || raw.mkcentral_event_name || null,
@@ -1245,11 +1525,11 @@ window.mkwtRequireAuth = async function(options = {}){
     return { mogis, races };
   }
 
-  function buildBackupSummary(vrCount, loungePayloads, timeTrialCount){
+  function buildBackupSummary(vrCount, loungePayloads, timeTrialCount, clanWarsCount = 0){
     const loungeText = (loungePayloads || [])
       .map(payload => `${payload.playerCount}p ${payload.session_count || payload.sessions?.length || 0}`)
       .join(", ");
-    return `WW ${vrCount} | Lounge ${loungeText || "0"} | TT ${timeTrialCount}`;
+    return `WW ${vrCount} | Lounge ${loungeText || "0"} | TT ${timeTrialCount} | CW ${Number(clanWarsCount || 0)}`;
   }
 
   function countBackupLoungeMogis(loungePayloads){
@@ -1275,14 +1555,16 @@ window.mkwtRequireAuth = async function(options = {}){
     const uid = window.SESSION?.user?.id;
     if (!window.supabaseClient || !uid) return null;
 
-    const [matchesRes, loungeRes, timeTrialRes] = await Promise.all([
+    const [matchesRes, loungeRes, timeTrialRes, clanWarsRes] = await Promise.all([
       supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("user_id", uid),
       supabaseClient.from("lounge_mogis").select("player_count, status, stats_excluded").eq("user_id", uid),
       supabaseClient.from("time_trial_entries").select("id", { count: "exact", head: true }).eq("user_id", uid),
+      supabaseClient.from("clan_wars_matches").select("id", { count: "exact", head: true }).eq("owner_user_id", uid).is("clan_id", null),
     ]);
     if (matchesRes.error) throw matchesRes.error;
     if (loungeRes.error) throw loungeRes.error;
     if (timeTrialRes.error) throw timeTrialRes.error;
+    if (clanWarsRes.error) throw clanWarsRes.error;
 
     const loungeRows = Array.isArray(loungeRes.data) ? loungeRes.data : [];
     return {
@@ -1292,16 +1574,17 @@ window.mkwtRequireAuth = async function(options = {}){
       lounge24: loungeRows.filter(row => Number(row.player_count) === 24).length,
       loungeExcluded: loungeRows.filter(row => row.stats_excluded === true).length,
       tt: Number(timeTrialRes.count || 0),
+      clanWars: Number(clanWarsRes.count || 0),
     };
   }
 
   function formatCurrentAccountCounts(counts){
     if (!counts) return "Current account: could not be checked.";
     const excluded = counts.loungeExcluded ? `, ${counts.loungeExcluded} excluded` : "";
-    return `Current account: WW ${counts.ww} | Lounge ${counts.lounge} (${counts.lounge12}x 12p, ${counts.lounge24}x 24p${excluded}) | TT ${counts.tt}`;
+    return `Current account: WW ${counts.ww} | Lounge ${counts.lounge} (${counts.lounge12}x 12p, ${counts.lounge24}x 24p${excluded}) | TT ${counts.tt} | CW ${counts.clanWars}`;
   }
 
-  function buildRestoreWarnings({ backupMatches, loungePayloads, timeTrialPayload, currentCounts } = {}){
+  function buildRestoreWarnings({ backupMatches, loungePayloads, timeTrialPayload, clanWarsPayload, currentCounts } = {}){
     if (!currentCounts) return [];
     const warnings = [];
     const backupLounge = countBackupLoungeMogis(loungePayloads);
@@ -1313,6 +1596,9 @@ window.mkwtRequireAuth = async function(options = {}){
     }
     if (timeTrialPayload?.present && Number(timeTrialPayload.entry_count || 0) < currentCounts.tt) {
       warnings.push(`Time Trial backup has fewer PBs (${timeTrialPayload.entry_count || 0}) than the account (${currentCounts.tt}).`);
+    }
+    if (clanWarsPayload?.present && countClanWarsBackupMatches(clanWarsPayload) < currentCounts.clanWars) {
+      warnings.push(`Clan Wars backup has fewer matches (${countClanWarsBackupMatches(clanWarsPayload)}) than the account (${currentCounts.clanWars}).`);
     }
     return warnings;
   }
@@ -1328,6 +1614,7 @@ window.mkwtRequireAuth = async function(options = {}){
       console.warn("Lounge safety backup cloud fallback:", e);
     }
     const timeTrialBackup = await readAccountTimeTrialBackup();
+    const clanWarsBackup = await readAccountClanWarsBackup();
     const profile = normalizeProfile(window.PROFILE || {}, preferences);
     const mkcentralStats = readMkcentralStatsCacheForBackup(preferences, profile);
     const backup = {
@@ -1347,6 +1634,7 @@ window.mkwtRequireAuth = async function(options = {}){
       lounge_tracker: loungeBackup,
       mkcentral_stats: mkcentralStats,
       time_trial: timeTrialBackup,
+      clan_wars: clanWarsBackup,
       matches: allMatches,
     };
     const filename = `mkwt_safety_before_restore_${sanitizeFilePart(profile.nickname || "account")}_${exportedAt.replace(/[:.]/g, "-")}.json`;
@@ -1355,7 +1643,7 @@ window.mkwtRequireAuth = async function(options = {}){
       localStorage.setItem(RESTORE_SAFETY_BACKUP_KEY, JSON.stringify({
         filename,
         exported_at: exportedAt,
-        summary: buildBackupSummary(allMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count),
+        summary: buildBackupSummary(allMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count, countClanWarsBackupMatches(clanWarsBackup)),
       }));
     } catch(e) { /* safe to ignore */ }
     return { filename, backup };
@@ -1374,6 +1662,7 @@ window.mkwtRequireAuth = async function(options = {}){
         const guestMatches = loadGuestMatches();
         const loungeBackup = readLocalLoungeBackups();
         const timeTrialBackup = readGuestTimeTrialBackup();
+        const clanWarsBackup = readLocalClanWarsBackup();
         const guestProfile = readGuestProfileForBackup(preferences);
         const mkcentralStats = readMkcentralStatsCacheForBackup(preferences, guestProfile);
         const backup = {
@@ -1392,11 +1681,12 @@ window.mkwtRequireAuth = async function(options = {}){
           lounge_tracker: loungeBackup,
           mkcentral_stats: mkcentralStats,
           time_trial: timeTrialBackup,
+          clan_wars: clanWarsBackup,
           matches: guestMatches,
         };
         const filename = `mkwt_backup_guest_${exportedAt.slice(0, 10)}.json`;
         downloadTextFile(filename, JSON.stringify(backup, null, 2));
-        const summary = buildBackupSummary(guestMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count);
+        const summary = buildBackupSummary(guestMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count, countClanWarsBackupMatches(clanWarsBackup));
         if (typeof window.setStatus === "function") window.setStatus(`Guest backup created (${summary}).`, true);
         return;
       }
@@ -1409,6 +1699,7 @@ window.mkwtRequireAuth = async function(options = {}){
         console.warn("Lounge cloud export fallback:", e);
       }
       const timeTrialBackup = await readAccountTimeTrialBackup();
+      const clanWarsBackup = await readAccountClanWarsBackup();
       const profile = normalizeProfile(window.PROFILE || {}, preferences);
       const mkcentralStats = readMkcentralStatsCacheForBackup(preferences, profile);
       const backup = {
@@ -1428,12 +1719,13 @@ window.mkwtRequireAuth = async function(options = {}){
         lounge_tracker: loungeBackup,
         mkcentral_stats: mkcentralStats,
         time_trial: timeTrialBackup,
+        clan_wars: clanWarsBackup,
         matches: allMatches,
       };
 
       const filename = `mkwt_backup_${sanitizeFilePart(profile.nickname || "account")}_${exportedAt.slice(0, 10)}.json`;
       window.downloadTextFile(filename, JSON.stringify(backup, null, 2));
-      const summary = buildBackupSummary(allMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count);
+      const summary = buildBackupSummary(allMatches.length, getLoungePayloadsFromBackup(backup), timeTrialBackup.entry_count, countClanWarsBackupMatches(clanWarsBackup));
       if (typeof window.setStatus === "function") window.setStatus(`Backup created (${summary}).`, true);
     } catch(e){
       if (typeof window.setStatus === "function") window.setStatus("Backup failed: " + (e?.message || e), false);
@@ -1572,18 +1864,21 @@ window.mkwtRequireAuth = async function(options = {}){
       if (!Array.isArray(backupMatches)) throw new Error("Backup has no match list.");
       const loungePayloads = getLoungePayloadsFromBackup(backup);
       const timeTrialPayload = getTimeTrialPayloadFromBackup(backup);
+      const clanWarsPayload = getClanWarsPayloadFromBackup(backup);
       const legacyArrayImport = Array.isArray(parsed);
 
       if (!window.SESSION?.user) {
         const guestMatchCount = normalizeVrMatches(backupMatches).length;
         const loungeCount = loungePayloads.reduce((sum, payload) => sum + Number(payload?.session_count || payload?.sessions?.length || 0), 0);
         const ttLabel = timeTrialPayload.present ? String(timeTrialPayload.entry_count) : "kept";
+        const cwLabel = clanWarsPayload.present ? String(countClanWarsBackupMatches(clanWarsPayload)) : "kept";
         const ok = legacyArrayImport ? true : await confirmBackupAction({
           title: "Import backup into Guest mode?",
           body:
             `WW matches: ${guestMatchCount}\n` +
             `Lounge Mogis: ${loungeCount}\n` +
-            `Time Trial PBs: ${ttLabel}\n\n` +
+            `Time Trial PBs: ${ttLabel}\n` +
+            `Clan Wars matches: ${cwLabel}\n\n` +
             `Guest data in this browser will be replaced.`,
           confirmLabel: "Import backup",
           danger: true,
@@ -1593,6 +1888,7 @@ window.mkwtRequireAuth = async function(options = {}){
         const vrResult = writeGuestMatchesFromBackup(backupMatches, { append: legacyArrayImport });
         const loungeResult = writeLocalLoungePayloadsFromBackup(loungePayloads);
         const ttResult = writeGuestTimeTrialFromBackup(timeTrialPayload);
+        const cwResult = writeLocalClanWarsFromBackup(clanWarsPayload);
         if (!legacyArrayImport) {
           writeGuestProfileFromBackup(backup);
           applyLocalPreferencesFromBackup(backup);
@@ -1600,7 +1896,7 @@ window.mkwtRequireAuth = async function(options = {}){
         }
         const action = legacyArrayImport ? "Legacy guest import added" : "Guest restore complete";
         if (typeof window.setStatus === "function") {
-          window.setStatus(`${action}. WW ${vrResult.matches} | Lounge ${loungeResult.sessions} | TT ${ttResult.skipped ? "kept" : ttResult.entries}. Reloading...`, true);
+          window.setStatus(`${action}. WW ${vrResult.matches} | Lounge ${loungeResult.sessions} | TT ${ttResult.skipped ? "kept" : ttResult.entries} | CW ${cwResult.skipped ? "kept" : cwResult.matches}. Reloading...`, true);
         }
         setTimeout(() => location.reload(), 350);
         return;
@@ -1622,6 +1918,7 @@ window.mkwtRequireAuth = async function(options = {}){
       const uniqueBackup = uniqueVrMatchesByFingerprint(backupMatches);
       const loungeCount = countBackupLoungeMogis(loungePayloads);
       const ttLabel = timeTrialPayload.present ? String(timeTrialPayload.entry_count) : "kept";
+      const cwLabel = clanWarsPayload.present ? String(countClanWarsBackupMatches(clanWarsPayload)) : "kept";
       let currentCounts = null;
       try {
         currentCounts = await readCurrentAccountRestoreCounts();
@@ -1632,12 +1929,13 @@ window.mkwtRequireAuth = async function(options = {}){
         backupMatches: uniqueBackup.length,
         loungePayloads,
         timeTrialPayload,
+        clanWarsPayload,
         currentCounts,
       });
       const ok = await confirmBackupAction({
         title: "Restore from backup?",
         body:
-          `Backup file: WW ${uniqueBackup.length} | Lounge ${loungeCount} (${formatLoungePayloadCounts(loungePayloads)}) | TT ${ttLabel}\n` +
+          `Backup file: WW ${uniqueBackup.length} | Lounge ${loungeCount} (${formatLoungePayloadCounts(loungePayloads)}) | TT ${ttLabel} | CW ${cwLabel}\n` +
           `${formatCurrentAccountCounts(currentCounts)}\n\n` +
           `${warnings.length ? `Warning:\n${warnings.join("\n")}\n\n` : ""}` +
           `A safety backup of the current account will be downloaded before anything is replaced.`,
@@ -1693,13 +1991,14 @@ window.mkwtRequireAuth = async function(options = {}){
       }
 
       const ttResult = await restoreAccountTimeTrial(timeTrialPayload);
+      const cwResult = await restoreAccountClanWars(clanWarsPayload);
       applyLocalPreferencesFromBackup(backup);
       writeMkcentralStatsCacheFromBackup(backup);
       const latestVr = await getLatestVrAfterImport();
       await restoreAccountProfileFromBackup(backup, latestVr);
 
       if (typeof window.setStatus === "function") window.setStatus(
-        `Restore complete. WW ${vrResult.backup} | Lounge ${loungeRestored.mogis} | TT ${ttResult.skipped ? "kept" : ttResult.inserted}. Reloading...`,
+        `Restore complete. WW ${vrResult.backup} | Lounge ${loungeRestored.mogis} | TT ${ttResult.skipped ? "kept" : ttResult.inserted} | CW ${cwResult.skipped ? "kept" : cwResult.inserted}. Reloading...`,
         true
       );
       setTimeout(()=>location.reload(), 350);

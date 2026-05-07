@@ -99,6 +99,9 @@
     "24": "mkwt_lounge24_sessions_v1",
   };
   const NON_LOUNGE_FORMAT_TAG = "Non-Lounge";
+  const LOUNGE_TIER_CODES = ["X", "S", "A", "AB", "B", "BC", "C", "CD", "D", "DE", "E", "F"];
+  const LOUNGE_TIER_TAGS = LOUNGE_TIER_CODES.map((code) => `Tier ${code}`);
+  const LOUNGE_TIER_ORDER = new Map(LOUNGE_TIER_TAGS.map((tag, index) => [tag, index]));
   const LOUNGE_TRACKER_CHART_MODES = ["tracks", "im_destiny", "im_special_destiny", "im_routes", "placement"];
   const LOUNGE_TRACKER_INTERMISSION_MODES = new Set(["im_destiny", "im_special_destiny", "im_routes"]);
   const loungeTrackerChartsState = {
@@ -109,6 +112,7 @@
     trackMode: "tracks",
     placementMode: "all",
     placementItem: "",
+    tierFilter: "",
     panel: "track",
     lastTrackStats: [],
     lastSelectedTrack: null,
@@ -522,6 +526,18 @@
     const raw = cleanText(value);
     if(!raw) return "";
     return raw.replace(/[\s_-]+/g, "").toLowerCase() === "nonlounge" ? NON_LOUNGE_FORMAT_TAG : raw;
+  }
+
+  function normalizeLoungeStatsTierTag(value){
+    const raw = cleanText(value);
+    if(!raw) return "";
+    const code = raw.replace(/^tier\s+/i, "").replace(/[\s_-]+/g, "").toUpperCase();
+    if(!code || code === "OTHER" || /^\d{5,}$/.test(code) || !/^[A-Z]{1,3}$/.test(code)) return "";
+    return `Tier ${code}`;
+  }
+
+  function loungeTrackerSessionTier(session){
+    return normalizeLoungeStatsTierTag(session?.loungeTier || session?.lounge_tier || session?.tierTag || session?.tier || "");
   }
 
   function loungeTrackerSessionStatsExcluded(session){
@@ -1858,6 +1874,7 @@
       updated_at: normalizeIsoTime(session?.updated_at || ""),
       playerCount,
       loungeFormatTag: normalizeLoungeStatsFormatTag(session?.loungeFormatTag || session?.lounge_format_tag || ""),
+      loungeTier: loungeTrackerSessionTier(session),
       statsExcluded: session?.statsExcluded === true || session?.stats_excluded === true,
       races,
     };
@@ -1885,6 +1902,7 @@
       completed_at: row.completed_at,
       updated_at: row.updated_at,
       lounge_format_tag: row.lounge_format_tag,
+      lounge_tier: row.lounge_tier,
       stats_excluded: row.stats_excluded,
       races: (races || []).sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0)).map((race) => dbLoungeTrackerRaceToLocal(race, playerCount)),
     }, playerCount);
@@ -1904,7 +1922,7 @@
 
     const { data: mogis, error: mogiError } = await resolved.client
       .from("lounge_mogis")
-      .select("id, created_at, completed_at, updated_at, status, player_count, lounge_format_tag, stats_excluded")
+      .select("id, created_at, completed_at, updated_at, status, player_count, lounge_format_tag, lounge_tier, stats_excluded")
       .eq("user_id", uid)
       .eq("player_count", playerCount)
       .eq("status", "completed")
@@ -1945,7 +1963,34 @@
   }
 
   function getLoungeTrackerStatSessions(mode = loungeTrackerChartsState.mode){
-    return getLoungeTrackerSessions(mode).filter((session) => !loungeTrackerSessionStatsExcluded(session));
+    const tierFilter = normalizeLoungeStatsTierTag(loungeTrackerChartsState.tierFilter);
+    return getLoungeTrackerSessions(mode).filter((session) => {
+      if(loungeTrackerSessionStatsExcluded(session)) return false;
+      return !tierFilter || loungeTrackerSessionTier(session) === tierFilter;
+    });
+  }
+
+  function compareLoungeTrackerTierTags(a, b){
+    const ai = LOUNGE_TIER_ORDER.has(a) ? LOUNGE_TIER_ORDER.get(a) : LOUNGE_TIER_ORDER.size;
+    const bi = LOUNGE_TIER_ORDER.has(b) ? LOUNGE_TIER_ORDER.get(b) : LOUNGE_TIER_ORDER.size;
+    return ai - bi || a.localeCompare(b, "en", { numeric: true });
+  }
+
+  function collectLoungeTrackerTierOptions(mode = loungeTrackerChartsState.mode){
+    const counts = new Map();
+    for(const tag of LOUNGE_TIER_TAGS) counts.set(tag, 0);
+    let noTierCount = 0;
+    for(const session of getLoungeTrackerSessions(mode)){
+      if(loungeTrackerSessionStatsExcluded(session)) continue;
+      const tag = loungeTrackerSessionTier(session);
+      if(tag) counts.set(tag, (counts.get(tag) || 0) + 1);
+      else noTierCount += 1;
+    }
+    const tiers = Array.from(counts.entries())
+      .filter(([, count]) => count > 0)
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => compareLoungeTrackerTierTags(a.tag, b.tag));
+    return { tiers, noTierCount };
   }
 
   function aggregateLoungeTrackerTrackStats(mode = loungeTrackerChartsState.trackMode, loungeMode = loungeTrackerChartsState.mode){
@@ -2582,6 +2627,7 @@
       return;
     }
     [
+      ["btnMkcLoungeTierFilter", "menuMkcLoungeTierFilter"],
       ["btnMkcLoungeTrackFilter", "menuMkcLoungeTrackFilter"],
       ["btnMkcLoungePlacementFilter", "menuMkcLoungePlacementFilter"],
       ["btnMkcLoungePlacementItemFilter", "menuMkcLoungePlacementItemFilter"],
@@ -2814,14 +2860,37 @@
     updateLoungeTrackerModeButtons();
     const meta = $("mkcLocalTrackerMeta");
     const savedSessions = getLoungeTrackerSessions();
+    const tierOptions = collectLoungeTrackerTierOptions();
+    const activeTier = normalizeLoungeStatsTierTag(loungeTrackerChartsState.tierFilter);
+    if(activeTier && !tierOptions.tiers.some((entry) => entry.tag === activeTier)){
+      loungeTrackerChartsState.tierFilter = "";
+    }
+    const selectedTier = normalizeLoungeStatsTierTag(loungeTrackerChartsState.tierFilter);
+    const tierFilterValue = $("mkcLoungeTierFilterValue");
+    if(tierFilterValue) tierFilterValue.textContent = selectedTier || "All tiers";
+    const tierMenu = $("menuMkcLoungeTierFilter");
+    if(tierMenu){
+      const rows = [
+        `<button class="mkcTrackerFilterItem${!selectedTier ? " active" : ""}" data-mkc-tier-filter="" type="button"><span>All tiers</span></button>`,
+        ...tierOptions.tiers.map((entry) => `<button class="mkcTrackerFilterItem${selectedTier === entry.tag ? " active" : ""}" data-mkc-tier-filter="${escapeHtml(entry.tag)}" type="button"><span>${escapeHtml(entry.tag)}</span><span class="mkcTrackerFilterMeta">${entry.count}</span></button>`),
+      ];
+      tierMenu.innerHTML = rows.join("");
+      tierMenu.querySelectorAll("[data-mkc-tier-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          closeLoungeTrackerMenus();
+          setLoungeTrackerTierFilter(button.getAttribute("data-mkc-tier-filter"));
+        });
+      });
+    }
     const sessions = getLoungeTrackerStatSessions();
     const races = sessions.flatMap((session) => session.races || []);
     const nonDcCount = races.filter((race) => !race.disconnect).length;
     if(meta){
+      const tierText = selectedTier ? ` (${selectedTier})` : "";
       meta.textContent = sessions.length
-        ? `${loungeTrackerModeLabel()} from saved tracker Mogis: ${sessions.length} Mogis / ${nonDcCount} non-DC races.`
+        ? `${loungeTrackerModeLabel()}${tierText} from saved tracker Mogis: ${sessions.length} Mogis / ${nonDcCount} non-DC races.`
         : (savedSessions.length
-          ? `No ${loungeTrackerModeLabel()} tracker Mogis are included in stats.`
+          ? `No ${loungeTrackerModeLabel()} tracker Mogis match this stats filter.`
           : `No saved ${loungeTrackerModeLabel()} tracker Mogis found yet in this browser/account.`);
     }
     if(!sessions.length || !races.length){
@@ -2920,7 +2989,18 @@
     renderLoungeTrackerSection();
   }
 
+  function setLoungeTrackerTierFilter(value){
+    loungeTrackerChartsState.tierFilter = normalizeLoungeStatsTierTag(value);
+    loungeTrackerChartsState.lastSelectedTrack = null;
+    loungeTrackerChartsState.placementItem = "";
+    renderLoungeTrackerSection();
+  }
+
   function bindLoungeTrackerControls(){
+    $("btnMkcLoungeTierFilter")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleLoungeTrackerMenu("btnMkcLoungeTierFilter", "menuMkcLoungeTierFilter");
+    });
     $("btnMkcLoungeTrackFilter")?.addEventListener("click", (event) => {
       event.stopPropagation();
       toggleLoungeTrackerMenu("btnMkcLoungeTrackFilter", "menuMkcLoungeTrackFilter");
@@ -2953,9 +3033,10 @@
     });
     document.addEventListener("click", (event) => {
       const trackRoot = $("mkcLoungeTrackFilterRoot");
+      const tierRoot = $("mkcLoungeTierFilterRoot");
       const placementRoot = $("mkcLoungePlacementFilterRoot");
       const placementItemRoot = $("mkcLoungePlacementItemFilterRoot");
-      if(trackRoot?.contains(event.target) || placementRoot?.contains(event.target) || placementItemRoot?.contains(event.target)) return;
+      if(trackRoot?.contains(event.target) || tierRoot?.contains(event.target) || placementRoot?.contains(event.target) || placementItemRoot?.contains(event.target)) return;
       closeLoungeTrackerMenus();
     });
   }

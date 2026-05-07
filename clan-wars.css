@@ -1,0 +1,1527 @@
+.clanWarsWrap{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+.clanWarsHero{
+  position:relative;
+  overflow:visible;
+}
+
+.clanWarsHeroTop{
+  gap:20px;
+  align-items:flex-start;
+}
+
+#cwUserInfo[hidden]{
+  display:none !important;
+}
+
+.clanWarsScopeBox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.clanWarsHeroAction{
+  position:absolute;
+  top:16px;
+  right:16px;
+  z-index:2;
+  min-height:34px;
+  padding:0 12px;
+  border-radius:12px;
+  font-size:13px;
+  line-height:1;
+}
+
+.clanWarsScopeLabel{
+  display:inline-flex;
+  min-height:46px;
+  align-items:center;
+  justify-content:center;
+  padding:0 18px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:rgba(8,17,27,.72);
+  color:var(--muted);
+  font:inherit;
+  font-weight:900;
+  cursor:default;
+}
+
+.clanWarsScopeLabel:disabled{
+  opacity:1;
+}
+
+.clanWarsScopeLabel.is-active{
+  cursor:pointer;
+}
+
+.clanWarsScopeLabel.is-active:hover{
+  border-color:color-mix(in srgb,var(--primary) 74%,var(--border));
+  background:color-mix(in srgb,var(--card-2) 88%,transparent);
+  color:var(--text);
+}
+
+.clanWarsScopeLabel:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+}
+
+.clanJoinDialog{
+  overflow:visible;
+}
+
+.clanJoinPanel{
+  max-width:min(560px,calc(100vw - 28px));
+  overflow:visible;
+}
+
+.clanJoinBody{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.clanJoinField{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  color:var(--muted);
+  font-weight:900;
+}
+
+.clanJoinPickerField{
+  position:relative;
+  z-index:3;
+}
+
+.clanJoinField input,
+.clanJoinChoose{
+  width:100%;
+  min-height:54px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:rgba(5,13,22,.72);
+  color:var(--text);
+  padding:0 16px;
+  font:inherit;
+  font-weight:900;
+  outline:none;
+}
+
+.clanJoinChoose{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  text-align:left;
+}
+
+.clanJoinChoose.is-placeholder{
+  color:var(--muted);
+}
+
+.clanJoinField input:focus,
+.clanJoinChoose:focus-visible{
+  border-color:var(--primary);
+  box-shadow:var(--ring);
+}
+
+.clanJoinPickerPanel.trackPicker__panel{
+  position:absolute;
+  left:0 !important;
+  right:0;
+  top:calc(100% + 8px) !important;
+  z-index:20;
+  width:100% !important;
+  max-width:100%;
+  height:auto;
+  max-height:min(44dvh,330px);
+  margin-top:0;
+  overflow:hidden;
+  background:rgba(5,13,22,.9);
+}
+
+.clanJoinPickerPanel[hidden]{
+  display:none !important;
+}
+
+.clanJoinPickerLayout{
+  height:min(34dvh,260px);
+}
+
+.clanJoinPickerLayout .trackPicker__letterRail{
+  touch-action:none;
+}
+
+.clanWarsWrap .loungePicker .trackPicker__letterRail{
+  touch-action:none;
+}
+
+.clanJoinTrackArea{
+  overflow-y:auto;
+}
+
+.clanJoinSuggestions.trackPicker__groups{
+  column-count:1;
+  column-gap:0;
+}
+
+.clanJoinSuggestions .trackPicker__group{
+  display:block;
+  width:100%;
+}
+
+.clanJoinOption.trackPicker__option{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  min-height:56px;
+  width:100%;
+}
+
+.clanJoinOption__name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  word-break:normal;
+}
+
+.clanJoinOption__meta{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:900;
+  text-align:right;
+  white-space:normal;
+}
+
+.clanJoinEmpty{
+  padding:18px;
+  color:var(--muted);
+  font-weight:900;
+  text-align:center;
+}
+
+.clanJoinError{
+  padding:10px 12px;
+  border:1px solid color-mix(in srgb,var(--danger) 68%,var(--border));
+  border-radius:14px;
+  background:color-mix(in srgb,var(--danger) 18%,rgba(5,13,22,.92));
+  color:var(--danger-text);
+  font-size:14px;
+  font-weight:900;
+  line-height:1.25;
+  opacity:0;
+  transform:translateY(4px);
+  transition:opacity .16s ease, transform .16s ease;
+}
+
+.clanJoinError.is-visible{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.clanJoinError[hidden]{
+  display:none !important;
+}
+
+.clanWarsEventSwitch{
+  width:auto;
+  min-width:116px;
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:6px 7px 6px 12px;
+  border:1px solid color-mix(in srgb,var(--chart-split-a-stroke, #4e7cff) 48%,var(--border));
+  border-radius:999px;
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--chart-split-a-stroke, #4e7cff) 20%,transparent),transparent 68%),
+    var(--infoBtn-bg);
+  color:var(--text);
+  box-shadow:0 8px 18px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.035);
+  cursor:pointer;
+  transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .14s ease;
+}
+
+.clanWarsEventSwitch:hover{
+  transform:translateY(-1px);
+}
+
+.clanWarsEventSwitch.is-on{
+  border-color:color-mix(in srgb,var(--primary) 78%,var(--border));
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--primary) 36%,transparent),color-mix(in srgb,var(--danger) 18%,transparent)),
+    var(--infoBtn-bg);
+  box-shadow:0 10px 22px color-mix(in srgb,var(--primary) 20%,rgba(0,0,0,.26)), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.clanWarsEventSwitch:disabled{
+  cursor:not-allowed;
+  opacity:.62;
+  transform:none;
+}
+
+.clanWarsEventSwitch__copy{
+  display:block;
+  min-width:0;
+  text-align:left;
+}
+
+.clanWarsEventSwitch__label{
+  color:var(--text);
+  font-size:15px;
+  font-weight:1000;
+  line-height:1;
+}
+
+.clanWarsEventSwitch__status{
+  position:absolute;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  clip:rect(0 0 0 0);
+  white-space:nowrap;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.clanWarsEventSwitch.is-on .clanWarsEventSwitch__status{
+  color:color-mix(in srgb,var(--primary-text, #fff) 88%,var(--text));
+}
+
+.clanWarsEventSwitch__track{
+  width:48px;
+  height:26px;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  padding:3px;
+  border:1px solid color-mix(in srgb,var(--chart-split-a-stroke, #4e7cff) 50%,var(--border));
+  border-radius:999px;
+  background:rgba(5,13,22,.74);
+  transition:border-color .18s ease,background .18s ease;
+}
+
+.clanWarsEventSwitch__thumb{
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--chart-split-a-stroke, #4e7cff) 64%,#fff);
+  box-shadow:0 5px 12px rgba(0,0,0,.32);
+  transform:translateX(0);
+  transition:transform .2s ease,background .18s ease;
+}
+
+.clanWarsEventSwitch.is-on .clanWarsEventSwitch__track{
+  border-color:color-mix(in srgb,var(--primary) 76%,var(--border));
+  background:color-mix(in srgb,var(--primary) 36%,rgba(5,13,22,.74));
+}
+
+.clanWarsEventSwitch.is-on .clanWarsEventSwitch__thumb{
+  background:var(--primary);
+  transform:translateX(22px);
+}
+
+.clanWarsDivisionStart{
+  width:min(620px,100%);
+  margin-top:14px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background:rgba(5,13,22,.44);
+}
+
+.clanWarsDivisionStart[hidden]{
+  display:none !important;
+}
+
+.clanWarsDivisionStart__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.clanWarsDivisionStart__title{
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:1000;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.clanWarsDivisionSlots{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(136px,1fr));
+  gap:10px;
+}
+
+.clanWarsDivisionSlot{
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 12px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:rgba(8,17,27,.74);
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+  transition:border-color .14s ease, background .14s ease, transform .14s ease;
+}
+
+.clanWarsDivisionSlot:hover{
+  border-color:color-mix(in srgb,var(--primary) 58%,var(--border));
+  background:color-mix(in srgb,var(--card-2) 86%,transparent);
+}
+
+.clanWarsDivisionSlot:active{
+  transform:scale(.985);
+}
+
+.clanWarsDivisionSlot.is-selected{
+  border-color:color-mix(in srgb,var(--primary) 82%,var(--border));
+  background:
+    linear-gradient(90deg,color-mix(in srgb,var(--primary) 18%,transparent),transparent 72%),
+    color-mix(in srgb,var(--card-2) 92%,transparent);
+  box-shadow:
+    inset 4px 0 color-mix(in srgb,var(--primary) 86%,#fff),
+    0 0 0 2px color-mix(in srgb,var(--primary) 18%,transparent);
+}
+
+.clanWarsDivisionSlot.has-active{
+  border-color:color-mix(in srgb,#55f0a3 38%,var(--border));
+}
+
+.clanWarsDivisionSlot.has-active.is-selected{
+  box-shadow:
+    inset 4px 0 color-mix(in srgb,#55f0a3 74%,var(--primary)),
+    0 0 0 2px color-mix(in srgb,var(--primary) 18%,transparent);
+}
+
+.clanWarsDivisionSlot__name{
+  min-width:0;
+  color:var(--text);
+  font-size:18px;
+  font-weight:1000;
+  line-height:1.08;
+}
+
+.clanWarsDivisionSlot__status{
+  max-width:64%;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  line-height:1.15;
+  text-align:right;
+}
+
+.clanWarsDivisionSlot.is-selected .clanWarsDivisionSlot__status{
+  color:color-mix(in srgb,var(--primary) 78%,var(--text));
+}
+
+@media (max-width:720px){
+  .clanWarsDivisionSlots{
+    grid-template-columns:1fr;
+    gap:0;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;
+    overflow:hidden;
+    background:rgba(5,13,22,.52);
+  }
+
+  .clanWarsDivisionSlot{
+    min-height:58px;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    padding:10px 14px;
+  }
+
+  .clanWarsDivisionSlot__name{
+    font-size:17px;
+  }
+
+  .clanWarsDivisionSlot__status{
+    font-size:12px;
+  }
+
+  .clanWarsDivisionSlot + .clanWarsDivisionSlot{
+    border-top:1px solid rgba(255,255,255,.10);
+  }
+
+  .clanWarsDivisionSlot:hover{
+    background:color-mix(in srgb,var(--card-2) 68%,transparent);
+  }
+
+  .clanWarsDivisionSlot.is-selected{
+    background:
+      linear-gradient(90deg,color-mix(in srgb,var(--primary) 18%,transparent),transparent 76%),
+      color-mix(in srgb,var(--card-2) 72%,transparent);
+    box-shadow:
+      inset 4px 0 color-mix(in srgb,var(--primary) 86%,#fff),
+      0 0 0 1px color-mix(in srgb,var(--primary) 22%,transparent);
+  }
+
+  .clanWarsDivisionSlot.has-active{
+    box-shadow:inset 4px 0 color-mix(in srgb,#55f0a3 72%,var(--primary));
+  }
+
+  .clanWarsDivisionSlot.has-active.is-selected{
+    box-shadow:
+      inset 4px 0 color-mix(in srgb,#55f0a3 74%,var(--primary)),
+      0 0 0 1px color-mix(in srgb,var(--primary) 22%,transparent);
+  }
+}
+
+.clanWarsTotals{
+  margin-top:16px;
+}
+
+.clanWarsWrap .trackPicker__option--repick{
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  grid-template-areas:
+    "icon text"
+    "icon badge";
+  align-items:center;
+  column-gap:8px;
+  row-gap:5px;
+}
+
+.clanWarsWrap .trackPicker__option--repick .trackPicker__iconSlot{
+  grid-area:icon;
+  align-self:center;
+}
+
+.clanWarsWrap .trackPicker__option--repick .trackPicker__optionText{
+  grid-area:text;
+  flex:none;
+  min-width:0;
+  overflow-wrap:normal;
+  word-break:normal;
+}
+
+.clanWarsWrap .trackPicker__option--repick .trackPicker__repickBadge{
+  grid-area:badge;
+  justify-self:start;
+  margin-left:0;
+}
+
+.clanWarsEntryCard,
+.clanWarsHistoryCard,
+.clanWarsStatsCard{
+  border-color:rgba(255,67,72,.45);
+}
+
+.clanWarsStatsWrap{
+  gap:24px;
+}
+
+.clanWarsStatsToolbar{
+  border-color:rgba(255,67,72,.42);
+}
+
+.clanWarsStatsTopMetrics{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.clanWarsStatsTrackHighlights{
+  max-width:520px;
+  margin:12px auto 0;
+  padding:0;
+  overflow:hidden;
+  text-align:center;
+}
+
+.clanWarsStatsTrackHighlight{
+  min-width:0;
+  padding:12px 14px;
+}
+
+.clanWarsStatsTrackHighlight + .clanWarsStatsTrackHighlight{
+  border-top:1px solid var(--border);
+}
+
+.clanWarsStatsTrackHighlight .mkcTrackerInsightTitle{
+  margin-top:6px;
+  color:var(--text);
+  font-size:18px;
+  font-weight:900;
+  line-height:1.12;
+  overflow-wrap:anywhere;
+}
+
+.clanWarsStatsTrackHighlight.is-empty .mkcTrackerInsightTitle{
+  color:var(--muted);
+}
+
+.clanWarsStatsDeckSection{
+  border-color:rgba(255,67,72,.42);
+}
+
+.clanWarsStatsEventToggle{
+  width:auto;
+}
+
+.clanWarsStatsChartCard{
+  border-color:rgba(255,67,72,.36);
+}
+
+.clanWarsStatsChartActions{
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.clanWarsStatsDivisionMenu{
+  width:min(280px, calc(100vw - 48px));
+}
+
+.clanWarsStatsDivisionMenu .mkcTrackerFilterItem{
+  gap:14px;
+}
+
+.clanWarsEntryCard[hidden],
+.clanWarsIntermissionMode[hidden],
+.clanWarsIntermissionFields[hidden],
+#cwTrackField[hidden]{
+  display:none !important;
+}
+
+.clanWarsEntryPanel{
+  display:block;
+}
+
+.clanWarsEntryCard .sectionHead--split{
+  align-items:flex-start;
+  gap:12px;
+}
+
+.clanWarsDestinyNotice{
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:min(300px,52%);
+  min-height:38px;
+  padding:8px 12px 9px;
+  border:1px solid color-mix(in srgb,var(--chart-split-a-stroke, var(--primary)) 44%,var(--border));
+  border-radius:999px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--chart-split-a-stroke, var(--primary)) 16%,transparent),transparent 70%),var(--card-2);
+  box-shadow:0 12px 28px rgba(0,0,0,.22);
+  opacity:0;
+  transform:translateY(-4px);
+  transition:opacity .18s ease,transform .18s ease;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.clanWarsDestinyNotice[hidden]{
+  display:none !important;
+}
+
+.clanWarsDestinyNotice.is-visible{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.clanWarsDestinyNotice__label{
+  flex:0 0 auto;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.12em;
+  line-height:1;
+  text-transform:uppercase;
+}
+
+.clanWarsDestinyNotice__value{
+  display:block;
+  min-width:0;
+  color:var(--text);
+  font-size:15px;
+  font-weight:950;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.clanWarsEntryPanel #cwTrackField{
+  grid-template-columns:1fr !important;
+}
+
+.clanWarsEntryPanel #cwTrackField > label,
+.clanWarsIntermissionFields > label{
+  grid-column:auto !important;
+}
+
+.clanWarsEntryGrid{
+  display:grid;
+  grid-template-columns:minmax(220px,1fr) auto auto;
+  gap:16px;
+  align-items:end;
+  margin-top:18px;
+}
+
+.clanWarsTrackField select,
+.clanWarsIntermissionFields select{
+  min-height:58px;
+}
+
+.clanWarsIntermissionMode{
+  margin-bottom:12px;
+}
+
+.clanWarsIntermissionMode.loungeModeToggle{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  width:100%;
+  margin-top:0;
+}
+
+.clanWarsIntermissionMode[hidden]{
+  display:none !important;
+}
+
+.clanWarsIntermissionFields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(220px,1fr));
+  gap:16px;
+  margin-top:12px;
+}
+
+.clanWarsDcToggle{
+  min-height:58px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  padding:0 20px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:rgba(8,17,27,.72);
+  color:var(--text);
+  font-weight:900;
+  cursor:pointer;
+  user-select:none;
+}
+
+.clanWarsDcToggle input{
+  width:20px;
+  height:20px;
+  accent-color:#ff454a;
+}
+
+.clanWarsPlacementBlock{
+  margin-top:12px;
+}
+
+.clanWarsResultPicker{
+  position:relative;
+}
+
+.clanWarsResultTrigger{
+  width:100%;
+  min-height:58px;
+  font-size:18px;
+  font-weight:900;
+}
+
+.clanWarsResultPanel{
+  position:fixed;
+  z-index:1001;
+}
+
+.clanWarsResultPanelHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+  color:var(--muted);
+  font-weight:900;
+}
+
+.clanWarsResultGridSelect{
+  max-height:min(56dvh,420px);
+  overflow:auto;
+}
+
+.clanWarsResultOption[aria-selected="true"]{
+  border-color:var(--primary);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 88%,transparent),color-mix(in srgb,var(--danger) 36%,transparent));
+  color:var(--primary-text);
+  box-shadow:var(--ring);
+}
+
+.clanWarsResultPanelActions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+.clanWarsActionStrip{
+  grid-template-columns:minmax(0,2fr) minmax(90px,1fr) minmax(90px,1fr) 80px;
+}
+
+.clanWarsActions{
+  display:flex;
+  justify-content:flex-end;
+  gap:12px;
+  margin-top:22px;
+}
+
+.clanWarsRaceList,
+.clanWarsMatchList,
+.clanWarsStatsRows{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.clanWarsMatchCard,
+.clanWarsMatchRow,
+.clanWarsStatsRow{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background:rgba(5,13,22,.64);
+  padding:16px;
+}
+
+.clanWarsMatchCard{
+  cursor:pointer;
+  transition:border-color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+
+.clanWarsMatchCard:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+}
+
+.clanWarsMatchCard.is-open,
+.clanWarsMatchCard:hover{
+  border-color:color-mix(in srgb,var(--primary) 48%,var(--border));
+  background:color-mix(in srgb,var(--card-2) 88%,transparent);
+}
+
+.clanWarsMatchCard > .clanWarsMatchRow{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  padding:0;
+}
+
+.clanWarsMatchDetails{
+  margin-top:14px;
+  display:grid;
+  gap:12px;
+}
+
+.clanWarsDivisionBox{
+  margin-top:18px;
+  padding:14px;
+}
+
+.clanWarsSavedActions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:2px;
+}
+
+.clanWarsDeleteMatchBtn{
+  min-height:42px;
+}
+
+.clanWarsDivisionTags{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(84px,1fr));
+  gap:10px;
+  margin-top:10px;
+}
+
+.clanWarsDivisionTag{
+  min-height:42px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--card-2);
+  color:var(--text);
+  font:inherit;
+  font-weight:900;
+  cursor:pointer;
+  transition:transform .12s ease,border-color .12s ease,background .12s ease,box-shadow .12s ease;
+}
+
+.clanWarsDivisionTag:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,64,72,.78);
+}
+
+.clanWarsDivisionTag.active{
+  background:var(--primary);
+  border-color:rgba(255,255,255,.16);
+  color:white;
+  box-shadow:0 0 0 3px rgba(255,64,72,.18);
+}
+
+.clanWarsDivisionTag:disabled{
+  cursor:not-allowed;
+  opacity:.64;
+  transform:none;
+}
+
+.clanWarsDivisionPill{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:2px 8px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:rgba(255,255,255,.05);
+}
+
+.clanWarsStaticTag{
+  display:inline-flex;
+  align-items:center;
+  min-height:38px;
+  padding:6px 12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(8,17,27,.68);
+  color:var(--text);
+  font-weight:1000;
+}
+
+.clanWarsActiveMatch{
+  display:grid;
+  gap:10px;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background:rgba(5,13,22,.54);
+}
+
+.clanWarsActiveMatch.is-selected{
+  border-color:color-mix(in srgb,var(--primary) 56%,var(--border));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--primary) 18%,transparent);
+}
+
+.clanWarsActiveMatch.is-readonly{
+  border-color:color-mix(in srgb,var(--muted) 28%,var(--border));
+}
+
+.clanWarsActiveMatch__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  width:100%;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+}
+
+.clanWarsActiveMatch__head b{
+  display:block;
+  font-size:18px;
+  font-weight:1000;
+}
+
+.clanWarsActiveMatch__head small{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-weight:900;
+}
+
+.clanWarsActiveMatch__total{
+  color:#55f0a3;
+  font-size:24px;
+  font-weight:1000;
+}
+
+.clanMembersBody{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.clanMemberRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(5,13,22,.62);
+}
+
+.clanMemberName{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--text);
+  font-weight:950;
+}
+
+.clanMemberRole{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.clanWarsRaceTrack,
+.clanWarsMatchTitle,
+.clanWarsStatsName{
+  color:var(--text);
+  font-weight:1000;
+  font-size:20px;
+}
+
+.clanWarsMatchMeta,
+.clanWarsStatsMeta{
+  margin-top:4px;
+  color:var(--muted);
+  font-weight:800;
+}
+
+.clanWarsRaceWarn{
+  margin-top:8px;
+  color:#ffd17e;
+  font-weight:900;
+}
+
+.clanWarsRaceStripWrap{
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:1px 1px 4px;
+  scrollbar-width:thin;
+}
+
+.clanWarsRaceStrip{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(64px,1fr));
+  gap:8px;
+  min-width:860px;
+}
+
+.clanWarsRaceTile{
+  position:relative;
+  min-width:0;
+  min-height:92px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:8px 5px 7px;
+  border:1px solid color-mix(in srgb,var(--border) 90%,transparent);
+  border-radius:14px;
+  overflow:hidden;
+  isolation:isolate;
+  background:linear-gradient(180deg,rgba(255,255,255,.032),rgba(255,255,255,.012)),var(--card);
+  color:var(--text);
+  cursor:pointer;
+  transition:transform .14s ease,border-color .14s ease,background .14s ease;
+}
+
+.clanWarsRaceTile::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:0;
+  transform:translateX(-125%) skewX(-16deg);
+  will-change:transform, opacity;
+}
+
+.clanWarsRaceTile > *{
+  position:relative;
+  z-index:1;
+}
+
+.clanWarsRaceTile:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb,var(--primary) 36%,var(--border));
+}
+
+.clanWarsRaceTile.is-readonly{
+  cursor:default;
+}
+
+.clanWarsRaceTile.is-readonly:hover{
+  transform:none;
+  border-color:color-mix(in srgb,var(--border) 90%,transparent);
+}
+
+.clanWarsRaceTile:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+}
+
+.clanWarsRaceTile.raceRow--gold{
+  background:radial-gradient(circle at 50% -12%,rgba(255,205,70,.23),transparent 54%),linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.014)),var(--card);
+}
+
+.clanWarsRaceTile.raceRow--silver{
+  background:radial-gradient(circle at 50% -12%,rgba(210,220,232,.22),transparent 54%),linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.014)),var(--card);
+}
+
+.clanWarsRaceTile.raceRow--gold::before{
+  background:linear-gradient(105deg,transparent 0%,transparent 24%,rgba(255,205,70,.16) 36%,rgba(255,238,150,.68) 50%,rgba(255,205,70,.18) 64%,transparent 78%,transparent 100%);
+  animation:sessionRaceCardShimmer 4s ease-in-out infinite;
+}
+
+.clanWarsRaceTile.raceRow--silver::before{
+  background:linear-gradient(105deg,transparent 0%,transparent 24%,rgba(210,220,232,.15) 36%,rgba(246,250,255,.62) 50%,rgba(210,220,232,.17) 64%,transparent 78%,transparent 100%);
+  animation:sessionRaceCardShimmer 4s ease-in-out infinite;
+}
+
+.clanWarsRaceTile.raceRow--dc{
+  border-color:color-mix(in srgb,var(--danger) 58%,var(--border));
+  background:radial-gradient(circle at 50% -12%,color-mix(in srgb,var(--danger) 30%,transparent),transparent 58%),linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.014)),var(--card);
+}
+
+.clanWarsRaceTile.raceRow--dc::before{
+  background:radial-gradient(circle at 50% 48%,color-mix(in srgb,var(--danger) 24%,transparent),transparent 64%),linear-gradient(180deg,color-mix(in srgb,var(--danger) 12%,transparent),transparent 78%);
+  transform:none;
+  animation:sessionRaceDangerPulse 3.4s ease-in-out infinite;
+}
+
+.clanWarsRaceTile__number{
+  position:absolute;
+  top:6px;
+  left:7px;
+  font-size:11px;
+  line-height:1;
+  font-weight:900;
+  color:var(--muted);
+}
+
+.clanWarsRaceTile__tag{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-height:10px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:0;
+}
+
+.clanWarsRaceVisual,
+.clanWarsRaceRoute{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+}
+
+.clanWarsRaceVisual{
+  width:54px;
+  max-width:100%;
+  height:48px;
+}
+
+.clanWarsRaceIcon{
+  width:42px;
+  height:42px;
+  transform:scale(1.08);
+  transform-origin:center;
+}
+
+.clanWarsRaceRoute{
+  width:76px;
+  max-width:100%;
+  height:38px;
+  gap:1px;
+}
+
+.clanWarsRaceRoute .clanWarsRaceIcon{
+  width:31px;
+  height:31px;
+  transform:scale(1.05);
+}
+
+.clanWarsRaceRoute__arrow{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+}
+
+.clanWarsRaceTile__score{
+  font-size:24px;
+  line-height:1;
+  font-weight:1000;
+}
+
+.clanWarsRaceTile__score.is-positive{
+  color:#55f0a3;
+}
+
+.clanWarsRaceTile__score.is-negative{
+  color:#ff7777;
+}
+
+.clanWarsRaceTile__score.is-even{
+  color:var(--muted);
+}
+
+.clanWarsMatchRow{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:center;
+}
+
+.clanWarsMatchScore{
+  display:grid;
+  gap:8px;
+  min-width:160px;
+  text-align:right;
+  font-weight:1000;
+}
+
+.clanWarsScoreLine{
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-end;
+  gap:10px;
+  white-space:nowrap;
+}
+
+.clanWarsScoreLine span{
+  color:var(--muted);
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.clanWarsScoreLine b{
+  color:var(--text);
+  font-size:22px;
+}
+
+.clanWarsScoreLine.is-winner b{
+  color:#55f0a3;
+}
+
+.clanWarsScoreLine.is-loser b{
+  color:#ff7777;
+}
+
+.clanWarsScoreLine.is-even b{
+  color:var(--muted);
+}
+
+.clanWarsResultBody{
+  display:grid;
+  gap:12px;
+  color:var(--text);
+  font-weight:900;
+}
+
+.clanWarsResultGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.clanWarsResultStat{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  padding:14px;
+  background:rgba(8,17,27,.72);
+}
+
+.clanWarsResultStat span{
+  display:block;
+  color:var(--muted);
+  font-size:13px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.clanWarsResultStat b{
+  display:block;
+  margin-top:4px;
+  font-size:28px;
+}
+
+.clanWarsEditPanel{
+  max-width:min(680px,calc(100vw - 24px));
+}
+
+.clanWarsEditBody{
+  display:grid;
+  gap:12px;
+}
+
+.clanWarsEditMode{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:0;
+}
+
+.clanWarsEditFields{
+  grid-template-columns:1fr !important;
+  gap:10px;
+}
+
+.clanWarsEditFields > label,
+.clanWarsEditRouteFields > label{
+  grid-column:auto !important;
+}
+
+.clanWarsEditFields select{
+  min-height:54px;
+}
+
+.clanWarsEditRouteFields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:10px;
+}
+
+.clanWarsEditRouteFields[hidden]{
+  display:none !important;
+}
+
+.clanWarsEditResult{
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  padding:12px;
+  background:rgba(8,17,27,.52);
+}
+
+.clanWarsEditDc{
+  width:100%;
+  justify-content:center;
+}
+
+.clanWarsStatsRow{
+  display:grid;
+  grid-template-columns:minmax(150px,220px) minmax(0,1fr) auto;
+  gap:14px;
+  align-items:center;
+}
+
+.clanWarsStatsBarTrack{
+  height:18px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,.08);
+}
+
+.clanWarsStatsBar{
+  height:100%;
+  min-width:3px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#50d98a,#ffd21c);
+}
+
+.emptyState{
+  border:1px dashed rgba(255,255,255,.16);
+  border-radius:18px;
+  padding:22px;
+  text-align:center;
+  color:var(--muted);
+  font-weight:900;
+}
+
+@media(max-width:760px){
+  .clanWarsHeroTop,
+  .clanWarsMatchRow{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .clanWarsStatsWrap{
+    gap:18px;
+  }
+
+  .clanWarsStatsEventToggle,
+  .clanWarsStatsChartActions{
+    width:100%;
+  }
+
+  .clanWarsStatsChartActions .mkcTrackerFilter{
+    width:100%;
+  }
+
+  .clanWarsStatsChartActions .mkcTrackerFilterMenu{
+    width:100%;
+  }
+
+  .clanWarsEventSwitch{
+    min-width:108px;
+    min-height:38px;
+  }
+
+  .clanWarsEventSwitch__label{
+    font-size:14px;
+  }
+
+  .clanWarsEventSwitch__track{
+    width:46px;
+    height:24px;
+  }
+
+  .clanWarsEventSwitch__thumb{
+    width:17px;
+    height:17px;
+  }
+
+  .clanWarsEventSwitch.is-on .clanWarsEventSwitch__thumb{
+    transform:translateX(22px);
+  }
+
+  .clanJoinOption.trackPicker__option{
+    grid-template-columns:minmax(0,1fr);
+    align-items:start;
+    gap:4px;
+    min-width:0;
+  }
+
+  .clanJoinOption__meta{
+    text-align:left;
+  }
+
+  .clanWarsScopeBox{
+    justify-content:flex-start;
+  }
+
+  .clanWarsEntryGrid,
+  .clanWarsIntermissionFields{
+    grid-template-columns:1fr;
+  }
+
+  .clanWarsStatsRow{
+    grid-template-columns:1fr;
+  }
+
+  .clanWarsTotals{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .clanWarsEditRouteFields{
+    grid-template-columns:1fr !important;
+  }
+
+  .clanWarsMatchScore{
+    text-align:left;
+    min-width:0;
+  }
+
+  .clanWarsScoreLine{
+    justify-content:flex-start;
+  }
+
+  .clanWarsResultGrid{
+    grid-template-columns:1fr;
+  }
+
+  .clanWarsActionStrip{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .clanWarsActionStrip #btnSaveRace{
+    grid-column:1 / -1;
+  }
+
+  .clanWarsEntryCard .sectionHead--split{
+    align-items:flex-start;
+  }
+
+  .clanWarsDestinyNotice{
+    max-width:142px;
+    min-height:36px;
+    padding:8px 10px 9px;
+  }
+
+  .clanWarsDestinyNotice__label{
+    display:none;
+  }
+
+  .clanWarsDestinyNotice__value{
+    font-size:13px;
+  }
+
+  .clanWarsRaceStrip{
+    grid-template-columns:repeat(4,minmax(58px,1fr));
+    min-width:0;
+  }
+
+  .clanWarsRaceTile{
+    min-height:88px;
+    padding-inline:4px;
+  }
+
+  .clanWarsRaceIcon{
+    width:39px;
+    height:39px;
+  }
+
+  .clanWarsRaceRoute{
+    width:64px;
+  }
+
+  .clanWarsRaceRoute .clanWarsRaceIcon{
+    width:24px;
+    height:24px;
+  }
+
+  .clanWarsRaceRoute__arrow{
+    font-size:11px;
+  }
+
+  .clanWarsSavedActions{
+    justify-content:stretch;
+  }
+
+  .clanWarsSavedActions .btn2{
+    width:100%;
+  }
+}
+
+@media (max-width:430px){
+  .clanWarsRaceStrip{
+    min-width:256px;
+  }
+}

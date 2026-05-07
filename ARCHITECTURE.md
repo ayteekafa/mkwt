@@ -22,6 +22,8 @@ Each main page is usually represented by a matching HTML/CSS/JS trio or pair in 
 - `lounge-24.html`, `lounge.css`, `lounge.js`: Lounge 24p tracker
 - `lounge-stats.html`, `mkcentral.css`, `mkcentral.js`: Lounge stats view
 - `mkcentral.html`, `mkcentral.css`, `mkcentral.js`: alternate entry for the same Lounge stats system
+- `clan-wars.html`, `clan-wars.css`, `clan-wars.js`: Clan Wars personal tracker
+- `clan-wars-stats.html`, `clan-wars.css`, `clan-wars-stats.js`: Clan Wars personal stats
 - `login.html`, `login.css`, `login.js`: account login
 - `reset.html`, `reset.css`, `reset.js`: password reset
 - `about.html`, `about.css`: information page
@@ -99,6 +101,12 @@ Picker dropdowns should use the small generated assets in `assets/picker-icons/`
 - `lounge-24.*` handles 24p mogi tracking
 - `mkcentral.*` powers Lounge Stats and MKCentral sync/export behavior
 - `lounge-stats.html` and `mkcentral.html` are mirrored entry pages that point at the same Lounge Stats runtime
+
+### Clan Wars flow
+- `clan-wars.*` handles personal Account/Guest Clan Wars tracking
+- `clan-wars-stats.*` renders personal Clan Wars performance stats
+- Guest Clan Wars data stays in local browser storage and is included in MKWT backup export/import
+- Shared clan sync is reserved for account-backed clan memberships and RLS-protected Supabase rows
 
 ### Shared Lounge behavior
 Lounge pages reuse shared theme styles and some tracker/stats assets, but the actual mogi logic lives in `lounge.js`.

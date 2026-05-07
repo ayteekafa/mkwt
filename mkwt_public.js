@@ -1,7 +1,8 @@
 (function(){
   document.addEventListener('DOMContentLoaded', function(){
     try{
-      const rawPage = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+      let rawPage = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+      if (rawPage && !rawPage.includes('.')) rawPage = rawPage === 'index' ? 'index.html' : `${rawPage}.html`;
       const p = rawPage === 'mkcentral.html' ? 'lounge-stats.html' : rawPage;
 
       document.querySelectorAll('.navDropdownItem').forEach(item => {

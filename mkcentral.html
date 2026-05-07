@@ -29,16 +29,18 @@
       <button class="navLink navDropTrigger" type="button" aria-haspopup="true" aria-expanded="false">Tracker</button>
       <div class="navDropdownMenu">
         <a class="navDropdownItem" href="tracker.html">World Wides</a>
-        <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
-        <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
-        <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
+          <a class="navDropdownItem" href="lounge.html">Lounge 12p</a>
+          <a class="navDropdownItem" href="lounge-24.html">Lounge 24p</a>
+          <a class="navDropdownItem" href="time-trial.html">Time Trial</a>
+          <a class="navDropdownItem" href="clan-wars.html">Clan Wars</a>
       </div>
     </div>
     <div class="navDropdown">
       <button class="navLink navDropTrigger active" type="button" aria-haspopup="true" aria-expanded="false">Stats</button>
       <div class="navDropdownMenu">
-        <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
-        <a class="navDropdownItem active" href="lounge-stats.html">Lounge Stats</a>
+          <a class="navDropdownItem" href="stats.html">World Wide Stats</a>
+          <a class="navDropdownItem active" href="lounge-stats.html">Lounge Stats</a>
+          <a class="navDropdownItem" href="clan-wars-stats.html">Clan Wars Stats</a>
       </div>
     </div>
     <div class="navDropdown">
@@ -200,6 +202,15 @@
             </div>
             <div class="muted hidden" id="mkcLoungeTrackModeMeta"></div>
             <div class="muted hidden" id="mkcLoungePlacementMeta"></div>
+          </div>
+          <div class="mkcTrackerChartActions" id="mkcLoungeTierActions">
+            <div class="mkcTrackerFilter" id="mkcLoungeTierFilterRoot">
+              <button aria-controls="menuMkcLoungeTierFilter" aria-expanded="false" aria-haspopup="true" class="mkcTrackerFilterBtn" id="btnMkcLoungeTierFilter" type="button">
+                <span class="mkcTrackerFilterGlyph" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span id="mkcLoungeTierFilterValue">All tiers</span>
+              </button>
+              <div class="mkcTrackerFilterMenu" hidden id="menuMkcLoungeTierFilter"></div>
+            </div>
           </div>
           <div class="mkcTrackerChartActions" id="mkcLoungeTrackActions">
             <div class="mkcTrackerFilter" id="mkcLoungeTrackFilterRoot">

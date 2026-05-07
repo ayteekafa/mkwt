@@ -21,6 +21,10 @@ Disallow: /lounge-24
 Disallow: /lounge-24.html
 Disallow: /lounge-stats
 Disallow: /lounge-stats.html
+Disallow: /clan-wars
+Disallow: /clan-wars.html
+Disallow: /clan-wars-stats
+Disallow: /clan-wars-stats.html
 Disallow: /mkcentral
 Disallow: /mkcentral.html
 
