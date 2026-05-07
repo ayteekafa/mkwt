@@ -64,9 +64,42 @@
           <button class="clanWarsScopeLabel" id="cwScopeLabel" type="button" disabled>No clan joined</button>
         </div>
       </div>
-      <div class="clanWarsDivisionStart" id="cwDivisionStart" hidden>
+      <div aria-label="Clan Wars quick stats" class="statGrid clanWarsHeroStats">
+        <div class="statBox">
+          <div class="statLabel">Matches</div>
+          <div class="statValue" id="cwHeroMatchCount">0</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">Races</div>
+          <div class="statValue" id="cwHeroRaceCount">0</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">Max Points</div>
+          <div class="statValue" id="cwHeroMaxPoints">-</div>
+        </div>
+        <div class="statBox">
+          <div class="statLabel">Avg Points</div>
+          <div class="statValue" id="cwHeroAvgPoints">-</div>
+        </div>
+      </div>
+      <div class="bestTrackLine bestTrackLine--split clanWarsHeroHighlights" aria-label="Clan Wars track highlights">
+        <div class="bestTrackSlot clanWarsHeroHighlight">
+          <div class="bestTrackLabel">Best Track</div>
+          <div class="bestTrackName" id="cwHeroBestTrackName">Not enough data</div>
+          <div class="bestTrackMeta" id="cwHeroBestTrackMeta">No track has 10 plays yet.</div>
+        </div>
+        <div class="bestTrackSlot clanWarsHeroHighlight">
+          <div class="bestTrackLabel">Worst Track</div>
+          <div class="bestTrackName" id="cwHeroWorstTrackName">Not enough data</div>
+          <div class="bestTrackMeta" id="cwHeroWorstTrackMeta">No track has 10 plays yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card cardSection clanWarsDivisionCard" id="cwDivisionCard" aria-labelledby="cwDivisionStartTitle" hidden>
+      <div class="clanWarsDivisionStart" id="cwDivisionStart">
         <div class="clanWarsDivisionStart__head">
-          <div class="clanWarsDivisionStart__title">Choose match slot</div>
+          <div class="clanWarsDivisionStart__title" id="cwDivisionStartTitle">Choose match slot</div>
           <button class="clanWarsEventSwitch" id="btnClanWarsEventSwitch" type="button" role="switch" aria-checked="false" aria-label="6v18 mode">
             <span class="clanWarsEventSwitch__copy">
               <span class="clanWarsEventSwitch__label">6v18</span>

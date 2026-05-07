@@ -1062,6 +1062,8 @@
     const matches = scopedMatches();
     const races = matches.flatMap((match) => match.races || []);
     const nonDc = races.filter((race) => !race.dc).length;
+    const scopeName = $("cwStatsScopeName");
+    if(scopeName) scopeName.textContent = state.activeClan?.name || "Personal Clan Wars";
     const matchCount = $("cwStatsMatches");
     const trackCount = $("cwStatsTrackCount");
     if(matchCount) matchCount.textContent = String(matches.length);

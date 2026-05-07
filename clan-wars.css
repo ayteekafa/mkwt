@@ -11,7 +11,9 @@
 
 .clanWarsHeroTop{
   gap:20px;
-  align-items:flex-start;
+  align-items:center;
+  flex-direction:column;
+  text-align:center;
 }
 
 #cwUserInfo[hidden]{
@@ -70,6 +72,23 @@
 .clanWarsScopeLabel:focus-visible{
   outline:none;
   box-shadow:var(--ring);
+}
+
+.clanWarsHeroStats{
+  width:100%;
+  max-width:920px;
+  margin:18px auto 0;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.clanWarsHeroHighlights{
+  width:100%;
+  max-width:920px;
+  margin:12px auto 0;
+}
+
+.clanWarsHeroHighlight.is-empty .bestTrackName{
+  color:var(--muted);
 }
 
 .clanJoinDialog{
@@ -337,7 +356,9 @@
 }
 
 .clanWarsDivisionStart{
-  width:min(620px,100%);
+  width:100%;
+  max-width:none;
+  box-sizing:border-box;
   margin-top:14px;
   padding:14px;
   border:1px solid rgba(255,255,255,.12);
@@ -347,6 +368,14 @@
 
 .clanWarsDivisionStart[hidden]{
   display:none !important;
+}
+
+.clanWarsDivisionCard .clanWarsDivisionStart{
+  margin-top:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
 }
 
 .clanWarsDivisionStart__head{
@@ -379,7 +408,7 @@
   justify-content:space-between;
   gap:10px;
   padding:9px 12px;
-  border:1px solid var(--line);
+  border:1px solid color-mix(in srgb,var(--border) 76%,rgba(255,255,255,.16));
   border-radius:16px;
   background:rgba(8,17,27,.74);
   color:var(--text);
@@ -536,42 +565,16 @@
   gap:24px;
 }
 
-.clanWarsStatsToolbar{
-  border-color:rgba(255,67,72,.42);
-}
-
-.clanWarsStatsTopMetrics{
-  grid-template-columns:repeat(2,minmax(0,1fr));
-}
-
-.clanWarsStatsTrackHighlights{
-  max-width:520px;
-  margin:12px auto 0;
-  padding:0;
-  overflow:hidden;
+.clanWarsStatsHero{
+  align-items:center;
   text-align:center;
 }
 
-.clanWarsStatsTrackHighlight{
-  min-width:0;
-  padding:12px 14px;
-}
-
-.clanWarsStatsTrackHighlight + .clanWarsStatsTrackHighlight{
-  border-top:1px solid var(--border);
-}
-
-.clanWarsStatsTrackHighlight .mkcTrackerInsightTitle{
-  margin-top:6px;
-  color:var(--text);
-  font-size:18px;
-  font-weight:900;
-  line-height:1.12;
-  overflow-wrap:anywhere;
-}
-
-.clanWarsStatsTrackHighlight.is-empty .mkcTrackerInsightTitle{
+.clanWarsStatsScopeName{
+  margin-top:8px;
   color:var(--muted);
+  font-weight:900;
+  line-height:1.2;
 }
 
 .clanWarsStatsDeckSection{
@@ -1425,6 +1428,21 @@
 
   .clanWarsScopeBox{
     justify-content:flex-start;
+  }
+
+  .clanWarsHeroStats{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .clanWarsHeroHighlights{
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
+  .clanWarsHeroHighlights .bestTrackSlot + .bestTrackSlot{
+    border-left:0;
+    border-top:1px solid rgba(255,255,255,.08);
+    padding-top:12px;
   }
 
   .clanWarsEntryGrid,

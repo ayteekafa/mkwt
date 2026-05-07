@@ -17,6 +17,7 @@
   const STORAGE_ACTIVE_CLAN = "mkwt_clan_wars_active_clan_v1";
   const MAX_RACES = 12;
   const TEAM_SIZE = 6;
+  const MIN_TRACK_PLAYS_FOR_HIGHLIGHT = 10;
   const QUERY_BATCH_SIZE = 100;
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
   const $ = (id) => document.getElementById(id);
@@ -302,6 +303,75 @@
 
   function allLoadedMatches(){
     return mergeMatchList([state.current, ...state.matches]);
+  }
+
+  function trackerHeroSummary(){
+    const matches = allLoadedMatches().filter((match) => Array.isArray(match?.races) && match.races.length);
+    const matchTotals = matches.map((match) => Number(summarizeMatch(match).ownTotal || 0));
+    const maxPoints = matchTotals.length ? Math.max(...matchTotals) : null;
+    const avgPoints = matchTotals.length ? matchTotals.reduce((sum, value) => sum + value, 0) / matchTotals.length : null;
+    const nonDcRaces = matches.flatMap((match) => match.races || []).filter((race) => !race.dc);
+    const byTrack = new Map();
+    nonDcRaces.forEach((race) => {
+      if(race.raceKind === "intermission") return;
+      const track = canonicalTrackName(race.track);
+      if(!track || track === "Intermission") return;
+      const key = trackKeyName(track);
+      const row = byTrack.get(key) || { track, count: 0, total: 0, avg: 0 };
+      row.count += 1;
+      row.total += Number(race.ownPoints || 0);
+      row.avg = row.count ? row.total / row.count : 0;
+      byTrack.set(key, row);
+    });
+    const qualified = Array.from(byTrack.values()).filter((row) => row.count >= MIN_TRACK_PLAYS_FOR_HIGHLIGHT);
+    const best = qualified.slice().sort((a, b) => {
+      const avgDiff = Number(b.avg || 0) - Number(a.avg || 0);
+      if(avgDiff !== 0) return avgDiff;
+      const countDiff = Number(b.count || 0) - Number(a.count || 0);
+      if(countDiff !== 0) return countDiff;
+      return String(a.track || "").localeCompare(String(b.track || ""), "en");
+    })[0] || null;
+    const worst = qualified.slice().sort((a, b) => {
+      const avgDiff = Number(a.avg || 0) - Number(b.avg || 0);
+      if(avgDiff !== 0) return avgDiff;
+      const countDiff = Number(b.count || 0) - Number(a.count || 0);
+      if(countDiff !== 0) return countDiff;
+      return String(a.track || "").localeCompare(String(b.track || ""), "en");
+    })[0] || null;
+    return { matches: matches.length, races: nonDcRaces.length, maxPoints, avgPoints, best, worst };
+  }
+
+  function formatHeroPoints(value){
+    if(value == null || !Number.isFinite(Number(value))) return "-";
+    const num = Number(value);
+    return Number.isInteger(num) ? String(num) : num.toFixed(1);
+  }
+
+  function setHeroTrackHighlight(kind, row){
+    const nameEl = $(`cwHero${kind}TrackName`);
+    const metaEl = $(`cwHero${kind}TrackMeta`);
+    const noData = `No track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`;
+    if(nameEl){
+      nameEl.textContent = row ? row.track : "Not enough data";
+      nameEl.closest(".clanWarsHeroHighlight")?.classList.toggle("is-empty", !row);
+    }
+    if(metaEl){
+      metaEl.textContent = row ? `${row.count} plays · ${Number(row.avg || 0).toFixed(2)} avg` : noData;
+    }
+  }
+
+  function renderHeroSummary(){
+    const summary = trackerHeroSummary();
+    const matchCount = $("cwHeroMatchCount");
+    const raceCount = $("cwHeroRaceCount");
+    const maxPoints = $("cwHeroMaxPoints");
+    const avgPoints = $("cwHeroAvgPoints");
+    if(matchCount) matchCount.textContent = String(summary.matches);
+    if(raceCount) raceCount.textContent = String(summary.races);
+    if(maxPoints) maxPoints.textContent = formatHeroPoints(summary.maxPoints);
+    if(avgPoints) avgPoints.textContent = formatHeroPoints(summary.avgPoints);
+    setHeroTrackHighlight("Best", summary.best);
+    setHeroTrackHighlight("Worst", summary.worst);
   }
 
   function isEmptyActiveMatch(match){
@@ -2897,13 +2967,17 @@
       eventSwitch.disabled = state.loading;
     }
     if(eventSwitchStatus) eventSwitchStatus.textContent = state.eventType === "6v6v6v6" ? "6v18 active" : "6v6 active";
+    const divisionCard = $("cwDivisionCard");
     const divisionStart = $("cwDivisionStart");
     const divisionSlots = $("cwDivisionSlots");
     const slotOptions = clanDivisionSlots();
+    const showDivisionStart = !!state.activeClan && slotOptions.length > 0;
+    if(divisionCard) divisionCard.hidden = !showDivisionStart;
     if(divisionStart && divisionSlots){
-      divisionStart.hidden = !state.activeClan || slotOptions.length === 0;
+      divisionStart.hidden = !showDivisionStart;
       divisionSlots.innerHTML = slotOptions.map(divisionSlotButtonHtml).join("");
     }
+    renderHeroSummary();
     document.querySelectorAll("[data-cw-kind]").forEach((btn) => {
       const active = btn.dataset.cwKind === state.raceKind;
       btn.classList.toggle("active", active);
