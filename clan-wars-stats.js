@@ -18,6 +18,7 @@
   const TEAM_SIZE = 6;
   const MIN_TRACK_PLAYS_FOR_HIGHLIGHT = 10;
   const QUERY_BATCH_SIZE = 100;
+  const CLAN_ICON_BUCKET = "clan-icons";
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
   const CHART_MODES = ["tracks", "im_destiny", "im_special_destiny", "im_routes", "placement"];
   const INTERMISSION_CHART_MODES = new Set(["im_destiny", "im_special_destiny", "im_routes"]);
@@ -59,6 +60,40 @@
   function showToast(message, ok = true){
     if(window.MKWT?.showToast) window.MKWT.showToast(message, ok);
     else console[ok ? "log" : "warn"](message);
+  }
+
+  function resolveClanIconUrl(iconPath, version){
+    const path = cleanText(iconPath);
+    if(!state.client || !path) return "";
+    try{
+      const { data } = state.client.storage.from(CLAN_ICON_BUCKET).getPublicUrl(path);
+      const url = data?.publicUrl || "";
+      if(!url) return "";
+      const v = Number(version || 0);
+      return v > 0 ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(v)}` : url;
+    }catch{
+      return "";
+    }
+  }
+
+  function clanIconInitial(name){
+    return cleanText(name || "?").charAt(0).toUpperCase() || "?";
+  }
+
+  function clanIconHtml(clan, className = "", options = {}){
+    const iconUrl = clan?.iconUrl || "";
+    const showEmpty = options.showEmpty !== false;
+    if(!iconUrl && !showEmpty) return "";
+    const classes = ["clanIconFrame", className, iconUrl ? "has-image" : "is-empty"].filter(Boolean).join(" ");
+    const body = iconUrl
+      ? `<img src="${escapeHtml(iconUrl)}" alt="">`
+      : `<span class="clanIconFrame__placeholder">${escapeHtml(clanIconInitial(clan?.name))}</span>`;
+    return `<span class="${classes}" aria-hidden="true">${body}</span>`;
+  }
+
+  function clanScopeButtonHtml(clan){
+    if(!clan?.id) return "Personal Clan Wars";
+    return `${clanIconHtml(clan, "clanIconFrame--scope", { showEmpty: false })}<span>${escapeHtml(clan.name)}</span>`;
   }
 
   window.setStatus = function(message, ok = true){
@@ -140,6 +175,11 @@
       name,
       slug: cleanText(raw.slug || raw.clan_slug),
       role: cleanText(raw.role || raw.membership_role),
+      createdByUserId: cleanText(raw.created_by_user_id || raw.createdByUserId),
+      iconPath: cleanText(raw.icon_path || raw.iconPath),
+      iconVersion: Number(raw.icon_version || raw.iconVersion || 0) || 0,
+      iconUpdatedAt: cleanText(raw.icon_updated_at || raw.iconUpdatedAt),
+      iconUrl: resolveClanIconUrl(raw.icon_path || raw.iconPath, raw.icon_version || raw.iconVersion),
       divisions: Array.from(new Set(divisions)),
     };
   }
@@ -240,7 +280,7 @@
     if(!state.client || !clanId) return null;
     const { data: clan, error: clanError } = await state.client
       .from("clans")
-      .select("id, name, slug")
+      .select("id, name, slug, created_by_user_id, icon_path, icon_version, icon_updated_at")
       .eq("id", clanId)
       .eq("is_active", true)
       .maybeSingle();
@@ -269,6 +309,79 @@
       role: membership.role,
       divisions: (divisions || []).map((item) => item.name),
     });
+  }
+
+  async function loadClanMembers(){
+    if(state.mode !== "account" || !state.client || !state.activeClan?.id) return [];
+    const { data: memberships, error } = await state.client
+      .from("clan_memberships")
+      .select("user_id, role, status")
+      .eq("clan_id", state.activeClan.id)
+      .eq("status", "active");
+    if(error) throw error;
+
+    const ids = Array.from(new Set((memberships || []).map((member) => cleanText(member.user_id)).filter(Boolean)));
+    const profileById = new Map();
+    if(ids.length){
+      let { data: profiles, error: profileError } = await state.client
+        .from("profiles")
+        .select("id, user_id, nickname")
+        .in("id", ids);
+      if(profileError && String(profileError.message || "").includes("column profiles.id")){
+        ({ data: profiles, error: profileError } = await state.client
+          .from("profiles")
+          .select("user_id, nickname")
+          .in("user_id", ids));
+      }
+      if(profileError){
+        console.warn("[clan-wars-stats] member profile lookup skipped", profileError.message || profileError);
+      }
+      (profiles || []).forEach((profile) => {
+        const id = cleanText(profile.id || profile.user_id);
+        if(id) profileById.set(id, cleanText(profile.nickname));
+      });
+    }
+    const currentId = cleanText(state.session?.user?.id);
+    const currentName = cleanText(window.PROFILE?.nickname);
+    return (memberships || []).map((member) => {
+      const id = cleanText(member.user_id);
+      const name = profileById.get(id) || (id === currentId && currentName) || "Member";
+      return {
+        id,
+        name,
+        role: cleanText(member.role || "member").toUpperCase(),
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name, "en"));
+  }
+
+  function memberRowHtml(member){
+    return `
+      <div class="clanMemberRow">
+        <span class="clanMemberName">${escapeHtml(member.name)}</span>
+        <span class="clanMemberRole">${escapeHtml(member.role)}</span>
+      </div>
+    `;
+  }
+
+  async function openClanMembersDialog(){
+    if(!state.activeClan?.id){
+      showToast("Join a clan first.", false);
+      return;
+    }
+    const dialog = $("cwStatsMembersDialog");
+    const body = $("cwStatsMembersBody");
+    if(!dialog || !body) return;
+    body.innerHTML = '<div class="emptyState">Loading members...</div>';
+    try{ dialog.showModal(); }catch{ dialog.setAttribute("open", ""); }
+    try{
+      const members = await loadClanMembers();
+      body.innerHTML = members.length
+        ? members.map(memberRowHtml).join("")
+        : '<div class="emptyState">No members found.</div>';
+    }catch(e){
+      console.warn("[clan-wars-stats] could not load clan members", e);
+      body.innerHTML = '<div class="emptyState">Could not load members.</div>';
+    }
   }
 
   async function restoreActiveClan(){
@@ -1063,7 +1176,14 @@
     const races = matches.flatMap((match) => match.races || []);
     const nonDc = races.filter((race) => !race.dc).length;
     const scopeName = $("cwStatsScopeName");
-    if(scopeName) scopeName.textContent = state.activeClan?.name || "Personal Clan Wars";
+    if(scopeName){
+      const clanName = state.activeClan?.name || "";
+      scopeName.innerHTML = clanName ? clanScopeButtonHtml(state.activeClan) : "Personal Clan Wars";
+      scopeName.disabled = !clanName;
+      scopeName.classList.toggle("is-active", !!clanName);
+      scopeName.title = clanName ? `View ${clanName} members` : "";
+      scopeName.setAttribute("aria-label", clanName ? `View ${clanName} members` : "Personal Clan Wars");
+    }
     const matchCount = $("cwStatsMatches");
     const trackCount = $("cwStatsTrackCount");
     if(matchCount) matchCount.textContent = String(matches.length);
@@ -1141,6 +1261,10 @@
   }
 
   function bindEvents(){
+    $("cwStatsScopeName")?.addEventListener("click", openClanMembersDialog);
+    $("cwStatsMembersDialog")?.addEventListener("click", (event) => {
+      if(event.target === $("cwStatsMembersDialog")) $("cwStatsMembersDialog")?.close();
+    });
     document.querySelectorAll("[data-cw-stats-event]").forEach((button) => {
       button.addEventListener("click", () => setEventType(button.getAttribute("data-cw-stats-event")));
     });

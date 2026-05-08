@@ -19,6 +19,9 @@
   const TEAM_SIZE = 6;
   const MIN_TRACK_PLAYS_FOR_HIGHLIGHT = 10;
   const QUERY_BATCH_SIZE = 100;
+  const CLAN_ICON_BUCKET = "clan-icons";
+  const CLAN_ICON_SIZE = 256;
+  const CLAN_ICON_MAX_BYTES = 4 * 1024 * 1024;
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
   const $ = (id) => document.getElementById(id);
   let trackIconPaths = new Map();
@@ -48,6 +51,12 @@
     matches: [],
     activeClan: null,
     memberNames: new Map(),
+    iconUpload: {
+      file: null,
+      blob: null,
+      previewUrl: "",
+      busy: false,
+    },
     clanSearch: {
       clans: [],
       query: "",
@@ -76,6 +85,40 @@
   function showToast(message, ok = true){
     if(window.MKWT?.showToast) window.MKWT.showToast(message, ok);
     else console[ok ? "log" : "warn"](message);
+  }
+
+  function resolveClanIconUrl(iconPath, version){
+    const path = String(iconPath || "").trim();
+    if(!state.client || !path) return "";
+    try{
+      const { data } = state.client.storage.from(CLAN_ICON_BUCKET).getPublicUrl(path);
+      const url = data?.publicUrl || "";
+      if(!url) return "";
+      const v = Number(version || 0);
+      return v > 0 ? `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(v)}` : url;
+    }catch{
+      return "";
+    }
+  }
+
+  function clanIconInitial(name){
+    return String(name || "?").trim().charAt(0).toUpperCase() || "?";
+  }
+
+  function clanIconHtml(clan, className = "", options = {}){
+    const iconUrl = clan?.iconUrl || "";
+    const showEmpty = options.showEmpty !== false;
+    if(!iconUrl && !showEmpty) return "";
+    const classes = ["clanIconFrame", className, iconUrl ? "has-image" : "is-empty"].filter(Boolean).join(" ");
+    const body = iconUrl
+      ? `<img src="${escapeHtml(iconUrl)}" alt="">`
+      : `<span class="clanIconFrame__placeholder">${escapeHtml(clanIconInitial(clan?.name))}</span>`;
+    return `<span class="${classes}" aria-hidden="true">${body}</span>`;
+  }
+
+  function clanScopeButtonHtml(clan){
+    if(!clan?.id) return "No clan joined";
+    return `${clanIconHtml(clan, "clanIconFrame--scope", { showEmpty: false })}<span>${escapeHtml(clan.name)}</span>`;
   }
 
   window.setStatus = function(message, ok = true){
@@ -156,6 +199,11 @@
       name,
       slug: String(raw.slug || raw.clan_slug || "").trim(),
       role: String(raw.role || raw.membership_role || "").trim(),
+      createdByUserId: String(raw.created_by_user_id || raw.createdByUserId || "").trim(),
+      iconPath: String(raw.icon_path || raw.iconPath || "").trim(),
+      iconVersion: Number(raw.icon_version || raw.iconVersion || 0) || 0,
+      iconUpdatedAt: String(raw.icon_updated_at || raw.iconUpdatedAt || "").trim(),
+      iconUrl: resolveClanIconUrl(raw.icon_path || raw.iconPath, raw.icon_version || raw.iconVersion),
       divisions: Array.from(new Set(divisions)),
     };
   }
@@ -566,7 +614,7 @@
     if(!state.client || !clanId) return null;
     const { data: clan, error: clanError } = await state.client
       .from("clans")
-      .select("id, name, slug")
+      .select("id, name, slug, created_by_user_id, icon_path, icon_version, icon_updated_at")
       .eq("id", clanId)
       .eq("is_active", true)
       .maybeSingle();
@@ -713,7 +761,7 @@
     try{
       const { data: clans, error } = await state.client
         .from("clans")
-        .select("id, name, slug")
+        .select("id, name, slug, created_by_user_id, icon_path, icon_version, icon_updated_at")
         .eq("is_active", true)
         .order("name", { ascending: true });
       if(error) throw error;
@@ -817,6 +865,201 @@
     }catch(e){
       console.warn("[clan-wars] could not load clan members", e);
       body.innerHTML = '<div class="emptyState">Could not load members.</div>';
+    }
+    renderClanIconManager();
+  }
+
+  function canManageClanIcon(){
+    if(state.mode !== "account" || !state.activeClan?.id || !currentUserId()) return false;
+    const role = String(state.activeClan.role || "").toLowerCase();
+    return role === "owner" || role === "admin" || state.activeClan.createdByUserId === currentUserId();
+  }
+
+  function revokeClanIconPreview(){
+    if(state.iconUpload.previewUrl){
+      URL.revokeObjectURL(state.iconUpload.previewUrl);
+      state.iconUpload.previewUrl = "";
+    }
+  }
+
+  function resetClanIconUpload(){
+    revokeClanIconPreview();
+    state.iconUpload.file = null;
+    state.iconUpload.blob = null;
+    state.iconUpload.busy = false;
+    const input = $("cwClanIconFile");
+    if(input) input.value = "";
+    setClanIconStatus("");
+  }
+
+  function setClanIconStatus(message = "", ok = true){
+    const status = $("cwClanIconStatus");
+    if(!status) return;
+    status.textContent = message;
+    status.hidden = !message;
+    status.classList.toggle("is-error", !!message && !ok);
+  }
+
+  function renderClanIconManager(){
+    const manager = $("cwClanIconManager");
+    if(!manager) return;
+    const canManage = canManageClanIcon();
+    manager.hidden = !state.activeClan?.id || !canManage;
+    if(manager.hidden) return;
+
+    const preview = $("cwClanIconPreview");
+    const placeholder = $("cwClanIconPlaceholder");
+    const chooseBtn = $("btnChooseClanIcon");
+    const uploadBtn = $("btnUploadClanIcon");
+    const meta = $("cwClanIconMeta");
+    const previewUrl = state.iconUpload.previewUrl || state.activeClan?.iconUrl || "";
+
+    if(preview){
+      preview.src = previewUrl || "";
+      preview.hidden = !previewUrl;
+    }
+    if(placeholder){
+      placeholder.textContent = clanIconInitial(state.activeClan?.name);
+      placeholder.hidden = !!previewUrl;
+    }
+    if(meta){
+      meta.textContent = state.iconUpload.blob
+        ? "Ready as a 256px hexagon icon."
+        : (state.activeClan?.iconUrl ? "Current clan icon. Upload replaces it for everyone." : "Hexagon preview, shared with clan members.");
+    }
+    if(chooseBtn) chooseBtn.disabled = state.iconUpload.busy;
+    if(uploadBtn) uploadBtn.disabled = state.iconUpload.busy || !state.iconUpload.blob;
+  }
+
+  async function decodeIconImage(file){
+    if(window.createImageBitmap) return createImageBitmap(file);
+    const url = URL.createObjectURL(file);
+    try{
+      const img = new Image();
+      img.decoding = "async";
+      img.src = url;
+      await img.decode();
+      return img;
+    }finally{
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function makeClanIconBlob(file){
+    if(!file) throw new Error("Choose an image first.");
+    if(!/^image\/(png|jpeg|webp)$/.test(file.type || "")) throw new Error("Use PNG, JPG, or WebP.");
+    if(Number(file.size || 0) > CLAN_ICON_MAX_BYTES) throw new Error("Icon image is too large.");
+
+    const image = await decodeIconImage(file);
+    const width = Number(image.width || image.naturalWidth || 0);
+    const height = Number(image.height || image.naturalHeight || 0);
+    if(!width || !height) throw new Error("Could not read the image.");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = CLAN_ICON_SIZE;
+    canvas.height = CLAN_ICON_SIZE;
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if(!ctx) throw new Error("Could not prepare the icon.");
+
+    const sourceSize = Math.min(width, height);
+    const sourceX = Math.max(0, (width - sourceSize) / 2);
+    const sourceY = Math.max(0, (height - sourceSize) / 2);
+    ctx.clearRect(0, 0, CLAN_ICON_SIZE, CLAN_ICON_SIZE);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(CLAN_ICON_SIZE * 0.25, CLAN_ICON_SIZE * 0.04);
+    ctx.lineTo(CLAN_ICON_SIZE * 0.75, CLAN_ICON_SIZE * 0.04);
+    ctx.lineTo(CLAN_ICON_SIZE, CLAN_ICON_SIZE * 0.5);
+    ctx.lineTo(CLAN_ICON_SIZE * 0.75, CLAN_ICON_SIZE * 0.96);
+    ctx.lineTo(CLAN_ICON_SIZE * 0.25, CLAN_ICON_SIZE * 0.96);
+    ctx.lineTo(0, CLAN_ICON_SIZE * 0.5);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, CLAN_ICON_SIZE, CLAN_ICON_SIZE);
+    ctx.restore();
+    if(typeof image.close === "function") image.close();
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if(blob) resolve(blob);
+        else reject(new Error("Could not create the icon file."));
+      }, "image/webp", 0.9);
+    });
+  }
+
+  async function handleClanIconFile(file){
+    if(!file) return;
+    try{
+      setClanIconStatus("Preparing icon...");
+      const blob = await makeClanIconBlob(file);
+      revokeClanIconPreview();
+      state.iconUpload.file = file;
+      state.iconUpload.blob = blob;
+      state.iconUpload.previewUrl = URL.createObjectURL(blob);
+      setClanIconStatus("Ready to upload.");
+      renderClanIconManager();
+    }catch(e){
+      state.iconUpload.file = null;
+      state.iconUpload.blob = null;
+      revokeClanIconPreview();
+      setClanIconStatus(e?.message || "Could not prepare icon.", false);
+      renderClanIconManager();
+    }
+  }
+
+  async function uploadClanIcon(){
+    if(!state.client || !state.activeClan?.id || !canManageClanIcon()){
+      setClanIconStatus("Only clan admins can upload icons.", false);
+      return;
+    }
+    if(!state.iconUpload.blob){
+      setClanIconStatus("Choose an image first.", false);
+      return;
+    }
+    state.iconUpload.busy = true;
+    renderClanIconManager();
+    try{
+      const nextVersion = Date.now();
+      const path = `${state.activeClan.id}/icon-${nextVersion}.webp`;
+      const { error: uploadError } = await state.client.storage
+        .from(CLAN_ICON_BUCKET)
+        .upload(path, state.iconUpload.blob, {
+          cacheControl: "31536000",
+          contentType: "image/webp",
+          upsert: false,
+        });
+      if(uploadError) throw uploadError;
+
+      const { data: updated, error: updateError } = await state.client
+        .from("clans")
+        .update({
+          icon_path: path,
+          icon_version: nextVersion,
+          icon_updated_at: new Date().toISOString(),
+        })
+        .eq("id", state.activeClan.id)
+        .select("id, name, slug, created_by_user_id, icon_path, icon_version, icon_updated_at")
+        .single();
+      if(updateError) throw updateError;
+
+      const hydrated = normalizeClan({
+        ...updated,
+        role: state.activeClan.role,
+        divisions: state.activeClan.divisions,
+      });
+      if(hydrated){
+        state.activeClan = hydrated;
+        persistActiveClan();
+      }
+      resetClanIconUpload();
+      render();
+      renderClanIconManager();
+      showToast("Clan icon updated.", true);
+    }catch(e){
+      console.warn("[clan-wars] icon upload failed", e);
+      state.iconUpload.busy = false;
+      setClanIconStatus(e?.message || "Could not upload icon.", false);
+      renderClanIconManager();
     }
   }
 
@@ -953,6 +1196,7 @@
         const divisions = (clan.divisions || []).join(" / ");
         const html = `
           <button class="trackPicker__option clanJoinOption${active ? " is-active" : ""}" id="cwClanOption${optionIndex}" type="button" role="option" aria-selected="${selected ? "true" : "false"}" data-cw-clan-option="${escapeHtml(clan.id)}">
+            ${clanIconHtml(clan, "clanIconFrame--option")}
             <span class="trackPicker__optionText clanJoinOption__name">${escapeHtml(clan.name)}</span>
             <span class="clanJoinOption__meta">${escapeHtml(divisions || "Clan")}</span>
           </button>
@@ -1028,12 +1272,12 @@
       if(error) throw error;
       const joined = normalizeClan(Array.isArray(data) ? data[0] : data);
       if(!joined) throw new Error("Could not join clan.");
-      state.activeClan = joined;
+      state.activeClan = await loadClanDetails(joined.id) || joined;
       persistActiveClan();
       $("cwClanDialog")?.close();
       await loadCloud();
       render();
-      showToast(`Joined ${joined.name}. Clan matches are shown now.`, true);
+      showToast(`Joined ${state.activeClan.name}. Clan matches are shown now.`, true);
     }catch(e){
       setClanJoinError(e?.message || "Could not join clan.", true);
       updateJoinButtonState();
@@ -3018,7 +3262,7 @@
     const scopeBtn = $("cwScopeLabel");
     if(scopeBtn){
       const clanName = state.activeClan?.name || "";
-      scopeBtn.textContent = clanName || "No clan joined";
+      scopeBtn.innerHTML = clanName ? clanScopeButtonHtml(state.activeClan) : "No clan joined";
       scopeBtn.disabled = state.loading || !clanName;
       scopeBtn.classList.toggle("is-active", !!clanName);
       scopeBtn.title = clanName ? `View ${clanName} members` : "";
@@ -3114,6 +3358,15 @@
     $("cwMembersDialog")?.addEventListener("click", (event) => {
       if(event.target === $("cwMembersDialog")) $("cwMembersDialog")?.close();
     });
+    $("cwMembersDialog")?.addEventListener("close", () => {
+      resetClanIconUpload();
+      renderClanIconManager();
+    });
+    $("btnChooseClanIcon")?.addEventListener("click", () => $("cwClanIconFile")?.click());
+    $("cwClanIconFile")?.addEventListener("change", (event) => {
+      handleClanIconFile(event.target.files?.[0]);
+    });
+    $("btnUploadClanIcon")?.addEventListener("click", uploadClanIcon);
     $("btnClanPicker")?.addEventListener("click", () => {
       const nextOpen = !state.clanSearch.open;
       state.clanSearch.letterFilter = "all";

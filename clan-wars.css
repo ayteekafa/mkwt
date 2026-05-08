@@ -45,6 +45,7 @@
   min-height:46px;
   align-items:center;
   justify-content:center;
+  gap:10px;
   padding:0 18px;
   border:1px solid var(--line);
   border-radius:18px;
@@ -72,6 +73,54 @@
 .clanWarsScopeLabel:focus-visible{
   outline:none;
   box-shadow:var(--ring);
+}
+
+.clanIconFrame{
+  --clan-icon-size:34px;
+  position:relative;
+  display:inline-grid;
+  width:var(--clan-icon-size);
+  height:var(--clan-icon-size);
+  flex:0 0 auto;
+  place-items:center;
+  padding:2px;
+  clip-path:polygon(25% 4%,75% 4%,100% 50%,75% 96%,25% 96%,0 50%);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 70%,transparent),color-mix(in srgb,var(--line) 86%,transparent));
+  box-shadow:0 8px 18px rgba(0,0,0,.24);
+  overflow:hidden;
+}
+
+.clanIconFrame img,
+.clanIconFrame__placeholder{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  clip-path:inherit;
+  background:rgba(5,13,22,.82);
+}
+
+.clanIconFrame img{
+  display:block;
+}
+
+.clanIconFrame__placeholder{
+  display:grid;
+  place-items:center;
+  color:var(--muted);
+  font-weight:1000;
+  line-height:1;
+}
+
+.clanIconFrame--scope{
+  --clan-icon-size:28px;
+}
+
+.clanIconFrame--option{
+  --clan-icon-size:34px;
+}
+
+.clanIconFrame--preview{
+  --clan-icon-size:74px;
 }
 
 .clanWarsHeroStats{
@@ -200,7 +249,7 @@
 
 .clanJoinOption.trackPicker__option{
   display:grid;
-  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-columns:auto minmax(0,1fr) auto;
   align-items:center;
   gap:12px;
   min-height:56px;
@@ -571,10 +620,39 @@
 }
 
 .clanWarsStatsScopeName{
-  margin-top:8px;
+  display:inline-flex;
+  min-height:42px;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin:12px auto 0;
+  padding:0 16px;
+  border:1px solid transparent;
+  border-radius:16px;
+  background:rgba(8,17,27,.72);
   color:var(--muted);
+  font:inherit;
   font-weight:900;
   line-height:1.2;
+}
+
+.clanWarsStatsScopeName:disabled{
+  opacity:1;
+}
+
+.clanWarsStatsScopeName.is-active{
+  cursor:pointer;
+}
+
+.clanWarsStatsScopeName.is-active:hover{
+  border-color:color-mix(in srgb,var(--primary) 74%,var(--border));
+  background:color-mix(in srgb,var(--card-2) 88%,transparent);
+  color:var(--text);
+}
+
+.clanWarsStatsScopeName:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
 }
 
 .clanWarsStatsDeckSection{
@@ -971,6 +1049,59 @@
   display:flex;
   flex-direction:column;
   gap:10px;
+}
+
+.clanIconManager{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:14px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:rgba(5,13,22,.62);
+}
+
+.clanIconManager[hidden]{
+  display:none!important;
+}
+
+.clanIconManager__head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.clanIconManager__title{
+  color:var(--text);
+  font-weight:1000;
+}
+
+.clanIconManager__meta{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:850;
+}
+
+.clanIconManager__actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.clanIconManager__status{
+  color:var(--muted);
+  font-weight:850;
+}
+
+.clanIconManager__status[hidden],
+.clanIconManager__status:empty{
+  display:none;
+}
+
+.clanIconManager__status.is-error{
+  color:#ff9fa3;
 }
 
 .clanMemberRow{
@@ -1416,14 +1547,19 @@
   }
 
   .clanJoinOption.trackPicker__option{
-    grid-template-columns:minmax(0,1fr);
-    align-items:start;
-    gap:4px;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:center;
+    gap:8px 10px;
     min-width:0;
   }
 
   .clanJoinOption__meta{
+    grid-column:2;
     text-align:left;
+  }
+
+  .clanIconManager__actions{
+    grid-template-columns:1fr;
   }
 
   .clanWarsScopeBox{

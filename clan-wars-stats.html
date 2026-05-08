@@ -57,7 +57,7 @@
         <div class="mkcHeroCopy">
           <p class="eyebrow">Stats</p>
           <h2 class="heroTitle mkcHeroTitle"><span>Clan Wars Stats</span></h2>
-          <div class="clanWarsStatsScopeName" id="cwStatsScopeName">Personal Clan Wars</div>
+          <button class="clanWarsStatsScopeName" id="cwStatsScopeName" type="button" disabled>Personal Clan Wars</button>
         </div>
       </div>
     </section>
@@ -127,6 +127,19 @@
     </section>
 
   </main>
+
+  <dialog class="mkwtConfirmDialog clanMembersDialog" id="cwStatsMembersDialog" aria-labelledby="cwStatsMembersTitle">
+    <form class="mkwtConfirmDialog__panel clanMembersPanel" method="dialog">
+      <div class="mkwtConfirmDialog__eyebrow">Clan Wars</div>
+      <h2 class="mkwtConfirmDialog__title" id="cwStatsMembersTitle">Members</h2>
+      <div class="clanMembersBody" id="cwStatsMembersBody">
+        <div class="emptyState">Loading members...</div>
+      </div>
+      <div class="mkwtConfirmDialog__actions">
+        <button class="btn2" value="close" type="submit">Close</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="mkwt_public.js"></script>
   <script src="clan-wars-stats.js"></script>
