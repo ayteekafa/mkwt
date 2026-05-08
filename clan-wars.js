@@ -924,8 +924,8 @@
     }
     if(meta){
       meta.textContent = state.iconUpload.blob
-        ? "Ready as a 256px hexagon icon."
-        : (state.activeClan?.iconUrl ? "Current clan icon. Upload replaces it for everyone." : "Hexagon preview, shared with clan members.");
+        ? "Ready as a 256px clan icon."
+        : (state.activeClan?.iconUrl ? "Current clan icon. Upload replaces it for everyone." : "Transparent icons keep their own silhouette.");
     }
     if(chooseBtn) chooseBtn.disabled = state.iconUpload.busy;
     if(uploadBtn) uploadBtn.disabled = state.iconUpload.busy || !state.iconUpload.blob;
@@ -945,6 +945,22 @@
     }
   }
 
+  function imageHasTransparentPixels(image, width, height){
+    const probeSize = 32;
+    const canvas = document.createElement("canvas");
+    canvas.width = probeSize;
+    canvas.height = probeSize;
+    const ctx = canvas.getContext("2d", { alpha: true, willReadFrequently: true });
+    if(!ctx) return false;
+    ctx.clearRect(0, 0, probeSize, probeSize);
+    ctx.drawImage(image, 0, 0, width, height, 0, 0, probeSize, probeSize);
+    const data = ctx.getImageData(0, 0, probeSize, probeSize).data;
+    for(let i = 3; i < data.length; i += 4){
+      if(data[i] < 250) return true;
+    }
+    return false;
+  }
+
   async function makeClanIconBlob(file){
     if(!file) throw new Error("Choose an image first.");
     if(!/^image\/(png|jpeg|webp)$/.test(file.type || "")) throw new Error("Use PNG, JPG, or WebP.");
@@ -961,22 +977,26 @@
     const ctx = canvas.getContext("2d", { alpha: true });
     if(!ctx) throw new Error("Could not prepare the icon.");
 
-    const sourceSize = Math.min(width, height);
-    const sourceX = Math.max(0, (width - sourceSize) / 2);
-    const sourceY = Math.max(0, (height - sourceSize) / 2);
+    const hasTransparency = imageHasTransparentPixels(image, width, height);
     ctx.clearRect(0, 0, CLAN_ICON_SIZE, CLAN_ICON_SIZE);
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(CLAN_ICON_SIZE * 0.25, CLAN_ICON_SIZE * 0.04);
-    ctx.lineTo(CLAN_ICON_SIZE * 0.75, CLAN_ICON_SIZE * 0.04);
-    ctx.lineTo(CLAN_ICON_SIZE, CLAN_ICON_SIZE * 0.5);
-    ctx.lineTo(CLAN_ICON_SIZE * 0.75, CLAN_ICON_SIZE * 0.96);
-    ctx.lineTo(CLAN_ICON_SIZE * 0.25, CLAN_ICON_SIZE * 0.96);
-    ctx.lineTo(0, CLAN_ICON_SIZE * 0.5);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, CLAN_ICON_SIZE, CLAN_ICON_SIZE);
-    ctx.restore();
+    if(hasTransparency){
+      const scale = Math.min(CLAN_ICON_SIZE / width, CLAN_ICON_SIZE / height);
+      const drawWidth = width * scale;
+      const drawHeight = height * scale;
+      const drawX = (CLAN_ICON_SIZE - drawWidth) / 2;
+      const drawY = (CLAN_ICON_SIZE - drawHeight) / 2;
+      ctx.drawImage(image, 0, 0, width, height, drawX, drawY, drawWidth, drawHeight);
+    }else{
+      const sourceSize = Math.min(width, height);
+      const sourceX = Math.max(0, (width - sourceSize) / 2);
+      const sourceY = Math.max(0, (height - sourceSize) / 2);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(CLAN_ICON_SIZE / 2, CLAN_ICON_SIZE / 2, CLAN_ICON_SIZE / 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, CLAN_ICON_SIZE, CLAN_ICON_SIZE);
+      ctx.restore();
+    }
     if(typeof image.close === "function") image.close();
 
     return new Promise((resolve, reject) => {
