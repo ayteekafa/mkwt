@@ -1019,8 +1019,9 @@
     state.iconUpload.busy = true;
     renderClanIconManager();
     try{
-      const nextVersion = Date.now();
-      const path = `${state.activeClan.id}/icon-${nextVersion}.webp`;
+      const nextVersion = Math.floor(Date.now() / 1000);
+      const uploadId = `${nextVersion}-${Math.random().toString(36).slice(2, 8)}`;
+      const path = `${state.activeClan.id}/icon-${uploadId}.webp`;
       const { error: uploadError } = await state.client.storage
         .from(CLAN_ICON_BUCKET)
         .upload(path, state.iconUpload.blob, {
