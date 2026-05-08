@@ -707,8 +707,8 @@
     return n > 0 ? "gainGood" : "gainBad";
   }
 
-  function avgScoreBreakEven(){
-    return 82;
+  function avgScoreBreakEven(scope = activeScope){
+    return normalizeScope(scope).playerCount === "24" ? 72 : 82;
   }
 
   function avgScoreToneClass(value){
