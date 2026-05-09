@@ -21,7 +21,9 @@ function setPasswordStatus(t, ok=true){
 const STORAGE_KEYS = window.MKWT?.storageKeys || { theme:'mkwt_theme', minVrFilter:'mkwt_min_vr_filter', lastMode:'mkwt_last_mode' };
 const SETTINGS_MKCENTRAL_PLAYER_KEY = 'mkwt_mkcentral_player_ref_v1';
 const SETTINGS_PROFILE_ICON_KEY = 'mkwt_profile_icon_slug_v1';
+const WW_VR_ONBOARDING_KEY_PREFIX = "mkwt_ww_vr_onboarding_done_v1";
 const SETTINGS_ICON_MANIFEST_URL = 'combo_icon_map.json';
+const SETTINGS_DEFAULT_PROFILE_ICON_SLUG = "mario";
 const ACCOUNT_DEFAULT_THEME = "dark";
 
 const SETTINGS_FIELDS = [
@@ -34,7 +36,7 @@ const SETTINGS_FIELDS = [
 
 let settingsEditMode = false;
 let settingsSnapshot = null;
-let profileIconSlug = "";
+let profileIconSlug = SETTINGS_DEFAULT_PROFILE_ICON_SLUG;
 let profileIconManifest = null;
 let profileIconLoadPromise = null;
 let profileIconEntries = [];
@@ -42,6 +44,11 @@ let profileIconEntries = [];
 function settingsText(value, fallback="-"){
   const text = String(value ?? "").trim();
   return text || fallback;
+}
+
+function markWorldWideVrOnboardingDone(){
+  if(!SESSION?.user?.id) return;
+  try{ localStorage.setItem(`${WW_VR_ONBOARDING_KEY_PREFIX}:${SESSION.user.id}`, "1"); }catch(e){}
 }
 
 function getSelectedThemeLabel(){
@@ -112,10 +119,14 @@ async function loadProfileIconManifest(){
 
 function loadProfileIconSetting(){
   try{
-    profileIconSlug = normalizeProfileIconSlug(window.MKWT?.readStorage?.(SETTINGS_PROFILE_ICON_KEY, "") || "");
+    profileIconSlug = normalizeProfileIconSlug(window.MKWT?.readStorage?.(SETTINGS_PROFILE_ICON_KEY, "") || "") || SETTINGS_DEFAULT_PROFILE_ICON_SLUG;
   }catch(e){
-    profileIconSlug = "";
+    profileIconSlug = SETTINGS_DEFAULT_PROFILE_ICON_SLUG;
   }
+}
+
+function clearLocalSettingKey(key){
+  try{ localStorage.removeItem(key); }catch(e){}
 }
 
 function saveProfileIconSetting(){
@@ -436,6 +447,16 @@ function saveMkcentralSetting(){
 const INFO_TEXT = {
   currentVr:
     "Adjust your current VR here after a disconnect, correction, or similar reason. Existing matches keep the VR values they were saved with, so old results are not rewritten.",
+  mkcentralId:
+    [
+      '<p class="settingsInfoText">Paste either your MKCentral player ID or the full PlayerDetails URL.</p>',
+      '<div class="settingsInfoExample" aria-label="MKCentral PlayerDetails URL example">',
+      '<span class="settingsInfoUrl">https://lounge.mkcentral.com/mkworld/PlayerDetails/</span>',
+      '<mark class="settingsInfoId">78188</mark>',
+      '<span class="settingsInfoUrl">?season=2&amp;p=24</span>',
+      '</div>',
+      '<p class="settingsInfoHint">The highlighted number is the ID MKWT uses.</p>'
+    ].join(""),
   minVrFilter:
     "This filter removes low-VR outliers from your stats. Any match where your VR total before or after the game is below the threshold will be excluded from charts and averages. Set it to 0, or leave it empty, to disable the filter.",
   theme:
@@ -453,6 +474,7 @@ function setTopInfo({emailText, currentVrText, matchCountText}){
 window.MKWT?.bindInfoOverlay?.({
   texts: {
     currentVr: { title: 'Current VR', body: INFO_TEXT.currentVr },
+    mkcentralId: { title: 'MKCentral ID', bodyHtml: INFO_TEXT.mkcentralId },
     minVrFilter: { title: 'Info', body: INFO_TEXT.minVrFilter },
     theme: { title: 'Info', body: INFO_TEXT.theme },
     account: { title: 'Info', body: INFO_TEXT.account },
@@ -544,7 +566,8 @@ async function loadProfile(){
     window.MKWT?.writeStorage?.(SETTINGS_MKCENTRAL_PLAYER_KEY, mkcentralPlayerId);
     if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = mkcentralPlayerId;
   }else{
-    loadMkcentralSetting();
+    clearLocalSettingKey(SETTINGS_MKCENTRAL_PLAYER_KEY);
+    if($("settingsMkcentralPlayer")) $("settingsMkcentralPlayer").value = "";
   }
 
   const cloudIconSlug = normalizeProfileIconSlug(data?.profile_icon_slug || "");
@@ -552,7 +575,8 @@ async function loadProfile(){
     profileIconSlug = cloudIconSlug;
     saveProfileIconSetting();
   }else{
-    loadProfileIconSetting();
+    clearLocalSettingKey(SETTINGS_PROFILE_ICON_KEY);
+    profileIconSlug = SETTINGS_DEFAULT_PROFILE_ICON_SLUG;
   }
 
   // Top card: Current VR + Matches count
@@ -601,7 +625,7 @@ async function saveSettings(){
   const payload = {
     id: SESSION.user.id,          // primary key in your current schema
     mkcentral_player_id: mkcentralId || null,
-    profile_icon_slug: profileIconSlug || null,
+    profile_icon_slug: profileIconSlug || SETTINGS_DEFAULT_PROFILE_ICON_SLUG,
     theme_preference: selectedTheme || ACCOUNT_DEFAULT_THEME,
     updated_at: new Date().toISOString()
   };
@@ -620,7 +644,7 @@ async function saveSettings(){
       .upsert({
         user_id: SESSION.user.id,
         mkcentral_player_id: mkcentralId || null,
-        profile_icon_slug: profileIconSlug || null,
+        profile_icon_slug: profileIconSlug || SETTINGS_DEFAULT_PROFILE_ICON_SLUG,
         theme_preference: selectedTheme || ACCOUNT_DEFAULT_THEME,
         ...(nickname ? { nickname } : {}),
         ...(Number.isFinite(vr) ? { current_vr: vr } : {}),
@@ -630,7 +654,10 @@ async function saveSettings(){
 
   if(error){ setStatus(error.message, false); return }
 
-  if(Number.isFinite(vr)) setTopInfo({ currentVrText: String(vr) });
+  if(Number.isFinite(vr)){
+    setTopInfo({ currentVrText: String(vr) });
+    markWorldWideVrOnboardingDone();
+  }
   saveProfileIconSetting();
   finishSettingsSave();
   setStatus(`Saved${minVr>0 ? ` (Min VR: ${minVr})` : ""}${mkcentralText}`);

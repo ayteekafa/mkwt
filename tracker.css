@@ -310,6 +310,23 @@
         var(--card);
     }
 
+    .trackerVrDialog .field{
+      margin:0;
+    }
+    .trackerVrDialog input{
+      width:100%;
+      font-weight:900;
+    }
+    .trackerVrDialog__status{
+      min-height:20px;
+      color:var(--danger);
+      font-size:14px;
+      font-weight:850;
+    }
+    .trackerVrDialog__status.ok{
+      color:var(--chart-positive-stroke);
+    }
+
     .trackNativeSelect{
       display:none !important;
     }

@@ -331,6 +331,25 @@
 </div>
 <iframe class="sessionsFrame" id="sessionsFrame" title="MKWT Sessions"></iframe>
 </dialog>
+<!-- FIRST VR DIALOG -->
+<dialog aria-labelledby="vrOnboardingTitle" class="mkwtConfirmDialog trackerVrDialog" id="vrOnboardingDlg">
+<form class="mkwtConfirmDialog__panel" id="vrOnboardingForm" method="dialog">
+<div class="mkwtConfirmDialog__eyebrow">World Wide Tracker</div>
+<h2 class="mkwtConfirmDialog__title" id="vrOnboardingTitle">Set your current VR</h2>
+<p class="mkwtConfirmDialog__body">
+Enter your current VR before tracking your first World Wide match. You can change it anytime in Settings, for example after a DC.
+</p>
+<div class="field">
+<label class="muted" for="onboardingVr">Current VR</label>
+<input id="onboardingVr" inputmode="numeric" max="99999" min="0" pattern="[0-9]*" placeholder="8500" type="text"/>
+</div>
+<div aria-live="polite" class="trackerVrDialog__status" id="vrOnboardingStatus" role="status"></div>
+<div class="mkwtConfirmDialog__actions">
+<button class="btn2" id="btnVrOnboardingLater" type="button">Later</button>
+<button class="btn" id="btnVrOnboardingSave" type="submit">Save VR</button>
+</div>
+</form>
+</dialog>
 <!-- EDIT DIALOG -->
 <dialog id="editDlg">
 <div class="editDialogHead">

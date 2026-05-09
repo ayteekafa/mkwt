@@ -172,7 +172,10 @@
       const overlay = MKWT.$(cfg.overlayId), title = MKWT.$(cfg.titleId), body = MKWT.$(cfg.bodyId), info = getText(key);
       placeOverlayForTrigger(overlay, trigger);
       if (title) title.textContent = info.title || cfg.titleFallback;
-      if (body) body.textContent = info.body || '';
+      if (body){
+        if (info.bodyHtml) body.innerHTML = String(info.bodyHtml);
+        else body.textContent = info.body || '';
+      }
       if (overlay){ overlay.hidden = false; overlay.style.display = 'flex'; }
     }
     function closeInfo(){ const overlay = MKWT.$(cfg.overlayId); if (overlay){ overlay.hidden = true; overlay.style.display = 'none'; restoreOverlayHome(overlay); } }

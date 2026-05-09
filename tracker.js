@@ -880,6 +880,9 @@ function initTrackPickers(){
     const PAGE_SIZE = 7;
     let currentPage = 1;
     let totalMatches = null;
+    const VR_ONBOARDING_KEY_PREFIX = "mkwt_ww_vr_onboarding_done_v1";
+    let vrOnboardingPromptChecked = false;
+    let vrOnboardingPromptOpen = false;
 
   // ========= Auth Guard (FIX: check localStorage ODER sessionStorage) =========
 
@@ -927,6 +930,7 @@ async function createProfile() {
       // Guest profile is stored locally (no Supabase write)
       if (isGuest() || !supabaseClient || !SESSION?.user?.id) {
         saveGuestProfile({ nickname, current_vr, created_at: new Date().toISOString() });
+        markVrOnboardingDone();
         setStatus("Guest profile saved.", true);
         await refreshAll();
         return;
@@ -947,6 +951,7 @@ async function createProfile() {
       }
 
       setStatus("Profile created.", true);
+      markVrOnboardingDone();
       await refreshAll();
     } finally {
       btn.disabled = false;
@@ -973,6 +978,98 @@ async function getMatchesCount() {
     return null;
   }
   return count ?? null;
+}
+
+function getVrOnboardingKey() {
+  const id = SESSION?.user?.id || (isGuest() ? "guest" : "anon");
+  return `${VR_ONBOARDING_KEY_PREFIX}:${id}`;
+}
+
+function isVrOnboardingDone() {
+  try { return localStorage.getItem(getVrOnboardingKey()) === "1"; } catch(e) { return true; }
+}
+
+function markVrOnboardingDone() {
+  try { localStorage.setItem(getVrOnboardingKey(), "1"); } catch(e) {}
+}
+
+function setVrOnboardingStatus(message, ok = false) {
+  const el = $("vrOnboardingStatus");
+  if (!el) return;
+  const text = String(message || "").trim();
+  el.textContent = text;
+  el.classList.toggle("ok", !!ok && !!text);
+}
+
+function closeVrOnboardingDialog() {
+  const dlg = $("vrOnboardingDlg");
+  vrOnboardingPromptOpen = false;
+  setVrOnboardingStatus("");
+  try { if (dlg?.open) dlg.close(); } catch(e) {}
+}
+
+function openVrOnboardingDialog() {
+  const dlg = $("vrOnboardingDlg");
+  const input = $("onboardingVr");
+  if (!dlg || typeof dlg.showModal !== "function") return;
+  if (dlg.open || vrOnboardingPromptOpen) return;
+  vrOnboardingPromptOpen = true;
+  setVrOnboardingStatus("");
+  if (input) {
+    const current = Number(PROFILE?.current_vr);
+    input.value = Number.isFinite(current) && current > 0 ? String(Math.round(current)) : "";
+    input.placeholder = "8500";
+  }
+  dlg.showModal();
+  setTimeout(() => input?.focus?.(), 40);
+}
+
+async function maybeShowVrOnboarding() {
+  if (vrOnboardingPromptChecked || vrOnboardingPromptOpen) return;
+  if (!PROFILE || isGuest() || !supabaseClient || !SESSION?.user?.id) return;
+  if (isVrOnboardingDone()) return;
+
+  vrOnboardingPromptChecked = true;
+  const count = await getMatchesCount();
+  if (count == null) return;
+  if (count > 0) {
+    markVrOnboardingDone();
+    return;
+  }
+  openVrOnboardingDialog();
+}
+
+async function saveVrOnboarding() {
+  const input = $("onboardingVr");
+  const btn = $("btnVrOnboardingSave");
+  const raw = String(input?.value || "").trim();
+  const vr = raw === "" ? NaN : parseInt(raw, 10);
+  if (!Number.isFinite(vr) || vr < 0 || vr > 99999) {
+    setVrOnboardingStatus("Please enter a valid VR value.");
+    return;
+  }
+
+  try {
+    if (btn) btn.disabled = true;
+    setVrOnboardingStatus("Saving...", true);
+    const { error } = await supabaseClient
+      .from("profiles")
+      .update({ current_vr: vr, updated_at: new Date().toISOString() })
+      .eq("id", SESSION.user.id);
+    if (error) throw error;
+
+    if (PROFILE) PROFILE.current_vr = vr;
+    try { $("statCurrentVr").textContent = String(vr); } catch(e) {}
+    try { syncFromDelta(); syncFromAfter(); } catch(e) {}
+    markVrOnboardingDone();
+    closeVrOnboardingDialog();
+    setMatchStatus("Starting VR saved. You can change it in Settings anytime.", true);
+  } catch(e) {
+    setVrOnboardingStatus("Could not save VR: " + (e?.message || e));
+    setDebug(JSON.stringify(e, null, 2));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function loadMatches() {
@@ -1794,9 +1891,14 @@ $("statCurrentVr").textContent = String(PROFILE.current_vr ?? "-");
           try { await updateProfileQuickStats(); } catch(e) {}
         }
       });
+      scheduleAfterFirstPaint(async () => {
+        if (refreshToken !== deferredRefreshToken) return;
+        await maybeShowVrOnboarding();
+      });
       return;
     }
     await loadMatches();
+    await maybeShowVrOnboarding();
   }
 // ========= Edit / Delete =========
 const editDlg = $("editDlg");
@@ -2222,6 +2324,25 @@ function clearMatchRouteFields(){
   // Buttons
   $("btnCreateProfile")?.addEventListener("click", createProfile);
   $("btnSaveMatch")?.addEventListener("click", saveMatch);
+  $("vrOnboardingForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveVrOnboarding();
+  });
+  $("btnVrOnboardingLater")?.addEventListener("click", () => {
+    markVrOnboardingDone();
+    closeVrOnboardingDialog();
+    setMatchStatus("You can set your VR in Settings anytime.", true);
+  });
+  $("vrOnboardingDlg")?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    markVrOnboardingDone();
+    closeVrOnboardingDialog();
+  });
+  $("vrOnboardingDlg")?.addEventListener("click", (event) => {
+    if (event.target !== $("vrOnboardingDlg")) return;
+    markVrOnboardingDone();
+    closeVrOnboardingDialog();
+  });
   setupSessionsDialog();
 
   // Live-Sync der Eingabefelder

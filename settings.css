@@ -60,6 +60,39 @@
     }
     .infoTitle{ font-weight:900; letter-spacing:.2px; }
     .infoBody{ padding: 12px 14px 14px 14px; color: var(--text); line-height: 1.4; }
+
+    .settingsInfoText,
+    .settingsInfoHint{
+      margin:0;
+    }
+    .settingsInfoHint{
+      margin-top:10px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .settingsInfoExample{
+      margin-top:10px;
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:rgba(8,11,17,.58);
+      font-weight:900;
+      line-height:1.45;
+      overflow-wrap:anywhere;
+    }
+    .settingsInfoUrl{
+      color:var(--muted);
+    }
+    .settingsInfoId{
+      display:inline-flex;
+      align-items:center;
+      padding:1px 7px;
+      border:1px solid var(--danger);
+      border-radius:999px;
+      background:rgba(255,59,59,.18);
+      color:var(--text);
+      font-weight:1000;
+    }
   
 /* Discord button */
 .discordBtn{display:inline-flex; align-items:center; gap:10px; text-decoration:none;}

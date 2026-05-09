@@ -4,6 +4,8 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 const $ = (id) => (window.MKWT?.$ ? window.MKWT.$(id) : document.getElementById(id));
 const CLIENT_CACHE = {};
+const USERNAME_EMAIL_DOMAIN = "mkwt.local";
+const USERNAME_RE = /^[a-z0-9._-]{3,32}$/;
 
 function setStatus(msg, ok = true) {
   window.MKWT?.setStatus?.($("status"), msg, ok);
@@ -27,6 +29,18 @@ function createClient(storage, key) {
 
 function getClient(mode) {
   return createClient(mode === "session" ? sessionStorage : localStorage, mode === "session" ? "session" : "local");
+}
+
+function resolveLoginEmail(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.includes("@")) return raw.toLowerCase();
+
+  const username = raw.replace(/^@+/, "").toLowerCase();
+  if (!USERNAME_RE.test(username)) {
+    throw new Error("Please enter a valid username or email.");
+  }
+  return `${username}@${USERNAME_EMAIL_DOMAIN}`;
 }
 
 function clearSupabaseKeys(storage) {
@@ -141,12 +155,12 @@ async function finalizeLogin(stay, session, user) {
 }
 
 async function login() {
-  const email = ($("email").value || "").trim();
+  const loginName = ($("email").value || "").trim();
   const password = $("password").value || "";
   const stay = $("stay").checked;
 
-  if (!email || !password) {
-    setStatus("Please enter email and password.", false);
+  if (!loginName || !password) {
+    setStatus("Please enter username/email and password.", false);
     return;
   }
 
@@ -154,6 +168,7 @@ async function login() {
   try {
     setStatus("Signing in...", true);
 
+    const email = resolveLoginEmail(loginName);
     const client = getClient(stay ? "local" : "session");
     const { data, error } = await client.auth.signInWithPassword({
       email,

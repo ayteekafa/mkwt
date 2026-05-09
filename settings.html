@@ -203,8 +203,13 @@
             <div class="settingsEditHint">Use this after a DC or similar correction. Existing matches are not changed.</div>
           </div>
           <div class="field">
-            <label class="muted" for="settingsMkcentralPlayer">MKCentral ID</label>
-            <input class="lockableInput" disabled id="settingsMkcentralPlayer" inputmode="url" placeholder="78188 or https://lounge.mkcentral.com/mkworld/PlayerDetails/78188"/>
+            <div class="fieldHead fieldHead--withInfo">
+              <div class="row-inline">
+                <label class="muted m-0" for="settingsMkcentralPlayer">MKCentral ID</label>
+                <button aria-label="Info" class="mcard__infoBtn" data-info="mkcentralId" title="Info" type="button">i</button>
+              </div>
+            </div>
+            <input class="lockableInput" disabled id="settingsMkcentralPlayer" inputmode="url" placeholder="e.g. 78188 or PlayerDetails URL"/>
           </div>
         </div>
         <div class="settingsLowerGrid mt-10">

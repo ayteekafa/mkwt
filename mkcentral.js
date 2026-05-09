@@ -414,9 +414,11 @@
   }
 
   async function readCloudPlayerRef(){
+    let hasAccount = false;
     try{
       const resolved = await resolveSession();
-      if(!resolved.session?.user?.id || !resolved.client) return "";
+      if(!resolved.session?.user?.id || !resolved.client) return { hasAccount: false, value: "" };
+      hasAccount = true;
 
       let { data, error } = await resolved.client
         .from("profiles")
@@ -433,10 +435,10 @@
       }
 
       if(error) throw error;
-      return String(data?.mkcentral_player_id || "").trim();
+      return { hasAccount: true, value: String(data?.mkcentral_player_id || "").trim() };
     }catch(e){
       console.warn("MKCentral cloud player id load failed:", e);
-      return "";
+      return { hasAccount, value: "" };
     }
   }
 
@@ -3097,9 +3099,12 @@
   async function loadInitialPlayerRef(){
     const localRef = readStorage(SETTINGS_KEY, "");
     const cloudRef = await readCloudPlayerRef();
-    const preferredRef = cloudRef || localRef || DEFAULT_PLAYER_REF;
+    const preferredRef = cloudRef.hasAccount ? cloudRef.value : (localRef || DEFAULT_PLAYER_REF);
     const normalized = extractPlayerId(preferredRef);
     if(normalized) writeStorage(SETTINGS_KEY, normalized);
+    else if(cloudRef.hasAccount){
+      try{ localStorage.removeItem(SETTINGS_KEY); }catch(e){}
+    }
     return normalized || preferredRef;
   }
 

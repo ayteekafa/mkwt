@@ -222,19 +222,30 @@ async function syncAccountThemePreference(client, userId){
     if(!client || !userId) return null;
     let { data, error } = await client
       .from("profiles")
-      .select("theme_preference")
+      .select("theme_preference,mkcentral_player_id,profile_icon_slug")
       .eq("id", userId)
       .maybeSingle();
 
     if (error && String(error.message || "").includes("column profiles.id")) {
       ({ data, error } = await client
         .from("profiles")
-        .select("theme_preference")
+        .select("theme_preference,mkcentral_player_id,profile_icon_slug")
         .eq("user_id", userId)
         .maybeSingle());
     }
 
     if(error) return null;
+    const mkcentralPlayerId = String(data?.mkcentral_player_id || "").trim();
+    const profileIconSlug = String(data?.profile_icon_slug || "").trim();
+    try{
+      if(mkcentralPlayerId) localStorage.setItem(MKCENTRAL_PLAYER_KEY, mkcentralPlayerId);
+      else localStorage.removeItem(MKCENTRAL_PLAYER_KEY);
+    }catch(e){ /* safe to ignore */ }
+    try{
+      if(profileIconSlug) localStorage.setItem(PROFILE_ICON_KEY, profileIconSlug);
+      else localStorage.removeItem(PROFILE_ICON_KEY);
+    }catch(e){ /* safe to ignore */ }
+
     const theme = String(data?.theme_preference || "").trim();
     if(!theme){
       const localTheme = String(localStorage.getItem("mkwt_theme") || "").trim();
