@@ -3440,6 +3440,458 @@
     return `<span class="raceTrackIconFallback${extraClass ? ` ${extraClass}` : ""}" aria-label="${escapeHtml(trackName || "Track")}">${escapeHtml(trackAbbrev(trackName))}</span>`;
   }
 
+  function cssVar(name, fallback){
+    try{
+      const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return value || fallback;
+    }catch{
+      return fallback;
+    }
+  }
+
+  function exportTheme(){
+    return {
+      bg: cssVar("--bg", "#05080e"),
+      card: cssVar("--card", "#08111c"),
+      card2: cssVar("--card-2", "#0b1420"),
+      border: cssVar("--border", "rgba(148,163,184,.22)"),
+      text: cssVar("--text", "#ffffff"),
+      muted: cssVar("--muted", "#a9b9d3"),
+      primary: cssVar("--primary", "#ff4048"),
+      good: "#68e2a6",
+      bad: "#ff858c",
+      warn: "#ffd17e",
+    };
+  }
+
+  function roundedRect(ctx, x, y, w, h, radius){
+    const r = Math.min(radius || 0, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function fillRound(ctx, x, y, w, h, radius, fill, stroke, lineWidth = 2){
+    roundedRect(ctx, x, y, w, h, radius);
+    if(fill){
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if(stroke){
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    }
+  }
+
+  function trimCanvasText(ctx, text, maxWidth){
+    const value = String(text ?? "");
+    if(ctx.measureText(value).width <= maxWidth) return value;
+    let lo = 0;
+    let hi = value.length;
+    while(lo < hi){
+      const mid = Math.ceil((lo + hi) / 2);
+      if(ctx.measureText(`${value.slice(0, mid)}...`).width <= maxWidth) lo = mid;
+      else hi = mid - 1;
+    }
+    return `${value.slice(0, lo)}...`;
+  }
+
+  function drawContain(ctx, img, x, y, w, h){
+    const iw = img?.naturalWidth || img?.width || 1;
+    const ih = img?.naturalHeight || img?.height || 1;
+    const scale = Math.min(w / iw, h / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  }
+
+  function drawText(ctx, text, x, y, maxWidth){
+    ctx.fillText(trimCanvasText(ctx, text, maxWidth), x, y);
+  }
+
+  function fallbackLetters(text){
+    const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+    if(words.length >= 2) return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+    return (words[0] || "?").slice(0, 2).toUpperCase();
+  }
+
+  function drawIconOrFallback(ctx, assets, src, label, x, y, size, theme){
+    const img = src ? assets.get(src) : null;
+    if(img){
+      drawContain(ctx, img, x, y, size, size);
+      return;
+    }
+    fillRound(ctx, x, y, size, size, 14, theme.card2, "rgba(148,163,184,.28)", 2);
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.font = "900 23px Arial, sans-serif";
+    ctx.fillStyle = theme.text;
+    ctx.fillText(fallbackLetters(label), x + size / 2, y + size / 2 + 1);
+  }
+
+  function loadExportImage(src){
+    return new Promise((resolve) => {
+      if(!src){
+        resolve(null);
+        return;
+      }
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = new URL(src, window.location.href).toString();
+    });
+  }
+
+  async function preloadMatchExportIcons(match){
+    const sources = new Set();
+    (match?.races || []).forEach((race) => {
+      if(race.raceKind === "intermission" && race.intermissionStart && race.intermissionEnd){
+        const startIcon = getTrackIconPath(race.intermissionStart);
+        const endIcon = getTrackIconPath(race.intermissionEnd);
+        if(startIcon) sources.add(startIcon);
+        if(endIcon) sources.add(endIcon);
+        return;
+      }
+      const icon = getTrackIconPath(race.track);
+      if(icon) sources.add(icon);
+    });
+    const pairs = await Promise.all(Array.from(sources).map(async (src) => [src, await loadExportImage(src)]));
+    return new Map(pairs);
+  }
+
+  function drawExportPill(ctx, text, x, y, options = {}){
+    const value = String(text || "").trim();
+    if(!value) return 0;
+    const font = options.font || "900 23px Arial, sans-serif";
+    ctx.font = font;
+    const h = options.height || 42;
+    const w = Math.max(options.minWidth || 74, Math.ceil(ctx.measureText(value).width) + (options.padX || 34));
+    fillRound(
+      ctx,
+      x,
+      y,
+      w,
+      h,
+      h / 2,
+      options.fill || "rgba(255,64,72,.12)",
+      options.stroke || "rgba(255,64,72,.52)",
+      2
+    );
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.fillStyle = options.color || "#ffffff";
+    ctx.fillText(trimCanvasText(ctx, value, w - 22), x + w / 2, y + h / 2 + 1);
+    return w;
+  }
+
+  function drawExportScoreCard(ctx, label, value, tone, x, y, w, h, theme){
+    const isWinner = tone === "winner";
+    const isLoser = tone === "loser";
+    const accent = isWinner ? theme.good : (isLoser ? theme.bad : theme.muted);
+    const bg = ctx.createLinearGradient(x, y, x, y + h);
+    bg.addColorStop(0, isWinner ? "rgba(104,226,166,.12)" : (isLoser ? "rgba(255,133,140,.12)" : "rgba(255,255,255,.045)"));
+    bg.addColorStop(1, "rgba(5,13,22,.72)");
+    fillRound(ctx, x, y, w, h, 18, bg, isWinner ? "rgba(104,226,166,.34)" : (isLoser ? "rgba(255,133,140,.36)" : "rgba(148,163,184,.24)"), 2);
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+    ctx.font = "900 20px Arial, sans-serif";
+    ctx.fillStyle = theme.muted;
+    drawText(ctx, String(label || "").toUpperCase(), x + 22, y + 18, w - 44);
+    ctx.font = "1000 44px Arial, sans-serif";
+    ctx.fillStyle = accent;
+    drawText(ctx, String(value ?? "-"), x + 22, y + 54, w - 44);
+  }
+
+  function exportScoreItems(match, summary){
+    const own = Number(summary.ownTotal || 0);
+    if(match.eventType !== "6v6"){
+      const threshold = matchThresholdTotal(summary, match.eventType);
+      const ownTone = own > threshold ? "winner" : (own < threshold ? "loser" : "even");
+      return [
+        { label: matchOwnLabel(match), value: own, tone: ownTone },
+        { label: "Break-even", value: formatThresholdTarget(threshold), tone: "even" },
+        { label: "Margin", value: formatSignedPoints(own - threshold), tone: ownTone },
+      ];
+    }
+    const opponent = Number(summary.opponentTotal || 0);
+    const ownTone = own > opponent ? "winner" : (own < opponent ? "loser" : "even");
+    const enemyTone = opponent > own ? "winner" : (opponent < own ? "loser" : "even");
+    return [
+      { label: matchOwnLabel(match), value: own, tone: ownTone },
+      { label: "Enemy", value: opponent, tone: enemyTone },
+      { label: "Margin", value: formatSignedPoints(own - opponent), tone: ownTone },
+    ];
+  }
+
+  function drawExportRaceTile(ctx, race, assets, x, y, w, h, theme){
+    const isGold = isGoldRace(race);
+    const isSilver = isSilverRace(race);
+    const tone = raceToneClass(race);
+    const border = race.dc
+      ? "rgba(255,119,119,.62)"
+      : (isGold ? "rgba(255,205,70,.64)" : (isSilver ? "rgba(220,230,244,.58)" : "rgba(255,64,72,.36)"));
+    const bg = ctx.createLinearGradient(x, y, x, y + h);
+    bg.addColorStop(0, race.dc
+      ? "rgba(255,119,119,.18)"
+      : (isGold ? "rgba(255,205,70,.18)" : (isSilver ? "rgba(220,230,244,.16)" : "rgba(255,255,255,.045)")));
+    bg.addColorStop(1, "rgba(5,13,22,.76)");
+    fillRound(ctx, x, y, w, h, 18, bg, border, 2);
+
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+    ctx.font = "900 20px Arial, sans-serif";
+    ctx.fillStyle = theme.muted;
+    ctx.fillText(String(race.raceNumber || ""), x + 18, y + 14);
+
+    if(race.dc || race.ruleWarning){
+      const tag = race.dc ? "DC" : "!";
+      ctx.font = "900 19px Arial, sans-serif";
+      const tagW = race.dc ? 48 : 34;
+      drawExportPill(ctx, tag, x + w - tagW - 14, y + 13, {
+        minWidth: tagW,
+        height: 28,
+        padX: 20,
+        font: "900 17px Arial, sans-serif",
+        fill: race.dc ? "rgba(255,119,119,.15)" : "rgba(255,209,126,.14)",
+        stroke: race.dc ? "rgba(255,119,119,.48)" : "rgba(255,209,126,.46)",
+        color: race.dc ? theme.bad : theme.warn,
+      });
+    }
+
+    if(race.raceKind === "intermission" && race.intermissionStart && race.intermissionEnd){
+      const iconSize = 46;
+      const centerX = x + w / 2;
+      const iconY = y + 50;
+      drawIconOrFallback(ctx, assets, getTrackIconPath(race.intermissionStart), race.intermissionStart, centerX - iconSize - 16, iconY, iconSize, theme);
+      drawIconOrFallback(ctx, assets, getTrackIconPath(race.intermissionEnd), race.intermissionEnd, centerX + 16, iconY, iconSize, theme);
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
+      ctx.font = "900 18px Arial, sans-serif";
+      ctx.fillStyle = theme.muted;
+      ctx.fillText("->", centerX, iconY + iconSize / 2 + 1);
+    }else{
+      const iconSize = 64;
+      drawIconOrFallback(ctx, assets, getTrackIconPath(race.track), race.track, x + (w - iconSize) / 2, y + 48, iconSize, theme);
+    }
+
+    ctx.textBaseline = "top";
+    ctx.textAlign = "center";
+    ctx.font = "1000 34px Arial, sans-serif";
+    ctx.fillStyle = tone === "is-positive" ? theme.good : (tone === "is-negative" ? theme.bad : theme.muted);
+    ctx.fillText(String(race.ownPoints || 0), x + w / 2, y + h - 46);
+  }
+
+  function safeFilename(name){
+    return String(name || "mkwt-clan-war.png")
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .toLowerCase();
+  }
+
+  function compactDateSlug(value){
+    const date = new Date(value);
+    if(Number.isNaN(date.getTime())) return "match";
+    const pad = (num) => String(num).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+  }
+
+  function downloadCanvas(canvas, filename){
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if(!blob){
+          reject(new Error("Image export failed."));
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+        resolve();
+      }, "image/png");
+    });
+  }
+
+  function matchExportFilename(match){
+    const mode = EVENT_LABELS[match.eventType] || "clan-wars";
+    const division = normalizeDivisionTag(match.divisionTag) || "clan";
+    return safeFilename(`mkwt-clan-wars-${mode}-${division}-${compactDateSlug(match.completedAt || match.createdAt)}.png`);
+  }
+
+  async function downloadSavedMatchImage(matchId, button = null){
+    const match = allLoadedMatches().find((item) => item?.id === matchId && item.status === "completed");
+    if(!match){
+      showToast("Match not found.", false);
+      return;
+    }
+    const previousText = button?.innerHTML;
+    if(button){
+      button.disabled = true;
+      button.classList.add("is-busy");
+      button.setAttribute("aria-busy", "true");
+      button.innerHTML = '<span aria-hidden="true">...</span>';
+    }
+    try{
+      await document.fonts?.ready;
+      const theme = exportTheme();
+      const summary = summarizeMatch(match);
+      const races = (match.races || []).slice().sort((a, b) => Number(a.raceNumber || 0) - Number(b.raceNumber || 0));
+      const assets = await preloadMatchExportIcons(match);
+      const width = 1440;
+      const margin = 36;
+      const cardX = 36;
+      const cardY = 36;
+      const cardW = width - 72;
+      const pad = 32;
+      const gridCols = 6;
+      const gridGap = 14;
+      const tileW = (cardW - pad * 2 - gridGap * (gridCols - 1)) / gridCols;
+      const tileH = 164;
+      const raceRows = Math.max(1, Math.ceil(Math.max(1, races.length) / gridCols));
+      const gridY = cardY + 192;
+      const gridH = raceRows * tileH + Math.max(0, raceRows - 1) * gridGap;
+      const divisionOptions = divisionTagOptions(match);
+      const divisionH = divisionOptions.length ? 126 : 0;
+      const footerH = 42;
+      const height = gridY + gridH + divisionH + footerH + margin;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      const bg = ctx.createLinearGradient(0, 0, width, height);
+      bg.addColorStop(0, "#121722");
+      bg.addColorStop(0.4, theme.bg);
+      bg.addColorStop(1, "#05070c");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      const cardBg = ctx.createLinearGradient(cardX, cardY, cardX, height - margin);
+      cardBg.addColorStop(0, "rgba(9,18,30,.98)");
+      cardBg.addColorStop(1, "rgba(5,13,22,.96)");
+      fillRound(ctx, cardX, cardY, cardW, height - margin * 2, 28, cardBg, "rgba(255,64,72,.46)", 2);
+
+      const contentX = cardX + pad;
+      const headerY = cardY + 34;
+      const modeW = drawExportPill(ctx, EVENT_LABELS[match.eventType] || match.eventType, contentX, headerY, {
+        minWidth: 78,
+        height: 42,
+        fill: "rgba(255,64,72,.10)",
+        stroke: "rgba(255,64,72,.58)",
+        font: "1000 24px Arial, sans-serif",
+      });
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
+      ctx.font = "900 25px Arial, sans-serif";
+      ctx.fillStyle = theme.muted;
+      drawText(ctx, formatDate(match.completedAt || match.createdAt), contentX + modeW + 18, headerY + 22, 500);
+
+      const metaY = headerY + 66;
+      let metaX = contentX;
+      const tracker = trackerNameFor(match);
+      [
+        normalizeDivisionTag(match.divisionTag),
+        tracker ? `Tracked by ${tracker}` : "",
+        summary.dcCount > 0 ? `${summary.dcCount} DC` : "",
+      ].filter(Boolean).forEach((label, index) => {
+        const pillW = drawExportPill(ctx, label, metaX, metaY, {
+          minWidth: index === 1 ? 178 : 88,
+          height: 36,
+          padX: 28,
+          fill: index === 1 ? "rgba(255,64,72,.10)" : "rgba(255,255,255,.035)",
+          stroke: index === 1 ? "rgba(255,64,72,.48)" : "rgba(255,64,72,.38)",
+          font: "900 19px Arial, sans-serif",
+        });
+        metaX += pillW + 12;
+      });
+
+      const scoreItems = exportScoreItems(match, summary);
+      const scoreW = 182;
+      const scoreH = 106;
+      const scoreGap = 16;
+      const scoreStartX = cardX + cardW - pad - scoreW * 3 - scoreGap * 2;
+      scoreItems.forEach((item, index) => {
+        drawExportScoreCard(ctx, item.label, item.value, item.tone, scoreStartX + index * (scoreW + scoreGap), headerY, scoreW, scoreH, theme);
+      });
+
+      races.forEach((race, index) => {
+        const row = Math.floor(index / gridCols);
+        const col = index % gridCols;
+        drawExportRaceTile(
+          ctx,
+          race,
+          assets,
+          contentX + col * (tileW + gridGap),
+          gridY + row * (tileH + gridGap),
+          tileW,
+          tileH,
+          theme
+        );
+      });
+
+      if(divisionOptions.length){
+        const boxY = gridY + gridH + 28;
+        fillRound(ctx, contentX, boxY, cardW - pad * 2, 92, 20, "rgba(5,13,22,.72)", "rgba(148,163,184,.20)", 2);
+        ctx.textBaseline = "top";
+        ctx.textAlign = "left";
+        ctx.font = "900 21px Arial, sans-serif";
+        ctx.fillStyle = theme.muted;
+        ctx.fillText("DIVISION", contentX + 24, boxY + 18);
+        const tagGap = 14;
+        const tagY = boxY + 45;
+        const tagW = (cardW - pad * 2 - 48 - tagGap * (divisionOptions.length - 1)) / divisionOptions.length;
+        divisionOptions.forEach((option, index) => {
+          const active = option === match.divisionTag;
+          fillRound(
+            ctx,
+            contentX + 24 + index * (tagW + tagGap),
+            tagY,
+            tagW,
+            34,
+            14,
+            active ? "rgba(255,64,72,.64)" : "rgba(8,17,27,.68)",
+            active ? "rgba(255,255,255,.18)" : "rgba(255,64,72,.32)",
+            2
+          );
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "center";
+          ctx.font = "900 20px Arial, sans-serif";
+          ctx.fillStyle = active ? "#ffffff" : theme.muted;
+          ctx.fillText(trimCanvasText(ctx, option, tagW - 20), contentX + 24 + index * (tagW + tagGap) + tagW / 2, tagY + 18);
+        });
+      }
+
+      ctx.textBaseline = "top";
+      ctx.textAlign = "right";
+      ctx.font = "800 18px Arial, sans-serif";
+      ctx.fillStyle = theme.muted;
+      ctx.fillText("MKWT Clan Wars", cardX + cardW - pad, height - margin - 24);
+
+      await downloadCanvas(canvas, matchExportFilename(match));
+      showToast("Match image downloaded.", true);
+    }catch(e){
+      console.error(e);
+      showToast(e?.message || "Could not download match image.", false);
+    }finally{
+      if(button){
+        button.disabled = false;
+        button.classList.remove("is-busy");
+        button.removeAttribute("aria-busy");
+        button.innerHTML = previousText;
+      }
+    }
+  }
+
   function raceVisualHtml(race, options = {}){
     const iconOptions = priorityIconOptions(options);
     if(race.raceKind === "intermission" && race.intermissionStart && race.intermissionEnd){
@@ -3915,6 +4367,11 @@
             <div class="clanWarsMatchMeta">${metaPills || savedMatchMetaPillHtml("Tracked match")}</div>
           </div>
           ${matchScoreHtml(match, summary)}
+          <div class="clanWarsMatchDownloadSlot">
+            <button class="clanWarsDownloadMatchBtn" type="button" data-cw-download-match="${escapeHtml(match.id)}" title="Download match image" aria-label="Download this match as image">
+              <span aria-hidden="true">&#8595;</span>
+            </button>
+          </div>
         </div>
         <div class="clanWarsMatchDetails"${isOpen ? "" : " hidden"}>
           ${detailsBody}
@@ -4242,6 +4699,13 @@
       state.resultDialogMatchId = "";
     });
     $("cwSavedMatchList")?.addEventListener("click", (event) => {
+      const downloadButton = event.target.closest?.("[data-cw-download-match]");
+      if(downloadButton){
+        event.preventDefault();
+        event.stopPropagation();
+        downloadSavedMatchImage(downloadButton.getAttribute("data-cw-download-match") || "", downloadButton);
+        return;
+      }
       const deleteButton = event.target.closest?.("[data-cw-delete-match]");
       if(deleteButton){
         deleteSavedMatch(deleteButton.getAttribute("data-cw-delete-match") || "");
@@ -4268,6 +4732,7 @@
     });
     $("cwSavedMatchList")?.addEventListener("keydown", (event) => {
       if(event.key !== "Enter" && event.key !== " ") return;
+      if(event.target.closest?.("button, a, input, select, textarea, label")) return;
       const card = event.target.closest?.("[data-cw-match-card]");
       if(!card) return;
       event.preventDefault();

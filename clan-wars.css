@@ -1044,6 +1044,7 @@
 }
 
 .clanWarsMatchCard{
+  position:relative;
   cursor:pointer;
   transition:border-color .14s ease, background .14s ease, box-shadow .14s ease;
 }
@@ -1578,6 +1579,49 @@
   align-items:stretch;
 }
 
+.clanWarsMatchDownloadSlot{
+  display:flex;
+  align-items:flex-start;
+  flex:0 0 auto;
+}
+
+.clanWarsDownloadMatchBtn{
+  width:36px;
+  height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid color-mix(in srgb,var(--primary) 50%,var(--border));
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018)),rgba(18,32,54,.76);
+  color:var(--text);
+  font-family:inherit;
+  font-size:20px;
+  font-weight:1000;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
+  transition:transform .14s ease,border-color .14s ease,background .14s ease,box-shadow .14s ease,opacity .14s ease;
+}
+
+.clanWarsDownloadMatchBtn:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb,var(--primary) 82%,white 8%);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--primary) 18%,transparent),rgba(255,255,255,.018)),rgba(18,32,54,.86);
+  box-shadow:0 12px 28px rgba(0,0,0,.24);
+}
+
+.clanWarsDownloadMatchBtn:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+}
+
+.clanWarsDownloadMatchBtn:disabled{
+  cursor:progress;
+  opacity:.72;
+  transform:none;
+}
+
 .clanWarsMatchScore{
   display:grid;
   grid-template-columns:repeat(3,minmax(84px,1fr));
@@ -1867,6 +1911,16 @@
     text-align:left;
     min-width:0;
     width:100%;
+  }
+
+  .clanWarsMatchDownloadSlot{
+    position:absolute;
+    top:14px;
+    right:14px;
+  }
+
+  .clanWarsMatchSummary{
+    padding-right:46px;
   }
 
   .clanWarsScoreCard,
