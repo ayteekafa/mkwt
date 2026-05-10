@@ -153,6 +153,43 @@
   function write(key, value){
     try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
   }
+  function cleanProfileText(value){
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+  function profileDisplayLabel(name, fallback = 'Account'){
+    return `Profile: ${cleanProfileText(name) || fallback}`;
+  }
+  async function loadAccountProfileName(session, client){
+    const cached = cleanProfileText(window.PROFILE?.nickname);
+    if(cached) return cached;
+    const userId = session?.user?.id || '';
+    if(client && userId){
+      try{
+        let { data, error } = await client
+          .from('profiles')
+          .select('nickname')
+          .eq('id', userId)
+          .maybeSingle();
+        if(error && String(error.message || '').includes('column profiles.id')){
+          ({ data, error } = await client
+            .from('profiles')
+            .select('nickname')
+            .eq('user_id', userId)
+            .maybeSingle());
+        }
+        if(!error && data){
+          window.PROFILE = { ...(window.PROFILE || {}), ...data };
+          const nickname = cleanProfileText(data.nickname);
+          if(nickname) return nickname;
+        }
+      }catch(e){
+        console.warn('[lounge] profile name lookup skipped', e?.message || e);
+      }
+    }
+    return cleanProfileText(session?.user?.user_metadata?.nickname)
+      || cleanProfileText(session?.user?.user_metadata?.name)
+      || '';
+  }
   function clearHeroStatus(){
     const el = $('status');
     if(!el) return;
@@ -4550,7 +4587,7 @@
             try{ applyThemeForMode('account'); }catch(e){}
             try{ setNavAuthButton('account'); }catch(e){}
             const info = $('userInfo');
-            if (info) info.textContent = typeof maskEmail === 'function' ? maskEmail(session.user?.email) : (session.user?.email || 'Account');
+            if(info) info.textContent = profileDisplayLabel(await loadAccountProfileName(session, client));
             await loadCloud();
           },
           onGuest: async () => {
@@ -4561,7 +4598,7 @@
             try{ applyThemeForMode('guest'); }catch(e){}
             try{ setNavAuthButton('guest'); }catch(e){}
             const info = $('userInfo');
-            if (info) info.textContent = 'Guest mode';
+            if(info) info.textContent = profileDisplayLabel('Guest', 'Guest');
             loadAll();
           },
         });

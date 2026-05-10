@@ -73,11 +73,11 @@
           <div class="statValue" id="cwHeroRaceCount">0</div>
         </div>
         <div class="statBox">
-          <div class="statLabel">Max Points</div>
+          <div class="statLabel">Max Pts</div>
           <div class="statValue" id="cwHeroMaxPoints">-</div>
         </div>
         <div class="statBox">
-          <div class="statLabel">Avg Points</div>
+          <div class="statLabel">Avg Pts</div>
           <div class="statValue" id="cwHeroAvgPoints">-</div>
         </div>
       </div>
@@ -118,9 +118,14 @@
         <div>
           <h3 class="sectionTitle" id="cwEntryTitle">Race entry</h3>
         </div>
-        <div aria-live="polite" class="clanWarsDestinyNotice" hidden id="cwDestinyNotice" role="status">
-          <span class="clanWarsDestinyNotice__label">Special Destiny</span>
-          <span class="clanWarsDestinyNotice__value" id="cwDestinyNoticeValue">-</span>
+        <div class="sectionHeadActions clanWarsEntryActions">
+          <button class="compareAction compareAction--sm active" id="btnCwTrackSuggestions" type="button" title="Suggested tracks" aria-label="Suggested tracks">
+            <span class="compareAction__label">Suggested Tracks</span>
+          </button>
+          <div aria-live="polite" class="clanWarsDestinyNotice" hidden id="cwDestinyNotice" role="status">
+            <span class="clanWarsDestinyNotice__label">Special Destiny</span>
+            <span class="clanWarsDestinyNotice__value" id="cwDestinyNoticeValue">-</span>
+          </div>
         </div>
       </div>
 
@@ -198,6 +203,13 @@
       <div class="clanWarsMatchList" id="cwSavedMatchList">
         <div class="emptyState">No saved Clan Wars matches yet.</div>
       </div>
+      <div class="row matchPagerRow clanWarsMatchPager" id="cwSavedPagerRow" hidden>
+        <div class="muted" id="cwSavedPageInfo">Page 1</div>
+        <div class="matchPagerActions">
+          <button class="btn2" id="btnCwSavedPrev" type="button">Prev</button>
+          <button class="btn2" id="btnCwSavedNext" type="button">Next</button>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -211,6 +223,22 @@
         <button class="btn" id="btnResultNewMatch" value="new" type="submit">New match</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog class="mkwtConfirmDialog clanWarsSuggestionDialog" id="cwTrackSuggestionDialog" aria-labelledby="cwTrackSuggestionTitle">
+    <div class="mkwtConfirmDialog__panel clanWarsSuggestionPanel">
+      <div class="clanWarsSuggestionHead">
+        <div>
+          <div class="mkwtConfirmDialog__eyebrow">Clan Wars</div>
+          <h2 class="mkwtConfirmDialog__title" id="cwTrackSuggestionTitle">Suggested Tracks</h2>
+          <div class="muted clanWarsSuggestionMeta" id="cwTrackSuggestionMeta">Tracks need at least 10 plays before they can appear.</div>
+        </div>
+        <button class="navAction navAction--sm" id="btnCloseCwTrackSuggestions" type="button">Close</button>
+      </div>
+      <div class="suggestTrackGrid" id="cwTrackSuggestionGrid">
+        <div class="muted">No suggestions yet.</div>
+      </div>
+    </div>
   </dialog>
 
   <dialog class="mkwtConfirmDialog clanWarsEditDialog" id="cwEditDialog" aria-labelledby="cwEditTitle">

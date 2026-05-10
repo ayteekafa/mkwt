@@ -87,6 +87,8 @@ When implementing outside-click behavior, check both DOM containment and the vis
 - Clicking a letter filters options immediately.
 - Dragging across letters filters options immediately.
 - Keyboard typing a letter should filter when focus is inside the open picker and the user is not typing in a text input.
+- Keyboard letter shortcuts must work from the open picker, its trigger, panel background, and letter rail; for example pressing `C` activates the `C` rail filter without closing the picker.
+- Enter/Space on a focused letter rail button activates that filter, and Enter/Space while a letter filter is active resets the rail to `All` unless focus is on an option or trigger.
 - Filtering must not close the picker.
 - If the current filter becomes invalid after options change, reset to `All`.
 

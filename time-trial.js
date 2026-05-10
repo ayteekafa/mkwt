@@ -131,6 +131,10 @@
     return String(value || "").replace(/\s+/g, " ").trim();
   }
 
+  function profileDisplayLabel(name, fallback = "Account") {
+    return `Profile: ${cleanText(name) || fallback}`;
+  }
+
   function repairUtf8Mojibake(value) {
     const text = cleanText(value);
     const looksMisdecoded = Array.from(text).some((char, index, chars) => {
@@ -1765,7 +1769,7 @@
 
   async function loadProfileInfo() {
     if (isGuest()) {
-      $("ttUserInfo").textContent = "Guest profile";
+      $("ttUserInfo").textContent = profileDisplayLabel("Guest", "Guest");
       setUpdateBusy(false);
       return;
     }
@@ -1778,10 +1782,9 @@
         .maybeSingle();
       if (error) throw error;
       PROFILE = data || null;
-      const label = cleanText(data?.nickname) || "Account profile";
-      $("ttUserInfo").textContent = label;
+      $("ttUserInfo").textContent = profileDisplayLabel(data?.nickname);
     } catch (e) {
-      $("ttUserInfo").textContent = "Account profile";
+      $("ttUserInfo").textContent = profileDisplayLabel("");
     }
     setUpdateBusy(false);
   }

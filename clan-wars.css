@@ -133,15 +133,13 @@
 
 .clanWarsHeroStats{
   width:100%;
-  max-width:920px;
-  margin:18px auto 0;
+  margin:12px 0 0;
   grid-template-columns:repeat(4,minmax(0,1fr));
 }
 
 .clanWarsHeroHighlights{
   width:100%;
-  max-width:920px;
-  margin:12px auto 0;
+  margin:12px 0 0;
 }
 
 .clanWarsHeroHighlight.is-empty .bestTrackName{
@@ -704,6 +702,27 @@
   gap:12px;
 }
 
+.clanWarsEntryActions{
+  align-items:flex-start;
+  justify-content:flex-end;
+  margin-left:auto;
+}
+
+.clanWarsEntryActions #btnCwTrackSuggestions.compareAction{
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  max-width:max-content;
+  padding:8px 14px;
+  text-align:center;
+}
+
+#btnCwTrackSuggestions .compareAction__label{
+  display:block;
+  text-align:center;
+  white-space:nowrap;
+}
+
 .clanWarsDestinyNotice{
   box-sizing:border-box;
   display:flex;
@@ -752,6 +771,132 @@
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
+}
+
+.clanWarsSuggestionDialog{
+  width:min(540px,calc(100vw - 24px));
+}
+
+.clanWarsSuggestionPanel{
+  padding:14px;
+}
+
+.clanWarsSuggestionHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.clanWarsSuggestionMeta{
+  margin-top:8px;
+  line-height:1.45;
+}
+
+.suggestTrackGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+
+.suggestTrackButton{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:82px;
+  padding:9px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 60%),
+    var(--card-2);
+  cursor:pointer;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+
+.suggestTrackButton:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb,var(--primary) 44%,var(--border));
+  box-shadow:0 10px 20px rgba(0,0,0,.14);
+}
+
+.suggestTrackButton:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+}
+
+.suggestTrackButton--route{
+  padding-inline:8px;
+}
+
+.suggestTrackIcon{
+  width:58px;
+  height:58px;
+  display:block;
+  object-fit:contain;
+  filter:drop-shadow(0 6px 14px rgba(0,0,0,.22));
+  transform:scale(1.16);
+  transform-origin:center;
+}
+
+.raceTrackIconFallback.suggestTrackIcon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02)),var(--hover);
+  font-size:18px;
+  font-weight:950;
+}
+
+.suggestTrackRoute{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  width:100%;
+  min-width:0;
+}
+
+.suggestTrackRoute__node{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  flex:0 0 auto;
+  overflow:hidden;
+}
+
+.suggestTrackRouteIcon{
+  width:38px;
+  height:38px;
+  display:block;
+  object-fit:contain;
+  filter:drop-shadow(0 5px 10px rgba(0,0,0,.22));
+  transform:scale(1.08);
+}
+
+.raceTrackIconFallback.suggestTrackRouteIcon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02)),var(--hover);
+  font-size:13px;
+  font-weight:950;
+}
+
+.suggestTrackRoute__arrow{
+  flex:0 0 auto;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1;
+  font-weight:950;
 }
 
 .clanWarsEntryPanel #cwTrackField{
@@ -921,6 +1066,13 @@
   padding:0;
 }
 
+.clanWarsMatchSummary{
+  display:grid;
+  gap:10px;
+  min-width:0;
+  flex:1 1 auto;
+}
+
 .clanWarsMatchDetails{
   margin-top:14px;
   display:grid;
@@ -1048,9 +1200,21 @@
 }
 
 .clanWarsActiveMatch__total{
-  color:#55f0a3;
+  color:var(--muted);
   font-size:24px;
   font-weight:1000;
+}
+
+.clanWarsActiveMatch__total.is-winner{
+  color:#55f0a3;
+}
+
+.clanWarsActiveMatch__total.is-loser{
+  color:#ff7777;
+}
+
+.clanWarsActiveMatch__total.is-even{
+  color:var(--muted);
 }
 
 .clanMembersBody{
@@ -1148,11 +1312,74 @@
   font-size:20px;
 }
 
+.clanWarsMatchTitle{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  line-height:1.12;
+}
+
+.clanWarsSavedMode{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:30px;
+  padding:4px 11px;
+  border:1px solid color-mix(in srgb,var(--primary) 46%,var(--border));
+  border-radius:999px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 18%,transparent),transparent 72%),rgba(5,13,22,.64);
+  color:var(--text);
+  font-size:16px;
+  font-weight:1000;
+}
+
+.clanWarsSavedDate{
+  min-width:0;
+  color:var(--muted);
+  font-size:15px;
+  font-weight:900;
+}
+
 .clanWarsMatchMeta,
 .clanWarsStatsMeta{
   margin-top:4px;
   color:var(--muted);
   font-weight:800;
+}
+
+.clanWarsMatchMeta{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.clanWarsSavedMetaPill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:24px;
+  padding:3px 9px;
+  border:1px solid color-mix(in srgb,var(--primary) 34%,var(--border));
+  border-radius:999px;
+  background:color-mix(in srgb,var(--primary) 9%,transparent);
+  color:var(--text);
+  font-size:12px;
+  font-weight:950;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.clanWarsSavedMetaPill--tracker{
+  border-color:color-mix(in srgb,var(--danger) 52%,var(--border));
+  background:color-mix(in srgb,var(--danger) 8%,transparent);
+}
+
+.clanWarsSavedMetaPill--dc{
+  border-color:color-mix(in srgb,#ffd17e 52%,var(--border));
+  background:color-mix(in srgb,#ffd17e 10%,transparent);
+  color:#ffe0a8;
 }
 
 .clanWarsRaceWarn{
@@ -1348,46 +1575,77 @@
   display:flex;
   justify-content:space-between;
   gap:14px;
-  align-items:center;
+  align-items:stretch;
 }
 
 .clanWarsMatchScore{
   display:grid;
+  grid-template-columns:repeat(3,minmax(84px,1fr));
   gap:8px;
-  min-width:160px;
-  text-align:right;
+  min-width:340px;
+  align-self:stretch;
+  text-align:left;
   font-weight:1000;
 }
 
-.clanWarsScoreLine{
+.clanWarsScoreCard,
+.clanWarsScoreDelta{
   display:flex;
-  align-items:baseline;
-  justify-content:flex-end;
-  gap:10px;
-  white-space:nowrap;
+  min-width:0;
+  min-height:70px;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+  padding:10px 11px;
+  border:1px solid color-mix(in srgb,var(--border) 84%,transparent);
+  border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012)),rgba(5,13,22,.54);
 }
 
-.clanWarsScoreLine span{
+.clanWarsScoreCard span,
+.clanWarsScoreDelta span{
   color:var(--muted);
   font-size:12px;
   letter-spacing:.08em;
   text-transform:uppercase;
+  font-weight:950;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
-.clanWarsScoreLine b{
+.clanWarsScoreCard b,
+.clanWarsScoreDelta b{
   color:var(--text);
-  font-size:22px;
+  font-size:28px;
+  line-height:1;
+  font-weight:1000;
 }
 
-.clanWarsScoreLine.is-winner b{
+.clanWarsScoreCard.is-winner,
+.clanWarsScoreDelta.is-winner{
+  border-color:color-mix(in srgb,#55f0a3 38%,var(--border));
+  background:linear-gradient(180deg,color-mix(in srgb,#55f0a3 12%,transparent),rgba(255,255,255,.012)),rgba(5,13,22,.54);
+}
+
+.clanWarsScoreCard.is-winner b,
+.clanWarsScoreDelta.is-winner b{
   color:#55f0a3;
 }
 
-.clanWarsScoreLine.is-loser b{
+.clanWarsScoreCard.is-loser,
+.clanWarsScoreDelta.is-loser{
+  border-color:color-mix(in srgb,#ff7777 40%,var(--border));
+  background:linear-gradient(180deg,color-mix(in srgb,#ff7777 12%,transparent),rgba(255,255,255,.012)),rgba(5,13,22,.54);
+}
+
+.clanWarsScoreCard.is-loser b,
+.clanWarsScoreDelta.is-loser b{
   color:#ff7777;
 }
 
-.clanWarsScoreLine.is-even b{
+.clanWarsScoreCard.is-even b,
+.clanWarsScoreDelta.is-even b{
   color:var(--muted);
 }
 
@@ -1575,7 +1833,7 @@
   }
 
   .clanWarsHeroStats{
-    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-columns:repeat(4,minmax(0,1fr));
   }
 
   .profileCard .bestTrackLine--split.clanWarsHeroHighlights{
@@ -1608,10 +1866,12 @@
   .clanWarsMatchScore{
     text-align:left;
     min-width:0;
+    width:100%;
   }
 
-  .clanWarsScoreLine{
-    justify-content:flex-start;
+  .clanWarsScoreCard,
+  .clanWarsScoreDelta{
+    min-height:64px;
   }
 
   .clanWarsResultGrid{
@@ -1628,6 +1888,15 @@
 
   .clanWarsEntryCard .sectionHead--split{
     align-items:flex-start;
+  }
+
+  .clanWarsEntryActions{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .clanWarsEntryActions #btnCwTrackSuggestions.compareAction{
+    flex:0 0 auto;
   }
 
   .clanWarsDestinyNotice{

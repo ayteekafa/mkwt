@@ -15,10 +15,13 @@
   const STORAGE_CURRENT = "mkwt_clan_wars_current_v1";
   const STORAGE_MATCHES = "mkwt_clan_wars_matches_v1";
   const STORAGE_ACTIVE_CLAN = "mkwt_clan_wars_active_clan_v1";
+  const ACTIVE_CLAN_PERSONAL_SCOPE = "personal";
+  const CLAN_RESTORE_TIMEOUT_MS = 4000;
   const TEAM_SIZE = 6;
   const MIN_TRACK_PLAYS_FOR_HIGHLIGHT = 10;
   const QUERY_BATCH_SIZE = 100;
   const CLAN_ICON_BUCKET = "clan-icons";
+  const CLAN_MEMBER_SELECT = "user_id, role, status, display_name";
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
   const CHART_MODES = ["tracks", "im_destiny", "im_special_destiny", "im_routes", "placement"];
   const INTERMISSION_CHART_MODES = new Set(["im_destiny", "im_special_destiny", "im_routes"]);
@@ -111,6 +114,15 @@
     }
   }
 
+  function safeWriteJson(key, value){
+    try{
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    }catch{
+      return false;
+    }
+  }
+
   function normalizeEventType(value){
     return value === "6v6v6v6" ? "6v6v6v6" : "6v6";
   }
@@ -147,6 +159,24 @@
   function activeClanStorageKey(){
     const userId = state.session?.user?.id || "guest";
     return `${STORAGE_ACTIVE_CLAN}_${userId}`;
+  }
+
+  function persistActiveClan(){
+    if(state.mode !== "account") return;
+    if(state.activeClan) safeWriteJson(activeClanStorageKey(), state.activeClan);
+    else localStorage.removeItem(activeClanStorageKey());
+  }
+
+  function isPersonalClanSelection(raw){
+    return !!raw && typeof raw === "object" && raw.scope === ACTIVE_CLAN_PERSONAL_SCOPE;
+  }
+
+  function withTimeout(promise, timeoutMs, message){
+    let timer = 0;
+    const timeout = new Promise((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
   }
 
   function normalizeDivisionTag(value){
@@ -311,13 +341,40 @@
     });
   }
 
+  async function loadActiveMembershipClan(){
+    const userId = state.session?.user?.id || "";
+    if(state.mode !== "account" || !state.client || !userId) return null;
+    const { data, error } = await state.client
+      .from("clan_memberships")
+      .select("clan_id")
+      .eq("user_id", userId)
+      .eq("status", "active");
+    if(error) throw error;
+
+    const clanIds = Array.from(new Set((data || [])
+      .map((membership) => cleanText(membership.clan_id))
+      .filter(Boolean)));
+    for(const clanId of clanIds){
+      const clan = await loadClanDetails(clanId);
+      if(clan) return clan;
+    }
+    return null;
+  }
+
   async function loadClanMembers(){
     if(state.mode !== "account" || !state.client || !state.activeClan?.id) return [];
-    const { data: memberships, error } = await state.client
+    let { data: memberships, error } = await state.client
       .from("clan_memberships")
-      .select("user_id, role, status")
+      .select(CLAN_MEMBER_SELECT)
       .eq("clan_id", state.activeClan.id)
       .eq("status", "active");
+    if(error && String(error.message || "").includes("display_name")){
+      ({ data: memberships, error } = await state.client
+        .from("clan_memberships")
+        .select("user_id, role, status")
+        .eq("clan_id", state.activeClan.id)
+        .eq("status", "active"));
+    }
     if(error) throw error;
 
     const ids = Array.from(new Set((memberships || []).map((member) => cleanText(member.user_id)).filter(Boolean)));
@@ -345,7 +402,8 @@
     const currentName = cleanText(window.PROFILE?.nickname);
     return (memberships || []).map((member) => {
       const id = cleanText(member.user_id);
-      const name = profileById.get(id) || (id === currentId && currentName) || "Member";
+      const membershipName = cleanText(member.display_name);
+      const name = membershipName || profileById.get(id) || (id === currentId && currentName) || "Member";
       return {
         id,
         name,
@@ -386,12 +444,36 @@
 
   async function restoreActiveClan(){
     if(state.mode !== "account" || !state.client) return;
-    const saved = normalizeClan(safeReadJson(activeClanStorageKey(), null));
-    if(!saved?.id) return;
+    const savedRaw = safeReadJson(activeClanStorageKey(), null);
+    if(isPersonalClanSelection(savedRaw)){
+      state.activeClan = null;
+      return;
+    }
+
+    const saved = normalizeClan(savedRaw);
+    if(saved?.id){
+      try{
+        state.activeClan = await loadClanDetails(saved.id);
+        if(state.activeClan){
+          persistActiveClan();
+          return;
+        }
+      }catch(e){
+        console.warn("[clan-wars-stats] could not restore saved active clan", e);
+      }
+      state.activeClan = null;
+      persistActiveClan();
+    }
+
     try{
-      state.activeClan = await loadClanDetails(saved.id);
+      state.activeClan = await withTimeout(
+        loadActiveMembershipClan(),
+        CLAN_RESTORE_TIMEOUT_MS,
+        "Clan membership restore timed out."
+      );
+      if(state.activeClan) persistActiveClan();
     }catch(e){
-      console.warn("[clan-wars-stats] could not restore active clan", e);
+      console.warn("[clan-wars-stats] could not restore clan membership", e);
       state.activeClan = null;
     }
   }
@@ -872,8 +954,14 @@
     const threshold = expectedTeamAverage();
     const labels = sorted.map((row) => row.track);
     const values = sorted.map((row) => Number(row.avg.toFixed(2)));
-    const fills = sorted.map((row) => row.count === 0 ? colorWithAlpha(neutralStroke, .46) : row.avg >= threshold ? colorWithAlpha(positiveStroke, .78) : colorWithAlpha(negativeStroke, .76));
-    const borders = sorted.map((row) => row.count === 0 ? neutralStroke : row.avg >= threshold ? positiveStroke : negativeStroke);
+    const fills = sorted.map((row) => {
+      if(row.count === 0 || row.avg === threshold) return colorWithAlpha(neutralStroke, .46);
+      return row.avg > threshold ? colorWithAlpha(positiveStroke, .78) : colorWithAlpha(negativeStroke, .76);
+    });
+    const borders = sorted.map((row) => {
+      if(row.count === 0 || row.avg === threshold) return neutralStroke;
+      return row.avg > threshold ? positiveStroke : negativeStroke;
+    });
     const maxValue = Math.max(threshold, ...values, 1);
 
     state.performanceChart?.destroy();
@@ -914,7 +1002,7 @@
                 return [
                   `AVG points: ${Number(row?.avg || 0).toFixed(2)}`,
                   `Played: ${Number(row?.count || 0)}`,
-                  `Expected: ${threshold.toFixed(2)}`,
+                  `Break-even: >${threshold.toFixed(2)}`,
                 ];
               },
             },

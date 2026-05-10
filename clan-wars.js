@@ -15,16 +15,26 @@
   const STORAGE_CURRENT = "mkwt_clan_wars_current_v1";
   const STORAGE_MATCHES = "mkwt_clan_wars_matches_v1";
   const STORAGE_ACTIVE_CLAN = "mkwt_clan_wars_active_clan_v1";
+  const ACTIVE_CLAN_PERSONAL_SCOPE = "personal";
   const MAX_RACES = 12;
   const TEAM_SIZE = 6;
+  const SAVED_MATCH_PAGE_SIZE = 8;
+  const CLAN_RESTORE_TIMEOUT_MS = 4000;
   const MIN_TRACK_PLAYS_FOR_HIGHLIGHT = 10;
+  const SUGGESTION_MIN_PLAYS = 10;
   const QUERY_BATCH_SIZE = 100;
   const CLAN_ICON_BUCKET = "clan-icons";
   const CLAN_ICON_SIZE = 256;
   const CLAN_ICON_MAX_BYTES = 4 * 1024 * 1024;
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
+  const CLAN_MEMBER_SELECT = "user_id, role, status, display_name";
   const $ = (id) => document.getElementById(id);
   let trackIconPaths = new Map();
+  const clanWarPickerIconReadyPaths = new Set();
+  const clanWarPickerIconFailedPaths = new Set();
+  const clanWarPickerIconPreloadPromises = new Map();
+  let clanWarPickerIconWarmupPromise = null;
+  let clanWarPickerIconRefreshQueued = false;
   let stratsMetaIntermissions = null;
   let clanWarPickerApi = null;
   let resultPickerApi = null;
@@ -68,6 +78,8 @@
       error: "",
     },
     openMatchDetails: {},
+    savedMatchPage: 1,
+    savedMatchTotal: null,
     resultDialogMatchId: "",
     loading: true,
   };
@@ -110,15 +122,16 @@
     const showEmpty = options.showEmpty !== false;
     if(!iconUrl && !showEmpty) return "";
     const classes = ["clanIconFrame", className, iconUrl ? "has-image" : "is-empty"].filter(Boolean).join(" ");
+    const priority = options.priority === "high";
     const body = iconUrl
-      ? `<img src="${escapeHtml(iconUrl)}" alt="">`
+      ? `<img src="${escapeHtml(iconUrl)}" alt="" loading="${priority ? "eager" : "lazy"}" decoding="async" fetchpriority="${priority ? "high" : "low"}">`
       : `<span class="clanIconFrame__placeholder">${escapeHtml(clanIconInitial(clan?.name))}</span>`;
     return `<span class="${classes}" aria-hidden="true">${body}</span>`;
   }
 
   function clanScopeButtonHtml(clan){
     if(!clan?.id) return "No clan joined";
-    return `${clanIconHtml(clan, "clanIconFrame--scope", { showEmpty: false })}<span>${escapeHtml(clan.name)}</span>`;
+    return `${clanIconHtml(clan, "clanIconFrame--scope", { showEmpty: false, priority: "high" })}<span>${escapeHtml(clan.name)}</span>`;
   }
 
   window.setStatus = function(message, ok = true){
@@ -143,6 +156,30 @@
 
   function fieldTotal(eventType = state.eventType){
     return scoreMap(eventType).reduce((sum, value) => sum + Number(value || 0), 0);
+  }
+
+  function teamCount(eventType = state.eventType){
+    return normalizeEventType(eventType) === "6v6v6v6" ? 4 : 2;
+  }
+
+  function teamAverageThreshold(eventType = state.eventType){
+    return fieldTotal(eventType) / teamCount(eventType);
+  }
+
+  function formatThreshold(value){
+    const num = Number(value || 0);
+    return Number.isInteger(num) ? String(num) : num.toFixed(2);
+  }
+
+  function formatThresholdTarget(value){
+    return `>${formatThreshold(value)}`;
+  }
+
+  function matchThresholdTotal(summary, eventType = state.eventType){
+    const races = Number(summary?.raceCount || 0);
+    const total = Number(summary?.fieldTotal || 0);
+    if(races > 0 && total > 0) return total / teamCount(eventType);
+    return teamAverageThreshold(eventType);
   }
 
   function scoreForPlacements(placements, eventType = state.eventType){
@@ -212,6 +249,23 @@
     if(state.mode !== "account") return;
     if(state.activeClan) safeWriteJson(activeClanStorageKey(), state.activeClan);
     else localStorage.removeItem(activeClanStorageKey());
+  }
+
+  function persistPersonalClanScope(){
+    if(state.mode !== "account") return;
+    safeWriteJson(activeClanStorageKey(), { scope: ACTIVE_CLAN_PERSONAL_SCOPE });
+  }
+
+  function isPersonalClanSelection(raw){
+    return !!raw && typeof raw === "object" && raw.scope === ACTIVE_CLAN_PERSONAL_SCOPE;
+  }
+
+  function withTimeout(promise, timeoutMs, message){
+    let timer = 0;
+    const timeout = new Promise((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
   }
 
   function normalizeRace(raw){
@@ -323,6 +377,11 @@
     return normalized ? `<span class="sessionFormatTag clanWarsDivisionPill">${escapeHtml(normalized)}</span>` : "";
   }
 
+  function savedMatchMetaPillHtml(label, className = ""){
+    const text = String(label || "").trim();
+    return text ? `<span class="clanWarsSavedMetaPill${className ? ` ${className}` : ""}">${escapeHtml(text)}</span>` : "";
+  }
+
   function currentList(){
     return state.current?.races || [];
   }
@@ -355,6 +414,12 @@
 
   function trackerHeroSummary(){
     const matches = allLoadedMatches().filter((match) => Array.isArray(match?.races) && match.races.length);
+    const activeMatchCount = matches.filter((match) => match.status === "active").length;
+    const completedMatchCount = matches.filter((match) => match.status === "completed").length;
+    const savedTotal = Number(state.savedMatchTotal);
+    const matchCount = state.mode === "account" && Number.isFinite(savedTotal)
+      ? savedTotal + activeMatchCount
+      : matches.length;
     const matchTotals = matches.map((match) => Number(summarizeMatch(match).ownTotal || 0));
     const maxPoints = matchTotals.length ? Math.max(...matchTotals) : null;
     const avgPoints = matchTotals.length ? matchTotals.reduce((sum, value) => sum + value, 0) / matchTotals.length : null;
@@ -386,7 +451,8 @@
       if(countDiff !== 0) return countDiff;
       return String(a.track || "").localeCompare(String(b.track || ""), "en");
     })[0] || null;
-    return { matches: matches.length, races: nonDcRaces.length, maxPoints, avgPoints, best, worst };
+    const isPagedAccountSummary = state.mode === "account" && Number.isFinite(savedTotal) && savedTotal > completedMatchCount;
+    return { matches: matchCount, races: nonDcRaces.length, maxPoints, avgPoints, best, worst, isPagedAccountSummary };
   }
 
   function formatHeroPoints(value){
@@ -395,21 +461,38 @@
     return Number.isInteger(num) ? String(num) : num.toFixed(1);
   }
 
-  function setHeroTrackHighlight(kind, row){
+  function setHeroStatLabel(valueId, label, title = ""){
+    const valueEl = $(valueId);
+    const box = valueEl?.closest(".statBox");
+    const labelEl = box?.querySelector(".statLabel");
+    if(labelEl) labelEl.textContent = label;
+    if(box) box.title = title;
+  }
+
+  function setHeroTrackHighlight(kind, row, isPaged = false){
     const nameEl = $(`cwHero${kind}TrackName`);
     const metaEl = $(`cwHero${kind}TrackMeta`);
-    const noData = `No track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`;
+    const noData = isPaged
+      ? `Loaded matches: no track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`
+      : `No track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`;
     if(nameEl){
       nameEl.textContent = row ? row.track : "Not enough data";
       nameEl.closest(".clanWarsHeroHighlight")?.classList.toggle("is-empty", !row);
     }
     if(metaEl){
-      metaEl.textContent = row ? `${row.count} plays · ${Number(row.avg || 0).toFixed(2)} avg` : noData;
+      metaEl.textContent = row
+        ? `${row.count} plays · ${Number(row.avg || 0).toFixed(2)} avg${isPaged ? " · loaded matches" : ""}`
+        : noData;
     }
   }
 
   function renderHeroSummary(){
     const summary = trackerHeroSummary();
+    const pagedTitle = summary.isPagedAccountSummary ? "Calculated from active matches plus the currently loaded saved-match page." : "";
+    setHeroStatLabel("cwHeroMatchCount", "Matches", summary.isPagedAccountSummary ? "Total saved matches plus active matches." : "");
+    setHeroStatLabel("cwHeroRaceCount", summary.isPagedAccountSummary ? "Loaded Races" : "Races", pagedTitle);
+    setHeroStatLabel("cwHeroMaxPoints", summary.isPagedAccountSummary ? "Loaded Max" : "Max Pts", pagedTitle);
+    setHeroStatLabel("cwHeroAvgPoints", summary.isPagedAccountSummary ? "Loaded Avg" : "Avg Pts", pagedTitle);
     const matchCount = $("cwHeroMatchCount");
     const raceCount = $("cwHeroRaceCount");
     const maxPoints = $("cwHeroMaxPoints");
@@ -418,8 +501,277 @@
     if(raceCount) raceCount.textContent = String(summary.races);
     if(maxPoints) maxPoints.textContent = formatHeroPoints(summary.maxPoints);
     if(avgPoints) avgPoints.textContent = formatHeroPoints(summary.avgPoints);
-    setHeroTrackHighlight("Best", summary.best);
-    setHeroTrackHighlight("Worst", summary.worst);
+    setHeroTrackHighlight("Best", summary.best, summary.isPagedAccountSummary);
+    setHeroTrackHighlight("Worst", summary.worst, summary.isPagedAccountSummary);
+  }
+
+  function currentSuggestionScope(){
+    return {
+      eventType: normalizeEventType(state.eventType),
+      clanId: String(state.activeClan?.id || ""),
+      clanName: normalizeDivisionTag(state.activeClan?.name || ""),
+      divisionTag: normalizeDivisionTag(state.selectedDivisionTag),
+      userId: currentUserId(),
+    };
+  }
+
+  function suggestionScopeLabel(scope = currentSuggestionScope()){
+    const parts = [];
+    if(scope.clanName) parts.push(scope.clanName);
+    if(scope.divisionTag) parts.push(divisionLabel(scope.divisionTag));
+    parts.push(EVENT_LABELS[scope.eventType] || scope.eventType);
+    return parts.filter(Boolean).join(" - ");
+  }
+
+  function matchInSuggestionScope(match, scope = currentSuggestionScope()){
+    if(!match || match.status !== "completed") return false;
+    if(normalizeEventType(match.eventType) !== scope.eventType) return false;
+    if(scope.clanId){
+      if(String(match.clanId || "") !== scope.clanId) return false;
+      if(scope.divisionTag && divisionKey(match.divisionTag) !== divisionKey(scope.divisionTag)) return false;
+      return true;
+    }
+    if(match.clanId) return false;
+    return state.mode !== "account" || !scope.userId || String(match.ownerUserId || "") === scope.userId;
+  }
+
+  async function loadSuggestionMatchesFromCloud(scope){
+    if(state.mode !== "account" || !state.client || !scope?.userId) return null;
+    const columns = "id, owner_user_id, clan_id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, division_tag, created_by_user_id, completed_at, created_at, updated_at";
+    let query = state.client
+      .from("clan_wars_matches")
+      .select(columns)
+      .eq("status", "completed")
+      .eq("event_type", scope.eventType)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if(scope.clanId){
+      query = query.eq("clan_id", scope.clanId);
+      if(scope.divisionTag) query = query.eq("division_tag", scope.divisionTag);
+    }else{
+      query = query.is("clan_id", null).eq("owner_user_id", scope.userId);
+    }
+    const { data: rows, error } = await query;
+    if(error) throw error;
+    const ids = (rows || []).map((row) => row.id).filter(Boolean);
+    let raceRows = [];
+    if(ids.length) raceRows = await loadRaceRowsForMatchIds(ids);
+    const byMatch = new Map();
+    raceRows.forEach((row) => {
+      const list = byMatch.get(row.match_id) || [];
+      list.push(dbRaceToLocal(row));
+      byMatch.set(row.match_id, list);
+    });
+    return (rows || []).map((row) => dbMatchToLocal(row, byMatch.get(row.id) || []));
+  }
+
+  function aggregateSuggestionRows(matches, scope = currentSuggestionScope()){
+    const buckets = new Map();
+    const addRow = (key, seed, points) => {
+      if(!key || !Number.isFinite(points)) return;
+      const row = buckets.get(key) || { ...seed, count: 0, total: 0, avg: 0 };
+      row.count += 1;
+      row.total += points;
+      row.avg = row.count ? row.total / row.count : 0;
+      buckets.set(key, row);
+    };
+    (matches || []).forEach((match) => {
+      if(!matchInSuggestionScope(match, scope)) return;
+      (match.races || []).forEach((race) => {
+        if(race.dc) return;
+        const points = Number(race.ownPoints || 0);
+        if(race.raceKind === "intermission"){
+          if(scope.eventType !== "6v6v6v6") return;
+          const start = canonicalTrackName(race.intermissionStart);
+          const end = canonicalTrackName(race.intermissionEnd || race.track);
+          if(!start || !end) return;
+          const label = routeLabel(start, end);
+          addRow(`route|${trackKeyName(start)}|${trackKeyName(end)}`, {
+            kind: "route",
+            label,
+            track: label,
+            start,
+            end,
+          }, points);
+          return;
+        }
+        const track = canonicalTrackName(race.track);
+        if(!track || !COURSE_TRACKS.includes(track)) return;
+        addRow(`track|${trackKeyName(track)}`, {
+          kind: "track",
+          label: track,
+          track,
+        }, points);
+      });
+    });
+    return Array.from(buckets.values());
+  }
+
+  async function getSuggestedTrackStats(limit = 6){
+    const scope = currentSuggestionScope();
+    const sourceMatches = await loadSuggestionMatchesFromCloud(scope)
+      || allLoadedMatches().filter((match) => matchInSuggestionScope(match, scope));
+    const used = activeRepickKeys("", state.current, scope.eventType);
+    return aggregateSuggestionRows(sourceMatches, scope)
+      .filter((row) => Number(row.count || 0) >= SUGGESTION_MIN_PLAYS)
+      .filter((row) => {
+        const key = row.kind === "route" ? routeRepickKey(row.start, row.end) : trackRepickKey(row.track);
+        return !key || !used.has(key);
+      })
+      .sort((a, b) => {
+        const avgDiff = Number(b.avg || 0) - Number(a.avg || 0);
+        if(avgDiff !== 0) return avgDiff;
+        const countDiff = Number(b.count || 0) - Number(a.count || 0);
+        if(countDiff !== 0) return countDiff;
+        return String(a.label || a.track || "").localeCompare(String(b.label || b.track || ""), "de");
+      })
+      .slice(0, limit);
+  }
+
+  function updateTrackSuggestionButton(){
+    const btn = $("btnCwTrackSuggestions");
+    if(!btn) return;
+    const enabled = state.entryStarted && canEditMatch(state.current) && !state.loading;
+    btn.disabled = !enabled;
+    btn.title = enabled
+      ? `Suggested tracks for ${suggestionScopeLabel()}`
+      : "Choose an editable match slot first";
+  }
+
+  function closeTrackSuggestionDialog(){
+    const dialog = $("cwTrackSuggestionDialog");
+    if(!dialog) return;
+    if(typeof dialog.close === "function" && dialog.open) dialog.close();
+    else dialog.removeAttribute("open");
+  }
+
+  function suggestedRouteVisualHtml(start, end){
+    return `
+      <span class="suggestTrackRoute" title="${escapeHtml(routeLabel(start, end))}">
+        <span class="suggestTrackRoute__node">${trackIconMarkup(start, "suggestTrackRouteIcon")}</span>
+        <span class="suggestTrackRoute__arrow" aria-hidden="true">-&gt;</span>
+        <span class="suggestTrackRoute__node">${trackIconMarkup(end, "suggestTrackRouteIcon")}</span>
+      </span>
+    `;
+  }
+
+  function renderSuggestionRows(rows){
+    const body = $("cwTrackSuggestionGrid");
+    if(!body) return;
+    if(!rows.length){
+      body.innerHTML = '<div class="muted">No eligible suggested tracks yet.</div>';
+      return;
+    }
+    body.innerHTML = rows.map((stat, index) => {
+      const label = stat.label || stat.track || "";
+      const isRoute = stat.kind === "route";
+      const title = `${index + 1}. ${label} - ${Number(stat.avg || 0).toFixed(2)} AVG - ${stat.count} plays`;
+      const aria = `${label}, average ${Number(stat.avg || 0).toFixed(2)} points, ${stat.count} plays`;
+      const attrs = isRoute
+        ? `data-cw-suggest-route-start="${escapeHtml(stat.start)}" data-cw-suggest-route-end="${escapeHtml(stat.end)}"`
+        : `data-cw-suggest-track="${escapeHtml(stat.track)}"`;
+      return `
+        <button class="suggestTrackButton${isRoute ? " suggestTrackButton--route" : ""}" ${attrs} type="button" title="${escapeHtml(title)}" aria-label="${escapeHtml(aria)}">
+          ${isRoute ? suggestedRouteVisualHtml(stat.start, stat.end) : trackIconMarkup(stat.track, "suggestTrackIcon")}
+        </button>
+      `;
+    }).join("");
+  }
+
+  async function renderTrackSuggestionDialog(){
+    const body = $("cwTrackSuggestionGrid");
+    const meta = $("cwTrackSuggestionMeta");
+    if(!body || !meta) return;
+    const scope = currentSuggestionScope();
+    meta.textContent = `Suggestions use ${suggestionScopeLabel(scope)} only. Each pick needs at least ${SUGGESTION_MIN_PLAYS} plays and already used picks are hidden.`;
+    body.innerHTML = '<div class="muted">Loading suggestions...</div>';
+    try{
+      renderSuggestionRows(await getSuggestedTrackStats(6));
+    }catch(e){
+      console.error(e);
+      body.innerHTML = '<div class="muted">Could not load suggestions.</div>';
+      meta.textContent = e?.message || "Could not load suggestions.";
+    }
+  }
+
+  async function openTrackSuggestionDialog(){
+    const dialog = $("cwTrackSuggestionDialog");
+    if(!dialog) return;
+    if(typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+    else dialog.setAttribute("open", "");
+    await renderTrackSuggestionDialog();
+  }
+
+  function selectSuggestedTrack(track){
+    const value = canonicalTrackName(track);
+    if(!value || !COURSE_TRACKS.includes(value)) return false;
+    setRaceKind("track");
+    const select = $("cwTrackSelect");
+    if(!select) return false;
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    markRepickOptions();
+    refreshClanWarPickers();
+    return true;
+  }
+
+  function selectSuggestedIntermissionRoute(start, end){
+    const routeStart = canonicalTrackName(start);
+    const routeEnd = canonicalTrackName(end);
+    if(state.eventType !== "6v6v6v6" || !routeStart || !routeEnd) return false;
+    setRaceKind("intermission");
+    const startSelect = $("cwIntermissionStart");
+    const endSelect = $("cwIntermissionEnd");
+    if(!startSelect || !endSelect) return false;
+    startSelect.value = routeStart;
+    fillIntermissionRouteSelects("start");
+    startSelect.value = routeStart;
+    endSelect.value = routeEnd;
+    endSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    updateDestinyNotice();
+    refreshClanWarPickers();
+    return true;
+  }
+
+  function savedMatchPageCount(total = state.savedMatchTotal){
+    const raw = Number(total);
+    const count = Number.isFinite(raw) ? Math.max(0, raw) : 0;
+    return Math.max(1, Math.ceil(count / SAVED_MATCH_PAGE_SIZE));
+  }
+
+  function clampSavedMatchPage(total = state.savedMatchTotal){
+    const maxPage = savedMatchPageCount(total);
+    state.savedMatchPage = Math.min(Math.max(1, state.savedMatchPage || 1), maxPage);
+    return maxPage;
+  }
+
+  function renderSavedMatches(){
+    const saved = mergeMatchList(state.matches.filter((match) => match.status === "completed"));
+    const matchList = $("cwSavedMatchList");
+    const pagerRow = $("cwSavedPagerRow");
+    const pageInfo = $("cwSavedPageInfo");
+    const prevBtn = $("btnCwSavedPrev");
+    const nextBtn = $("btnCwSavedNext");
+    const isAccount = state.mode === "account";
+    const savedTotal = isAccount && Number.isFinite(Number(state.savedMatchTotal)) ? Number(state.savedMatchTotal) : saved.length;
+    const maxPage = clampSavedMatchPage(savedTotal);
+
+    if(!savedTotal){
+      if(matchList) matchList.innerHTML = '<div class="emptyState">No saved Clan Wars matches yet.</div>';
+      if(pageInfo) pageInfo.textContent = "Page 1";
+      if(prevBtn) prevBtn.disabled = true;
+      if(nextBtn) nextBtn.disabled = true;
+      if(pagerRow) pagerRow.hidden = true;
+      return;
+    }
+
+    const from = (state.savedMatchPage - 1) * SAVED_MATCH_PAGE_SIZE;
+    const pageItems = isAccount ? saved : saved.slice(from, from + SAVED_MATCH_PAGE_SIZE);
+    if(matchList) matchList.innerHTML = pageItems.map(matchRowHtml).join("");
+    if(pageInfo) pageInfo.textContent = `Page ${state.savedMatchPage} / ${maxPage}`;
+    if(prevBtn) prevBtn.disabled = state.savedMatchPage <= 1;
+    if(nextBtn) nextBtn.disabled = state.savedMatchPage >= maxPage;
+    if(pagerRow) pagerRow.hidden = savedTotal <= SAVED_MATCH_PAGE_SIZE;
   }
 
   function isEmptyActiveMatch(match){
@@ -645,17 +997,59 @@
     });
   }
 
+  async function loadActiveMembershipClan(){
+    const uidValue = currentUserId();
+    if(state.mode !== "account" || !state.client || !uidValue) return null;
+    const { data, error } = await state.client
+      .from("clan_memberships")
+      .select("clan_id")
+      .eq("user_id", uidValue)
+      .eq("status", "active");
+    if(error) throw error;
+
+    const clanIds = Array.from(new Set((data || [])
+      .map((membership) => String(membership.clan_id || "").trim())
+      .filter(Boolean)));
+    for(const clanId of clanIds){
+      const clan = await loadClanDetails(clanId);
+      if(clan) return clan;
+    }
+    return null;
+  }
+
   async function restoreActiveClan(){
     if(state.mode !== "account" || !state.client) return;
-    const saved = normalizeClan(safeReadJson(activeClanStorageKey(), null));
-    if(!saved?.id) return;
-    try{
-      state.activeClan = await loadClanDetails(saved.id);
-      if(!state.activeClan) persistActiveClan();
-    }catch(e){
-      console.warn("[clan-wars] could not restore active clan", e);
+    const savedRaw = safeReadJson(activeClanStorageKey(), null);
+    if(isPersonalClanSelection(savedRaw)){
+      state.activeClan = null;
+      return;
+    }
+
+    const saved = normalizeClan(savedRaw);
+    if(saved?.id){
+      try{
+        state.activeClan = await loadClanDetails(saved.id);
+        if(state.activeClan){
+          persistActiveClan();
+          return;
+        }
+      }catch(e){
+        console.warn("[clan-wars] could not restore saved active clan", e);
+      }
       state.activeClan = null;
       persistActiveClan();
+    }
+
+    try{
+      state.activeClan = await withTimeout(
+        loadActiveMembershipClan(),
+        CLAN_RESTORE_TIMEOUT_MS,
+        "Clan membership restore timed out."
+      );
+      if(state.activeClan) persistActiveClan();
+    }catch(e){
+      console.warn("[clan-wars] could not restore clan membership", e);
+      state.activeClan = null;
     }
   }
 
@@ -667,17 +1061,43 @@
       .filter(Boolean)));
     const missing = ids.filter((id) => !state.memberNames.has(id));
     if(!missing.length) return;
+
+    const clanIds = Array.from(new Set((matches || [])
+      .map((match) => String(match?.clanId || ""))
+      .filter(Boolean)));
+    if(clanIds.length){
+      try{
+        const { data: memberships, error: membershipError } = await state.client
+          .from("clan_memberships")
+          .select("user_id, display_name")
+          .in("clan_id", clanIds)
+          .in("user_id", missing)
+          .eq("status", "active");
+        if(membershipError) throw membershipError;
+        (memberships || []).forEach((member) => {
+          const id = String(member.user_id || "");
+          const name = normalizeDivisionTag(member.display_name);
+          if(id && name) state.memberNames.set(id, name);
+        });
+      }catch(e){
+        console.warn("[clan-wars] membership name lookup skipped", e?.message || e);
+      }
+    }
+
+    const profileMissing = missing.filter((id) => !state.memberNames.has(id));
+    if(!profileMissing.length) return;
+
     let profiles = [];
     let profileError = null;
     ({ data: profiles, error: profileError } = await state.client
       .from("profiles")
       .select("id, nickname")
-      .in("id", missing));
+      .in("id", profileMissing));
     if(profileError && String(profileError.message || "").includes("column profiles.id")){
       ({ data: profiles, error: profileError } = await state.client
         .from("profiles")
         .select("user_id, nickname")
-        .in("user_id", missing));
+        .in("user_id", profileMissing));
     }
     if(profileError){
       console.warn("[clan-wars] profile lookup skipped", profileError.message || profileError);
@@ -687,7 +1107,7 @@
       const id = String(profile.id || profile.user_id || "");
       if(id) state.memberNames.set(id, normalizeDivisionTag(profile.nickname) || "Member");
     });
-    const unresolved = missing.filter((id) => !state.memberNames.has(id));
+    const unresolved = profileMissing.filter((id) => !state.memberNames.has(id));
     if(unresolved.length){
       const { data: fallbackProfiles, error: fallbackError } = await state.client
         .from("profiles")
@@ -707,17 +1127,42 @@
   async function loadCloud(){
     const uidValue = state.session?.user?.id;
     if(!state.client || !uidValue) return;
-    let query = state.client
+
+    const columns = "id, owner_user_id, clan_id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, division_tag, created_by_user_id, completed_at, created_at, updated_at";
+    const applyScope = (query) => {
+      if(state.activeClan?.id) return query.eq("clan_id", state.activeClan.id);
+      return query.is("clan_id", null).eq("owner_user_id", uidValue);
+    };
+    const completedFrom = (Math.max(1, state.savedMatchPage || 1) - 1) * SAVED_MATCH_PAGE_SIZE;
+    const completedTo = completedFrom + SAVED_MATCH_PAGE_SIZE - 1;
+
+    const activeQuery = applyScope(state.client
       .from("clan_wars_matches")
-      .select("id, owner_user_id, clan_id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, division_tag, created_by_user_id, completed_at, created_at, updated_at")
-      .order("created_at", { ascending: false });
-    if(state.activeClan?.id){
-      query = query.eq("clan_id", state.activeClan.id);
-    }else{
-      query = query.is("clan_id", null).eq("owner_user_id", uidValue);
+      .select(columns)
+      .eq("status", "active")
+      .order("created_at", { ascending: false }));
+    const completedQuery = applyScope(state.client
+      .from("clan_wars_matches")
+      .select(columns, { count: "exact" })
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .range(completedFrom, completedTo));
+
+    const [
+      { data: activeRows, error: activeError },
+      { data: completedRows, error: completedError, count: completedCount },
+    ] = await Promise.all([activeQuery, completedQuery]);
+    if(activeError) throw activeError;
+    if(completedError) throw completedError;
+
+    state.savedMatchTotal = Number(completedCount || 0);
+    const maxSavedPage = savedMatchPageCount(state.savedMatchTotal);
+    if(state.savedMatchPage > maxSavedPage){
+      state.savedMatchPage = maxSavedPage;
+      return loadCloud();
     }
-    const { data: matchRows, error: matchError } = await query;
-    if(matchError) throw matchError;
+
+    const matchRows = mergeMatchList([...(activeRows || []), ...(completedRows || [])]);
 
     const ids = (matchRows || []).map((row) => row.id);
     let raceRows = [];
@@ -796,11 +1241,18 @@
 
   async function loadClanMembers(){
     if(state.mode !== "account" || !state.client || !state.activeClan?.id) return [];
-    const { data: memberships, error } = await state.client
+    let { data: memberships, error } = await state.client
       .from("clan_memberships")
-      .select("user_id, role, status")
+      .select(CLAN_MEMBER_SELECT)
       .eq("clan_id", state.activeClan.id)
       .eq("status", "active");
+    if(error && String(error.message || "").includes("display_name")){
+      ({ data: memberships, error } = await state.client
+        .from("clan_memberships")
+        .select("user_id, role, status")
+        .eq("clan_id", state.activeClan.id)
+        .eq("status", "active"));
+    }
     if(error) throw error;
 
     const ids = Array.from(new Set((memberships || []).map((member) => String(member.user_id || "")).filter(Boolean)));
@@ -826,9 +1278,10 @@
     const members = (memberships || []).map((member) => {
       const userId = String(member.user_id || "");
       const isCurrentUser = userId && userId === String(state.session?.user?.id || "");
+      const membershipName = normalizeDivisionTag(member.display_name);
       return {
         id: userId,
-        name: profileById.get(userId) || (isCurrentUser ? currentProfileName() : "Member"),
+        name: membershipName || profileById.get(userId) || (isCurrentUser ? currentProfileName() : "Member"),
         role: normalizeDivisionTag(member.role || "member") || "member",
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
@@ -1309,7 +1762,7 @@
     if(!state.activeClan) return;
     const name = state.activeClan.name || "clan";
     state.activeClan = null;
-    persistActiveClan();
+    persistPersonalClanScope();
     try{
       if(state.mode === "account") await loadCloud();
     }catch(e){
@@ -1360,6 +1813,48 @@
   function getTrackPickerIconPath(trackName){
     const source = trackIconPaths.get(String(trackName || "")) || "";
     return pickerIconPathFromSource(source) || source;
+  }
+
+  function scheduleClanWarPickerIconRefresh(){
+    if(clanWarPickerIconRefreshQueued) return;
+    clanWarPickerIconRefreshQueued = true;
+    requestAnimationFrame(() => {
+      clanWarPickerIconRefreshQueued = false;
+      refreshClanWarPickers();
+    });
+  }
+
+  function preloadClanWarPickerIconPath(iconPath){
+    if(!iconPath || clanWarPickerIconReadyPaths.has(iconPath) || clanWarPickerIconFailedPaths.has(iconPath)){
+      return Promise.resolve(clanWarPickerIconReadyPaths.has(iconPath));
+    }
+    if(clanWarPickerIconPreloadPromises.has(iconPath)) return clanWarPickerIconPreloadPromises.get(iconPath);
+
+    const promise = new Promise((resolve) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.fetchPriority = "low";
+      img.onload = async () => {
+        try{ await img.decode?.(); }catch(e){}
+        clanWarPickerIconReadyPaths.add(iconPath);
+        scheduleClanWarPickerIconRefresh();
+        resolve(true);
+      };
+      img.onerror = () => {
+        clanWarPickerIconFailedPaths.add(iconPath);
+        resolve(false);
+      };
+      img.src = iconPath;
+    });
+    clanWarPickerIconPreloadPromises.set(iconPath, promise);
+    return promise;
+  }
+
+  function preloadClanWarPickerIcons(){
+    if(clanWarPickerIconWarmupPromise) return clanWarPickerIconWarmupPromise;
+    const paths = [...new Set(COURSE_TRACKS.map(getTrackPickerIconPath).filter(Boolean))];
+    clanWarPickerIconWarmupPromise = Promise.allSettled(paths.map(preloadClanWarPickerIconPath));
+    return clanWarPickerIconWarmupPromise;
   }
 
   function getTrackIconPath(trackName){
@@ -1823,12 +2318,18 @@
   }
 
   function initClanWarPickers(){
-    const configs = [
+    const pickerConfigs = [
       { id: "cwTrackSelect", kind: "track" },
       { id: "cwIntermissionStart", kind: "track" },
       { id: "cwIntermissionEnd", kind: "track" },
-    ].map((config) => ({ ...config, selectEl: $(config.id) })).filter((config) => config.selectEl);
-    if(!configs.length) return;
+      { id: "cwEditTrackSelect", kind: "track" },
+      { id: "cwEditIntermissionStart", kind: "track" },
+      { id: "cwEditIntermissionEnd", kind: "track" },
+    ];
+    const resolveConfigs = () => pickerConfigs
+      .map((config) => ({ ...config, selectEl: $(config.id) }))
+      .filter((config) => config.selectEl);
+    if(!resolveConfigs().length) return;
 
     const pickers = new Map();
     const backdrop = document.createElement("div");
@@ -1884,6 +2385,9 @@
         label: String(option.textContent || option.value || "").trim(),
         repick: option.dataset?.repick === "1" || option.classList.contains("loungeOptionUsed"),
       }));
+    const cssEscape = (value) => window.CSS?.escape
+      ? CSS.escape(String(value))
+      : String(value).replace(/["\\]/g, "\\$&");
     const trackLetter = (option) => {
       const value = String(option?.value || option?.label || "").trim();
       return (value.charAt(0) || "?").toUpperCase();
@@ -1917,7 +2421,7 @@
         return slot;
       }
       const iconPath = getTrackPickerIconPath(trackName);
-      if(iconPath){
+      if(iconPath && clanWarPickerIconReadyPaths.has(iconPath)){
         const img = document.createElement("img");
         img.className = "trackPicker__icon";
         img.src = iconPath;
@@ -1925,14 +2429,7 @@
         img.width = 24;
         img.height = 24;
         img.decoding = "async";
-        img.loading = "lazy";
-        img.onerror = () => {
-          img.remove();
-          const fallback = document.createElement("span");
-          fallback.className = "trackPicker__iconFallback";
-          fallback.textContent = trackAbbrev(trackName);
-          slot.appendChild(fallback);
-        };
+        img.loading = "eager";
         slot.appendChild(img);
         return slot;
       }
@@ -1985,6 +2482,9 @@
 
       const options = readOptions(selectEl);
       const letters = Array.from(new Set(options.map(trackLetter))).sort((a, b) => a.localeCompare(b));
+      if(picker.letterFilter && picker.letterFilter !== "all" && !letters.includes(picker.letterFilter)){
+        picker.letterFilter = "all";
+      }
       const hasIntermission = options.some((option) => option.value === "Intermission");
       const railLetters = hasIntermission && letters.includes("I") ? ["I", ...letters.filter((letter) => letter !== "I")] : letters;
       const activeLetter = picker.letterFilter || "all";
@@ -2011,6 +2511,18 @@
         const button = event.target.closest?.("[data-letter-filter]");
         if(!button) return;
         event.preventDefault();
+        applyLetterFilter(picker, button.dataset.letterFilter || "all");
+      });
+      rail.addEventListener("keydown", (event) => {
+        if(event.key !== "Enter" && event.key !== " ") return;
+        const button = event.target.closest?.("[data-letter-filter]");
+        if(!button) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if((picker.letterFilter || "all") !== "all"){
+          resetLetterFilterToAll(picker);
+          return;
+        }
         applyLetterFilter(picker, button.dataset.letterFilter || "all");
       });
       rail.addEventListener("pointerdown", (event) => {
@@ -2072,6 +2584,32 @@
       picker.trigger.classList.toggle("is-placeholder", !picker.selectEl.value);
       if(!picker.panel.hidden) renderPanel(picker);
     };
+    const resetLetterFilterToAll = (picker, focusAll = true) => {
+      if(!picker || picker.kind !== "track" || picker.panel.hidden) return false;
+      if((picker.letterFilter || "all") === "all") return false;
+      picker.letterFilter = "all";
+      renderPanel(picker);
+      alignPanel(picker);
+      if(focusAll){
+        window.requestAnimationFrame(() => {
+          picker.panel.querySelector('[data-letter-filter="all"]')?.focus?.();
+        });
+      }
+      return true;
+    };
+    const applyKeyboardLetterFilter = (picker, key) => {
+      if(!picker || picker.kind !== "track" || picker.panel.hidden) return false;
+      const letter = String(key || "").trim().charAt(0).toUpperCase();
+      if(!/^[A-Z0-9]$/.test(letter)) return false;
+      const letters = Array.from(new Set(readOptions(picker.selectEl).map(trackLetter)));
+      if(!letters.includes(letter)) return false;
+      applyLetterFilter(picker, letter);
+      window.requestAnimationFrame(() => {
+        picker.panel.querySelector(`[data-letter-filter="${cssEscape(letter)}"]`)?.focus?.();
+      });
+      return true;
+    };
+    const findOpenPicker = () => Array.from(pickers.values()).find((picker) => !picker.panel.hidden) || null;
     const applyLetterFilter = (picker, letter) => {
       if(!picker || picker.kind !== "track" || picker.panel.hidden) return;
       const next = letter || "all";
@@ -2104,6 +2642,7 @@
     const openOne = (picker) => {
       closeAll();
       if(picker.kind === "track") picker.letterFilter = "all";
+      if(picker.kind === "track") preloadClanWarPickerIcons();
       renderPanel(picker);
       picker.panel.hidden = false;
       picker.root.classList.add("is-open");
@@ -2135,8 +2674,19 @@
     };
     const eventInsideOpenPicker = (event) => openPicker && !openPicker.panel.hidden && eventInsidePicker(event, openPicker);
 
-    configs.forEach((config) => {
+    const enhancePicker = (config) => {
       const selectEl = config.selectEl;
+      const existing = pickers.get(selectEl.id);
+      if(existing && existing.selectEl === selectEl){
+        refreshPicker(existing);
+        return;
+      }
+      if(existing){
+        if(openPicker === existing) openPicker = null;
+        if(activeLetterPicker === existing) activeLetterPicker = null;
+        existing.root.remove();
+        pickers.delete(selectEl.id);
+      }
       if(selectEl.dataset.clanWarsPickerReady === "1") return;
       selectEl.dataset.clanWarsPickerReady = "1";
       selectEl.classList.add("trackNativeSelect", "loungeNativeSelect");
@@ -2173,6 +2723,10 @@
       trigger.addEventListener("keydown", (event) => {
         if(event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
+        if(!picker.panel.hidden && picker.kind === "track" && (picker.letterFilter || "all") !== "all"){
+          resetLetterFilterToAll(picker);
+          return;
+        }
         toggleOne(picker);
       });
       panel.addEventListener("click", (event) => {
@@ -2186,9 +2740,29 @@
         trigger.focus();
       });
       selectEl.addEventListener("change", () => refreshPicker(picker));
-      new MutationObserver(() => refreshPicker(picker)).observe(selectEl, { childList: true, subtree: true });
+      new MutationObserver(() => refreshPicker(picker)).observe(selectEl, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["class", "data-repick", "data-base-label"],
+      });
       refreshPicker(picker);
-    });
+    };
+    const pruneDetachedPickers = () => {
+      for(const [id, picker] of pickers.entries()){
+        if(document.body.contains(picker.selectEl)) continue;
+        if(openPicker === picker) openPicker = null;
+        if(activeLetterPicker === picker) activeLetterPicker = null;
+        pickers.delete(id);
+      }
+    };
+    const refreshAll = () => {
+      pruneDetachedPickers();
+      resolveConfigs().forEach(enhancePicker);
+      for(const picker of pickers.values()) refreshPicker(picker);
+    };
+    refreshAll();
 
     document.addEventListener("click", (event) => {
       if(eventInsideOpenPicker(event)) return;
@@ -2215,15 +2789,32 @@
       closeAll();
     });
     document.addEventListener("keydown", (event) => {
-      if(event.key !== "Escape" || !openPicker) return;
-      event.preventDefault();
-      closeAll();
+      if(event.key === "Escape"){
+        if(findOpenPicker()){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        closeAll();
+        return;
+      }
+      const picker = findOpenPicker();
+      if(!picker) return;
+      const target = event.target;
+      const isTextTarget = target?.matches?.("input, textarea, select") || target?.isContentEditable;
+      if(isTextTarget || event.altKey || event.ctrlKey || event.metaKey) return;
+      if(event.key.length === 1 && /^[a-z0-9]$/i.test(event.key)){
+        if(applyKeyboardLetterFilter(picker, event.key)) event.preventDefault();
+        return;
+      }
+      if((event.key === "Enter" || event.key === " ")
+        && !target?.closest?.(".trackPicker__option, .numberPicker__option, .trackPicker__trigger")
+        && resetLetterFilterToAll(picker)){
+        event.preventDefault();
+      }
     });
     window.addEventListener("resize", closeAll);
     clanWarPickerApi = {
-      refreshAll(){
-        for(const picker of pickers.values()) refreshPicker(picker);
-      },
+      refreshAll,
       closeAll,
     };
   }
@@ -2537,8 +3128,16 @@
       }
       await updateCloudMatch(match);
       if(match.status === "completed"){
-        state.matches = mergeMatchList([match, ...state.matches]);
         state.current = null;
+        state.savedMatchPage = 1;
+        if(state.mode === "account"){
+          if(Number.isFinite(Number(state.savedMatchTotal))){
+            state.savedMatchTotal = Number(state.savedMatchTotal) + 1;
+          }
+          await loadCloud();
+        }else{
+          state.matches = mergeMatchList([match, ...state.matches]);
+        }
         showResultDialog(match);
       }
       clearPlacements();
@@ -2657,6 +3256,11 @@
     state.resultDialogMatchId = match.id || "";
     const is6v6 = match.eventType === "6v6";
     const summary = summarizeMatch(match);
+    const breakEven = matchThresholdTotal(summary, match.eventType);
+    const outcome = is6v6 ? resultText(summary.ownTotal, summary.opponentTotal) : breakEvenResultText(summary.ownTotal, breakEven);
+    const outcomeNote = is6v6
+      ? outcome
+      : `${outcome}. 6v18 compares your clan to the ${formatThreshold(teamAverageThreshold(match.eventType))}-point team average per race; the other three teams are not tracked separately.`;
     const selectedTag = normalizeDivisionTag(match.divisionTag);
     const divisionBox = selectedTag ? `
       <div class="mogiResultFormatBox clanWarsDivisionBox" aria-label="Clan division tag">
@@ -2667,9 +3271,9 @@
     body.innerHTML = `
       <div class="clanWarsResultGrid">
         <div class="clanWarsResultStat"><span>Own total</span><b>${summary.ownTotal}</b></div>
-        <div class="clanWarsResultStat"><span>${is6v6 ? "Opponent total" : "Remaining field points"}</span><b>${is6v6 ? summary.opponentTotal : summary.fieldTotal - summary.ownTotal}</b></div>
+        <div class="clanWarsResultStat"><span>${is6v6 ? "Opponent total" : "Break-even"}</span><b>${is6v6 ? summary.opponentTotal : formatThresholdTarget(breakEven)}</b></div>
       </div>
-      <div>${is6v6 ? resultText(summary.ownTotal, summary.opponentTotal) : "6v6v6v6 only tracks your clan total because the other team groups are not known."}</div>
+      <div>${escapeHtml(outcomeNote)}</div>
       ${divisionBox}
     `;
     try{ dialog.showModal(); }catch{ dialog.setAttribute("open", ""); }
@@ -2732,10 +3336,21 @@
         })
         : confirm(`Are you sure you want to delete this ${label} match?`);
       if(!ok) return;
-      if(state.mode === "account") await deleteCloudMatch(match);
+      if(state.mode === "account"){
+        await deleteCloudMatch(match);
+        delete state.openMatchDetails[match.id];
+        if(Number.isFinite(Number(state.savedMatchTotal))){
+          state.savedMatchTotal = Math.max(0, Number(state.savedMatchTotal) - 1);
+          clampSavedMatchPage(state.savedMatchTotal);
+        }
+        await loadCloud();
+        render();
+        showToast("Match deleted.", true);
+        return;
+      }
       state.matches = state.matches.filter((item) => String(item.id) !== String(match.id));
       delete state.openMatchDetails[match.id];
-      if(state.mode === "guest") persistLocal();
+      persistLocal();
       render();
       showToast("Match deleted.", true);
     }catch(e){
@@ -2753,6 +3368,17 @@
     if(own > opponent) return "Win";
     if(own < opponent) return "Loss";
     return "Draw";
+  }
+
+  function breakEvenResultText(own, threshold){
+    if(own > threshold) return "Above break-even";
+    if(own < threshold) return "Below break-even";
+    return "Break-even";
+  }
+
+  function clanWarOutcomeText(match, summary){
+    if(match.eventType === "6v6") return resultText(summary.ownTotal, summary.opponentTotal);
+    return breakEvenResultText(summary.ownTotal, matchThresholdTotal(summary, match.eventType));
   }
 
   function formatDate(value){
@@ -2776,9 +3402,11 @@
 
   function isSilverRace(race){
     if(isGoldRace(race)) return false;
-    const places = new Set((race.placements || []).map(Number));
-    if(!places.has(1) || !places.has(2)) return false;
-    return [3,4,5,6].filter((place) => places.has(place)).length >= 3;
+    const points = Number(race?.ownPoints ?? scoreForPlacements(race?.placements || [], race?.eventType));
+    if(normalizeEventType(race?.eventType) === "6v6v6v6"){
+      return points >= 58 && points <= 62;
+    }
+    return points >= 57 && points <= 60;
   }
 
   function raceToneClass(race){
@@ -2790,26 +3418,40 @@
     return "is-even";
   }
 
-  function trackIconMarkup(trackName, extraClass = ""){
+  function trackIconLoadAttrs(options = {}){
+    const priority = options.priority === "high";
+    return `loading="${priority ? "eager" : "lazy"}" decoding="async" fetchpriority="${priority ? "high" : "low"}"`;
+  }
+
+  function priorityIconOptions(options = {}){
+    const index = Number(options.raceIndex || 0);
+    const limit = Number(options.iconPriorityLimit || 6);
+    return {
+      priority: options.iconPriority === "high" && index < limit ? "high" : "low",
+    };
+  }
+
+  function trackIconMarkup(trackName, extraClass = "", options = {}){
     const iconPath = getTrackIconPath(trackName);
     const className = `raceTrackIcon${extraClass ? ` ${extraClass}` : ""}`;
     if(iconPath){
-      return `<img class="${className}" src="${escapeHtml(iconPath)}" alt="${escapeHtml(trackName || "Track")}" loading="lazy" decoding="async">`;
+      return `<img class="${className}" src="${escapeHtml(iconPath)}" alt="${escapeHtml(trackName || "Track")}" ${trackIconLoadAttrs(options)}>`;
     }
     return `<span class="raceTrackIconFallback${extraClass ? ` ${extraClass}` : ""}" aria-label="${escapeHtml(trackName || "Track")}">${escapeHtml(trackAbbrev(trackName))}</span>`;
   }
 
-  function raceVisualHtml(race){
+  function raceVisualHtml(race, options = {}){
+    const iconOptions = priorityIconOptions(options);
     if(race.raceKind === "intermission" && race.intermissionStart && race.intermissionEnd){
       return `
         <span class="clanWarsRaceRoute" title="${escapeHtml(race.track)}">
-          <span class="clanWarsRaceRoute__node">${trackIconMarkup(race.intermissionStart, "clanWarsRaceIcon")}</span>
+          <span class="clanWarsRaceRoute__node">${trackIconMarkup(race.intermissionStart, "clanWarsRaceIcon", iconOptions)}</span>
           <span class="clanWarsRaceRoute__arrow" aria-hidden="true">-&gt;</span>
-          <span class="clanWarsRaceRoute__node">${trackIconMarkup(race.intermissionEnd, "clanWarsRaceIcon")}</span>
+          <span class="clanWarsRaceRoute__node">${trackIconMarkup(race.intermissionEnd, "clanWarsRaceIcon", iconOptions)}</span>
         </span>
       `;
     }
-    return `<span class="clanWarsRaceVisual">${trackIconMarkup(race.track, "clanWarsRaceIcon")}</span>`;
+    return `<span class="clanWarsRaceVisual">${trackIconMarkup(race.track, "clanWarsRaceIcon", iconOptions)}</span>`;
   }
 
   function raceRowHtml(race, options = {}){
@@ -2828,7 +3470,7 @@
       <button class="clanWarsRaceTile ${medalClass}${race.dc ? " raceRow--dc" : ""}${canEdit ? "" : " is-readonly"}" ${editAttr} data-race-index="${Number(race.raceNumber || 1) - 1}" type="button" title="${escapeHtml(`${race.track} - ${raceMeta(race)}${race.ruleWarning ? ` - ${race.ruleWarning}` : ""}`)}">
         <span class="clanWarsRaceTile__number">${race.raceNumber}</span>
         ${warningTag}
-        ${raceVisualHtml(race)}
+        ${raceVisualHtml(race, options)}
         <span class="clanWarsRaceTile__score ${toneClass}">${race.ownPoints}</span>
       </button>
     `;
@@ -2875,6 +3517,7 @@
     }
     fillSelect(startSelect, [{ value: "", label: "Intermission start" }, ...starts], start);
     fillSelect(endSelect, [{ value: "", label: "Intermission end" }, ...routeOptionItems(ends, start)], end);
+    refreshClanWarPickers();
   }
 
   function renderEditPlacementGrid(){
@@ -2943,6 +3586,7 @@
     renderEditRouteFields();
     renderEditPlacementGrid();
     syncEditIntermissionRouteSelects();
+    refreshClanWarPickers();
     const dcBtn = $("cwEditDcToggle");
     if(dcBtn) dcBtn.classList.toggle("active", state.editDc);
     document.querySelectorAll("[data-cw-edit-kind]").forEach((btn) => {
@@ -3106,7 +3750,7 @@
     return `
       <div class="clanWarsRaceStripWrap">
         <div class="clanWarsRaceStrip" aria-label="${options.savedMatchId ? "Saved Clan Wars races" : "Current Clan Wars races"}">
-          ${(races || []).map((race) => raceRowHtml(race, options)).join("")}
+          ${(races || []).map((race, index) => raceRowHtml(race, { ...options, raceIndex: index })).join("")}
         </div>
       </div>
     `;
@@ -3116,24 +3760,70 @@
     return normalizeDivisionTag(match?.clanName || match?.clan_name || state.activeClan?.name || "Clan");
   }
 
+  function formatSignedPoints(value){
+    const num = Number(value || 0);
+    const text = formatThreshold(num);
+    return num > 0 ? `+${text}` : text;
+  }
+
   function matchScoreHtml(match, summary){
     const own = Number(summary.ownTotal || 0);
     const opponent = Number(summary.opponentTotal || 0);
     if(match.eventType !== "6v6"){
+      const threshold = matchThresholdTotal(summary, match.eventType);
+      const ownTone = own > threshold ? "is-winner" : (own < threshold ? "is-loser" : "is-even");
+      const margin = own - threshold;
       return `
-        <div class="clanWarsMatchScore">
-          <div class="clanWarsScoreLine is-winner"><span>${escapeHtml(matchOwnLabel(match))}</span><b>${own}</b></div>
+        <div class="clanWarsMatchScore clanWarsMatchScore--analysis">
+          <div class="clanWarsScoreCard ${ownTone}">
+            <span>${escapeHtml(matchOwnLabel(match))}</span>
+            <b>${own}</b>
+          </div>
+          <div class="clanWarsScoreCard is-even">
+            <span>Break-even</span>
+            <b>${escapeHtml(formatThresholdTarget(threshold))}</b>
+          </div>
+          <div class="clanWarsScoreDelta ${ownTone}">
+            <span>Margin</span>
+            <b>${escapeHtml(formatSignedPoints(margin))}</b>
+          </div>
         </div>
       `;
     }
     const ownTone = own > opponent ? "is-winner" : (own < opponent ? "is-loser" : "is-even");
     const enemyTone = opponent > own ? "is-winner" : (opponent < own ? "is-loser" : "is-even");
+    const margin = own - opponent;
     return `
-      <div class="clanWarsMatchScore">
-        <div class="clanWarsScoreLine ${ownTone}"><span>${escapeHtml(matchOwnLabel(match))}</span><b>${own}</b></div>
-        <div class="clanWarsScoreLine ${enemyTone}"><span>Enemy</span><b>${opponent}</b></div>
+      <div class="clanWarsMatchScore clanWarsMatchScore--analysis">
+        <div class="clanWarsScoreCard ${ownTone}">
+          <span>${escapeHtml(matchOwnLabel(match))}</span>
+          <b>${own}</b>
+        </div>
+        <div class="clanWarsScoreCard ${enemyTone}">
+          <span>Enemy</span>
+          <b>${opponent}</b>
+        </div>
+        <div class="clanWarsScoreDelta ${ownTone}">
+          <span>Margin</span>
+          <b>${escapeHtml(formatSignedPoints(margin))}</b>
+        </div>
       </div>
     `;
+  }
+
+  function matchTotalToneClass(match, summary = summarizeMatch(match)){
+    const own = Number(summary.ownTotal || 0);
+    if(!Number(summary.raceCount || 0)) return "is-even";
+    if(match.eventType !== "6v6"){
+      const threshold = matchThresholdTotal(summary, match.eventType);
+      if(own > threshold) return "is-winner";
+      if(own < threshold) return "is-loser";
+      return "is-even";
+    }
+    const opponent = Number(summary.opponentTotal || 0);
+    if(own > opponent) return "is-winner";
+    if(own < opponent) return "is-loser";
+    return "is-even";
   }
 
   function divisionSlotButtonHtml(tag){
@@ -3157,8 +3847,9 @@
     const canEdit = canEditMatch(match);
     const tracker = trackerNameFor(match);
     const title = `${EVENT_LABELS[match.eventType]}${normalizeDivisionTag(match.divisionTag) ? ` - ${match.divisionTag}` : ""}`;
+    const totalTone = matchTotalToneClass(match, summary);
     const body = match.races?.length
-      ? renderRaceStrip(match.races, { canEdit })
+      ? renderRaceStrip(match.races, { canEdit, iconPriority: selected ? "high" : "low" })
       : '<div class="emptyState">No races yet.</div>';
     return `
       <div class="clanWarsActiveMatch${selected ? " is-selected" : ""}${canEdit ? "" : " is-readonly"}" data-cw-active-match="${escapeHtml(match.id)}">
@@ -3167,7 +3858,7 @@
             <b>${escapeHtml(title)}</b>
             <small>${escapeHtml(tracker ? `Tracked by ${tracker}` : "Tracked match")}${canEdit ? "" : " - read-only"}</small>
           </span>
-          <span class="clanWarsActiveMatch__total">${summary.ownTotal}</span>
+          <span class="clanWarsActiveMatch__total ${totalTone}">${summary.ownTotal}</span>
         </button>
         ${body}
       </div>
@@ -3176,12 +3867,16 @@
 
   function matchRowHtml(match){
     const summary = summarizeMatch(match);
-    const is6v6 = match.eventType === "6v6";
     const isOpen = !!state.openMatchDetails[match.id];
     const canEdit = canEditMatch(match);
-    const tag = normalizeDivisionTag(match.divisionTag) ? divisionTagPillHtml(match.divisionTag) : "";
-    const titleDivision = normalizeDivisionTag(match.divisionTag) ? ` - ${match.divisionTag}` : "";
     const divisionOptions = divisionTagOptions(match);
+    const completedText = formatDate(match.completedAt || match.createdAt);
+    const tracker = trackerNameFor(match);
+    const metaPills = [
+      savedMatchMetaPillHtml(match.divisionTag, "clanWarsSavedMetaPill--division"),
+      tracker ? savedMatchMetaPillHtml(`Tracked by ${tracker}`, "clanWarsSavedMetaPill--tracker") : "",
+      summary.dcCount > 0 ? savedMatchMetaPillHtml(`${summary.dcCount} DC`, "clanWarsSavedMetaPill--dc") : "",
+    ].filter(Boolean).join("");
     const deleteBox = canEdit ? `
           <div class="clanWarsSavedActions">
             <button class="btn2 danger clanWarsDeleteMatchBtn" type="button" data-cw-delete-match="${escapeHtml(match.id)}">Delete match</button>
@@ -3204,19 +3899,25 @@
             <div class="clanWarsStaticTag">${escapeHtml(match.divisionTag)}</div>
           </div>
     ` : "";
+    const detailsBody = isOpen ? `
+          ${renderRaceStrip(match.races || [], { savedMatchId: match.id, canEdit })}
+          ${divisionBox}
+          ${deleteBox}
+    ` : "";
     return `
       <div class="clanWarsMatchCard${isOpen ? " is-open" : ""}" data-cw-match-card="${escapeHtml(match.id)}" tabindex="0" role="button" aria-expanded="${isOpen ? "true" : "false"}">
         <div class="clanWarsMatchRow">
-          <div>
-            <div class="clanWarsMatchTitle">${escapeHtml(EVENT_LABELS[match.eventType])}${escapeHtml(titleDivision)} - ${escapeHtml(formatDate(match.completedAt || match.createdAt))}</div>
-            <div class="clanWarsMatchMeta">${summary.raceCount} races | ${summary.dcCount} DC | ${is6v6 ? resultText(summary.ownTotal, summary.opponentTotal) : "Own total only"}${tag ? ` | ${tag}` : ""}</div>
+          <div class="clanWarsMatchSummary">
+            <div class="clanWarsMatchTitle">
+              <span class="clanWarsSavedMode">${escapeHtml(EVENT_LABELS[match.eventType])}</span>
+              <span class="clanWarsSavedDate">${escapeHtml(completedText)}</span>
+            </div>
+            <div class="clanWarsMatchMeta">${metaPills || savedMatchMetaPillHtml("Tracked match")}</div>
           </div>
           ${matchScoreHtml(match, summary)}
         </div>
         <div class="clanWarsMatchDetails"${isOpen ? "" : " hidden"}>
-          ${renderRaceStrip(match.races || [], { savedMatchId: match.id, canEdit })}
-          ${divisionBox}
-          ${deleteBox}
+          ${detailsBody}
         </div>
       </div>
     `;
@@ -3265,7 +3966,7 @@
     $("cwTrackField").hidden = is24 && state.raceKind === "intermission";
     updateDestinyNotice();
     const opponentCard = $("cwOpponentTotalCard");
-    if(opponentCard) opponentCard.querySelector(".statLabel").textContent = is24 ? "Remaining field" : "Opponent total";
+    if(opponentCard) opponentCard.querySelector(".statLabel").textContent = is24 ? "Break-even" : "Opponent total";
 
     updatePlacementOptions();
     const dcBtn = $("cwDcToggle");
@@ -3278,7 +3979,7 @@
     const summary = summarizeMatch(state.current || { eventType: state.eventType, races: [] });
     $("cwRaceCount").textContent = `${summary.raceCount} / ${MAX_RACES}`;
     $("cwOwnTotal").textContent = String(summary.ownTotal);
-    $("cwOpponentTotal").textContent = String(state.eventType === "6v6" ? summary.opponentTotal : summary.fieldTotal - summary.ownTotal);
+    $("cwOpponentTotal").textContent = String(state.eventType === "6v6" ? summary.opponentTotal : formatThresholdTarget(matchThresholdTotal(summary, state.eventType)));
     $("cwDcCount").textContent = String(summary.dcCount);
     const scopeBtn = $("cwScopeLabel");
     if(scopeBtn){
@@ -3313,18 +4014,16 @@
         }
       }else{
         const races = state.current?.races || [];
-        raceList.innerHTML = races.length ? renderRaceStrip(races, { canEdit: currentEditable }) : '<div class="emptyState">Start a match by saving the first race.</div>';
+        raceList.innerHTML = races.length ? renderRaceStrip(races, { canEdit: currentEditable, iconPriority: "high" }) : '<div class="emptyState">Start a match by saving the first race.</div>';
       }
     }
-    const saved = mergeMatchList(state.matches.filter((match) => match.status === "completed"));
-    const matchList = $("cwSavedMatchList");
-    if(matchList){
-      matchList.innerHTML = saved.length ? saved.slice(0, 8).map(matchRowHtml).join("") : '<div class="emptyState">No saved Clan Wars matches yet.</div>';
-    }
+    renderSavedMatches();
     $("btnSaveRace").disabled = !state.entryStarted || !currentEditable || summary.raceCount >= MAX_RACES;
     $("btnUndoRace").disabled = !currentEditable;
     $("btnClearPlacements").disabled = !currentEditable;
     $("cwDcToggle").disabled = !currentEditable;
+    updateTrackSuggestionButton();
+    if($("cwTrackSuggestionDialog")?.open) renderTrackSuggestionDialog();
     refreshClanWarPickers();
   }
 
@@ -3345,6 +4044,56 @@
     $("btnClearPlacements")?.addEventListener("click", clearRaceEntry);
     $("btnSaveRace")?.addEventListener("click", saveRace);
     $("btnUndoRace")?.addEventListener("click", undoRace);
+    $("btnCwTrackSuggestions")?.addEventListener("click", () => {
+      if($("cwTrackSuggestionDialog")?.open){
+        closeTrackSuggestionDialog();
+        return;
+      }
+      openTrackSuggestionDialog();
+    });
+    $("btnCloseCwTrackSuggestions")?.addEventListener("click", closeTrackSuggestionDialog);
+    $("cwTrackSuggestionDialog")?.addEventListener("click", (event) => {
+      if(event.target === $("cwTrackSuggestionDialog")) closeTrackSuggestionDialog();
+    });
+    $("cwTrackSuggestionGrid")?.addEventListener("click", (event) => {
+      const button = event.target.closest?.("[data-cw-suggest-track], [data-cw-suggest-route-start]");
+      if(!button) return;
+      const routeStart = String(button.getAttribute("data-cw-suggest-route-start") || "").trim();
+      const routeEnd = String(button.getAttribute("data-cw-suggest-route-end") || "").trim();
+      if(routeStart && routeEnd){
+        selectSuggestedIntermissionRoute(routeStart, routeEnd);
+        closeTrackSuggestionDialog();
+        return;
+      }
+      const track = String(button.getAttribute("data-cw-suggest-track") || "").trim();
+      if(selectSuggestedTrack(track)) closeTrackSuggestionDialog();
+    });
+    $("btnCwSavedPrev")?.addEventListener("click", async () => {
+      if(state.savedMatchPage <= 1) return;
+      state.savedMatchPage -= 1;
+      if(state.mode === "account"){
+        try{ await loadCloud(); }
+        catch(e){ console.error(e); showToast(e?.message || "Could not load matches.", false); }
+        render();
+        return;
+      }
+      renderSavedMatches();
+    });
+    $("btnCwSavedNext")?.addEventListener("click", async () => {
+      const savedCount = state.mode === "account" && Number.isFinite(Number(state.savedMatchTotal))
+        ? Number(state.savedMatchTotal)
+        : mergeMatchList(state.matches.filter((match) => match.status === "completed")).length;
+      const maxPage = savedMatchPageCount(savedCount);
+      if(state.savedMatchPage >= maxPage) return;
+      state.savedMatchPage += 1;
+      if(state.mode === "account"){
+        try{ await loadCloud(); }
+        catch(e){ console.error(e); showToast(e?.message || "Could not load matches.", false); }
+        render();
+        return;
+      }
+      renderSavedMatches();
+    });
     $("cwCurrentRaceList")?.addEventListener("click", (event) => {
       const activeButton = event.target.closest?.("[data-cw-select-active-match]");
       if(activeButton){
@@ -3359,6 +4108,15 @@
       }
       const tile = event.target.closest?.("[data-cw-edit-race]");
       if(!tile) return;
+      const activeCard = tile.closest?.("[data-cw-active-match]");
+      if(activeCard){
+        const matchId = activeCard.getAttribute("data-cw-active-match") || "";
+        const match = allLoadedMatches().find((item) => item.id === matchId);
+        if(match){
+          setCurrentMatch(match);
+          state.entryStarted = true;
+        }
+      }
       openRaceEditDialog(Number(tile.dataset.cwEditRace || 0));
     });
     $("btnSaveRaceEdit")?.addEventListener("click", saveRaceEdit);
