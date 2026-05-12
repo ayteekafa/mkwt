@@ -1406,7 +1406,7 @@
 .clanWarsRaceTile{
   position:relative;
   min-width:0;
-  min-height:92px;
+  min-height:106px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -1555,9 +1555,25 @@
 }
 
 .clanWarsRaceTile__score{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
   font-size:24px;
   line-height:1;
   font-weight:1000;
+}
+
+.clanWarsRaceTile__scoreMain{
+  display:block;
+}
+
+.clanWarsRaceTile__scoreDiff{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:950;
+  line-height:1;
 }
 
 .clanWarsRaceTile__score.is-positive{
@@ -1569,6 +1585,18 @@
 }
 
 .clanWarsRaceTile__score.is-even{
+  color:var(--muted);
+}
+
+.clanWarsRaceTile__scoreDiff.is-positive{
+  color:#55f0a3;
+}
+
+.clanWarsRaceTile__scoreDiff.is-negative{
+  color:#ff7777;
+}
+
+.clanWarsRaceTile__scoreDiff.is-even{
   color:var(--muted);
 }
 
@@ -1973,7 +2001,7 @@
   }
 
   .clanWarsRaceTile{
-    min-height:88px;
+    min-height:100px;
     padding-inline:4px;
   }
 

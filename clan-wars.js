@@ -3389,6 +3389,7 @@
     const parts = [
       `Placements ${race.placements.join(", ")}`,
       `${race.ownPoints} pts`,
+      `${raceDiffText(race)} diff`,
     ];
     if(race.eventType === "6v6" && race.opponentPoints != null) parts.push(`${race.opponentPoints} opponent`);
     if(race.dc) parts.push("DC");
@@ -3410,12 +3411,25 @@
   }
 
   function raceToneClass(race){
-    const teamCount = race.eventType === "6v6v6v6" ? 4 : 2;
-    const average = Number(race.fieldPoints || fieldTotal(race.eventType)) / teamCount;
-    const points = Number(race.ownPoints || 0);
-    if(points > average) return "is-positive";
-    if(points < average) return "is-negative";
+    const diff = raceDiffValue(race);
+    if(diff > 0) return "is-positive";
+    if(diff < 0) return "is-negative";
     return "is-even";
+  }
+
+  function raceDiffValue(race){
+    const eventType = normalizeEventType(race?.eventType);
+    const own = Number(race?.ownPoints || 0);
+    const field = Number(race?.fieldPoints || fieldTotal(eventType));
+    if(eventType === "6v6"){
+      const opponent = Number(race?.opponentPoints);
+      return own - (Number.isFinite(opponent) ? opponent : (field - own));
+    }
+    return own - (field / teamCount(eventType));
+  }
+
+  function raceDiffText(race){
+    return `(${formatSignedPoints(raceDiffValue(race))})`;
   }
 
   function trackIconLoadAttrs(options = {}){
@@ -3682,9 +3696,12 @@
 
     ctx.textBaseline = "top";
     ctx.textAlign = "center";
-    ctx.font = "1000 34px Arial, sans-serif";
+    ctx.font = "1000 31px Arial, sans-serif";
     ctx.fillStyle = tone === "is-positive" ? theme.good : (tone === "is-negative" ? theme.bad : theme.muted);
-    ctx.fillText(String(race.ownPoints || 0), x + w / 2, y + h - 46);
+    ctx.fillText(String(race.ownPoints || 0), x + w / 2, y + h - 58);
+    ctx.font = "900 17px Arial, sans-serif";
+    ctx.fillStyle = tone === "is-positive" ? theme.good : (tone === "is-negative" ? theme.bad : theme.muted);
+    ctx.fillText(raceDiffText(race), x + w / 2, y + h - 25);
   }
 
   function safeFilename(name){
@@ -3756,7 +3773,7 @@
       const gridCols = 6;
       const gridGap = 14;
       const tileW = (cardW - pad * 2 - gridGap * (gridCols - 1)) / gridCols;
-      const tileH = 164;
+      const tileH = 176;
       const raceRows = Math.max(1, Math.ceil(Math.max(1, races.length) / gridCols));
       const gridY = cardY + 192;
       const gridH = raceRows * tileH + Math.max(0, raceRows - 1) * gridGap;
@@ -3923,7 +3940,10 @@
         <span class="clanWarsRaceTile__number">${race.raceNumber}</span>
         ${warningTag}
         ${raceVisualHtml(race, options)}
-        <span class="clanWarsRaceTile__score ${toneClass}">${race.ownPoints}</span>
+        <span class="clanWarsRaceTile__score ${toneClass}">
+          <span class="clanWarsRaceTile__scoreMain">${race.ownPoints}</span>
+          <span class="clanWarsRaceTile__scoreDiff ${toneClass}">${escapeHtml(raceDiffText(race))}</span>
+        </span>
       </button>
     `;
   }
