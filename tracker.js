@@ -189,13 +189,6 @@ function placementBannerClass(placement){
   return "";
 }
 
-function placementIconClass(placement){
-  const place = Number(placement);
-  if (place === 1) return "mcard__iconStage--gold";
-  if (place === 2) return "mcard__iconStage--silver";
-  return "";
-}
-
 // ========= Track-Liste =========
 // Track names normalized to match the Intermission route JSON exactly.
 const TRACKS = [
@@ -296,20 +289,16 @@ function preloadTrackPickerIcons(){
   return trackPickerIconWarmupPromise;
 }
 
-function trackIconMarkup(trackName, extraClass = "", withFoil = false) {
+function trackIconMarkup(trackName, extraClass = "") {
   const iconPath = getTrackIconPath(trackName);
   const classSuffix = extraClass ? ` ${escapeHtml(extraClass)}` : "";
   const safeTrack = escapeHtml(trackName);
   if (iconPath) {
     const safePath = escapeHtml(iconPath);
-    const baseIcon = `<img class="mcard__routeIcon${classSuffix}" src="${safePath}" alt="${safeTrack}" title="${safeTrack}" loading="lazy" decoding="async" />`;
-    if (!withFoil) return baseIcon;
-    return `<span class="mcard__routeIconWrap">${baseIcon}<img class="mcard__routeIcon mcard__routeIconFoil" src="${safePath}" alt="" aria-hidden="true" loading="lazy" decoding="async" /></span>`;
+    return `<img class="mcard__routeIcon${classSuffix}" src="${safePath}" alt="${safeTrack}" title="${safeTrack}" loading="lazy" decoding="async" />`;
   }
   const fallbackText = escapeHtml(trackAbbrev(trackName));
-  const baseFallback = `<span class="mcard__routeIconFallback${classSuffix}" title="${safeTrack}">${fallbackText}</span>`;
-  if (!withFoil) return baseFallback;
-  return `<span class="mcard__routeIconWrap">${baseFallback}<span class="mcard__routeIconFallback mcard__routeIconFoil" aria-hidden="true">${fallbackText}</span></span>`;
+  return `<span class="mcard__routeIconFallback${classSuffix}" title="${safeTrack}">${fallbackText}</span>`;
 }
 
 const TRACK_PICKER_TEST_ENABLED = true;
@@ -1221,12 +1210,12 @@ const endName = track || "-";
 
 const trackHtml = isIntermission
   ? `<div class="mcard__route mcard__route--im" title="${escapeHtml(startName)} > ${escapeHtml(endName)}">
-       <div class="mcard__routeNode" title="${escapeHtml(startName)}">${trackIconMarkup(startName, "", true)}</div>
+       <div class="mcard__routeNode" title="${escapeHtml(startName)}">${trackIconMarkup(startName)}</div>
        <div class="mcard__routeArrow" aria-hidden="true">&rarr;</div>
-       <div class="mcard__routeNode mcard__routeNode--destiny" title="${escapeHtml(endName)}">${trackIconMarkup(endName, "", true)}</div>
+       <div class="mcard__routeNode mcard__routeNode--destiny" title="${escapeHtml(endName)}">${trackIconMarkup(endName)}</div>
      </div>`
   : `<div class="mcard__route" title="${escapeHtml(endName)}">
-       <div class="mcard__routeNode" title="${escapeHtml(endName)}">${trackIconMarkup(endName, "", true)}</div>
+       <div class="mcard__routeNode" title="${escapeHtml(endName)}">${trackIconMarkup(endName)}</div>
      </div>`;
       const delta = Number(r.vr_change || 0);
       const vrAfter = (r.vr_after ?? null);
@@ -1234,7 +1223,6 @@ const trackHtml = isIntermission
       const deltaStr = (delta > 0 ? `+${delta}` : `${delta}`);
       const deltaCls = delta > 0 ? "mcard__vrDelta--pos" : (delta < 0 ? "mcard__vrDelta--neg" : "mcard__vrDelta--neutral");
       const canDelete = (currentPage === 1 && idx === 0);
-      const iconClass = placementIconClass(r.placement);
 
       const hasPlace = (r.placement != null && r.placement !== "" && Number(r.placement) > 0);
       const hasOpp = (r.opponents != null && r.opponents !== "" && Number(r.opponents) > 0);
@@ -1258,7 +1246,7 @@ const trackHtml = isIntermission
           <div class="mcard__meta mcard__meta--tl"><span>#${matchNo}</span></div>
 
           <div class="mcard__main">
-            <div class="mcard__iconStage${iconClass ? ` ${iconClass}` : ""}" aria-hidden="false">
+            <div class="mcard__iconStage" aria-hidden="false">
               ${trackHtml}
             </div>
             <div class="mcard__vr">

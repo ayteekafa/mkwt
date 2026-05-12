@@ -1496,70 +1496,7 @@
       margin-top:8px;
       isolation:isolate;
     }
-    .mcard__iconStage > *{
-      position:relative;
-      z-index:1;
-    }
-    .mcard__routeIconWrap{
-      position:relative;
-      display:grid;
-      place-items:center;
-      width:52px;
-      height:52px;
-      isolation:isolate;
-    }
-    .mcard__routeIconWrap > .mcard__routeIcon,
-    .mcard__routeIconWrap > .mcard__routeIconFallback{
-      grid-area:1 / 1;
-    }
-    .mcard__routeIconFoil{
-      position:absolute;
-      inset:0;
-      z-index:2;
-      pointer-events:none;
-      opacity:0;
-      mix-blend-mode:screen;
-      will-change:filter, opacity;
-    }
-    .mcard__iconStage--gold .mcard__routeIconFoil{
-      animation:mcardGoldIconFoil 4.2s ease-in-out infinite;
-    }
-    .mcard__iconStage--silver .mcard__routeIconFoil{
-      animation:mcardSilverIconFoil 4.2s ease-in-out infinite;
-    }
-    @keyframes mcardGoldIconFoil{
-      0%,100%{
-        opacity:.18;
-        filter:brightness(0) saturate(100%) invert(81%) sepia(72%) saturate(899%) hue-rotate(356deg) brightness(104%) contrast(104%) drop-shadow(0 0 7px rgba(255,205,70,.30)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
-      }
-      18%{
-        opacity:.58;
-        filter:brightness(0) saturate(100%) invert(88%) sepia(86%) saturate(1030%) hue-rotate(354deg) brightness(112%) contrast(108%) drop-shadow(0 0 15px rgba(255,238,150,.66)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
-      }
-      42%{
-        opacity:.30;
-        filter:brightness(0) saturate(100%) invert(82%) sepia(76%) saturate(920%) hue-rotate(356deg) brightness(107%) contrast(105%) drop-shadow(0 0 10px rgba(255,205,70,.42)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
-      }
-    }
-    @keyframes mcardSilverIconFoil{
-      0%,100%{
-        opacity:.18;
-        filter:brightness(0) saturate(100%) invert(92%) sepia(8%) saturate(324%) hue-rotate(179deg) brightness(103%) contrast(93%) drop-shadow(0 0 7px rgba(210,220,232,.28)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
-      }
-      18%{
-        opacity:.55;
-        filter:brightness(0) saturate(100%) invert(98%) sepia(7%) saturate(392%) hue-rotate(176deg) brightness(112%) contrast(98%) drop-shadow(0 0 15px rgba(246,250,255,.62)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
-      }
-      42%{
-        opacity:.28;
-        filter:brightness(0) saturate(100%) invert(94%) sepia(8%) saturate(336%) hue-rotate(179deg) brightness(106%) contrast(94%) drop-shadow(0 0 10px rgba(210,220,232,.40)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
-      }
-    }
     .mcard__route--im .mcard__routeNode{
-      width:40px;
-      height:40px;
-    }
-    .mcard__route--im .mcard__routeIconWrap{
       width:40px;
       height:40px;
     }
@@ -1604,14 +1541,12 @@
       .mcard.is-expanded{
         min-height:126px;
       }
-      .mcard__routeIconWrap,
       .mcard__routeNode,
       .mcard__routeIcon,
       .mcard__routeIconFallback{
         width:52px;
         height:52px;
       }
-      .mcard__route--im .mcard__routeIconWrap,
       .mcard__route--im .mcard__routeNode,
       .mcard__route--im .mcard__routeIcon,
       .mcard__route--im .mcard__routeIconFallback{
@@ -1623,19 +1558,6 @@
       }
       .mcard__vrDelta{
         font-size:14px;
-      }
-    }
-    @media (prefers-reduced-motion: reduce){
-      .mcard__iconStage--gold .mcard__routeIconFoil,
-      .mcard__iconStage--silver .mcard__routeIconFoil{
-        animation:none;
-        opacity:.28;
-      }
-      .mcard__iconStage--gold .mcard__routeIconFoil{
-        filter:brightness(0) saturate(100%) invert(84%) sepia(78%) saturate(960%) hue-rotate(355deg) brightness(108%) contrast(106%) drop-shadow(0 0 10px rgba(255,205,70,.42)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
-      }
-      .mcard__iconStage--silver .mcard__routeIconFoil{
-        filter:brightness(0) saturate(100%) invert(96%) sepia(7%) saturate(360%) hue-rotate(178deg) brightness(108%) contrast(96%) drop-shadow(0 0 10px rgba(210,220,232,.38)) drop-shadow(0 6px 12px rgba(0,0,0,.26));
       }
     }
 
