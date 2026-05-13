@@ -35,7 +35,7 @@
     24: ['FFA', '2v2', '3v3', '4v4', '6v6', '8v8', '12v12', 'SQ2v2', 'SQ3v3', 'SQ4v4', 'SQ6v6', 'SQ8v8', 'SQ12v12', NON_LOUNGE_FORMAT_TAG]
   };
   const ALL_LOUNGE_FORMAT_TAGS = new Set(Object.values(LOUNGE_FORMAT_TAGS).flat());
-  const LOUNGE_TIER_CODES = ['X', 'S', 'A', 'AB', 'B', 'BC', 'C', 'CD', 'D', 'DE', 'E', 'F'];
+  const LOUNGE_TIER_CODES = ['X', 'S', 'A', 'AB', 'B', 'BC', 'C', 'CD', 'D', 'DE', 'E', 'EF', 'F'];
   const LOUNGE_TIER_TAGS = LOUNGE_TIER_CODES.map(code => `Tier ${code}`);
   const LOUNGE_TIER_ORDER = new Map(LOUNGE_TIER_CODES.map((code, index) => [`Tier ${code}`, index]));
   const STORAGE_CURRENT = PAGE_CONFIG.storageSuffix === '12' ? 'mkwt_lounge_current_v1' : `mkwt_lounge${PAGE_CONFIG.storageSuffix}_current_v1`;

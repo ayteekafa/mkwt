@@ -3941,8 +3941,8 @@
         ${warningTag}
         ${raceVisualHtml(race, options)}
         <span class="clanWarsRaceTile__score ${toneClass}">
-          <span class="clanWarsRaceTile__scoreMain">${race.ownPoints}</span>
-          <span class="clanWarsRaceTile__scoreDiff ${toneClass}">${escapeHtml(raceDiffText(race))}</span>
+          <span class="clanWarsRaceTile__scoreMain">${escapeHtml(formatSignedPoints(raceDiffValue(race)))}</span>
+          <span class="clanWarsRaceTile__scoreDiff ${toneClass}">(${race.ownPoints})</span>
         </span>
       </button>
     `;

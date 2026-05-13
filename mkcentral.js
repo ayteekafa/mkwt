@@ -99,7 +99,7 @@
     "24": "mkwt_lounge24_sessions_v1",
   };
   const NON_LOUNGE_FORMAT_TAG = "Non-Lounge";
-  const LOUNGE_TIER_CODES = ["X", "S", "A", "AB", "B", "BC", "C", "CD", "D", "DE", "E", "F"];
+  const LOUNGE_TIER_CODES = ["X", "S", "A", "AB", "B", "BC", "C", "CD", "D", "DE", "E", "EF", "F"];
   const LOUNGE_TIER_TAGS = LOUNGE_TIER_CODES.map((code) => `Tier ${code}`);
   const LOUNGE_TIER_ORDER = new Map(LOUNGE_TIER_TAGS.map((tag, index) => [tag, index]));
   const LOUNGE_TRACKER_CHART_MODES = ["tracks", "im_destiny", "im_special_destiny", "im_routes", "placement"];
@@ -1174,7 +1174,7 @@
         return av - bv || b.count - a.count || b.avg - a.avg || a.label.localeCompare(b.label);
       }
       if(key === "tier"){
-        const order = ["X", "S", "A", "AB", "B", "BC", "C", "CD", "D", "DE", "E", "F", "OTHER"];
+        const order = [...LOUNGE_TIER_CODES, "OTHER"];
         const ai = order.indexOf(String(a.label).toUpperCase());
         const bi = order.indexOf(String(b.label).toUpperCase());
         const av = ai === -1 ? order.length : ai;
