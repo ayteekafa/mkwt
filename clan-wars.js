@@ -4116,10 +4116,10 @@
     ctx.textAlign = "center";
     ctx.font = "1000 31px Arial, sans-serif";
     ctx.fillStyle = tone === "is-positive" ? theme.good : (tone === "is-negative" ? theme.bad : theme.muted);
-    ctx.fillText(String(race.ownPoints || 0), x + w / 2, y + h - 58);
+    ctx.fillText(formatSignedPoints(raceDiffValue(race)), x + w / 2, y + h - 58);
     ctx.font = "900 17px Arial, sans-serif";
     ctx.fillStyle = tone === "is-positive" ? theme.good : (tone === "is-negative" ? theme.bad : theme.muted);
-    ctx.fillText(raceDiffText(race), x + w / 2, y + h - 25);
+    ctx.fillText(`(${race.ownPoints || 0})`, x + w / 2, y + h - 25);
   }
 
   function safeFilename(name){
