@@ -16,7 +16,7 @@
   <link href="mkwt_theme_v3.css" rel="stylesheet"/>
   <link href="stats.css" rel="stylesheet"/>
   <link href="mkcentral.css" rel="stylesheet"/>
-  <link href="clan-wars.css" rel="stylesheet"/>
+  <link href="clan-wars.css?v=20260514c" rel="stylesheet"/>
 </head>
 <body>
   <nav class="nav">
@@ -122,6 +122,54 @@
             <button aria-label="Show separated route performance" class="chartPagerBtn" data-cw-stats-chart-mode="im_routes" type="button">Separated</button>
             <button aria-label="Show placement distribution" class="chartPagerBtn" data-cw-stats-chart-mode="placement" type="button">Placement</button>
           </div>
+        </div>
+      </div>
+
+      <div class="clanWarsStatsDivisionBlock">
+        <div class="sectionHead clanWarsStatsSubHead">
+          <div>
+            <h3>Division Stats</h3>
+            <div class="muted" id="cwStatsDivisionMeta">No Clan Wars data yet.</div>
+          </div>
+        </div>
+        <div class="clanWarsDivisionStatsBody" id="cwStatsDivisionCards">
+          <div class="emptyState">Loading division stats...</div>
+        </div>
+      </div>
+
+      <div class="clanWarsStatsAnalyticsGrid">
+        <div class="card mkcTrackerChartCard clanWarsStatsChartCard clanWarsStatsBreakdownCard">
+          <div class="mkcTrackerChartHead clanWarsStatsAnalyticsHead">
+            <div>
+              <div class="mkcChartTitleLine">
+                <h4>Division Match Share</h4>
+              </div>
+              <div class="muted" id="cwStatsDivisionPieMeta">Matches by division</div>
+            </div>
+            <div class="mkcTrackerChartActions">
+              <div class="modeToggle mkcTrackerModeToggle clanWarsStatsEventToggle clanWarsStatsAnalyticsEventToggle" aria-label="Analytics event type">
+                <button class="modeBtn isActive active" data-cw-stats-analytics-event="6v6" type="button">6v6</button>
+                <button class="modeBtn" data-cw-stats-analytics-event="6v6v6v6" type="button">6v18</button>
+              </div>
+            </div>
+          </div>
+          <div class="clanWarsStatsPieLayout">
+            <div class="mkcChartWrap clanWarsStatsPieWrap"><canvas id="chartCwStatsDivisionPie"></canvas></div>
+            <div class="clanWarsStatsLegend" id="cwStatsDivisionPieLegend"></div>
+          </div>
+        </div>
+
+        <div class="card mkcTrackerChartCard clanWarsStatsChartCard clanWarsStatsDailyCard">
+          <div class="mkcTrackerChartHead">
+            <div>
+              <div class="mkcChartTitleLine">
+                <h4>Clan Wars Per Day</h4>
+              </div>
+              <div class="muted" id="cwStatsDailyMeta">Daily match count</div>
+            </div>
+          </div>
+          <div class="clanWarsStatsDailyMetrics" id="cwStatsDailyMetrics"></div>
+          <div class="mkcChartWrap clanWarsStatsDailyWrap"><canvas id="chartCwStatsDailyMatches"></canvas></div>
         </div>
       </div>
     </section>

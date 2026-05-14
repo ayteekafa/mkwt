@@ -25,6 +25,7 @@
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
   const CHART_MODES = ["tracks", "im_destiny", "im_special_destiny", "im_routes", "placement"];
   const INTERMISSION_CHART_MODES = new Set(["im_destiny", "im_special_destiny", "im_routes"]);
+  const DIVISION_CHART_COLORS = ["#ff474d", "#4e7cff", "#55f0a3", "#ffd15c", "#b879ff", "#46d5d5", "#ff8b5e", "#a7b8ff"];
   const $ = (id) => document.getElementById(id);
 
   const state = {
@@ -32,6 +33,7 @@
     session: null,
     client: null,
     eventType: "6v6",
+    analyticsEventType: "6v6",
     chartMode: "tracks",
     trackSortKey: "avg",
     trackSortDir: "desc",
@@ -42,6 +44,8 @@
     intermissionMeta: {},
     performanceChart: null,
     placementChart: null,
+    divisionPieChart: null,
+    dailyMatchesChart: null,
     lastPerformanceStats: [],
     lastSelectedPerformance: "",
   };
@@ -129,6 +133,14 @@
 
   function eventLabel(eventType = state.eventType){
     return EVENT_LABELS[normalizeEventType(eventType)] || "6v6";
+  }
+
+  function analyticsEventType(){
+    return normalizeEventType(state.analyticsEventType);
+  }
+
+  function analyticsEventLabel(){
+    return eventLabel(analyticsEventType());
   }
 
   function scoreMap(eventType = state.eventType){
@@ -804,6 +816,205 @@
     return rows;
   }
 
+  function allTrackedMatches(){
+    return state.matches.filter((match) => Array.isArray(match.races) && match.races.length);
+  }
+
+  function allEventMatches(eventType = state.eventType){
+    const normalized = normalizeEventType(eventType);
+    return allTrackedMatches().filter((match) => match.eventType === normalized);
+  }
+
+  function divisionStatsOptions(matches = allEventMatches()){
+    const options = new Map();
+    const slotIndex = new Map();
+    if(state.activeClan){
+      clanDivisionSlots().forEach((tag, index) => {
+        const key = divisionKey(tag);
+        slotIndex.set(key, index);
+        options.set(key, { key, label: divisionLabel(tag), tag: normalizeDivisionTag(tag), sortIndex: index });
+      });
+    }
+    matches.forEach((match) => {
+      const tag = normalizeDivisionTag(match.divisionTag);
+      if(!tag && state.activeClan) return;
+      const key = divisionKey(tag);
+      if(!options.has(key)){
+        const sortIndex = slotIndex.has(key) ? slotIndex.get(key) : slotIndex.size + options.size;
+        options.set(key, { key, label: divisionLabel(tag), tag, sortIndex });
+      }
+    });
+    return Array.from(options.values()).sort((a, b) => {
+      const sortDiff = Number(a.sortIndex || 0) - Number(b.sortIndex || 0);
+      if(sortDiff !== 0) return sortDiff;
+      return String(a.label || "").localeCompare(String(b.label || ""), "en");
+    });
+  }
+
+  function matchThresholdTotal(summary, eventType = state.eventType){
+    const races = Number(summary?.raceCount || 0);
+    const total = Number(summary?.fieldTotal || 0);
+    if(races > 0 && total > 0) return total / teamCount(eventType);
+    return expectedTeamAverage(eventType);
+  }
+
+  function divisionStatsPickLabel(race){
+    if(!race || race.dc) return "";
+    if(isIntermissionRace(race)){
+      const { start, end } = routeParts(race);
+      return start && end ? routeLabel(start, end) : "";
+    }
+    const track = cleanText(race.track);
+    return track && track !== "Intermission" ? track : "";
+  }
+
+  function buildDivisionStats(matches = allEventMatches()){
+    const options = divisionStatsOptions(matches);
+    const optionByKey = new Map(options.map((option) => [option.key, option]));
+    const groups = new Map();
+    const ensureGroup = (tag) => {
+      const key = divisionKey(tag);
+      const option = optionByKey.get(key) || { key, tag: normalizeDivisionTag(tag), label: divisionLabel(tag), sortIndex: optionByKey.size + groups.size };
+      if(!groups.has(key)){
+        groups.set(key, {
+          key,
+          tag: option.tag,
+          label: option.label,
+          sortIndex: option.sortIndex,
+          matches: 0,
+          races: 0,
+          nonDcRaces: 0,
+          dcCount: 0,
+          uniqueTracks: 0,
+          totalPoints: 0,
+          racePoints: 0,
+          maxPoints: null,
+          marginTotal: 0,
+          marginCount: 0,
+          tracks: new Map(),
+          bestTrack: null,
+          worstTrack: null,
+        });
+      }
+      return groups.get(key);
+    };
+
+    options.forEach((option) => ensureGroup(option.tag));
+    matches.forEach((match) => {
+      const group = ensureGroup(match.divisionTag);
+      const summary = summarizeMatch(match);
+      const eventType = normalizeEventType(match.eventType);
+      group.matches += 1;
+      group.races += Number(summary.raceCount || 0);
+      group.dcCount += Number(summary.dcCount || 0);
+      group.totalPoints += Number(summary.ownTotal || 0);
+      group.maxPoints = group.maxPoints == null ? Number(summary.ownTotal || 0) : Math.max(group.maxPoints, Number(summary.ownTotal || 0));
+      const comparison = eventType === "6v6"
+        ? Number(summary.opponentTotal || 0)
+        : Number(matchThresholdTotal(summary, eventType));
+      const margin = Number(summary.ownTotal || 0) - comparison;
+      if(Number.isFinite(margin)){
+        group.marginTotal += margin;
+        group.marginCount += 1;
+      }
+      (match.races || []).forEach((race) => {
+        if(race.dc) return;
+        const points = Number(race.ownPoints || 0);
+        group.nonDcRaces += 1;
+        group.racePoints += points;
+        const label = divisionStatsPickLabel(race);
+        if(!label) return;
+        const key = `${isIntermissionRace(race) ? "route" : "track"}|${label.toLowerCase()}`;
+        const row = group.tracks.get(key) || { label, count: 0, total: 0, avg: 0 };
+        row.count += 1;
+        row.total += points;
+        row.avg = row.count ? row.total / row.count : 0;
+        group.tracks.set(key, row);
+      });
+    });
+
+    return Array.from(groups.values()).map((group) => {
+      const rows = Array.from(group.tracks.values());
+      const qualifiedRows = rows.filter((row) => Number(row.count || 0) >= MIN_TRACK_PLAYS_FOR_HIGHLIGHT);
+      const sortBest = (a, b) => {
+        const avgDiff = Number(b.avg || 0) - Number(a.avg || 0);
+        if(avgDiff !== 0) return avgDiff;
+        const countDiff = Number(b.count || 0) - Number(a.count || 0);
+        if(countDiff !== 0) return countDiff;
+        return String(a.label || "").localeCompare(String(b.label || ""), "en");
+      };
+      const sortWorst = (a, b) => {
+        const avgDiff = Number(a.avg || 0) - Number(b.avg || 0);
+        if(avgDiff !== 0) return avgDiff;
+        const countDiff = Number(b.count || 0) - Number(a.count || 0);
+        if(countDiff !== 0) return countDiff;
+        return String(a.label || "").localeCompare(String(b.label || ""), "en");
+      };
+      return {
+        ...group,
+        uniqueTracks: rows.length,
+        avgPoints: group.matches ? group.totalPoints / group.matches : null,
+        avgRacePoints: group.nonDcRaces ? group.racePoints / group.nonDcRaces : null,
+        avgMargin: group.marginCount ? group.marginTotal / group.marginCount : null,
+        bestTrack: qualifiedRows.slice().sort(sortBest)[0] || null,
+        worstTrack: qualifiedRows.slice().sort(sortWorst)[0] || null,
+      };
+    }).sort((a, b) => {
+      const sortDiff = Number(a.sortIndex || 0) - Number(b.sortIndex || 0);
+      if(sortDiff !== 0) return sortDiff;
+      return String(a.label || "").localeCompare(String(b.label || ""), "en");
+    });
+  }
+
+  function formatStatNumber(value, digits = 1){
+    if(value == null || !Number.isFinite(Number(value))) return "-";
+    const num = Number(value);
+    return Number.isInteger(num) ? String(num) : num.toFixed(digits);
+  }
+
+  function formatSigned(value, digits = 1){
+    if(value == null || !Number.isFinite(Number(value))) return "-";
+    const num = Number(value);
+    const text = Number.isInteger(num) ? String(Math.abs(num)) : Math.abs(num).toFixed(digits);
+    return `${num > 0 ? "+" : num < 0 ? "-" : ""}${text}`;
+  }
+
+  function localDateKey(value){
+    const date = new Date(value || "");
+    if(Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function dateKeyLabel(key){
+    const match = String(key || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? `${match[3]}.${match[2]}.` : key;
+  }
+
+  function aggregateDailyMatches(matches = allTrackedMatches()){
+    const bucket = new Map();
+    matches.forEach((match) => {
+      const key = localDateKey(match.completedAt || match.createdAt || match.updatedAt);
+      if(!key) return;
+      const row = bucket.get(key) || { date: key, label: dateKeyLabel(key), count: 0, sixV6: 0, sixV18: 0 };
+      const eventType = normalizeEventType(match.eventType);
+      row.count += 1;
+      if(eventType === "6v6v6v6") row.sixV18 += 1;
+      else row.sixV6 += 1;
+      bucket.set(key, row);
+    });
+    return Array.from(bucket.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function daysBetweenInclusive(firstKey, lastKey){
+    const first = new Date(`${firstKey}T00:00:00`);
+    const last = new Date(`${lastKey}T00:00:00`);
+    if(Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()) || last < first) return 0;
+    return Math.floor((last - first) / 86400000) + 1;
+  }
+
   function cssVar(name, fallback = ""){
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   }
@@ -888,8 +1099,12 @@
   function destroyCharts(){
     state.performanceChart?.destroy();
     state.placementChart?.destroy();
+    state.divisionPieChart?.destroy();
+    state.dailyMatchesChart?.destroy();
     state.performanceChart = null;
     state.placementChart = null;
+    state.divisionPieChart = null;
+    state.dailyMatchesChart = null;
   }
 
   function renderChartLibraryMissing(){
@@ -898,6 +1113,8 @@
     resetChartHeight("chartCwStatsPlacement");
     setChartEmpty("chartCwStatsPerformance", "Charts could not load. Check your connection and reload.");
     setChartEmpty("chartCwStatsPlacement", "Charts could not load. Check your connection and reload.");
+    setChartEmpty("chartCwStatsDivisionPie", "Charts could not load. Check your connection and reload.");
+    setChartEmpty("chartCwStatsDailyMatches", "Charts could not load. Check your connection and reload.");
     renderEmptyNotice("cwStatsPerformanceInsight", "Charts could not load.");
     renderEmptyNotice("cwStatsPlacementInsight", "Charts could not load.");
   }
@@ -1099,6 +1316,274 @@
     });
   }
 
+  function divisionColor(index, alpha = 1){
+    const color = DIVISION_CHART_COLORS[index % DIVISION_CHART_COLORS.length];
+    return alpha >= 1 ? color : colorWithAlpha(color, alpha);
+  }
+
+  function divisionMetricHtml(label, value, tone = ""){
+    return `
+      <div class="clanWarsDivisionStatsMetric${tone ? ` ${tone}` : ""}">
+        <span>${escapeHtml(label)}</span>
+        <b>${escapeHtml(value)}</b>
+      </div>
+    `;
+  }
+
+  function divisionTrackHtml(label, row){
+    const name = row?.label || "Not enough data";
+    const meta = row
+      ? `${row.count} plays - ${formatStatNumber(row.avg, 2)} avg`
+      : `No track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`;
+    return `
+      <div class="clanWarsDivisionStatsTrack">
+        <span>${escapeHtml(label)}</span>
+        <b>${escapeHtml(name)}</b>
+        <small>${escapeHtml(meta)}</small>
+      </div>
+    `;
+  }
+
+  function divisionCardHtml(group, label = eventLabel(state.eventType)){
+    const marginTone = group.avgMargin > 0 ? "is-positive" : (group.avgMargin < 0 ? "is-negative" : "");
+    return `
+      <article class="clanWarsDivisionStatsCard clanWarsStatsDivisionCard">
+        <header class="clanWarsDivisionStatsCard__head">
+          <h3>${escapeHtml(group.label)}</h3>
+          <span>${escapeHtml(label)}</span>
+        </header>
+        <div class="clanWarsDivisionStatsMetrics">
+          ${divisionMetricHtml("Wars", String(group.matches || 0))}
+          ${divisionMetricHtml("Races", String(group.races || 0))}
+          ${divisionMetricHtml("Tracks", String(group.uniqueTracks || 0))}
+          ${divisionMetricHtml("Avg pts", formatStatNumber(group.avgPoints))}
+          ${divisionMetricHtml("Avg race", formatStatNumber(group.avgRacePoints, 2))}
+          ${divisionMetricHtml("Max", formatStatNumber(group.maxPoints))}
+          ${divisionMetricHtml("Margin", group.avgMargin == null ? "-" : formatSigned(group.avgMargin), marginTone)}
+          ${divisionMetricHtml("DC", String(group.dcCount || 0))}
+        </div>
+        <div class="clanWarsDivisionStatsTracks">
+          ${divisionTrackHtml("Best track", group.bestTrack)}
+          ${divisionTrackHtml("Worst track", group.worstTrack)}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderDivisionStatsSection(stats, matches, eventType = state.eventType){
+    const body = $("cwStatsDivisionCards");
+    const meta = $("cwStatsDivisionMeta");
+    const totalRaces = matches.reduce((sum, match) => sum + Number(summarizeMatch(match).raceCount || 0), 0);
+    const label = eventLabel(eventType);
+    if(meta) meta.textContent = `${label} - ${matches.length} wars - ${totalRaces} races`;
+    if(!body) return;
+    if(!stats.length){
+      body.innerHTML = `<div class="emptyState">No ${escapeHtml(label)} division data yet.</div>`;
+      return;
+    }
+    body.innerHTML = `
+      <div class="clanWarsDivisionStatsGrid clanWarsStatsDivisionGrid">
+        ${stats.map((group) => divisionCardHtml(group, label)).join("")}
+      </div>
+    `;
+  }
+
+  function renderDivisionPieChart(stats){
+    const canvas = $("chartCwStatsDivisionPie");
+    const legend = $("cwStatsDivisionPieLegend");
+    const meta = $("cwStatsDivisionPieMeta");
+    if(!canvas) return;
+    const rows = stats;
+    const total = rows.reduce((sum, row) => sum + Number(row.matches || 0), 0);
+    const label = analyticsEventLabel();
+    if(meta) meta.textContent = total ? `${total} ${label} matches by division` : `No ${label} division matches yet`;
+    if(legend){
+      legend.innerHTML = rows.length
+        ? rows.map((row, index) => {
+          const share = total ? ((Number(row.matches || 0) / total) * 100).toFixed(1) : "0.0";
+          const zeroClass = Number(row.matches || 0) > 0 ? "" : " is-zero";
+          return `
+            <div class="clanWarsStatsLegendRow${zeroClass}">
+              <span class="clanWarsStatsLegendSwatch" style="--legend-color:${escapeHtml(divisionColor(index))}"></span>
+              <span class="clanWarsStatsLegendName">${escapeHtml(row.label)}</span>
+              <b>${row.matches}</b>
+              <small>${share}%</small>
+            </div>
+          `;
+        }).join("")
+        : `<div class="emptyState">No ${escapeHtml(label)} division matches yet.</div>`;
+    }
+    if(typeof Chart === "undefined") return;
+    if(!rows.length || total <= 0){
+      state.divisionPieChart?.destroy();
+      state.divisionPieChart = null;
+      setChartEmpty("chartCwStatsDivisionPie", `No ${label} division matches yet.`);
+      return;
+    }
+    setChartEmpty("chartCwStatsDivisionPie", "");
+    state.divisionPieChart?.destroy();
+    state.divisionPieChart = new Chart(canvas, {
+      type: "pie",
+      data: {
+        labels: rows.map((row) => row.label),
+        datasets: [{
+          data: rows.map((row) => Number(row.matches || 0)),
+          backgroundColor: rows.map((_, index) => divisionColor(index, .78)),
+          borderColor: rows.map((_, index) => divisionColor(index)),
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = Number(ctx.parsed || 0);
+                const share = total ? ((value / total) * 100).toFixed(1) : "0.0";
+                return `${ctx.label}: ${value} matches (${share}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function renderDailyMetrics(rows, matches){
+    const root = $("cwStatsDailyMetrics");
+    const meta = $("cwStatsDailyMeta");
+    if(!root) return;
+    const total = matches.length;
+    const total6v6 = matches.filter((match) => normalizeEventType(match.eventType) === "6v6").length;
+    const total6v18 = matches.filter((match) => normalizeEventType(match.eventType) === "6v6v6v6").length;
+    const activeDays = rows.length;
+    const firstDay = rows[0]?.date || "";
+    const lastDay = rows[rows.length - 1]?.date || "";
+    const calendarDays = firstDay && lastDay ? daysBetweenInclusive(firstDay, lastDay) : 0;
+    const activeAvg = activeDays ? total / activeDays : null;
+    const calendarAvg = calendarDays ? total / calendarDays : null;
+    const busiest = rows.slice().sort((a, b) => {
+      const countDiff = Number(b.count || 0) - Number(a.count || 0);
+      if(countDiff !== 0) return countDiff;
+      return String(b.date || "").localeCompare(String(a.date || ""));
+    })[0];
+    if(meta) meta.textContent = activeDays ? `${activeDays} active days - ${total} Clan Wars` : "No daily matches yet";
+    root.innerHTML = `
+      ${divisionMetricHtml("Total wars", String(total))}
+      ${divisionMetricHtml("6v6 wars", String(total6v6))}
+      ${divisionMetricHtml("6v18 wars", String(total6v18))}
+      ${divisionMetricHtml("Active days", String(activeDays))}
+      ${divisionMetricHtml("Avg / active day", formatStatNumber(activeAvg, 2))}
+      ${divisionMetricHtml("Avg / calendar day", formatStatNumber(calendarAvg, 2))}
+      ${divisionMetricHtml("Busiest day", busiest ? dateKeyLabel(busiest.date) : "-")}
+      ${divisionMetricHtml("Busiest wars", busiest ? String(busiest.count) : "-")}
+    `;
+  }
+
+  function renderDailyMatchesChart(rows){
+    const canvas = $("chartCwStatsDailyMatches");
+    if(!canvas) return;
+    if(typeof Chart === "undefined") return;
+    if(!rows.length){
+      state.dailyMatchesChart?.destroy();
+      state.dailyMatchesChart = null;
+      setChartEmpty("chartCwStatsDailyMatches", "No daily matches yet.");
+      return;
+    }
+    setChartEmpty("chartCwStatsDailyMatches", "");
+    const labels = rows.map((row) => row.label);
+    const sixV6Values = rows.map((row) => Number(row.sixV6 || 0));
+    const sixV18Values = rows.map((row) => Number(row.sixV18 || 0));
+    const red = cssVar("--primary", "#ff474d");
+    const blue = "#4e7cff";
+    state.dailyMatchesChart?.destroy();
+    state.dailyMatchesChart = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "6v6",
+            data: sixV6Values,
+            backgroundColor: colorWithAlpha(red, .72),
+            borderColor: red,
+            borderWidth: 1,
+            stack: "clan-wars",
+          },
+          {
+            label: "6v18",
+            data: sixV18Values,
+            backgroundColor: colorWithAlpha(blue, .78),
+            borderColor: blue,
+            borderWidth: 1,
+            stack: "clan-wars",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { color: cssVar("--text", "#fff"), maxRotation: 0, autoSkip: true },
+            grid: { display: false },
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { color: cssVar("--text", "#fff"), precision: 0 },
+            grid: { color: cssVar("--border", "rgba(255,255,255,.18)") },
+          },
+        },
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: cssVar("--text", "#fff"),
+              boxWidth: 12,
+              boxHeight: 12,
+              font: { weight: 900 },
+            },
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => dateKeyLabel(rows[items?.[0]?.dataIndex]?.date || ""),
+              label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y || 0)} Clan Wars`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function renderDivisionPieOnly(){
+    const pieMatches = allEventMatches(analyticsEventType());
+    const pieStats = buildDivisionStats(pieMatches);
+    renderDivisionPieChart(pieStats);
+    if(typeof Chart === "undefined"){
+      setChartEmpty("chartCwStatsDivisionPie", "Charts could not load. Check your connection and reload.");
+    }
+  }
+
+  function renderDivisionAnalytics(){
+    const divisionMatches = allEventMatches(state.eventType);
+    const divisionStats = buildDivisionStats(divisionMatches);
+    const dailyMatches = allTrackedMatches();
+    const dailyRows = aggregateDailyMatches(dailyMatches);
+    renderDivisionStatsSection(divisionStats, divisionMatches, state.eventType);
+    renderDailyMetrics(dailyRows, dailyMatches);
+    renderDivisionPieOnly();
+    if(typeof Chart === "undefined"){
+      setChartEmpty("chartCwStatsDailyMatches", "Charts could not load. Check your connection and reload.");
+      return;
+    }
+    renderDailyMatchesChart(dailyRows);
+  }
+
   function updateDeckUi(){
     const mode = activeChartMode();
     const isPlacement = mode === "placement";
@@ -1259,6 +1744,15 @@
     });
   }
 
+  function renderAnalyticsEventButtons(){
+    document.querySelectorAll("[data-cw-stats-analytics-event]").forEach((button) => {
+      const active = normalizeEventType(button.getAttribute("data-cw-stats-analytics-event")) === analyticsEventType();
+      button.classList.toggle("active", active);
+      button.classList.toggle("isActive", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
   function renderSummary(performanceStats){
     const matches = scopedMatches();
     const races = matches.flatMap((match) => match.races || []);
@@ -1312,6 +1806,7 @@
   function render(){
     syncDivisionSelection();
     renderEventButtons();
+    renderAnalyticsEventButtons();
     updateSortFilterUi();
     renderDivisionFilter();
     updateDeckUi();
@@ -1338,6 +1833,7 @@
       renderPerformanceChart(performanceStats);
       renderPlacementChart(placementStats);
     }
+    renderDivisionAnalytics();
   }
 
   function setEventType(eventType){
@@ -1348,6 +1844,14 @@
     render();
   }
 
+  function setAnalyticsEventType(eventType){
+    const next = normalizeEventType(eventType);
+    if(state.analyticsEventType === next) return;
+    state.analyticsEventType = next;
+    renderAnalyticsEventButtons();
+    renderDivisionPieOnly();
+  }
+
   function bindEvents(){
     $("cwStatsScopeName")?.addEventListener("click", openClanMembersDialog);
     $("cwStatsMembersDialog")?.addEventListener("click", (event) => {
@@ -1355,6 +1859,9 @@
     });
     document.querySelectorAll("[data-cw-stats-event]").forEach((button) => {
       button.addEventListener("click", () => setEventType(button.getAttribute("data-cw-stats-event")));
+    });
+    document.querySelectorAll("[data-cw-stats-analytics-event]").forEach((button) => {
+      button.addEventListener("click", () => setAnalyticsEventType(button.getAttribute("data-cw-stats-analytics-event")));
     });
     document.querySelectorAll("[data-cw-stats-chart-mode]").forEach((button) => {
       button.addEventListener("click", () => setChartMode(button.getAttribute("data-cw-stats-chart-mode")));

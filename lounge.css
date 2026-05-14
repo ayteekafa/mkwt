@@ -11,6 +11,24 @@
 .sectionHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px}
 .sectionHead--split{margin-bottom:18px}
 .sectionHeadActions{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+body[data-lounge-player-count="12"] .sectionHead--split{
+  display:grid !important;
+  grid-template-columns:minmax(0,2fr) minmax(250px,1fr) 52px;
+  align-items:end;
+  gap:var(--lounge-entry-gap, 10px);
+}
+body[data-lounge-player-count="12"] .sectionHead--split > :first-child{
+  grid-column:1;
+}
+body[data-lounge-player-count="12"] .sectionHead--split .sectionHeadActions{
+  grid-column:2 / 4 !important;
+  width:100%;
+  justify-content:stretch;
+}
+body[data-lounge-player-count="12"] .sectionHeadActions #btnTrackSuggestions.compareAction{
+  width:100%;
+  max-width:none;
+}
 .sectionText{margin-top:8px;max-width:760px;line-height:1.45}
 .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:800}
 .fieldLabel{display:block;margin-bottom:8px;color:var(--muted);font-size:13px;font-weight:700}
@@ -164,9 +182,19 @@ select:focus{box-shadow:var(--ring);border-color:var(--primary)}
 .chartControlStack{display:flex;flex-direction:column;gap:8px;align-items:flex-end;margin-left:auto}
 .chartControlStack .sortRow{margin-left:0}
 .modeRow .navAction{min-width:86px}
-.loungeModeToggle .modeBtn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.actionStrip{display:grid;grid-template-columns:var(--lounge-entry-track-col) var(--lounge-entry-result-col) var(--lounge-entry-undo-col);gap:var(--lounge-entry-gap);margin-top:14px;align-items:stretch}
-.actionStrip--24{grid-template-columns:var(--lounge-entry-track-col) var(--lounge-entry-result-col) var(--lounge-entry-undo-col)}
+.loungeModeToggle .modeBtn{
+  height:var(--button-min-height, 40px);
+  min-height:var(--button-min-height, 40px);
+  padding:8px 10px;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.actionStrip{display:grid;grid-template-columns:var(--lounge-entry-track-col) minmax(86px,.62fr) var(--lounge-entry-result-col) var(--lounge-entry-undo-col);gap:var(--lounge-entry-gap);margin-top:14px;align-items:stretch}
+.actionStrip--24{grid-template-columns:var(--lounge-entry-track-col) minmax(86px,.62fr) var(--lounge-entry-result-col) var(--lounge-entry-undo-col)}
+.actionStrip--24DirectDc #btnDisconnect{grid-column:1;grid-row:1}
+.actionStrip--24DirectDc #btnClearEntry{grid-column:2;grid-row:1}
+.actionStrip--24DirectDc #btnSaveRace{grid-column:3;grid-row:1}
+.actionStrip--24DirectDc #btnUndo{grid-column:4;grid-row:1}
 .actionStripBtn{width:100%;justify-content:center;display:inline-flex;align-items:center}
 .actionStripBtn--icon{font-size:20px;padding-inline:0}
 .undoLabel{display:none}
@@ -465,14 +493,168 @@ tbody tr.raceRow--dc{
   text-align:center;
   white-space:nowrap;
 }
-.compareDialog{width:min(1180px,calc(100vw - 24px));border:1px solid var(--border);border-radius:16px;padding:0;background:var(--surface-dialog);color:var(--text);box-shadow:var(--shadow)}
+.loungeHeroStatButton{
+  width:100%;
+  color:var(--text);
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .16s ease, background .16s ease, transform .12s ease, box-shadow .16s ease;
+}
+.loungeHeroStatButton:hover{
+  border-color:color-mix(in srgb, var(--primary) 50%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, transparent), transparent 72%),
+    var(--card-2);
+}
+.loungeHeroStatButton:focus-visible{
+  outline:none;
+  box-shadow:var(--ring);
+}
+.loungeHeroStatButton:active{
+  transform:translateY(1px);
+}
+.compareDialog{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(1180px,calc(100vw - 24px));max-height:calc(100dvh - 24px);margin:0;border:1px solid var(--border);border-radius:16px;padding:0;background:var(--surface-dialog);color:var(--text);box-shadow:var(--shadow);overflow:hidden}
 .compareDialog::backdrop{background:var(--backdrop)}
-.compareDialogPanel{padding:18px}
+.compareDialogPanel{max-height:calc(100dvh - 24px);overflow:auto;padding:18px}
 .compareDialogHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .compareDialogHead h3{margin:0}
 .compareDialogEyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:8px}
 .compareDialogMeta{margin-top:8px}
 .compareDialog .modeComparePanel{margin-top:0;padding-top:0;border-top:none}
+.loungeTierStatsDialog{
+  width:min(980px,calc(100vw - 24px));
+}
+.loungeTierStatsPanel{
+  max-height:calc(100dvh - 32px);
+  overflow:auto;
+}
+.loungeTierStatsBody{
+  display:grid;
+  gap:12px;
+}
+.loungeTierStatsSummary{
+  display:grid;
+}
+.loungeTierStatsGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  align-items:stretch;
+}
+.loungeTierStatsCard{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:rgba(5,13,22,.62);
+}
+.loungeTierStatsCard.is-focus{
+  border-color:color-mix(in srgb, var(--primary) 72%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 13%, transparent), transparent 70%),
+    rgba(5,13,22,.68);
+}
+.loungeTierStatsCard--summary{
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--chart-split-a-stroke) 12%, transparent), transparent 66%),
+    rgba(5,13,22,.68);
+}
+.loungeTierStatsCard__head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.loungeTierStatsCard__head h4{
+  min-width:0;
+  margin:0;
+  color:var(--text);
+  font-size:20px;
+  font-weight:1000;
+  line-height:1.1;
+  overflow-wrap:anywhere;
+}
+.loungeTierStatsCard__head span{
+  flex:0 0 auto;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:950;
+}
+.loungeTierStatsMetrics{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.loungeTierStatsGrid .loungeTierStatsMetrics{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.loungeTierStatsCard--summary .loungeTierStatsMetrics{
+  grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
+}
+.loungeTierStatsMetric{
+  min-width:0;
+  padding:9px 8px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  background:rgba(8,17,27,.68);
+  text-align:center;
+}
+.loungeTierStatsMetric span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:950;
+  line-height:1.1;
+  text-transform:uppercase;
+  overflow-wrap:anywhere;
+}
+.loungeTierStatsMetric b{
+  display:block;
+  min-width:0;
+  margin-top:5px;
+  color:var(--score-tone, var(--text));
+  font-size:clamp(14px,2.2vw,18px);
+  font-weight:1000;
+  line-height:1.05;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.loungeTierStatsTracks{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.loungeTierStatsTrack{
+  min-width:0;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  background:rgba(8,17,27,.52);
+}
+.loungeTierStatsTrack span,
+.loungeTierStatsTrack small{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  line-height:1.2;
+}
+.loungeTierStatsTrack span{
+  text-transform:uppercase;
+}
+.loungeTierStatsTrack b{
+  display:block;
+  min-width:0;
+  margin:5px 0 3px;
+  color:var(--text);
+  font-size:15px;
+  font-weight:1000;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
 .modeCompareNotes{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .modeCompareNote{padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:var(--surface-panel);line-height:1.45}
 .modeCompareNote b{color:var(--text)}
@@ -1198,12 +1380,28 @@ tbody tr.raceRow--dc{
 }
 @media (max-width:640px){
   .sectionHead{margin-bottom:14px}
+  body[data-lounge-player-count="12"] .sectionHead--split{
+    display:grid !important;
+    grid-template-columns:minmax(0,2fr) minmax(96px,1fr);
+    align-items:end;
+    gap:10px;
+  }
+  body[data-lounge-player-count="12"] .sectionHead--split .sectionHeadActions{
+    grid-column:2 !important;
+    width:100%;
+    justify-content:stretch;
+  }
+  body[data-lounge-player-count="12"] .sectionHeadActions #btnTrackSuggestions.compareAction{
+    width:100%;
+    max-width:none;
+    padding-inline:8px;
+  }
   .formGrid{grid-template-columns:minmax(0,2fr) minmax(96px,1fr);gap:10px}
   .formGrid--single{grid-template-columns:minmax(0,2fr) minmax(96px,1fr)}
   .formGrid > label:nth-child(2){grid-column:auto}
   .loungePlacementGrid > label{grid-column:2}
   .actionStrip{
-    grid-template-columns:minmax(0,2fr) minmax(96px,1fr);
+    grid-template-columns:repeat(3,minmax(0,1fr));
     gap:10px;
     align-items:stretch;
   }
@@ -1211,8 +1409,12 @@ tbody tr.raceRow--dc{
     grid-column:1;
     grid-row:1;
   }
-  .actionStrip #btnUndo{
+  .actionStrip #btnClearEntry{
     grid-column:2;
+    grid-row:1;
+  }
+  .actionStrip #btnUndo{
+    grid-column:3;
     grid-row:1;
   }
   .actionStripBtn--icon{
@@ -1346,20 +1548,22 @@ body[data-lounge-player-count="24"] .loungeModeToggle{
 body[data-lounge-player-count="24"] .loungeModeToggle .modeBtn{
   width:100%;
   min-width:0;
-  min-height:58px;
-  padding:10px 8px;
+  height:var(--button-min-height, 40px);
+  min-height:var(--button-min-height, 40px);
+  padding:8px 10px;
   border-radius:var(--control-radius);
-  font-size:clamp(18px,1.5vw,22px);
+  font-size:clamp(15px,1.4vw,18px);
   font-weight:900;
-  line-height:1.05;
+  line-height:1;
   text-align:center;
   white-space:nowrap;
 }
 @media (min-width:641px){
   body[data-lounge-player-count="24"] .actionStrip--24{
     grid-template-columns:
-      calc((100% - var(--lounge-entry-gap)) / 2)
-      minmax(0, calc((100% - var(--lounge-entry-gap)) / 2 - var(--lounge-entry-gap) - var(--lounge-entry-undo-col)))
+      var(--lounge-entry-track-col)
+      minmax(86px,.62fr)
+      var(--lounge-entry-result-col)
       var(--lounge-entry-undo-col);
   }
 }
@@ -1383,7 +1587,41 @@ body[data-lounge-player-count="24"] .loungePlacementGrid > label{
 }
 @media (max-width:640px){
   body[data-lounge-player-count="24"] .loungeModeToggle .modeBtn{
-    font-size:clamp(16px,4.2vw,20px);
+    font-size:clamp(15px,4vw,18px);
+  }
+  body[data-lounge-player-count="24"] .entryPanel #trackEntryFields .trackPicker__trigger,
+  body[data-lounge-player-count="24"] .entryPanel #intermissionEntryFields .trackPicker__trigger{
+    min-height:58px;
+    height:58px;
+    gap:6px;
+    padding:10px;
+    font-size:clamp(13px,3.2vw,15px);
+    line-height:1.08;
+  }
+  body[data-lounge-player-count="24"] .entryPanel #trackEntryFields .trackPicker__trigger.is-placeholder{
+    font-size:18px;
+  }
+  body[data-lounge-player-count="24"] .entryPanel #trackEntryFields .trackPicker__value,
+  body[data-lounge-player-count="24"] .entryPanel #intermissionEntryFields .trackPicker__value{
+    overflow:hidden;
+    text-overflow:clip;
+    white-space:nowrap;
+  }
+  body[data-lounge-player-count="24"] .actionStrip--24DirectDc #btnDisconnect{
+    grid-column:1;
+    grid-row:1;
+  }
+  body[data-lounge-player-count="24"] .actionStrip--24DirectDc #btnClearEntry{
+    grid-column:2;
+    grid-row:1;
+  }
+  body[data-lounge-player-count="24"] .actionStrip--24DirectDc #btnUndo{
+    grid-column:3;
+    grid-row:1;
+  }
+  body[data-lounge-player-count="24"] .actionStrip--24DirectDc #btnSaveRace{
+    grid-column:1 / -1;
+    grid-row:2;
   }
 }
 
@@ -1479,6 +1717,13 @@ body[data-lounge-player-count="24"] .loungePlacementGrid > label{
   font-weight:900;
 }
 .raceEditModeToggle{margin:0}
+.raceEditModeToggle .modeBtn{
+  height:var(--button-min-height, 40px);
+  min-height:var(--button-min-height, 40px);
+  padding:8px 10px;
+  font-size:15px;
+  font-weight:900;
+}
 .raceEditTags{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .raceEditTags .tagToggle{min-height:46px}
 .raceEditActions{margin-top:0}
@@ -1558,9 +1803,19 @@ body[data-lounge-player-count="24"] .loungePlacementGrid > label{
 }
 @media (max-width:760px){
   .loungeHeroStats{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .loungeTierStatsGrid{
+    grid-template-columns:1fr;
+  }
+  .loungeTierStatsMetrics,
+  .loungeTierStatsCard--summary .loungeTierStatsMetrics{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
 }
 @media (max-width:480px){
   .loungeHeroStats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .loungeTierStatsTracks{
+    grid-template-columns:1fr;
+  }
   .profileCard .bestTrackLine--split{
     grid-template-columns:1fr;
     gap:12px;

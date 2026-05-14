@@ -79,6 +79,7 @@
   ].join(', ');
   const SESSION_PAGE_SIZE = 10;
   const SUGGESTION_MIN_PLAYS = 10;
+  const LOUNGE_TIER_STATS_TRACK_MIN_PLAYS = 10;
   const SESSION_FORECAST_MIN_PLAYS = 5;
   const AVG_GAIN_THRESHOLD = PAGE_CONFIG.playerCount === 24 ? 6 : 6.83;
   const SCORE_TONE_CLASSES = [
@@ -572,7 +573,10 @@
     if(trackFields) trackFields.hidden = state.entryMode !== 'track';
     if(intermissionFields) intermissionFields.hidden = state.entryMode !== 'intermission';
     updateTrackSuggestionButton();
-    if(state.entryMode !== 'track') closeTrackSuggestionDialog();
+    if($('trackSuggestionDialog')?.open){
+      if(state.entryMode === 'track' || isIntermissionSuggestionMode()) renderTrackSuggestionDialog();
+      else closeTrackSuggestionDialog();
+    }
     try{ window.MKWT_LOUNGE_PICKERS?.refreshAll?.(); }catch(e){}
   }
   function routeLabel(start, end){
@@ -944,6 +948,15 @@
     let scrollLocked = false;
     let activeLetterPicker = null;
 
+    const pulseLetterFilterHaptic = () => {
+      const nav = window.navigator;
+      if(!nav || typeof nav.vibrate !== 'function') return;
+      const isTouchDevice = Number(nav.maxTouchPoints || 0) > 0;
+      const isCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
+      if(!isTouchDevice && !isCoarsePointer) return;
+      try{ nav.vibrate(8); }catch(e){}
+    };
+
     const lockPageScroll = () => {
       if(scrollLocked) return;
       scrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
@@ -1010,6 +1023,21 @@
       return Array.from(selectEl.options || [])
         .filter((option) => String(option.value || '').trim())
         .map((option) => ({ value: String(option.value || '').trim(), label: option.textContent || option.value }));
+    };
+    const isIntermissionEndPicker = (picker) => {
+      const selectEl = picker?.selectEl;
+      if(!selectEl) return false;
+      const id = String(selectEl.id || '').trim();
+      if(/intermission.*end|end.*intermission/i.test(id)) return true;
+      const placeholder = Array.from(selectEl.options || []).find((option) => !String(option.value || '').trim());
+      const placeholderText = String(placeholder?.textContent || placeholder?.label || '').trim();
+      const aria = String(selectEl.getAttribute('aria-label') || '').trim();
+      return [placeholderText, aria].some((text) => /intermission\s*end/i.test(text));
+    };
+    const isFilteredIntermissionEndPicker = (picker, options, activeLetter) => {
+      if(activeLetter !== 'all' || !isIntermissionEndPicker(picker)) return false;
+      const optionCount = new Set((options || []).map((option) => String(option.value || option.label || '').trim()).filter(Boolean)).size;
+      return optionCount > 0 && optionCount < COURSE_TRACKS.length;
     };
     const getTrackLetter = (option) => {
       const text = String(option?.value || option?.label || '').trim();
@@ -1148,6 +1176,8 @@
       const letters = getTrackLetters(allOptions);
       const activeLetter = getActiveTrackLetter(picker, letters);
       const visibleOptions = filterTrackOptionsByLetter(allOptions, activeLetter);
+      picker.root?.classList.toggle('trackPicker--letterFiltered', activeLetter !== 'all');
+      picker.root?.classList.toggle('trackPicker--intermissionEndFiltered', isFilteredIntermissionEndPicker(picker, allOptions, activeLetter));
       const railLetters = getRailLetters(letters, allOptions);
       const letterCount = railLetters.length + 1;
       panel.style.setProperty('--track-picker-letter-count', String(letterCount));
@@ -1176,7 +1206,7 @@
         const letterButton = event.target.closest?.('[data-letter-filter]');
         if(!letterButton) return;
         event.preventDefault();
-        applyLetterFilter(picker, letterButton.dataset.letterFilter || 'all');
+        applyLetterFilter(picker, letterButton.dataset.letterFilter || 'all', true);
       });
       rail.addEventListener('keydown', (event) => {
         if(event.key !== 'Enter' && event.key !== ' ') return;
@@ -1193,7 +1223,7 @@
         if(!event.target.closest?.('[data-letter-filter]')) return;
         event.preventDefault();
         activeLetterPicker = picker;
-        applyLetterFilterFromPoint(event.clientX, event.clientY);
+        applyLetterFilterFromPoint(event.clientX, event.clientY, true);
       });
 
       const trackArea = document.createElement('div');
@@ -1277,20 +1307,21 @@
     const findOpenPicker = () => {
       return Array.from(pickers.values()).find((picker) => !picker.panel.hidden) || null;
     };
-    const applyLetterFilter = (picker, letter) => {
+    const applyLetterFilter = (picker, letter, withHaptic = false) => {
       if(!picker || picker.kind !== 'track' || picker.panel.hidden) return;
       const next = letter || 'all';
       if((picker.letterFilter || 'all') === next) return;
       picker.letterFilter = next;
       renderPanel(picker);
       alignPanel(picker);
+      if(withHaptic) pulseLetterFilterHaptic();
     };
-    const applyLetterFilterFromPoint = (clientX, clientY) => {
+    const applyLetterFilterFromPoint = (clientX, clientY, withHaptic = false) => {
       if(!activeLetterPicker) return;
       const target = document.elementFromPoint(clientX, clientY);
       const button = target?.closest?.('[data-letter-filter]');
       if(!button || !activeLetterPicker.panel.contains(button)) return;
-      applyLetterFilter(activeLetterPicker, button.dataset.letterFilter || 'all');
+      applyLetterFilter(activeLetterPicker, button.dataset.letterFilter || 'all', withHaptic);
     };
     const openPicker = (picker) => {
       closeAll(picker);
@@ -1388,7 +1419,7 @@
     document.addEventListener('pointermove', (event) => {
       if(!activeLetterPicker) return;
       event.preventDefault();
-      applyLetterFilterFromPoint(event.clientX, event.clientY);
+      applyLetterFilterFromPoint(event.clientX, event.clientY, true);
     }, { passive: false });
     document.addEventListener('pointerup', () => { activeLetterPicker = null; });
     document.addEventListener('pointercancel', () => { activeLetterPicker = null; });
@@ -1463,13 +1494,42 @@
       })
       .slice(0, limit);
   }
+  function isIntermissionSuggestionMode(){
+    return PAGE_CONFIG.playerCount === 24 && PAGE_CONFIG.allowIntermissionRoutes && state.entryMode === 'intermission';
+  }
+  function getSuggestedIntermissionRouteStats(limit = 3){
+    return aggregateTrackStats('im_routes')
+      .map((stat) => {
+        const route = parseRouteLabel(stat.track);
+        return route ? { ...stat, ...route, kind: 'route', label: stat.track } : null;
+      })
+      .filter(Boolean)
+      .filter((stat) => Number(stat.count || 0) > 0)
+      .filter((stat) => !entryAlreadyUsed({
+        track: stat.label,
+        raceKind: 'intermission',
+        intermissionStart: stat.start,
+        intermissionEnd: stat.end,
+      }))
+      .sort((a, b) => {
+        const avgDiff = Number(b.avg || 0) - Number(a.avg || 0);
+        if(avgDiff !== 0) return avgDiff;
+        const countDiff = Number(b.count || 0) - Number(a.count || 0);
+        if(countDiff !== 0) return countDiff;
+        return String(a.label || '').localeCompare(String(b.label || ''), 'de');
+      })
+      .slice(0, limit);
+  }
   function updateTrackSuggestionButton(){
     const btn = $('btnTrackSuggestions');
     if(!btn) return;
-    const show = state.entryMode === 'track';
+    const show = state.entryMode === 'track' || isIntermissionSuggestionMode();
+    const label = btn.querySelector('.compareAction__label');
+    if(label) label.textContent = isIntermissionSuggestionMode() ? 'Suggested Routes' : 'Suggested Tracks';
     btn.hidden = !show;
     btn.disabled = !show;
-    btn.title = show ? 'Suggested tracks' : 'Suggestions only apply to 3-lap tracks';
+    btn.title = isIntermissionSuggestionMode() ? 'Suggested intermission routes' : 'Suggested tracks';
+    btn.setAttribute('aria-label', isIntermissionSuggestionMode() ? 'Suggested intermission routes' : 'Suggested tracks');
     btn.setAttribute('aria-hidden', show ? 'false' : 'true');
   }
   function closeTrackSuggestionDialog(){
@@ -1516,6 +1576,26 @@
     const body = $('trackSuggestionGrid');
     const meta = $('trackSuggestionMeta');
     if(!body || !meta) return;
+    const title = $('trackSuggestionDialog')?.querySelector('h3');
+    if(title) title.textContent = isIntermissionSuggestionMode() ? 'Suggested Intermissions' : 'Suggested Tracks';
+    body.classList.toggle('suggestTrackGrid--routes', isIntermissionSuggestionMode());
+    if(isIntermissionSuggestionMode()){
+      const rows = getSuggestedIntermissionRouteStats(3);
+      meta.textContent = 'Top intermission routes from your saved 24p Mogis. Each suggestion shows start and end track.';
+      if(!rows.length){
+        body.innerHTML = '<div class="muted">No saved intermission routes to suggest yet.</div>';
+        return;
+      }
+      body.innerHTML = rows.map((stat, index) => {
+        const titleText = `${index + 1}. ${stat.label} - ${stat.avg.toFixed(2)} AVG - ${stat.count} plays`;
+        const aria = `${stat.label}, average ${stat.avg.toFixed(2)} points, ${stat.count} plays`;
+        return `
+          <button class="suggestTrackButton suggestTrackButton--route" data-suggest-route-start="${escapeHtml(stat.start)}" data-suggest-route-end="${escapeHtml(stat.end)}" type="button" title="${escapeHtml(titleText)}" aria-label="${escapeHtml(aria)}">
+            ${suggestedRouteVisualHtml(stat.start, stat.end)}
+          </button>`;
+      }).join('');
+      return;
+    }
     const explanation = PAGE_CONFIG.playerCount === 24 && PAGE_CONFIG.allowIntermissionRoutes
       ? `Available tracks and intermission routes are suggested from your individual performance. Each pick needs at least ${SUGGESTION_MIN_PLAYS} saved races before it can appear.`
       : `Available tracks you have not picked yet are suggested from your individual performance. A track needs at least ${SUGGESTION_MIN_PLAYS} saved races before it can appear.`;
@@ -2517,7 +2597,7 @@
     const dcBtn = $('btnDisconnect');
     const tagButtons = document.querySelectorAll('[data-lobby-tag], #btnDisconnect');
     if(saveBtn){
-      saveBtn.textContent = isComplete ? 'Confirm Mogi' : 'Add Race';
+      saveBtn.textContent = isComplete ? 'Confirm Mogi' : 'Add';
       saveBtn.title = isComplete ? 'Open the result confirmation again' : '';
     }
     tagButtons.forEach((btn) => {
@@ -2676,6 +2756,187 @@
         count,
       };
     });
+  }
+  function loungeTierStatsSessions(){
+    return (state.sessions || []).filter((session) => !sessionStatsExcluded(session) && sessionTierTag(session));
+  }
+  function mostPlayedLoungeTier(sessions = loungeTierStatsSessions()){
+    const rows = new Map();
+    for(const session of sessions){
+      const tag = sessionTierTag(session);
+      if(!tag) continue;
+      const row = rows.get(tag) || { tag, count: 0, races: 0, points: 0 };
+      row.count += 1;
+      row.races += sessionRaceCount(session);
+      row.points += sessionTotalPoints(session);
+      rows.set(tag, row);
+    }
+    return Array.from(rows.values()).sort((a, b) => {
+      const countDiff = Number(b.count || 0) - Number(a.count || 0);
+      if(countDiff !== 0) return countDiff;
+      const raceDiff = Number(b.races || 0) - Number(a.races || 0);
+      if(raceDiff !== 0) return raceDiff;
+      return compareLoungeTierTags(a.tag, b.tag);
+    })[0]?.tag || '';
+  }
+  function loungeTierRangeTags(centerTag){
+    const normalized = normalizeLoungeTierTag(centerTag);
+    if(!normalized) return [];
+    const known = LOUNGE_TIER_TAGS.slice();
+    const index = known.indexOf(normalized);
+    if(index < 0) return [normalized];
+    return [known[index - 1], normalized, known[index + 1]].filter(Boolean);
+  }
+  function loungeTierStatsTrackRows(sessions){
+    const buckets = new Map();
+    for(const session of sessions || []){
+      for(const race of session.races || []){
+        if(race?.disconnect) continue;
+        const label = displayRaceLabel(race);
+        if(!label) continue;
+        const points = Number(race.points || 0);
+        const row = buckets.get(label) || { track: label, count: 0, total: 0, avg: 0 };
+        row.count += 1;
+        row.total += points;
+        row.avg = row.count ? row.total / row.count : 0;
+        buckets.set(label, row);
+      }
+    }
+    return Array.from(buckets.values());
+  }
+  function pickLoungeTierTrackStat(rows, direction = 'best'){
+    const sorted = (rows || [])
+      .filter((row) => Number(row?.count || 0) >= LOUNGE_TIER_STATS_TRACK_MIN_PLAYS)
+      .slice()
+      .sort((a, b) => {
+      const avgDiff = direction === 'worst'
+        ? Number(a.avg || 0) - Number(b.avg || 0)
+        : Number(b.avg || 0) - Number(a.avg || 0);
+      if(avgDiff !== 0) return avgDiff;
+      const countDiff = Number(b.count || 0) - Number(a.count || 0);
+      if(countDiff !== 0) return countDiff;
+      return String(a.track || '').localeCompare(String(b.track || ''), 'de');
+    });
+    return sorted[0] || null;
+  }
+  function buildLoungeTierStats(label, sessions, options = {}){
+    const list = Array.isArray(sessions) ? sessions : [];
+    const statRaces = list.flatMap((session) => (session.races || []).filter((race) => !race.disconnect));
+    const raceCount = statRaces.length;
+    const totalPoints = statRaces.reduce((sum, race) => sum + Number(race.points || 0), 0);
+    const avgRace = raceCount ? totalPoints / raceCount : null;
+    const avgMogi = avgRace == null ? null : avgRace * 12;
+    const sessionPointTotals = list.map(sessionTotalPoints).filter((points) => Number.isFinite(points));
+    const trackRows = loungeTierStatsTrackRows(list);
+    return {
+      label,
+      tier: options.tier || '',
+      focus: options.focus === true,
+      mogis: list.length,
+      races: raceCount,
+      dcCount: list.reduce((sum, session) => sum + (session.races || []).filter((race) => race.disconnect).length, 0),
+      totalPoints,
+      avgRace,
+      avgMogi,
+      highest: sessionPointTotals.length ? Math.max(...sessionPointTotals) : null,
+      lowest: sessionPointTotals.length ? Math.min(...sessionPointTotals) : null,
+      uniqueTracks: trackRows.length,
+      bestTrack: pickLoungeTierTrackStat(trackRows, 'best'),
+      worstTrack: pickLoungeTierTrackStat(trackRows, 'worst'),
+    };
+  }
+  function loungeTierStatsNumber(value, digits = 1){
+    if(value == null || !Number.isFinite(Number(value))) return '-';
+    const num = Number(value);
+    return Number.isInteger(num) ? String(num) : num.toFixed(digits);
+  }
+  function loungeTierStatsPointsAvg(stat){
+    return stat?.races ? `${loungeTierStatsNumber(stat.avgMogi, 0)} / ${loungeTierStatsNumber(stat.avgRace, 2)}` : '-';
+  }
+  function loungeTierStatsMetricHtml(label, value, tone = ''){
+    return `
+      <div class="loungeTierStatsMetric">
+        <span>${escapeHtml(label)}</span>
+        <b class="${escapeHtml(tone)}">${escapeHtml(value)}</b>
+      </div>`;
+  }
+  function loungeTierStatsTrackHtml(label, row){
+    const name = row?.track || 'Not enough data';
+    const meta = row ? `${row.count} plays - ${loungeTierStatsNumber(row.avg, 2)} avg` : `Needs ${LOUNGE_TIER_STATS_TRACK_MIN_PLAYS} plays on one track.`;
+    return `
+      <div class="loungeTierStatsTrack">
+        <span>${escapeHtml(label)}</span>
+        <b>${escapeHtml(name)}</b>
+        <small>${escapeHtml(meta)}</small>
+      </div>`;
+  }
+  function loungeTierStatsCardHtml(stat, extraClass = ''){
+    const hasData = stat.races > 0;
+    const tone = avgToneClass(stat.avgRace || 0, hasData);
+    return `
+      <article class="loungeTierStatsCard${stat.focus ? ' is-focus' : ''}${extraClass ? ` ${extraClass}` : ''}">
+        <header class="loungeTierStatsCard__head">
+          <h4>${escapeHtml(stat.label)}</h4>
+          ${stat.focus ? '<span>Most played</span>' : ''}
+        </header>
+        <div class="loungeTierStatsMetrics">
+          ${loungeTierStatsMetricHtml('Mogis', String(stat.mogis || 0))}
+          ${loungeTierStatsMetricHtml('Races', String(stat.races || 0))}
+          ${loungeTierStatsMetricHtml('Points / AVG', loungeTierStatsPointsAvg(stat), tone)}
+          ${loungeTierStatsMetricHtml('Tracks', String(stat.uniqueTracks || 0))}
+          ${loungeTierStatsMetricHtml('Highest', loungeTierStatsNumber(stat.highest))}
+          ${loungeTierStatsMetricHtml('Lowest', loungeTierStatsNumber(stat.lowest))}
+          ${loungeTierStatsMetricHtml('DCs', String(stat.dcCount || 0))}
+        </div>
+        <div class="loungeTierStatsTracks">
+          ${loungeTierStatsTrackHtml('Best track', stat.bestTrack)}
+          ${loungeTierStatsTrackHtml('Worst track', stat.worstTrack)}
+        </div>
+      </article>`;
+  }
+  function renderLoungeTierStatsDialog(){
+    const body = $('loungeTierStatsBody');
+    const meta = $('loungeTierStatsMeta');
+    if(!body) return;
+    const tierSessions = loungeTierStatsSessions();
+    const centerTag = mostPlayedLoungeTier(tierSessions);
+    if(!centerTag){
+      if(meta) meta.textContent = 'No saved Mogis with a tier tag yet.';
+      body.innerHTML = '<div class="muted">Save or tag Mogis with a Lounge tier to see tier stats.</div>';
+      return;
+    }
+    const rangeTags = loungeTierRangeTags(centerTag);
+    const rangeTagSet = new Set(rangeTags);
+    const sessionsForTag = (tag) => tierSessions.filter((session) => sessionTierTag(session) === tag);
+    const combinedSessions = tierSessions.filter((session) => rangeTagSet.has(sessionTierTag(session)));
+    const combined = buildLoungeTierStats('Selected tiers total', combinedSessions);
+    const cards = rangeTags.map((tag) => buildLoungeTierStats(tag, sessionsForTag(tag), {
+      tier: tag,
+      focus: tag === centerTag,
+    }));
+    if(meta){
+      meta.textContent = `Most played: ${centerTag}. Showing one tier above and below where available.`;
+    }
+    body.innerHTML = `
+      <div class="loungeTierStatsSummary">
+        ${loungeTierStatsCardHtml(combined, 'loungeTierStatsCard--summary')}
+      </div>
+      <div class="loungeTierStatsGrid">
+        ${cards.map((stat) => loungeTierStatsCardHtml(stat)).join('')}
+      </div>`;
+  }
+  function closeLoungeTierStatsDialog(){
+    const dialog = $('loungeTierStatsDialog');
+    if(!dialog) return;
+    if(typeof dialog.close === 'function' && dialog.open) dialog.close();
+    else dialog.removeAttribute('open');
+  }
+  function openLoungeTierStatsDialog(){
+    renderLoungeTierStatsDialog();
+    const dialog = $('loungeTierStatsDialog');
+    if(!dialog) return;
+    if(typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal();
+    else dialog.setAttribute('open', '');
   }
   function scoreBreakEvenForLobby(lobbySize){
     const arr = SCORE_MAP[Number(lobbySize)] || SCORE_MAP[PAGE_CONFIG.playerCount] || SCORE_MAP[12];
@@ -3850,6 +4111,26 @@
       console.error(e);
     }
   }
+  function clearRaceEntry(){
+    const trackSelect = $('trackSelect');
+    if(trackSelect) trackSelect.value = '';
+    const startSelect = $('intermissionStartSelect');
+    if(startSelect) startSelect.value = '';
+    const endSelect = $('intermissionEndSelect');
+    if(endSelect) endSelect.value = '';
+    resetIntermissionRouteFilters();
+    const placementSelect = $('placementSelect');
+    if(placementSelect) placementSelect.value = '';
+    state.lobbySize = PAGE_CONFIG.playerCount;
+    state.entryDisconnect = false;
+    setTagsOpen(false);
+    updateEntryTagButtons();
+    updatePlacementOptions();
+    if(placementSelect) placementSelect.value = '';
+    updatePlayedOptionHints();
+    try{ window.MKWT_LOUNGE_PICKERS?.refreshAll?.(); }catch(e){}
+    setEntryStatus('Entry cleared.', true);
+  }
   async function undoLast(){
     if(!(state.current.races || []).length){ setEntryStatus('Nothing to undo.', false); return; }
     const last = state.current.races[state.current.races.length - 1];
@@ -4442,6 +4723,7 @@
         });
       });
       $('btnSaveRace').addEventListener('click', () => saveRace());
+      $('btnClearEntry')?.addEventListener('click', clearRaceEntry);
       $('btnTagToggle')?.addEventListener('click', toggleTagsOpen);
       $('btnDisconnect').addEventListener('click', () => toggleDisconnectTag());
       $('btnUndo').addEventListener('click', undoLast);
@@ -4452,6 +4734,11 @@
         }
         openTrackSuggestionDialog();
       });
+    $('btnLoungeTierStats')?.addEventListener('click', openLoungeTierStatsDialog);
+    $('btnCloseLoungeTierStats')?.addEventListener('click', closeLoungeTierStatsDialog);
+    $('loungeTierStatsDialog')?.addEventListener('click', (event) => {
+      if(event.target === event.currentTarget) closeLoungeTierStatsDialog();
+    });
     $('btnCloseTrackSuggestions')?.addEventListener('click', closeTrackSuggestionDialog);
     $('trackSuggestionGrid')?.addEventListener('click', (event) => {
       const button = event.target.closest('[data-suggest-track], [data-suggest-route-start]');

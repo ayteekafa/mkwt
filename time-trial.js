@@ -121,6 +121,16 @@
   let ttPickerIconWarmupPromise = null;
   let ttPickerIconWarmupKey = "";
   let ttPickerIconRefreshQueued = false;
+
+  function pulseTimeTrialLetterHaptic() {
+    const nav = window.navigator;
+    if (!nav || typeof nav.vibrate !== "function") return;
+    const isTouchDevice = Number(nav.maxTouchPoints || 0) > 0;
+    const isCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+    if (!isTouchDevice && !isCoarsePointer) return;
+    try { nav.vibrate(8); } catch (e) {}
+  }
+
   const PUBLIC_AUTH_STORAGE = {
     getItem() { return null; },
     setItem() {},
@@ -1195,7 +1205,7 @@
     panel.style.top = `${Math.round(Math.max(viewport.offsetTop + margin, Math.min(preferredTop, maxTop)))}px`;
   }
 
-  function setTimeTrialLetterFilter(root, letter, focusLetter = false) {
+  function setTimeTrialLetterFilter(root, letter, focusLetter = false, withHaptic = false) {
     const select = $(root?.dataset?.selectId || "");
     const panel = root?.querySelector?.(".trackPicker__panel");
     if (!root || !select || !panel || panel.hidden) return false;
@@ -1206,6 +1216,7 @@
     root.dataset.letterFilter = next;
     renderTimeTrialPickerPanel(root);
     alignTimeTrialPickerPanel(root);
+    if (withHaptic) pulseTimeTrialLetterHaptic();
     if (focusLetter) {
       window.requestAnimationFrame(() => {
         root.querySelector(`[data-letter-filter="${CSS.escape(next)}"]`)?.focus?.();
@@ -1219,12 +1230,12 @@
     return setTimeTrialLetterFilter(root, "all", focusAll);
   }
 
-  function applyTimeTrialLetterFilterFromPoint(clientX, clientY) {
+  function applyTimeTrialLetterFilterFromPoint(clientX, clientY, withHaptic = false) {
     if (!activeTtLetterPicker) return;
     const target = document.elementFromPoint(clientX, clientY);
     const button = target?.closest?.("[data-letter-filter]");
     if (!button || !activeTtLetterPicker.querySelector(".trackPicker__panel")?.contains(button)) return;
-    setTimeTrialLetterFilter(activeTtLetterPicker, button.dataset.letterFilter || "all");
+    setTimeTrialLetterFilter(activeTtLetterPicker, button.dataset.letterFilter || "all", false, withHaptic);
   }
 
   function applyTimeTrialKeyboardLetterFilter(root, key) {
@@ -1250,6 +1261,7 @@
     const letters = pickerLetters(options);
     const currentLetter = letters.includes(root.dataset.letterFilter || "") ? root.dataset.letterFilter : "all";
     root.dataset.letterFilter = currentLetter;
+    root.classList.toggle("trackPicker--letterFiltered", currentLetter !== "all");
     const visibleOptions = filterPickerOptions(options, currentLetter);
     const railLetters = ["all", ...letters];
     panel.innerHTML = "";
@@ -1278,7 +1290,7 @@
       const button = event.target.closest("[data-letter-filter]");
       if (!button) return;
       event.preventDefault();
-      setTimeTrialLetterFilter(root, button.dataset.letterFilter || "all");
+      setTimeTrialLetterFilter(root, button.dataset.letterFilter || "all", false, true);
     });
     rail.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
@@ -1295,7 +1307,7 @@
       if (!event.target.closest("[data-letter-filter]")) return;
       event.preventDefault();
       activeTtLetterPicker = root;
-      applyTimeTrialLetterFilterFromPoint(event.clientX, event.clientY);
+      applyTimeTrialLetterFilterFromPoint(event.clientX, event.clientY, true);
     });
 
     const trackArea = document.createElement("div");
@@ -1442,7 +1454,7 @@
       document.addEventListener("pointermove", (event) => {
         if (!activeTtLetterPicker) return;
         event.preventDefault();
-        applyTimeTrialLetterFilterFromPoint(event.clientX, event.clientY);
+        applyTimeTrialLetterFilterFromPoint(event.clientX, event.clientY, true);
       }, { passive: false });
       document.addEventListener("pointerup", () => {
         activeTtLetterPicker = null;

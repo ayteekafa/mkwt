@@ -153,7 +153,28 @@
       text-overflow:ellipsis;
       white-space:nowrap;
     }
-    #matchCard > .modeToggle{ margin-top:16px; }
+    #matchCard > .modeToggle{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:12px;
+      width:100%;
+      margin:16px 0 12px;
+    }
+    #matchCard > .modeToggle .modeBtn{
+      width:100%;
+      min-width:0;
+      height:var(--button-min-height, 40px);
+      min-height:var(--button-min-height, 40px);
+      padding:8px 10px;
+      border-radius:var(--control-radius);
+      font-size:clamp(15px, 2vw, 18px);
+      font-weight:900;
+      line-height:1;
+      text-align:center;
+      white-space:nowrap;
+      touch-action:manipulation;
+      -webkit-tap-highlight-color:transparent;
+    }
     #matchCard .row{
       align-items:flex-end;
     }
@@ -229,25 +250,10 @@
         --match-mobile-col-gap:12px;
       }
       #matchCard > .modeToggle{
-        display:grid;
-        grid-template-columns:repeat(2, minmax(0, 1fr));
         gap:var(--match-mobile-col-gap);
-        width:100%;
-        margin:16px 0 12px;
       }
       #matchCard > .modeToggle .modeBtn{
-        width:100%;
-        min-width:0;
-        min-height:58px;
-        padding:10px 8px;
-        border-radius:var(--control-radius);
-        font-size:clamp(16px, 4.2vw, 20px);
-        font-weight:900;
-        line-height:1.05;
-        text-align:center;
-        white-space:nowrap;
-        touch-action:manipulation;
-        -webkit-tap-highlight-color:transparent;
+        font-size:clamp(15px, 4vw, 18px);
       }
       .matchCardHead .sectionTitle{
         padding-right:150px;
@@ -443,17 +449,19 @@
     }
     .trackPicker__layout{
       display:grid;
-      grid-template-columns:38px minmax(0, 1fr);
-      gap:9px;
+      grid-template-columns:minmax(0, 1fr) 48px;
+      gap:12px;
       align-items:start;
       height:100%;
       min-height:0;
     }
     .trackPicker__letterRail{
       z-index:1;
+      grid-column:2;
+      grid-row:1;
       display:flex;
       flex-direction:column;
-      gap:4px;
+      gap:6px;
       height:100%;
       overflow:visible;
       touch-action:none;
@@ -462,21 +470,21 @@
     }
     .trackPicker__letterBtn{
       width:100%;
-      min-height:24px;
+      min-height:30px;
       border:1px solid color-mix(in srgb, var(--text) 12%, transparent);
-      border-radius:8px;
+      border-radius:10px;
       background:color-mix(in srgb, var(--card-2) 88%, transparent);
       color:var(--muted);
       cursor:pointer;
       display:grid;
       place-items:center;
-      font-size:11px;
+      font-size:12px;
       font-weight:950;
       line-height:1;
       -webkit-tap-highlight-color:transparent;
     }
     .trackPicker__letterBtn--all{
-      font-size:9px;
+      font-size:10px;
       text-transform:uppercase;
       letter-spacing:.03em;
     }
@@ -494,12 +502,20 @@
       box-shadow:var(--ring);
     }
     .trackPicker__trackArea{
+      grid-column:1;
+      grid-row:1;
       min-width:0;
       min-height:0;
       max-height:100%;
       overflow-y:auto;
       overscroll-behavior:contain;
       padding-right:2px;
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+    }
+    .trackPicker__trackArea::-webkit-scrollbar{
+      width:0;
+      height:0;
     }
     .trackPicker__groups{
       column-count:2;
@@ -578,6 +594,53 @@
       min-width:0;
       flex:1;
       overflow-wrap:anywhere;
+    }
+    .trackPicker--letterFiltered .trackPicker__groups,
+    .trackPicker--intermissionEndFiltered .trackPicker__groups{
+      column-count:auto;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));
+      gap:10px;
+    }
+    .trackPicker--letterFiltered .trackPicker__group,
+    .trackPicker--intermissionEndFiltered .trackPicker__group{
+      display:block;
+      width:100%;
+      margin:0;
+      break-inside:auto;
+    }
+    .trackPicker--letterFiltered .trackPicker__groupLabel,
+    .trackPicker--intermissionEndFiltered .trackPicker__groupLabel{
+      margin:0 0 8px;
+      font-size:12px;
+    }
+    .trackPicker--letterFiltered .trackPicker__option,
+    .trackPicker--intermissionEndFiltered .trackPicker__option{
+      min-height:56px;
+      margin:0;
+      padding:9px 12px;
+      gap:12px;
+      border-radius:13px;
+      font-size:16px;
+      line-height:1.15;
+    }
+    .trackPicker--letterFiltered .trackPicker__iconSlot,
+    .trackPicker--intermissionEndFiltered .trackPicker__iconSlot{
+      flex:0 0 42px;
+      width:42px;
+      height:42px;
+    }
+    .trackPicker--letterFiltered .trackPicker__icon,
+    .trackPicker--intermissionEndFiltered .trackPicker__icon{
+      width:42px;
+      height:42px;
+    }
+    .trackPicker--letterFiltered .trackPicker__iconFallback,
+    .trackPicker--intermissionEndFiltered .trackPicker__iconFallback{
+      width:38px;
+      height:38px;
+      border-radius:12px;
+      font-size:13px;
     }
     .trackPicker__option--suggested{
       border-color:color-mix(in srgb, var(--primary) 62%, var(--border));
@@ -693,6 +756,12 @@
         grid-template-columns:42px minmax(0, 1fr);
         gap:12px;
       }
+      .trackPicker__letterRail{
+        grid-column:1;
+      }
+      .trackPicker__trackArea{
+        grid-column:2;
+      }
       .trackPicker__letterBtn{
         min-height:25px;
         border-radius:9px;
@@ -713,6 +782,36 @@
         font-size:13px;
         padding:6px 9px;
       }
+      .trackPicker--letterFiltered .trackPicker__groups,
+      .trackPicker--intermissionEndFiltered .trackPicker__groups{
+        grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+        gap:12px;
+      }
+      .trackPicker--letterFiltered .trackPicker__option,
+      .trackPicker--intermissionEndFiltered .trackPicker__option{
+        min-height:64px;
+        margin:0;
+        padding:10px 13px;
+        gap:13px;
+        font-size:17px;
+      }
+      .trackPicker--letterFiltered .trackPicker__iconSlot,
+      .trackPicker--intermissionEndFiltered .trackPicker__iconSlot{
+        flex-basis:50px;
+        width:50px;
+        height:50px;
+      }
+      .trackPicker--letterFiltered .trackPicker__icon,
+      .trackPicker--intermissionEndFiltered .trackPicker__icon{
+        width:50px;
+        height:50px;
+      }
+      .trackPicker--letterFiltered .trackPicker__iconFallback,
+      .trackPicker--intermissionEndFiltered .trackPicker__iconFallback{
+        width:46px;
+        height:46px;
+        font-size:14px;
+      }
       .numberPicker__grid{
         gap:10px;
       }
@@ -722,14 +821,14 @@
     }
     @media (max-height: 460px){
       .trackPicker__letterRail{
-        gap:3px;
+        gap:4px;
       }
       .trackPicker__letterBtn{
-        min-height:20px;
-        font-size:10px;
+        min-height:22px;
+        font-size:11px;
       }
       .trackPicker__letterBtn--all{
-        font-size:8px;
+        font-size:9px;
       }
     }
 
@@ -799,6 +898,9 @@
         min-height:56px;
         padding:10px 12px;
         font-size:16px;
+      }
+      #matchCard .trackPicker__trigger.is-placeholder{
+        font-size:18px;
       }
       #matchCard .field--metric input{
         min-height:56px;
@@ -904,6 +1006,14 @@
     }
     #editDlg .modeToggleRow{
       margin:0;
+    }
+    #editDlg .modeBtnSmall{
+      height:var(--button-min-height, 40px);
+      min-height:var(--button-min-height, 40px);
+      padding:8px 10px;
+      border-radius:var(--control-radius);
+      font-size:15px;
+      font-weight:900;
     }
     #editDlg .row{
       gap:12px;

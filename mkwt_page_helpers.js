@@ -200,4 +200,40 @@
     }catch(e){ /* safe to ignore */ }
   };
   MKWT.setActiveById = function(id){ const btn = MKWT.$(id); if (btn) MKWT.setActiveButton(btn); };
+  const SAVE_HAPTIC_SELECTOR = [
+    '#btnSaveMatch',
+    '#btnSaveDlg',
+    '#btnSaveRace',
+    '#btnSaveRaceEdit',
+    '#btnSaveSavedRaceEdit',
+    '#btnSaveTimeTrial',
+    '#btnConfirmMogiResult',
+    '#btnConfirmMissingFormat',
+    '#btnVrOnboardingSave',
+    '#btnCreateProfile'
+  ].join(',');
+  let lastSaveHapticAt = 0;
+  let saveHapticsBound = false;
+  MKWT.mobileSaveHaptic = function(){
+    const nav = window.navigator;
+    if(!nav || typeof nav.vibrate !== 'function') return false;
+    const isTouch = Number(nav.maxTouchPoints || 0) > 0;
+    const isCoarse = window.matchMedia?.('(pointer: coarse)')?.matches;
+    if(!isTouch && !isCoarse) return false;
+    const now = Date.now();
+    if(now - lastSaveHapticAt < 90) return false;
+    lastSaveHapticAt = now;
+    try{ return nav.vibrate(8); }catch(e){ return false; }
+  };
+  MKWT.bindSaveHaptics = function(selector = SAVE_HAPTIC_SELECTOR){
+    if(saveHapticsBound || typeof document === 'undefined' || !document.addEventListener) return;
+    saveHapticsBound = true;
+    document.addEventListener('click', (event) => {
+      const btn = event.target?.closest?.(selector);
+      if(!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
+      MKWT.mobileSaveHaptic();
+    }, { capture:true, passive:true });
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => MKWT.bindSaveHaptics(), { once:true });
+  else MKWT.bindSaveHaptics();
 })();

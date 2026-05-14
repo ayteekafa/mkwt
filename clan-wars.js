@@ -27,6 +27,7 @@
   const CLAN_ICON_SIZE = 256;
   const CLAN_ICON_MAX_BYTES = 4 * 1024 * 1024;
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
+  const CLAN_WARS_MATCH_SELECT = "id, owner_user_id, clan_id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, division_tag, opponent_clan_name, created_by_user_id, completed_at, created_at, updated_at";
   const CLAN_MEMBER_SELECT = "user_id, role, status, display_name";
   const $ = (id) => document.getElementById(id);
   let trackIconPaths = new Map();
@@ -40,6 +41,16 @@
   let resultPickerApi = null;
   let activeClanLetterDrag = false;
   let clanJoinErrorTimer = 0;
+
+  function pulseMobileLetterHaptic(){
+    const nav = window.navigator;
+    if(!nav || typeof nav.vibrate !== "function") return;
+    const isTouchDevice = Number(nav.maxTouchPoints || 0) > 0;
+    const isCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+    if(!isTouchDevice && !isCoarsePointer) return;
+    try{ nav.vibrate(8); }catch(e){}
+  }
+
   const state = {
     mode: "guest",
     session: null,
@@ -81,6 +92,10 @@
     savedMatchPage: 1,
     savedMatchTotal: null,
     resultDialogMatchId: "",
+    opponentNameMatchId: "",
+    divisionStatsEventType: "6v6",
+    divisionStatsMatches: null,
+    divisionStatsFullAccountSource: false,
     loading: true,
   };
 
@@ -329,9 +344,18 @@
       createdAt: raw.createdAt || raw.created_at || nowIso(),
       completedAt: raw.completedAt || raw.completed_at || null,
       divisionTag: normalizeDivisionTag(raw.divisionTag || raw.division_tag || raw.clanDivisionTag || raw.clan_division_tag || ""),
+      opponentClanName: normalizeOpponentClanName(raw.opponentClanName || raw.opponent_clan_name || raw.enemyClanName || raw.enemy_clan_name || ""),
       races,
       ...summary,
     };
+  }
+
+  function normalizeOpponentClanName(value){
+    return String(value || "").trim().replace(/\s+/g, " ").slice(0, 48);
+  }
+
+  function matchOpponentLabel(match){
+    return normalizeOpponentClanName(match?.opponentClanName || match?.opponent_clan_name) || "Enemy";
   }
 
   function normalizeDivisionTag(value){
@@ -436,15 +460,15 @@
       row.avg = row.count ? row.total / row.count : 0;
       byTrack.set(key, row);
     });
-    const qualified = Array.from(byTrack.values()).filter((row) => row.count >= MIN_TRACK_PLAYS_FOR_HIGHLIGHT);
-    const best = qualified.slice().sort((a, b) => {
+    const allDivisionQualified = Array.from(byTrack.values()).filter((row) => row.count >= MIN_TRACK_PLAYS_FOR_HIGHLIGHT);
+    const best = allDivisionQualified.slice().sort((a, b) => {
       const avgDiff = Number(b.avg || 0) - Number(a.avg || 0);
       if(avgDiff !== 0) return avgDiff;
       const countDiff = Number(b.count || 0) - Number(a.count || 0);
       if(countDiff !== 0) return countDiff;
       return String(a.track || "").localeCompare(String(b.track || ""), "en");
     })[0] || null;
-    const worst = qualified.slice().sort((a, b) => {
+    const worst = allDivisionQualified.slice().sort((a, b) => {
       const avgDiff = Number(a.avg || 0) - Number(b.avg || 0);
       if(avgDiff !== 0) return avgDiff;
       const countDiff = Number(b.count || 0) - Number(a.count || 0);
@@ -453,6 +477,307 @@
     })[0] || null;
     const isPagedAccountSummary = state.mode === "account" && Number.isFinite(savedTotal) && savedTotal > completedMatchCount;
     return { matches: matchCount, races: nonDcRaces.length, maxPoints, avgPoints, best, worst, isPagedAccountSummary };
+  }
+
+  async function loadDivisionStatsMatchesFromCloud(){
+    const uidValue = currentUserId();
+    if(state.mode !== "account" || !state.client || !uidValue) return null;
+    const columns = CLAN_WARS_MATCH_SELECT;
+    const applyScope = (query) => {
+      if(state.activeClan?.id) return query.eq("clan_id", state.activeClan.id);
+      return query.is("clan_id", null).eq("owner_user_id", uidValue);
+    };
+    const activeQuery = applyScope(state.client
+      .from("clan_wars_matches")
+      .select(columns)
+      .eq("status", "active")
+      .order("created_at", { ascending: false }));
+    const completedQuery = applyScope(state.client
+      .from("clan_wars_matches")
+      .select(columns)
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(1000));
+    const [
+      { data: activeRows, error: activeError },
+      { data: completedRows, error: completedError },
+    ] = await Promise.all([activeQuery, completedQuery]);
+    if(activeError) throw activeError;
+    if(completedError) throw completedError;
+    const matchRows = mergeMatchList([...(activeRows || []), ...(completedRows || [])]);
+    const ids = matchRows.map((row) => row.id).filter(Boolean);
+    let raceRows = [];
+    if(ids.length) raceRows = await loadRaceRowsForMatchIds(ids);
+    const byMatch = new Map();
+    raceRows.forEach((row) => {
+      const list = byMatch.get(row.match_id) || [];
+      list.push(dbRaceToLocal(row));
+      byMatch.set(row.match_id, list);
+    });
+    const matches = matchRows.map((row) => dbMatchToLocal(row, byMatch.get(row.id) || []));
+    await hydrateCloudDivisionTags(matches);
+    await hydrateMemberNames(matches);
+    return matches.filter((match) => !isEmptyActiveMatch(match));
+  }
+
+  function divisionStatsPickLabel(race){
+    if(!race || race.dc) return "";
+    if(race.raceKind === "intermission"){
+      const start = canonicalTrackName(race.intermissionStart);
+      const end = canonicalTrackName(race.intermissionEnd || race.track);
+      if(start && end) return routeLabel(start, end);
+    }
+    const track = canonicalTrackName(race.track);
+    return track && track !== "Intermission" ? track : "";
+  }
+
+  function buildDivisionStats(matches){
+    const slotOptions = clanDivisionSlots();
+    const slotIndex = new Map(slotOptions.map((tag, index) => [divisionKey(tag), index]));
+    const groups = new Map();
+    const ensureGroup = (tag) => {
+      const normalized = normalizeDivisionTag(tag);
+      const key = divisionKey(normalized);
+      if(!groups.has(key)){
+        groups.set(key, {
+          key,
+          tag: normalized,
+          label: divisionLabel(normalized),
+          sortIndex: slotIndex.has(key) ? slotIndex.get(key) : slotIndex.size + groups.size,
+          matches: 0,
+          races: 0,
+          nonDcRaces: 0,
+          dcCount: 0,
+          uniqueTracks: 0,
+          totalPoints: 0,
+          racePoints: 0,
+          maxPoints: null,
+          marginTotal: 0,
+          marginCount: 0,
+          eventTypes: new Set(),
+          tracks: new Map(),
+          bestTrack: null,
+          worstTrack: null,
+        });
+      }
+      return groups.get(key);
+    };
+
+    slotOptions.forEach(ensureGroup);
+    (matches || []).filter((match) => Array.isArray(match?.races) && match.races.length).forEach((match) => {
+      const group = ensureGroup(match.divisionTag);
+      const summary = summarizeMatch(match);
+      const eventType = normalizeEventType(match.eventType);
+      group.matches += 1;
+      group.races += Number(summary.raceCount || 0);
+      group.dcCount += Number(summary.dcCount || 0);
+      group.totalPoints += Number(summary.ownTotal || 0);
+      group.maxPoints = group.maxPoints == null ? Number(summary.ownTotal || 0) : Math.max(group.maxPoints, Number(summary.ownTotal || 0));
+      group.eventTypes.add(eventType);
+
+      const comparison = eventType === "6v6"
+        ? Number(summary.opponentTotal || 0)
+        : Number(matchThresholdTotal(summary, eventType));
+      const margin = Number(summary.ownTotal || 0) - comparison;
+      if(Number.isFinite(margin)){
+        group.marginTotal += margin;
+        group.marginCount += 1;
+      }
+
+      (match.races || []).forEach((race) => {
+        if(race.dc) return;
+        const points = Number(race.ownPoints || 0);
+        group.nonDcRaces += 1;
+        group.racePoints += points;
+        const label = divisionStatsPickLabel(race);
+        if(!label) return;
+        const key = race.raceKind === "intermission"
+          ? `route|${trackKeyName(label)}`
+          : `track|${trackKeyName(label)}`;
+        const trackRow = group.tracks.get(key) || { label, count: 0, total: 0, avg: 0 };
+        trackRow.count += 1;
+        trackRow.total += points;
+        trackRow.avg = trackRow.count ? trackRow.total / trackRow.count : 0;
+        group.tracks.set(key, trackRow);
+      });
+    });
+
+    return Array.from(groups.values()).map((group) => {
+      const rows = Array.from(group.tracks.values());
+      const qualifiedRows = rows.filter((row) => Number(row.count || 0) >= MIN_TRACK_PLAYS_FOR_HIGHLIGHT);
+      const sortBest = (a, b) => {
+        const avgDiff = Number(b.avg || 0) - Number(a.avg || 0);
+        if(avgDiff !== 0) return avgDiff;
+        const countDiff = Number(b.count || 0) - Number(a.count || 0);
+        if(countDiff !== 0) return countDiff;
+        return String(a.label || "").localeCompare(String(b.label || ""), "en");
+      };
+      const sortWorst = (a, b) => {
+        const avgDiff = Number(a.avg || 0) - Number(b.avg || 0);
+        if(avgDiff !== 0) return avgDiff;
+        const countDiff = Number(b.count || 0) - Number(a.count || 0);
+        if(countDiff !== 0) return countDiff;
+        return String(a.label || "").localeCompare(String(b.label || ""), "en");
+      };
+      return {
+        ...group,
+        uniqueTracks: rows.length,
+        avgPoints: group.matches ? group.totalPoints / group.matches : null,
+        avgRacePoints: group.nonDcRaces ? group.racePoints / group.nonDcRaces : null,
+        avgMargin: group.marginCount ? group.marginTotal / group.marginCount : null,
+        bestTrack: qualifiedRows.slice().sort(sortBest)[0] || null,
+        worstTrack: qualifiedRows.slice().sort(sortWorst)[0] || null,
+      };
+    }).sort((a, b) => {
+      const sortDiff = Number(a.sortIndex || 0) - Number(b.sortIndex || 0);
+      if(sortDiff !== 0) return sortDiff;
+      return String(a.label || "").localeCompare(String(b.label || ""), "en");
+    });
+  }
+
+  function divisionStatsValue(value, digits = 1){
+    if(value == null || !Number.isFinite(Number(value))) return "-";
+    const num = Number(value);
+    return Number.isInteger(num) ? String(num) : num.toFixed(digits);
+  }
+
+  function divisionStatsMetricHtml(label, value, tone = ""){
+    return `
+      <div class="clanWarsDivisionStatsMetric${tone ? ` ${tone}` : ""}">
+        <span>${escapeHtml(label)}</span>
+        <b>${escapeHtml(value)}</b>
+      </div>
+    `;
+  }
+
+  function divisionStatsTrackHtml(label, row){
+    const title = row?.label || "Not enough data";
+    const meta = row
+      ? `${row.count} plays - ${divisionStatsValue(row.avg, 2)} avg`
+      : `No track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`;
+    return `
+      <div class="clanWarsDivisionStatsTrack">
+        <span>${escapeHtml(label)}</span>
+        <b>${escapeHtml(title)}</b>
+        <small>${escapeHtml(meta)}</small>
+      </div>
+    `;
+  }
+
+  function divisionStatsCardHtml(group){
+    const eventType = normalizeEventType(state.divisionStatsEventType || "6v6");
+    const eventTypes = EVENT_LABELS[eventType] || eventType;
+    const marginTone = group.avgMargin > 0 ? "is-positive" : (group.avgMargin < 0 ? "is-negative" : "");
+    return `
+      <article class="clanWarsDivisionStatsCard">
+        <header class="clanWarsDivisionStatsCard__head">
+          <h3>${escapeHtml(group.label)}</h3>
+          <span>${escapeHtml(eventTypes)}</span>
+        </header>
+        <div class="clanWarsDivisionStatsMetrics">
+          ${divisionStatsMetricHtml("Wars", String(group.matches || 0))}
+          ${divisionStatsMetricHtml("Races", String(group.races || 0))}
+          ${divisionStatsMetricHtml("Tracks", String(group.uniqueTracks || 0))}
+          ${divisionStatsMetricHtml("Avg pts", divisionStatsValue(group.avgPoints))}
+          ${divisionStatsMetricHtml("Avg race", divisionStatsValue(group.avgRacePoints, 2))}
+          ${divisionStatsMetricHtml("Max", divisionStatsValue(group.maxPoints))}
+          ${divisionStatsMetricHtml("Margin", group.avgMargin == null ? "-" : formatSignedPoints(group.avgMargin), marginTone)}
+          ${divisionStatsMetricHtml("DC", String(group.dcCount || 0))}
+        </div>
+        <div class="clanWarsDivisionStatsTracks">
+          ${divisionStatsTrackHtml("Best track", group.bestTrack)}
+          ${divisionStatsTrackHtml("Worst track", group.worstTrack)}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderDivisionStatsDialogContent(matches, options = {}){
+    const body = $("cwDivisionStatsBody");
+    const meta = $("cwDivisionStatsMeta");
+    if(!body) return;
+    const eventType = normalizeEventType(state.divisionStatsEventType || "6v6");
+    updateDivisionStatsFilterButtons();
+    const scopedMatches = (matches || []).filter((match) => (
+      normalizeEventType(match?.eventType) === eventType
+      && Array.isArray(match?.races)
+      && match.races.length
+    ));
+    const totalRaces = scopedMatches.reduce((sum, match) => sum + Number(summarizeMatch(match).raceCount || 0), 0);
+    const sourceNote = options.fullAccountSource ? "" : " - loaded data";
+    const eventLabel = EVENT_LABELS[eventType] || eventType;
+    if(meta) meta.textContent = `${eventLabel} - ${scopedMatches.length} wars - ${totalRaces} races${sourceNote}`;
+    if(!scopedMatches.length && !clanDivisionSlots().length){
+      body.innerHTML = `<div class="emptyState">No ${escapeHtml(eventLabel)} Clan Wars data yet.</div>`;
+      return;
+    }
+    const stats = buildDivisionStats(scopedMatches);
+    body.innerHTML = `
+      <div class="clanWarsDivisionStatsGrid">
+        ${stats.map(divisionStatsCardHtml).join("")}
+      </div>
+    `;
+  }
+
+  async function renderDivisionStatsDialog(){
+    const body = $("cwDivisionStatsBody");
+    const meta = $("cwDivisionStatsMeta");
+    updateDivisionStatsFilterButtons();
+    if(!state.divisionStatsMatches){
+      if(body) body.innerHTML = '<div class="muted">Loading stats...</div>';
+      if(meta) meta.textContent = "Loading stats...";
+      let sourceMatches = allLoadedMatches();
+      let fullAccountSource = false;
+      try{
+        const cloudMatches = await loadDivisionStatsMatchesFromCloud();
+        if(Array.isArray(cloudMatches)){
+          sourceMatches = mergeMatchList([...allLoadedMatches(), ...cloudMatches]);
+          fullAccountSource = true;
+        }
+      }catch(e){
+        console.warn("[clan-wars] division stats cloud load skipped", e?.message || e);
+      }
+      state.divisionStatsMatches = sourceMatches;
+      state.divisionStatsFullAccountSource = fullAccountSource;
+    }
+    renderDivisionStatsDialogContent(state.divisionStatsMatches, { fullAccountSource: state.divisionStatsFullAccountSource });
+  }
+
+  function updateDivisionStatsFilterButtons(){
+    const currentType = normalizeEventType(state.divisionStatsEventType || "6v6");
+    document.querySelectorAll("[data-cw-division-stats-event]").forEach((button) => {
+      const active = normalizeEventType(button.getAttribute("data-cw-division-stats-event") || "") === currentType;
+      button.classList.toggle("active", active);
+      button.classList.toggle("isActive", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+  }
+
+  function selectDivisionStatsEventType(value){
+    const eventType = normalizeEventType(value);
+    if(state.divisionStatsEventType === eventType) return;
+    state.divisionStatsEventType = eventType;
+    renderDivisionStatsDialogContent(state.divisionStatsMatches || allLoadedMatches(), {
+      fullAccountSource: state.divisionStatsFullAccountSource,
+    });
+  }
+
+  function closeDivisionStatsDialog(){
+    const dialog = $("cwDivisionStatsDialog");
+    if(!dialog) return;
+    if(typeof dialog.close === "function" && dialog.open) dialog.close();
+    else dialog.removeAttribute("open");
+  }
+
+  async function openDivisionStatsDialog(){
+    const dialog = $("cwDivisionStatsDialog");
+    if(!dialog) return;
+    state.divisionStatsEventType = "6v6";
+    state.divisionStatsMatches = null;
+    state.divisionStatsFullAccountSource = false;
+    if(typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+    else dialog.setAttribute("open", "");
+    await renderDivisionStatsDialog();
   }
 
   function formatHeroPoints(value){
@@ -473,8 +798,8 @@
     const nameEl = $(`cwHero${kind}TrackName`);
     const metaEl = $(`cwHero${kind}TrackMeta`);
     const noData = isPaged
-      ? `Loaded matches: no track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`
-      : `No track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays yet.`;
+      ? `Loaded matches: no track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays across all divisions yet.`
+      : `No track has ${MIN_TRACK_PLAYS_FOR_HIGHLIGHT} plays across all divisions yet.`;
     if(nameEl){
       nameEl.textContent = row ? row.track : "Not enough data";
       nameEl.closest(".clanWarsHeroHighlight")?.classList.toggle("is-empty", !row);
@@ -537,7 +862,7 @@
 
   async function loadSuggestionMatchesFromCloud(scope){
     if(state.mode !== "account" || !state.client || !scope?.userId) return null;
-    const columns = "id, owner_user_id, clan_id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, division_tag, created_by_user_id, completed_at, created_at, updated_at";
+    const columns = CLAN_WARS_MATCH_SELECT;
     let query = state.client
       .from("clan_wars_matches")
       .select(columns)
@@ -905,6 +1230,7 @@
       raceCount: row.race_count,
       dcCount: row.dc_count,
       division_tag: row.division_tag,
+      opponent_clan_name: row.opponent_clan_name,
       created_by_user_id: row.created_by_user_id,
       completed_at: row.completed_at,
       created_at: row.created_at,
@@ -1128,7 +1454,7 @@
     const uidValue = state.session?.user?.id;
     if(!state.client || !uidValue) return;
 
-    const columns = "id, owner_user_id, clan_id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, division_tag, created_by_user_id, completed_at, created_at, updated_at";
+    const columns = CLAN_WARS_MATCH_SELECT;
     const applyScope = (query) => {
       if(state.activeClan?.id) return query.eq("clan_id", state.activeClan.id);
       return query.is("clan_id", null).eq("owner_user_id", uidValue);
@@ -1589,10 +1915,13 @@
     $("cwClanPassword")?.focus();
   }
 
-  function setClanLetterFilter(letter){
-    state.clanSearch.letterFilter = letter || "all";
+  function setClanLetterFilter(letter, withHaptic = false){
+    const next = letter || "all";
+    if(state.clanSearch.letterFilter === next) return;
+    state.clanSearch.letterFilter = next;
     state.clanSearch.activeIndex = 0;
     renderClanSuggestions();
+    if(withHaptic) pulseMobileLetterHaptic();
   }
 
   function applyClanLetterFilterFromPoint(clientX, clientY){
@@ -1601,7 +1930,7 @@
     const target = document.elementFromPoint(clientX, clientY);
     const button = target?.closest?.("[data-cw-clan-letter]");
     if(!rail || !button || !rail.contains(button)) return;
-    setClanLetterFilter(button.getAttribute("data-cw-clan-letter") || "all");
+    setClanLetterFilter(button.getAttribute("data-cw-clan-letter") || "all", true);
   }
 
   function setClanPickerOpen(open){
@@ -2342,6 +2671,8 @@
     let scrollLocked = false;
     let activeLetterPicker = null;
 
+    const pulseLetterFilterHaptic = pulseMobileLetterHaptic;
+
     const lockPageScroll = () => {
       if(scrollLocked) return;
       scrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
@@ -2391,6 +2722,21 @@
     const trackLetter = (option) => {
       const value = String(option?.value || option?.label || "").trim();
       return (value.charAt(0) || "?").toUpperCase();
+    };
+    const isIntermissionEndPicker = (picker) => {
+      const selectEl = picker?.selectEl;
+      if(!selectEl) return false;
+      const id = String(selectEl.id || "").trim();
+      if(/intermission.*end|end.*intermission/i.test(id)) return true;
+      const placeholder = Array.from(selectEl.options || []).find((option) => !String(option.value || "").trim());
+      const placeholderText = String(placeholder?.textContent || placeholder?.label || "").trim();
+      const aria = String(selectEl.getAttribute("aria-label") || "").trim();
+      return [placeholderText, aria].some((text) => /intermission\s*end/i.test(text));
+    };
+    const isFilteredIntermissionEndPicker = (picker, options, activeLetter) => {
+      if(activeLetter !== "all" || !isIntermissionEndPicker(picker)) return false;
+      const optionCount = new Set((options || []).map((option) => String(option.value || option.label || "").trim()).filter(Boolean)).size;
+      return optionCount > 0 && optionCount < COURSE_TRACKS.length;
     };
     const groupedTrackOptions = (options, letterFilter) => {
       const visible = letterFilter && letterFilter !== "all"
@@ -2488,6 +2834,8 @@
       const hasIntermission = options.some((option) => option.value === "Intermission");
       const railLetters = hasIntermission && letters.includes("I") ? ["I", ...letters.filter((letter) => letter !== "I")] : letters;
       const activeLetter = picker.letterFilter || "all";
+      picker.root?.classList.toggle("trackPicker--letterFiltered", activeLetter !== "all");
+      picker.root?.classList.toggle("trackPicker--intermissionEndFiltered", isFilteredIntermissionEndPicker(picker, options, activeLetter));
       const layout = document.createElement("div");
       layout.className = "trackPicker__layout";
       const rail = document.createElement("div");
@@ -2511,7 +2859,7 @@
         const button = event.target.closest?.("[data-letter-filter]");
         if(!button) return;
         event.preventDefault();
-        applyLetterFilter(picker, button.dataset.letterFilter || "all");
+        applyLetterFilter(picker, button.dataset.letterFilter || "all", true);
       });
       rail.addEventListener("keydown", (event) => {
         if(event.key !== "Enter" && event.key !== " ") return;
@@ -2529,7 +2877,7 @@
         if(!event.target.closest?.("[data-letter-filter]")) return;
         event.preventDefault();
         activeLetterPicker = picker;
-        applyLetterFilterFromPoint(event.clientX, event.clientY);
+        applyLetterFilterFromPoint(event.clientX, event.clientY, true);
       });
       const trackArea = document.createElement("div");
       trackArea.className = "trackPicker__trackArea";
@@ -2610,20 +2958,21 @@
       return true;
     };
     const findOpenPicker = () => Array.from(pickers.values()).find((picker) => !picker.panel.hidden) || null;
-    const applyLetterFilter = (picker, letter) => {
+    const applyLetterFilter = (picker, letter, withHaptic = false) => {
       if(!picker || picker.kind !== "track" || picker.panel.hidden) return;
       const next = letter || "all";
       if((picker.letterFilter || "all") === next) return;
       picker.letterFilter = next;
       renderPanel(picker);
       alignPanel(picker);
+      if(withHaptic) pulseLetterFilterHaptic();
     };
-    const applyLetterFilterFromPoint = (clientX, clientY) => {
+    const applyLetterFilterFromPoint = (clientX, clientY, withHaptic = false) => {
       if(!activeLetterPicker) return;
       const target = document.elementFromPoint(clientX, clientY);
       const button = target?.closest?.("[data-letter-filter]");
       if(!button || !activeLetterPicker.panel.contains(button)) return;
-      applyLetterFilter(activeLetterPicker, button.dataset.letterFilter || "all");
+      applyLetterFilter(activeLetterPicker, button.dataset.letterFilter || "all", withHaptic);
     };
     const closeAll = () => {
       activeLetterPicker = null;
@@ -2776,7 +3125,7 @@
     document.addEventListener("pointermove", (event) => {
       if(!activeLetterPicker) return;
       event.preventDefault();
-      applyLetterFilterFromPoint(event.clientX, event.clientY);
+      applyLetterFilterFromPoint(event.clientX, event.clientY, true);
     }, { passive:false });
     document.addEventListener("pointerup", () => {
       activeLetterPicker = null;
@@ -3030,6 +3379,7 @@
         event_type: match.eventType,
         status: "active",
         division_tag: normalizeDivisionTag(match.divisionTag) || null,
+        opponent_clan_name: null,
         own_total: 0,
         opponent_total: match.eventType === "6v6" ? 0 : null,
         field_total: 0,
@@ -3082,6 +3432,7 @@
       field_total: summary.fieldTotal,
       race_count: summary.raceCount,
       dc_count: summary.dcCount,
+      opponent_clan_name: normalizeOpponentClanName(match.opponentClanName) || null,
       completed_at: match.status === "completed" ? (match.completedAt || nowIso()) : null,
     };
   }
@@ -3290,6 +3641,73 @@
       .update({ division_tag: normalizeDivisionTag(match.divisionTag) || null })
       .eq("id", match.id);
     if(error) throw error;
+  }
+
+  async function updateCloudOpponentClanName(match){
+    if(state.mode !== "account" || !state.client || !match?.id) return;
+    const { error } = await state.client
+      .from("clan_wars_matches")
+      .update({ opponent_clan_name: normalizeOpponentClanName(match.opponentClanName) || null })
+      .eq("id", match.id);
+    if(error) throw error;
+  }
+
+  function openOpponentNameDialog(matchId){
+    const match = findSavedMatch(matchId);
+    if(!match) return;
+    if(match.eventType !== "6v6") return;
+    if(!canEditMatch(match)){
+      showToast("Only the match tracker can change this opponent.", false);
+      return;
+    }
+    state.opponentNameMatchId = match.id;
+    const input = $("cwOpponentNameInput");
+    const meta = $("cwOpponentNameMeta");
+    if(input) input.value = normalizeOpponentClanName(match.opponentClanName);
+    if(meta) meta.textContent = `${EVENT_LABELS[match.eventType] || "Clan Wars"} - ${formatDate(match.completedAt || match.createdAt)}`;
+    const dialog = $("cwOpponentNameDialog");
+    if(!dialog) return;
+    if(typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+    else dialog.setAttribute("open", "");
+    window.setTimeout(() => {
+      input?.focus();
+      input?.select?.();
+    }, 0);
+  }
+
+  function closeOpponentNameDialog(){
+    const dialog = $("cwOpponentNameDialog");
+    if(dialog?.open && typeof dialog.close === "function") dialog.close();
+    else dialog?.removeAttribute("open");
+    state.opponentNameMatchId = "";
+  }
+
+  async function saveOpponentClanName(){
+    const match = findSavedMatch(state.opponentNameMatchId);
+    if(!match) return closeOpponentNameDialog();
+    if(!canEditMatch(match)){
+      showToast("Only the match tracker can change this opponent.", false);
+      return;
+    }
+    const nextName = normalizeOpponentClanName($("cwOpponentNameInput")?.value || "");
+    const previousName = normalizeOpponentClanName(match.opponentClanName);
+    if(nextName === previousName){
+      closeOpponentNameDialog();
+      return;
+    }
+    try{
+      match.opponentClanName = nextName;
+      match.updatedAt = nowIso();
+      await updateCloudOpponentClanName(match);
+      if(state.mode === "guest") persistLocal();
+      closeOpponentNameDialog();
+      render();
+      showToast(nextName ? "Opponent clan saved." : "Opponent label reset.", true);
+    }catch(e){
+      match.opponentClanName = previousName;
+      console.error(e);
+      showToast(e?.message || "Could not save opponent clan.", false);
+    }
   }
 
   async function setSavedMatchDivisionTag(matchId, tag){
@@ -3638,7 +4056,7 @@
     const enemyTone = opponent > own ? "winner" : (opponent < own ? "loser" : "even");
     return [
       { label: matchOwnLabel(match), value: own, tone: ownTone },
-      { label: "Enemy", value: opponent, tone: enemyTone },
+      { label: matchOpponentLabel(match), value: opponent, tone: enemyTone },
       { label: "Margin", value: formatSignedPoints(own - opponent), tone: ownTone },
     ];
   }
@@ -4238,7 +4656,7 @@
     return num > 0 ? `+${text}` : text;
   }
 
-  function matchScoreHtml(match, summary){
+  function matchScoreHtml(match, summary, options = {}){
     const own = Number(summary.ownTotal || 0);
     const opponent = Number(summary.opponentTotal || 0);
     if(match.eventType !== "6v6"){
@@ -4265,14 +4683,20 @@
     const ownTone = own > opponent ? "is-winner" : (own < opponent ? "is-loser" : "is-even");
     const enemyTone = opponent > own ? "is-winner" : (opponent < own ? "is-loser" : "is-even");
     const margin = own - opponent;
+    const opponentSettingsButton = options.showOpponentSettings ? `
+            <button class="clanWarsMatchSettingsBtn" type="button" data-cw-match-opponent-settings="${escapeHtml(match.id)}" title="Change opponent clan name" aria-label="Change opponent clan name">
+              <span aria-hidden="true">&#9881;</span>
+            </button>
+    ` : "";
     return `
       <div class="clanWarsMatchScore clanWarsMatchScore--analysis">
         <div class="clanWarsScoreCard ${ownTone}">
           <span>${escapeHtml(matchOwnLabel(match))}</span>
           <b>${own}</b>
         </div>
-        <div class="clanWarsScoreCard ${enemyTone}">
-          <span>Enemy</span>
+        <div class="clanWarsScoreCard clanWarsScoreCard--opponent ${enemyTone}">
+          ${opponentSettingsButton}
+          <span>${escapeHtml(matchOpponentLabel(match))}</span>
           <b>${opponent}</b>
         </div>
         <div class="clanWarsScoreDelta ${ownTone}">
@@ -4386,7 +4810,7 @@
             </div>
             <div class="clanWarsMatchMeta">${metaPills || savedMatchMetaPillHtml("Tracked match")}</div>
           </div>
-          ${matchScoreHtml(match, summary)}
+          ${matchScoreHtml(match, summary, { showOpponentSettings: isOpen && canEdit && match.eventType === "6v6" })}
           <div class="clanWarsMatchDownloadSlot">
             <button class="clanWarsDownloadMatchBtn" type="button" data-cw-download-match="${escapeHtml(match.id)}" title="Download match image" aria-label="Download this match as image">
               <span aria-hidden="true">&#8595;</span>
@@ -4528,6 +4952,16 @@
       }
       openTrackSuggestionDialog();
     });
+    $("btnClanDivisionStats")?.addEventListener("click", openDivisionStatsDialog);
+    $("btnCloseCwDivisionStats")?.addEventListener("click", closeDivisionStatsDialog);
+    $("cwDivisionStatsFilter")?.addEventListener("click", (event) => {
+      const button = event.target.closest?.("[data-cw-division-stats-event]");
+      if(!button) return;
+      selectDivisionStatsEventType(button.getAttribute("data-cw-division-stats-event") || "6v6");
+    });
+    $("cwDivisionStatsDialog")?.addEventListener("click", (event) => {
+      if(event.target === $("cwDivisionStatsDialog")) closeDivisionStatsDialog();
+    });
     $("btnCloseCwTrackSuggestions")?.addEventListener("click", closeTrackSuggestionDialog);
     $("cwTrackSuggestionDialog")?.addEventListener("click", (event) => {
       if(event.target === $("cwTrackSuggestionDialog")) closeTrackSuggestionDialog();
@@ -4653,7 +5087,7 @@
       if(!button) return;
       event.preventDefault();
       event.stopPropagation();
-      setClanLetterFilter(button.getAttribute("data-cw-clan-letter") || "all");
+      setClanLetterFilter(button.getAttribute("data-cw-clan-letter") || "all", true);
     });
     $("cwClanLetterRail")?.addEventListener("keydown", (event) => {
       if(event.key !== "Enter" && event.key !== " ") return;
@@ -4718,12 +5152,30 @@
       if($("cwResultDialog")?.returnValue === "new") newMatch();
       state.resultDialogMatchId = "";
     });
+    $("cwOpponentNameForm")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      saveOpponentClanName();
+    });
+    $("btnCancelCwOpponentName")?.addEventListener("click", closeOpponentNameDialog);
+    $("cwOpponentNameDialog")?.addEventListener("click", (event) => {
+      if(event.target === $("cwOpponentNameDialog")) closeOpponentNameDialog();
+    });
+    $("cwOpponentNameDialog")?.addEventListener("close", () => {
+      state.opponentNameMatchId = "";
+    });
     $("cwSavedMatchList")?.addEventListener("click", (event) => {
       const downloadButton = event.target.closest?.("[data-cw-download-match]");
       if(downloadButton){
         event.preventDefault();
         event.stopPropagation();
         downloadSavedMatchImage(downloadButton.getAttribute("data-cw-download-match") || "", downloadButton);
+        return;
+      }
+      const opponentSettingsButton = event.target.closest?.("[data-cw-match-opponent-settings]");
+      if(opponentSettingsButton){
+        event.preventDefault();
+        event.stopPropagation();
+        openOpponentNameDialog(opponentSettingsButton.getAttribute("data-cw-match-opponent-settings") || "");
         return;
       }
       const deleteButton = event.target.closest?.("[data-cw-delete-match]");

@@ -69,10 +69,10 @@
         <div class="statLabel">Mogis</div>
         <div class="statValue" id="heroMogiCount">0</div>
       </div>
-      <div class="statBox">
+      <button class="statBox loungeHeroStatButton" id="btnLoungeTierStats" type="button" aria-haspopup="dialog" aria-controls="loungeTierStatsDialog">
         <div class="statLabel">Points / AVG</div>
         <div class="statValue" id="heroMogiAvg">0.00</div>
-      </div>
+      </button>
       <div class="statBox">
         <div class="statLabel">Races</div>
         <div class="statValue" id="heroRaceCount">0</div>
@@ -157,7 +157,8 @@
         </div>
 
         <div class="actionStrip" aria-label="Race actions">
-          <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add Race</button>
+          <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add</button>
+          <button id="btnClearEntry" class="navAction actionStripBtn" type="button">Clear</button>
           <button id="btnTagToggle" class="navAction actionStripBtn tagExpandToggle" type="button" aria-expanded="false" aria-controls="entryTagStrip">Tags</button>
           <div class="tagStrip" id="entryTagStrip" aria-label="Race tags">
             <button id="btnLobby11" class="navAction actionStripBtn tagToggle" data-lobby-tag="11" type="button" aria-pressed="false">11p</button>
@@ -197,6 +198,21 @@
       </div>
       <div class="suggestTrackGrid" id="trackSuggestionGrid">
         <div class="muted">No suggestions yet.</div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="compareDialog loungeTierStatsDialog" id="loungeTierStatsDialog">
+    <div class="compareDialogPanel loungeTierStatsPanel">
+      <div class="compareDialogHead">
+        <div>
+          <h3>Tier stats</h3>
+          <div class="muted compareDialogMeta" id="loungeTierStatsMeta">Loading tier stats...</div>
+        </div>
+        <button class="navAction" id="btnCloseLoungeTierStats" type="button">Close</button>
+      </div>
+      <div class="loungeTierStatsBody" id="loungeTierStatsBody">
+        <div class="muted">Loading tier stats...</div>
       </div>
     </div>
   </dialog>

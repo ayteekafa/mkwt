@@ -847,6 +847,9 @@ window.mkwtRequireAuth = async function(options = {}){
   function normalizeClanWarMatch(raw){
     if (!raw || typeof raw !== "object") return null;
     const eventType = cleanString((raw.event_type ?? raw.eventType) || "6v6") === "6v6v6v6" ? "6v6v6v6" : "6v6";
+    const opponentClanName = eventType === "6v6"
+      ? cleanString(raw.opponentClanName ?? raw.opponent_clan_name ?? "").slice(0, 48)
+      : "";
     const races = (Array.isArray(raw.races) ? raw.races : []).map(normalizeClanWarRace).filter(Boolean)
       .sort((a, b) => Number(a.raceNumber || 0) - Number(b.raceNumber || 0));
     const now = new Date().toISOString();
@@ -859,7 +862,7 @@ window.mkwtRequireAuth = async function(options = {}){
       clanId: null,
       createdAt: raw.createdAt ?? raw.created_at ?? now,
       completedAt: raw.completedAt ?? raw.completed_at ?? null,
-      divisionTag: cleanString(raw.divisionTag ?? raw.division_tag ?? raw.clanDivisionTag ?? raw.clan_division_tag ?? ""),
+      opponentClanName,
       races,
       ...summary,
     };
@@ -881,10 +884,13 @@ window.mkwtRequireAuth = async function(options = {}){
 
   function readLocalClanWarsBackup(){
     const current = normalizeClanWarMatch(safeReadJson(GUEST_CLAN_WARS_CURRENT_KEY, null));
-    const matches = mergeClanWarMatches((safeReadJson(GUEST_CLAN_WARS_MATCHES_KEY, []) || []).map(normalizeClanWarMatch).filter(Boolean));
+    const current6v6 = current?.eventType === "6v6" ? current : null;
+    const matches = mergeClanWarMatches((safeReadJson(GUEST_CLAN_WARS_MATCHES_KEY, []) || [])
+      .map(normalizeClanWarMatch)
+      .filter(match => match?.eventType === "6v6"));
     return {
       source: "local_storage",
-      current_match: current,
+      current_match: current6v6,
       match_count: matches.length,
       matches,
     };
@@ -895,9 +901,10 @@ window.mkwtRequireAuth = async function(options = {}){
     const uid = window.SESSION.user.id;
     const { data: matches, error: matchError } = await supabaseClient
       .from("clan_wars_matches")
-      .select("id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, completed_at, created_at")
+      .select("id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, opponent_clan_name, completed_at, created_at")
       .eq("owner_user_id", uid)
       .is("clan_id", null)
+      .eq("event_type", "6v6")
       .order("created_at", { ascending: false });
     if (matchError) throw matchError;
 
@@ -922,6 +929,7 @@ window.mkwtRequireAuth = async function(options = {}){
       id: match.id,
       event_type: match.event_type,
       status: match.status,
+      opponent_clan_name: match.opponent_clan_name,
       completed_at: match.completed_at,
       created_at: match.created_at,
       races: (racesByMatch.get(match.id) || []).map(race => ({
@@ -955,8 +963,11 @@ window.mkwtRequireAuth = async function(options = {}){
   function getClanWarsPayloadFromBackup(backup){
     const present = !!(backup && (hasOwn(backup, "clan_wars") || hasOwn(backup, "clanWars")));
     const payload = backup?.clan_wars || backup?.clanWars || null;
-    const current = normalizeClanWarMatch(payload?.current_match ?? payload?.currentMatch ?? null);
-    const matches = mergeClanWarMatches((Array.isArray(payload?.matches) ? payload.matches : []).map(normalizeClanWarMatch).filter(Boolean));
+    const normalizedCurrent = normalizeClanWarMatch(payload?.current_match ?? payload?.currentMatch ?? null);
+    const current = normalizedCurrent?.eventType === "6v6" ? normalizedCurrent : null;
+    const matches = mergeClanWarMatches((Array.isArray(payload?.matches) ? payload.matches : [])
+      .map(normalizeClanWarMatch)
+      .filter(match => match?.eventType === "6v6"));
     return {
       source: payload?.source || "backup",
       current_match: current,
@@ -990,7 +1001,8 @@ window.mkwtRequireAuth = async function(options = {}){
       .from("clan_wars_matches")
       .select("id")
       .eq("owner_user_id", uid)
-      .is("clan_id", null);
+      .is("clan_id", null)
+      .eq("event_type", "6v6");
     if (existingError) throw existingError;
     const existingIds = (existing || []).map(row => row.id).filter(Boolean);
     for (let i = 0; i < existingIds.length; i += 100) {
@@ -1007,13 +1019,14 @@ window.mkwtRequireAuth = async function(options = {}){
         id: isUuid(normalized.id) ? normalized.id : undefined,
         owner_user_id: uid,
         clan_id: null,
-        event_type: normalized.eventType,
+        event_type: "6v6",
         status: normalized.status,
         own_total: summary.ownTotal,
-        opponent_total: normalized.eventType === "6v6" ? summary.opponentTotal : null,
+        opponent_total: summary.opponentTotal,
         field_total: summary.fieldTotal,
         race_count: summary.raceCount,
         dc_count: summary.dcCount,
+        opponent_clan_name: normalized.opponentClanName || null,
         created_by_user_id: uid,
         completed_at: normalized.completedAt,
         created_at: normalized.createdAt,
@@ -1035,7 +1048,7 @@ window.mkwtRequireAuth = async function(options = {}){
         raceRows.push({
           match_id: matchId,
           race_number: race.raceNumber,
-          event_type: race.eventType,
+          event_type: "6v6",
           race_kind: race.raceKind,
           track: race.track,
           intermission_start: race.intermissionStart,
@@ -1570,7 +1583,7 @@ window.mkwtRequireAuth = async function(options = {}){
       supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("user_id", uid),
       supabaseClient.from("lounge_mogis").select("player_count, status, stats_excluded").eq("user_id", uid),
       supabaseClient.from("time_trial_entries").select("id", { count: "exact", head: true }).eq("user_id", uid),
-      supabaseClient.from("clan_wars_matches").select("id", { count: "exact", head: true }).eq("owner_user_id", uid).is("clan_id", null),
+      supabaseClient.from("clan_wars_matches").select("id", { count: "exact", head: true }).eq("owner_user_id", uid).is("clan_id", null).eq("event_type", "6v6"),
     ]);
     if (matchesRes.error) throw matchesRes.error;
     if (loungeRes.error) throw loungeRes.error;

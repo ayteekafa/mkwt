@@ -243,12 +243,10 @@
           </label>
         </div>
 
-        <div class="actionStrip actionStrip--24" aria-label="Race actions">
-          <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add Race</button>
-          <button id="btnTagToggle" class="navAction actionStripBtn tagExpandToggle" type="button" aria-expanded="false" aria-controls="entryTagStrip">Tags</button>
-          <div class="tagStrip tagStrip--single" id="entryTagStrip" aria-label="Race tags">
-            <button id="btnDisconnect" class="navAction actionStripBtn tagToggle" type="button" aria-pressed="false">DC</button>
-          </div>
+        <div class="actionStrip actionStrip--24 actionStrip--24DirectDc" aria-label="Race actions">
+          <button id="btnDisconnect" class="navAction actionStripBtn tagToggle" type="button" aria-pressed="false">DC</button>
+          <button id="btnClearEntry" class="navAction actionStripBtn" type="button">Clear</button>
+          <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add</button>
           <button id="btnUndo" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last"><span class="undoMark" aria-hidden="true">&#8630;</span><span class="undoLabel">Undo</span></button>
           <div aria-live="polite" class="entryStatus hidden" id="entryStatus" role="status"></div>
         </div>

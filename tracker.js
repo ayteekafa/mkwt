@@ -329,6 +329,15 @@ function initTrackPickers(){
   let scrollLocked = false;
   let activeLetterPicker = null;
 
+  const pulseLetterFilterHaptic = () => {
+    const nav = window.navigator;
+    if (!nav || typeof nav.vibrate !== "function") return;
+    const isTouchDevice = Number(nav.maxTouchPoints || 0) > 0;
+    const isCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+    if (!isTouchDevice && !isCoarsePointer) return;
+    try { nav.vibrate(8); } catch (e) {}
+  };
+
   const lockPageScroll = () => {
     if (scrollLocked) return;
     scrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
@@ -429,6 +438,27 @@ function initTrackPickers(){
     return current;
   };
 
+  const isIntermissionEndPicker = (picker) => {
+    const selectEl = picker?.selectEl;
+    if (!selectEl) return false;
+    const id = cleanTrackText(selectEl.id);
+    if (/intermission.*end|end.*intermission/i.test(id)) return true;
+    const firstOption = selectEl.options?.[0];
+    const firstText = cleanTrackText(firstOption?.textContent || firstOption?.label || "");
+    const aria = cleanTrackText(selectEl.getAttribute("aria-label") || "");
+    let label = "";
+    if (selectEl.id && window.CSS?.escape) {
+      label = cleanTrackText(document.querySelector(`label[for="${CSS.escape(selectEl.id)}"]`)?.textContent || "");
+    }
+    return [firstText, aria, label].some((text) => /intermission\s*end/i.test(text));
+  };
+
+  const isFilteredIntermissionEndPicker = (picker, options, activeLetter) => {
+    if (activeLetter !== "all" || !isIntermissionEndPicker(picker)) return false;
+    const optionCount = new Set((options || []).map((option) => cleanTrackText(option.value || option.label)).filter(Boolean)).size;
+    return optionCount > 0 && optionCount < TRACKS.length;
+  };
+
   const filterTrackOptionsByLetter = (options, letter) => {
     if (!letter || letter === "all") return options;
     return options.filter((option) => getTrackLetter(option) === letter);
@@ -474,21 +504,22 @@ function initTrackPickers(){
     if (!exceptPicker) hideBackdrop();
   };
 
-  const applyLetterFilter = (picker, letter) => {
+  const applyLetterFilter = (picker, letter, withHaptic = false) => {
     if (!picker || picker.kind !== "track" || picker.panel.hidden) return;
     const next = letter || "all";
     if ((picker.letterFilter || "all") === next) return;
     picker.letterFilter = next;
     renderPanel(picker);
     alignPanel(picker);
+    if (withHaptic) pulseLetterFilterHaptic();
   };
 
-  const applyLetterFilterFromPoint = (clientX, clientY) => {
+  const applyLetterFilterFromPoint = (clientX, clientY, withHaptic = false) => {
     if (!activeLetterPicker) return;
     const target = document.elementFromPoint(clientX, clientY);
     const button = target?.closest?.("[data-letter-filter]");
     if (!button || !activeLetterPicker.panel.contains(button)) return;
-    applyLetterFilter(activeLetterPicker, button.dataset.letterFilter || "all");
+    applyLetterFilter(activeLetterPicker, button.dataset.letterFilter || "all", withHaptic);
   };
 
   const renderPanel = (picker) => {
@@ -522,6 +553,8 @@ function initTrackPickers(){
     const letters = getTrackLetters(allOptions);
     const activeLetter = getActiveTrackLetter(picker, letters);
     const visibleOptions = filterTrackOptionsByLetter(allOptions, activeLetter);
+    picker.root?.classList.toggle("trackPicker--letterFiltered", activeLetter !== "all");
+    picker.root?.classList.toggle("trackPicker--intermissionEndFiltered", isFilteredIntermissionEndPicker(picker, allOptions, activeLetter));
     const letterCount = letters.length + 1;
     panel.style.setProperty("--track-picker-letter-count", String(letterCount));
     panel.style.setProperty("--track-picker-mobile-height", `${32 + (letterCount * 24) + ((letterCount - 1) * 4)}px`);
@@ -552,7 +585,7 @@ function initTrackPickers(){
       const letterButton = event.target.closest?.("[data-letter-filter]");
       if (!letterButton) return;
       event.preventDefault();
-      applyLetterFilter(picker, letterButton.dataset.letterFilter || "all");
+      applyLetterFilter(picker, letterButton.dataset.letterFilter || "all", true);
     });
     rail.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
@@ -569,7 +602,7 @@ function initTrackPickers(){
       if (!event.target.closest?.("[data-letter-filter]")) return;
       event.preventDefault();
       activeLetterPicker = picker;
-      applyLetterFilterFromPoint(event.clientX, event.clientY);
+      applyLetterFilterFromPoint(event.clientX, event.clientY, true);
     });
 
     const trackArea = document.createElement("div");
@@ -786,7 +819,7 @@ function initTrackPickers(){
   document.addEventListener("pointermove", (event) => {
     if (!activeLetterPicker) return;
     event.preventDefault();
-    applyLetterFilterFromPoint(event.clientX, event.clientY);
+    applyLetterFilterFromPoint(event.clientX, event.clientY, true);
   }, { passive: false });
   document.addEventListener("pointerup", () => {
     activeLetterPicker = null;

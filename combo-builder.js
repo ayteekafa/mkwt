@@ -100,6 +100,15 @@
   let comboPickerIconRefreshQueued = false;
   const comboPickerReadyPaths = new Set();
 
+  function pulseComboLetterHaptic() {
+    const nav = window.navigator;
+    if (!nav || typeof nav.vibrate !== "function") return;
+    const isTouchDevice = Number(nav.maxTouchPoints || 0) > 0;
+    const isCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+    if (!isTouchDevice && !isCoarsePointer) return;
+    try { nav.vibrate(8); } catch (e) {}
+  }
+
   function cleanText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
   }
@@ -453,7 +462,7 @@
     panel.style.top = `${Math.round(Math.max(viewport.offsetTop + margin, Math.min(preferredTop, maxTop)))}px`;
   }
 
-  function setComboLetterFilter(root, letter, focusLetter = false) {
+  function setComboLetterFilter(root, letter, focusLetter = false, withHaptic = false) {
     const select = $(root?.dataset?.selectId || "");
     const panel = root?.querySelector?.(".trackPicker__panel");
     if (!root || !select || !panel || panel.hidden) return false;
@@ -464,6 +473,7 @@
     root.dataset.letterFilter = next;
     renderComboPickerPanel(root);
     alignComboPickerPanel(root);
+    if (withHaptic) pulseComboLetterHaptic();
     if (focusLetter) {
       requestAnimationFrame(() => root.querySelector(`[data-letter-filter="${CSS.escape(next)}"]`)?.focus?.());
     }
@@ -475,12 +485,12 @@
     return setComboLetterFilter(root, "all", focusAll);
   }
 
-  function applyComboLetterFilterFromPoint(clientX, clientY) {
+  function applyComboLetterFilterFromPoint(clientX, clientY, withHaptic = false) {
     if (!activeComboLetterPicker) return;
     const target = document.elementFromPoint(clientX, clientY);
     const button = target?.closest?.("[data-letter-filter]");
     if (!button || !activeComboLetterPicker.querySelector(".trackPicker__panel")?.contains(button)) return;
-    setComboLetterFilter(activeComboLetterPicker, button.dataset.letterFilter || "all");
+    setComboLetterFilter(activeComboLetterPicker, button.dataset.letterFilter || "all", false, withHaptic);
   }
 
   function applyComboKeyboardLetterFilter(root, key) {
@@ -506,6 +516,7 @@
     const letters = comboPickerLetters(options);
     const currentLetter = letters.includes(root.dataset.letterFilter || "") ? root.dataset.letterFilter : "all";
     root.dataset.letterFilter = currentLetter;
+    root.classList.toggle("trackPicker--letterFiltered", currentLetter !== "all");
     const visibleOptions = filterComboPickerOptions(options, currentLetter);
     const railLetters = ["all", ...letters];
     panel.innerHTML = "";
@@ -534,7 +545,7 @@
       const button = event.target.closest("[data-letter-filter]");
       if (!button) return;
       event.preventDefault();
-      setComboLetterFilter(root, button.dataset.letterFilter || "all");
+      setComboLetterFilter(root, button.dataset.letterFilter || "all", false, true);
     });
     rail.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
@@ -551,7 +562,7 @@
       if (!event.target.closest("[data-letter-filter]")) return;
       event.preventDefault();
       activeComboLetterPicker = root;
-      applyComboLetterFilterFromPoint(event.clientX, event.clientY);
+      applyComboLetterFilterFromPoint(event.clientX, event.clientY, true);
     });
 
     const trackArea = document.createElement("div");
@@ -700,7 +711,7 @@
       document.addEventListener("pointermove", (event) => {
         if (!activeComboLetterPicker) return;
         event.preventDefault();
-        applyComboLetterFilterFromPoint(event.clientX, event.clientY);
+        applyComboLetterFilterFromPoint(event.clientX, event.clientY, true);
       }, { passive: false });
       document.addEventListener("pointerup", () => {
         activeComboLetterPicker = null;

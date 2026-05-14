@@ -16,7 +16,7 @@
   <link href="tracker.css" rel="stylesheet"/>
   <link href="stats.css" rel="stylesheet"/>
   <link href="lounge.css" rel="stylesheet"/>
-  <link href="clan-wars.css?v=20260512a" rel="stylesheet"/>
+  <link href="clan-wars.css?v=20260514c" rel="stylesheet"/>
 </head>
 <body>
   <nav class="nav">
@@ -64,10 +64,10 @@
         </div>
       </div>
       <div aria-label="Clan Wars quick stats" class="statGrid clanWarsHeroStats">
-        <div class="statBox">
+        <button class="statBox clanWarsHeroStatButton" id="btnClanDivisionStats" type="button" aria-haspopup="dialog" aria-controls="cwDivisionStatsDialog">
           <div class="statLabel">Matches</div>
           <div class="statValue" id="cwHeroMatchCount">0</div>
-        </div>
+        </button>
         <div class="statBox">
           <div class="statLabel">Races</div>
           <div class="statValue" id="cwHeroRaceCount">0</div>
@@ -81,16 +81,16 @@
           <div class="statValue" id="cwHeroAvgPoints">-</div>
         </div>
       </div>
-      <div class="bestTrackLine bestTrackLine--split clanWarsHeroHighlights" aria-label="Clan Wars track highlights">
+      <div class="bestTrackLine bestTrackLine--split clanWarsHeroHighlights" aria-label="Clan Wars all-division track highlights">
         <div class="bestTrackSlot clanWarsHeroHighlight">
-          <div class="bestTrackLabel">Best Track</div>
+          <div class="bestTrackLabel">Best Track All Division</div>
           <div class="bestTrackName" id="cwHeroBestTrackName">Not enough data</div>
-          <div class="bestTrackMeta" id="cwHeroBestTrackMeta">No track has 10 plays yet.</div>
+          <div class="bestTrackMeta" id="cwHeroBestTrackMeta">No track has 10 plays across all divisions yet.</div>
         </div>
         <div class="bestTrackSlot clanWarsHeroHighlight">
-          <div class="bestTrackLabel">Worst Track</div>
+          <div class="bestTrackLabel">Worst Track All Division</div>
           <div class="bestTrackName" id="cwHeroWorstTrackName">Not enough data</div>
-          <div class="bestTrackMeta" id="cwHeroWorstTrackMeta">No track has 10 plays yet.</div>
+          <div class="bestTrackMeta" id="cwHeroWorstTrackMeta">No track has 10 plays across all divisions yet.</div>
         </div>
       </div>
     </section>
@@ -172,10 +172,10 @@
           </div>
 
           <div class="actionStrip clanWarsActionStrip" aria-label="Race actions">
-            <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add Race</button>
-            <button id="cwDcToggle" class="navAction actionStripBtn tagToggle" type="button" aria-pressed="false">DC</button>
+            <button id="btnSaveRace" class="navAction active actionStripBtn" type="button">Add</button>
             <button id="btnClearPlacements" class="navAction actionStripBtn" type="button">Clear</button>
             <button id="btnUndoRace" class="navAction actionStripBtn actionStripBtn--icon" type="button" title="Undo last" aria-label="Undo last"><span class="undoMark" aria-hidden="true">&#8630;</span><span class="undoLabel">Undo</span></button>
+            <button id="cwDcToggle" class="navAction actionStripBtn tagToggle" type="button" aria-pressed="false">DC</button>
           </div>
           <div class="statGrid clanWarsTotals" aria-label="Current match totals">
             <div class="statBox"><div class="statLabel">Races</div><div class="statValue" id="cwRaceCount">0 / 12</div></div>
@@ -239,6 +239,45 @@
         <div class="muted">No suggestions yet.</div>
       </div>
     </div>
+  </dialog>
+
+  <dialog class="mkwtConfirmDialog clanWarsDivisionStatsDialog" id="cwDivisionStatsDialog" aria-labelledby="cwDivisionStatsTitle">
+    <div class="mkwtConfirmDialog__panel clanWarsDivisionStatsPanel">
+      <div class="clanWarsSuggestionHead">
+        <div>
+          <div class="mkwtConfirmDialog__eyebrow">Clan Wars</div>
+          <h2 class="mkwtConfirmDialog__title" id="cwDivisionStatsTitle">Division stats</h2>
+          <div class="muted clanWarsDivisionStatsMeta" id="cwDivisionStatsMeta">Loading stats...</div>
+        </div>
+        <button class="navAction navAction--sm" id="btnCloseCwDivisionStats" type="button">Close</button>
+      </div>
+      <div class="modeToggle loungeModeToggle clanWarsDivisionStatsControls" id="cwDivisionStatsFilter" role="tablist" aria-label="Division stats mode">
+        <button class="modeBtn isActive active" data-cw-division-stats-event="6v6" type="button" aria-selected="true">6v6</button>
+        <button class="modeBtn" data-cw-division-stats-event="6v6v6v6" type="button" aria-selected="false">6v18</button>
+      </div>
+      <div class="clanWarsDivisionStatsBody" id="cwDivisionStatsBody">
+        <div class="muted">Loading stats...</div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="mkwtConfirmDialog clanWarsOpponentNameDialog" id="cwOpponentNameDialog" aria-labelledby="cwOpponentNameTitle">
+    <form class="mkwtConfirmDialog__panel clanWarsOpponentNamePanel" id="cwOpponentNameForm">
+      <div>
+        <div class="mkwtConfirmDialog__eyebrow">Clan Wars</div>
+        <h2 class="mkwtConfirmDialog__title" id="cwOpponentNameTitle">Opponent clan</h2>
+        <div class="muted clanWarsOpponentNameMeta" id="cwOpponentNameMeta">Saved match</div>
+      </div>
+      <label class="clanWarsOpponentNameField" for="cwOpponentNameInput">
+        <span>Opponent clan name</span>
+        <input id="cwOpponentNameInput" type="text" maxlength="48" autocomplete="off" placeholder="Enemy">
+      </label>
+      <p class="mkwtConfirmDialog__body">Leave empty to show Enemy again.</p>
+      <div class="mkwtConfirmDialog__actions">
+        <button class="btn2" id="btnCancelCwOpponentName" type="button">Cancel</button>
+        <button class="btn" id="btnSaveCwOpponentName" type="submit">Save</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog class="mkwtConfirmDialog clanWarsEditDialog" id="cwEditDialog" aria-labelledby="cwEditTitle">
@@ -319,6 +358,6 @@
 
   <script src="mkwt_public.js"></script>
   <script src="tracker_intermission.js"></script>
-  <script src="clan-wars.js?v=20260512a"></script>
+  <script src="clan-wars.js?v=20260514d"></script>
 </body>
 </html>
