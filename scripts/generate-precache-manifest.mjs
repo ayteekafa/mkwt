@@ -60,6 +60,8 @@ const htmlFiles = readdirSync(distDir).filter((file) => file.endsWith(".html")).
 
 for (const htmlFile of htmlFiles) {
   entries.add(`/${htmlFile}`);
+  const cleanRoute = htmlFile === "index.html" ? "/" : `/${htmlFile.replace(/\.html$/i, "")}`;
+  entries.add(cleanRoute);
   const html = readFileSync(join(distDir, htmlFile), "utf8");
   for (const url of extractAssetUrls(html, htmlFile)) {
     entries.add(url);

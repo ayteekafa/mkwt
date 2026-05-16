@@ -12,6 +12,15 @@ const LEGACY_ASSET_PREFIXES = [
   ["/Track Icons MKW/", "/assets/track-icons/boxed/"],
   ["/combo-icons/", "/assets/combo-icons/"],
 ];
+const NO_CACHE_ROOT_FILES = new Set([
+  "/sw.js",
+  "/precache-manifest.js",
+  "/manifest.webmanifest",
+  "/apple-touch-icon.png",
+  "/favicon.ico",
+  "/favicon-32.png",
+  "/og-card.png",
+]);
 
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -47,9 +56,17 @@ function rewriteLegacyAssetUrl(url) {
 }
 
 function withSecurityHeaders(response, requestUrl) {
-  if (!shouldAttachHsts(requestUrl)) return response;
   const headers = new Headers(response.headers);
-  headers.set("Strict-Transport-Security", HSTS_VALUE);
+  const pathname = requestUrl.pathname || "/";
+  if (NO_CACHE_ROOT_FILES.has(pathname) || /^\/[^/]+\.(?:js|css)$/i.test(pathname)) {
+    headers.set("Cache-Control", "no-cache");
+  } else if (/^\/assets\/.+\.(?:js|css)$/i.test(pathname)) {
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  }
+  if (pathname === "/manifest.webmanifest") {
+    headers.set("Content-Type", "application/manifest+json; charset=utf-8");
+  }
+  if (shouldAttachHsts(requestUrl)) headers.set("Strict-Transport-Security", HSTS_VALUE);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

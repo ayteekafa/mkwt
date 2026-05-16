@@ -151,7 +151,7 @@ async function finalizeLogin(stay, session, user) {
   await syncCloudThemePreference(client, user?.id || session?.user?.id || null);
   await maybeOfferGuestImport(client, user?.id || session?.user?.id || null);
   setStatus("Logged in.", true);
-  window.location.href = "tracker.html";
+  window.location.href = "/tracker";
 }
 
 async function login() {
@@ -195,9 +195,9 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("mkwt_mode", "guest");
       const lastPage = localStorage.getItem("mkwt_last_page");
       if (lastPage) localStorage.removeItem("mkwt_last_page");
-      window.location.href = lastPage || "tracker.html";
+      window.location.href = lastPage || "/tracker";
     } catch (e) {
-      window.location.href = "tracker.html";
+      window.location.href = "/tracker";
     }
   });
 

@@ -1,7 +1,7 @@
 // MKWT Service Worker (Safari-safe)
 // Keep cache behavior simple: generated app shell precache, fresh navigations in
 // the background, and no caching for account/API/CDN traffic.
-const CACHE = "mkwt-v576";
+const CACHE = "mkwt-v577";
 const CACHE_PREFIX = "mkwt-";
 
 try {
@@ -11,7 +11,8 @@ try {
 const FALLBACK_PRECACHE = [
   "/",
   "/index.html",
-  "/tracker.html",
+  "/tracker",
+  "/login",
   "/mkwt_bootstrap.js",
   "/mkwt_public.js",
   "/mkwt_theme_v3.css",
@@ -23,24 +24,42 @@ const PRECACHE = Array.isArray(self.__MKWTPRECACHE__) && self.__MKWTPRECACHE__.l
   : FALLBACK_PRECACHE;
 
 const ROUTE_MAP = new Map([
-  ["/", "/index.html"],
-  ["", "/index.html"],
-  ["/tracker", "/tracker.html"],
-  ["/lounge", "/lounge.html"],
-  ["/time-trial", "/time-trial.html"],
-  ["/combo-builder", "/combo-builder.html"],
-  ["/item-distribution", "/item-distribution.html"],
-  ["/stats", "/stats.html"],
-  ["/sessions", "/sessions.html"],
-  ["/lounge-24", "/lounge-24.html"],
-  ["/clan-wars", "/clan-wars.html"],
-  ["/clan-wars-stats", "/clan-wars-stats.html"],
-  ["/mkcentral", "/mkcentral.html"],
-  ["/lounge-stats", "/lounge-stats.html"],
-  ["/settings", "/settings.html"],
-  ["/about", "/about.html"],
-  ["/login", "/login.html"],
-  ["/reset", "/reset.html"],
+  ["/", "/"],
+  ["", "/"],
+  ["/index", "/"],
+  ["/index.html", "/"],
+  ["/tracker", "/tracker"],
+  ["/tracker.html", "/tracker"],
+  ["/lounge", "/lounge"],
+  ["/lounge.html", "/lounge"],
+  ["/time-trial", "/time-trial"],
+  ["/time-trial.html", "/time-trial"],
+  ["/combo-builder", "/combo-builder"],
+  ["/combo-builder.html", "/combo-builder"],
+  ["/item-distribution", "/item-distribution"],
+  ["/item-distribution.html", "/item-distribution"],
+  ["/stats", "/stats"],
+  ["/stats.html", "/stats"],
+  ["/sessions", "/sessions"],
+  ["/sessions.html", "/sessions"],
+  ["/lounge-24", "/lounge-24"],
+  ["/lounge-24.html", "/lounge-24"],
+  ["/clan-wars", "/clan-wars"],
+  ["/clan-wars.html", "/clan-wars"],
+  ["/clan-wars-stats", "/clan-wars-stats"],
+  ["/clan-wars-stats.html", "/clan-wars-stats"],
+  ["/mkcentral", "/mkcentral"],
+  ["/mkcentral.html", "/mkcentral"],
+  ["/lounge-stats", "/lounge-stats"],
+  ["/lounge-stats.html", "/lounge-stats"],
+  ["/settings", "/settings"],
+  ["/settings.html", "/settings"],
+  ["/about", "/about"],
+  ["/about.html", "/about"],
+  ["/login", "/login"],
+  ["/login.html", "/login"],
+  ["/reset", "/reset"],
+  ["/reset.html", "/reset"],
 ]);
 
 function normalizeNavPath(pathname){
