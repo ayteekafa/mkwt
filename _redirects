@@ -1,6 +1,22 @@
+/about.html              /about.html              200
+/clan-wars.html          /clan-wars.html          200
+/clan-wars-stats.html    /clan-wars-stats.html    200
+/combo-builder.html      /combo-builder.html      200
+/index.html              /index.html              200
+/item-distribution.html  /item-distribution.html  200
+/login.html              /login.html              200
+/lounge.html             /lounge.html             200
+/lounge-24.html          /lounge-24.html          200
+/lounge-stats.html       /lounge-stats.html       200
+/mkcentral.html          /mkcentral.html          200
+/reset.html              /reset.html              200
+/sessions.html           /sessions.html           200
+/settings.html           /settings.html           200
+/stats.html              /stats.html              200
+/time-trial.html         /time-trial.html         200
+/tracker.html            /tracker.html            200
+
 /robots.txt   /robots.txt   200
 /sitemap.xml  /sitemap.xml  200
-/index.html   /index.html   200
-/about.html   /about.html   200
 
 /            /index.html    200
