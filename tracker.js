@@ -216,7 +216,7 @@ function trackAbbrev(trackName){
 
 async function loadTrackIconMap() {
   try {
-    const response = await fetch("track_icon_map.json", { cache: "no-store" });
+    const response = await fetch("track_icon_map.json");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
     const map = new Map();
@@ -287,6 +287,12 @@ function preloadTrackPickerIcons(){
   const paths = [...new Set(TRACKS.map(getTrackPickerIconPath).filter(Boolean))];
   trackPickerIconWarmupPromise = Promise.allSettled(paths.map(preloadTrackIconPath));
   return trackPickerIconWarmupPromise;
+}
+
+function scheduleTrackPickerIconWarmup(){
+  const schedule = window.MKWT_scheduleIdleTask;
+  if (typeof schedule === "function") schedule(preloadTrackPickerIcons, 350, 1800);
+  else window.setTimeout(preloadTrackPickerIcons, 350);
 }
 
 function trackIconMarkup(trackName, extraClass = "") {
@@ -2422,7 +2428,7 @@ function clearMatchRouteFields(){
     // Populate selects (Intermission/Track + edit dialog)
     initSelects();
     await loadTrackIconMap();
-    preloadTrackPickerIcons();
+    scheduleTrackPickerIconWarmup();
     initTrackPickers();
 
     // Guest mode is allowed: continue even without a session.
@@ -2602,7 +2608,7 @@ function clearMatchRouteFields(){
 
 	    async function loadStrats(){
 	      try {
-	        const r = await fetch('strats.json', { cache: 'no-store' });
+	        const r = await fetch('strats.json');
 	        if (!r.ok) throw new Error('HTTP ' + r.status);
 	        STRATS = await r.json();
 	        // Expose META for special end-display labels (used by Intermission End dropdown).

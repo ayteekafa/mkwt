@@ -924,7 +924,7 @@
         right:10px;
       }
     }
-  
+
 
     /* ===== Mobile Match Cards (clean, centered) ===== */
     .matchListScroll{ overflow:visible; max-height:none; }
@@ -1301,6 +1301,8 @@
     /* Match card */
     .mcard{
       position:relative;
+      content-visibility:auto;
+      contain-intrinsic-size:auto 150px;
       border-radius:16px;
       background:
         radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 48%),

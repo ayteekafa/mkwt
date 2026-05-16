@@ -582,7 +582,7 @@
 
   async function loadIntermissionMeta(){
     try{
-      const res = await fetch("strats.json", { cache: "no-cache" });
+      const res = await fetch("strats.json");
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       state.intermissionMeta = json?.META?.INTERMISSIONS || {};

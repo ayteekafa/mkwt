@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
-
   <title>About MKWT - Mario Kart World Tracker</title>
   <meta name="description" content="Understand how MKWT is structured: what each area does, what syncs to your account, and how Guest mode differs from Account mode." />
 
   <link rel="canonical" href="https://mkwt.app/about" />
   <meta name="theme-color" content="#07080a" />
-  <script src="mkwt_bootstrap.js"></script>
+  <script>
+(function(){try{var root=document.documentElement;var lockedTheme=(root&&root.getAttribute('data-theme-lock'))||'';var mode=localStorage.getItem('mkwt_mode')||'';var t=lockedTheme||((mode==='guest')?'dendo':(localStorage.getItem('mkwt_theme')||'dark'));root.dataset.theme=t;var themeColors={light:'#f3f4f6',rose:'#f7f0f4',glacier:'#eef6ff',purple:'#07060b',green:'#04100b',red:'#0f0809',dendo:'#05060a',aurora:'#04100f',ember:'#120b0e',arcade:'#090b11',sunset:'#140c14'};var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',themeColors[t]||'#07080a');}catch(e){}})();
+</script>
+<script defer src="mkwt_bootstrap.js"></script>
 
   <link rel="icon" href="favicon.ico?v=20260503" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=20260503" />
@@ -26,7 +26,7 @@
   <meta property="og:type" content="website" />
   <link rel="stylesheet" href="mkwt_theme_v3.css" />
 
-<link href="about.css" rel="stylesheet"/>
+<link href="about.css" rel="stylesheet" />
 
 </head>
 <body>
@@ -112,6 +112,6 @@
     </section>
   </main>
 
-<script src="mkwt_public.js"></script>
+<script defer src="mkwt_public.js"></script>
 </body>
 </html>

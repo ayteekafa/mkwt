@@ -1800,7 +1800,7 @@
   async function loadLoungeTrackerIntermissionMeta(){
     if(loungeTrackerChartsState.intermissionMeta) return loungeTrackerChartsState.intermissionMeta;
     try{
-      const res = await fetch("strats.json", { cache: "no-cache" });
+      const res = await fetch("strats.json");
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       loungeTrackerChartsState.intermissionMeta = json?.META?.INTERMISSIONS || {};

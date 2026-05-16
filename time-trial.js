@@ -190,7 +190,7 @@
 
   async function loadTrackIconMap() {
     try {
-      const response = await fetch("track_icon_map.json", { cache: "no-store" });
+      const response = await fetch("track_icon_map.json");
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
       const map = new Map();
@@ -352,11 +352,9 @@
 
   function scheduleTimeTrialPickerIconWarmup() {
     const run = () => preloadTimeTrialPickerIcons();
-    if (typeof window.requestIdleCallback === "function") {
-      window.requestIdleCallback(run, { timeout: 1800 });
-    } else {
-      window.setTimeout(run, 250);
-    }
+    const schedule = window.MKWT_scheduleIdleTask;
+    if (typeof schedule === "function") schedule(run, 250, 1800);
+    else window.setTimeout(run, 250);
   }
 
   function comboIconMarkup(type, name, slug) {
@@ -1826,7 +1824,7 @@
       label: `${item.name} (${item.vehicle_type})`,
     }));
     refreshTrackSelect();
-    preloadTimeTrialPickerIcons();
+    scheduleTimeTrialPickerIconWarmup();
     refreshTimeTrialPickers();
   }
 

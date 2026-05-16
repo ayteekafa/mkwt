@@ -1,5 +1,58 @@
 (function(){
   const MKWT = window.MKWT = window.MKWT || {};
+  let mkwtChartJsPromise = null;
+  function applyChartDefaults(){
+    const Chart = window.Chart;
+    if(!Chart || !Chart.defaults) return;
+    Chart.defaults.animation = false;
+    try{
+      if(Chart.defaults.transitions && Chart.defaults.transitions.active && Chart.defaults.transitions.active.animation){
+        Chart.defaults.transitions.active.animation.duration = 0;
+      }
+    }catch(e){ /* safe to ignore */ }
+  }
+  function ensureChartJs(){
+    if(window.Chart){
+      applyChartDefaults();
+      return Promise.resolve(window.Chart);
+    }
+    if(mkwtChartJsPromise) return mkwtChartJsPromise;
+    mkwtChartJsPromise = new Promise((resolve, reject) => {
+      const finish = () => {
+        if(window.Chart){
+          applyChartDefaults();
+          resolve(window.Chart);
+        }else{
+          reject(new Error('Chart.js loaded but window.Chart is missing'));
+        }
+      };
+      const existing = document.querySelector('script[src*="chart.js@4.4.1"][src*="chart.umd.min.js"]');
+      if(existing){
+        existing.addEventListener('load', finish, { once: true });
+        existing.addEventListener('error', () => reject(new Error('Failed to load Chart.js')), { once: true });
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+      script.defer = true;
+      script.onload = finish;
+      script.onerror = () => reject(new Error('Failed to load Chart.js'));
+      document.head.appendChild(script);
+    });
+    return mkwtChartJsPromise;
+  }
+  MKWT.ensureChartJs = MKWT.ensureChartJs || ensureChartJs;
+  window.ensureChartJs = window.ensureChartJs || MKWT.ensureChartJs;
+  function scheduleIdleTask(fn, fallbackDelay = 350, timeout = 1800){
+    if(typeof fn !== 'function') return;
+    if(typeof window.requestIdleCallback === 'function'){
+      window.requestIdleCallback(() => fn(), { timeout });
+      return;
+    }
+    window.setTimeout(() => fn(), fallbackDelay);
+  }
+  MKWT.scheduleIdleTask = MKWT.scheduleIdleTask || scheduleIdleTask;
+  window.MKWT_scheduleIdleTask = window.MKWT_scheduleIdleTask || MKWT.scheduleIdleTask;
   MKWT.$ = function(id){ return document.getElementById(id); };
   MKWT.text = function(elOrId, value){
     const el = typeof elOrId === 'string' ? MKWT.$(elOrId) : elOrId;

@@ -35,6 +35,8 @@
       font-variant-numeric:tabular-nums;
     }
     .sessCard {
+      content-visibility:auto;
+      contain-intrinsic-size:auto 190px;
       padding:15px;
       margin:0;
       border:1px solid var(--border);

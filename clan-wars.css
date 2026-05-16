@@ -1379,6 +1379,8 @@
 
 .clanWarsMatchCard{
   position:relative;
+  content-visibility:auto;
+  contain-intrinsic-size:auto 300px;
   cursor:pointer;
   transition:border-color .14s ease, background .14s ease, box-shadow .14s ease;
 }

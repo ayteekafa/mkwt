@@ -6,11 +6,14 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
   <meta name="theme-color" content="#07080a" />
-  <script src="mkwt_bootstrap.js"></script>
+  <script>
+(function(){try{var root=document.documentElement;var lockedTheme=(root&&root.getAttribute('data-theme-lock'))||'';var mode=localStorage.getItem('mkwt_mode')||'';var t=lockedTheme||((mode==='guest')?'dendo':(localStorage.getItem('mkwt_theme')||'dark'));root.dataset.theme=t;var themeColors={light:'#f3f4f6',rose:'#f7f0f4',glacier:'#eef6ff',purple:'#07060b',green:'#04100b',red:'#0f0809',dendo:'#05060a',aurora:'#04100f',ember:'#120b0e',arcade:'#090b11',sunset:'#140c14'};var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',themeColors[t]||'#07080a');}catch(e){}})();
+</script>
+<script defer src="mkwt_bootstrap.js"></script>
   <title>MKWT - Item Distribution</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
-  <script src="mkwt_core.js"></script>
-  <script src="mkwt_page_helpers.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+  <script defer src="mkwt_core.js"></script>
+  <script defer src="mkwt_page_helpers.js"></script>
   <link href="mkwt_theme_v3.css" rel="stylesheet" />
   <link href="tracker.css" rel="stylesheet" />
   <link href="item-distribution.css" rel="stylesheet" />
@@ -20,8 +23,7 @@
 
   <meta
     name="description"
-    content="See Mario Kart World online race item pools for 12-player and 24-player lobbies, translated into English with placement bands and transparent item icons."
-  />
+    content="See Mario Kart World online race item pools for 12-player and 24-player lobbies, translated into English with placement bands and transparent item icons." />
   <link rel="canonical" href="https://mkwt.app/item-distribution" />
   <link rel="icon" href="/favicon.ico?v=20260503" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=20260503" />
@@ -30,8 +32,7 @@
   <meta property="og:title" content="MKWT - Item Distribution" />
   <meta
     property="og:description"
-    content="12-player and 24-player online race item pools in one clean MKWT reference page."
-  />
+    content="12-player and 24-player online race item pools in one clean MKWT reference page." />
   <meta property="og:image" content="https://mkwt.app/og-card.png?v=20260503" />
   <meta property="og:url" content="https://mkwt.app/item-distribution" />
   <meta property="og:type" content="website" />
@@ -39,8 +40,7 @@
   <meta name="twitter:title" content="MKWT - Item Distribution" />
   <meta
     name="twitter:description"
-    content="Placement-based item pools for 12p and 24p standard online races, translated into English."
-  />
+    content="Placement-based item pools for 12p and 24p standard online races, translated into English." />
   <meta name="twitter:image" content="https://mkwt.app/og-card.png?v=20260503" />
 </head>
 <body>
@@ -88,7 +88,7 @@
       <div class="itemDistHeroSimple">
         <h2 class="heroTitle itemDistHeroTitle">
           <span>Item Distribution</span>
-          <img class="itemDistHeroBadge" src="assets/picker-icons/characters/lakitu.png" alt="" aria-hidden="true" decoding="async" />
+          <img class="itemDistHeroBadge" src="assets/picker-icons/characters/lakitu.png" alt="" aria-hidden="true" decoding="async" width="96" height="72">
         </h2>
       </div>
     </section>
@@ -108,7 +108,7 @@
 
   </main>
 
-  <script src="mkwt_public.js"></script>
-  <script src="item-distribution.js"></script>
+  <script defer src="mkwt_public.js"></script>
+  <script defer src="item-distribution.js"></script>
 </body>
 </html>

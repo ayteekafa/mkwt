@@ -2124,7 +2124,7 @@
 
   async function loadTrackIconMap(){
     try{
-      const res = await fetch("track_icon_map.json", { cache: "no-store" });
+      const res = await fetch("track_icon_map.json");
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       trackIconPaths = new Map(Object.entries(json || {}).map(([key, value]) => [String(key), String(value || "")]));
@@ -2193,7 +2193,7 @@
   async function loadStratsMeta(){
     if(stratsMetaIntermissions) return stratsMetaIntermissions;
     try{
-      const res = await fetch("strats.json", { cache: "no-cache" });
+      const res = await fetch("strats.json");
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       stratsMetaIntermissions = json?.META?.INTERMISSIONS || {};

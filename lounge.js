@@ -608,7 +608,7 @@
   }
   async function loadTrackIconMap(){
     try{
-      const res = await fetch('track_icon_map.json', { cache: 'no-store' });
+      const res = await fetch('track_icon_map.json');
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       trackIconPaths = new Map(Object.entries(json || {}).map(([key, value]) => [cleanTrackText(key), String(value || '')]));
@@ -668,6 +668,11 @@
     loungePickerIconWarmupPromise = Promise.allSettled(paths.map(preloadLoungePickerIconPath));
     return loungePickerIconWarmupPromise;
   }
+  function scheduleLoungePickerIconWarmup(){
+    const schedule = window.MKWT_scheduleIdleTask;
+    if(typeof schedule === 'function') schedule(preloadLoungePickerIcons, 350, 1800);
+    else window.setTimeout(preloadLoungePickerIcons, 350);
+  }
   function trackIconMarkup(trackName, extraClass = ''){
     const canonical = canonicalTrackName(trackName);
     const iconPath = getTrackIconPath(trackName);
@@ -695,7 +700,7 @@
   async function loadStratsMeta(){
     if(stratsMetaIntermissions) return stratsMetaIntermissions;
     try{
-      const res = await fetch('strats.json', { cache: 'no-cache' });
+      const res = await fetch('strats.json');
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       stratsMetaIntermissions = json?.META?.INTERMISSIONS || {};
@@ -4901,7 +4906,7 @@
       console.error(e);
     }
     await loadTrackIconMap();
-    preloadLoungePickerIcons();
+    scheduleLoungePickerIconWarmup();
     if(PAGE_CONFIG.allowIntermissionRoutes) await loadStratsMeta();
     setEntryMode('track');
     initIntermissionRouteFilters();

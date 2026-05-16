@@ -87,6 +87,7 @@
   let builderData = null;
   let iconManifest = null;
   let coinChart = null;
+  let coinChartRenderId = 0;
   let currentSelection = { ...DEFAULT_SELECTION };
   let compareSelection = null;
   let filterState = {};
@@ -372,11 +373,9 @@
 
   function scheduleComboPickerIconWarmup() {
     const run = () => preloadComboPickerIcons();
-    if (typeof window.requestIdleCallback === "function") {
-      window.requestIdleCallback(run, { timeout: 1800 });
-    } else {
-      window.setTimeout(run, 250);
-    }
+    const schedule = window.MKWT_scheduleIdleTask;
+    if (typeof schedule === "function") schedule(run, 250, 1800);
+    else window.setTimeout(run, 250);
   }
 
   function comboPickerIconSlot(kind, value) {
@@ -1646,6 +1645,7 @@
   }
 
   function renderCoinChart(character, vehicle, selectedStats, featherReference, heavyReference) {
+    const renderId = ++coinChartRenderId;
     const labels = builderData.coinCounts || [];
     const selectedCurve = getCoinCurveValues(selectedStats.coinCurve);
     const featherStats = combineStats(featherReference?.stats || {}, vehicle?.stats || {});
@@ -1657,102 +1657,123 @@
     renderOnlineMetaTiers();
 
     const ctx = $("cbCoinChart");
-    if (!ctx || !window.Chart) return;
-    if (coinChart) coinChart.destroy();
+    if (!ctx) return;
 
-    coinChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: `${character.name} + ${vehicle.name}`,
-            data: selectedCurve,
-            borderColor: REFERENCE_COLORS.selected.stroke,
-            backgroundColor: REFERENCE_COLORS.selected.fill,
-            pointRadius: 2.5,
-            pointHoverRadius: 4,
-            borderWidth: 3,
-            tension: 0.22,
-          },
-          {
-            label: "Feather reference",
-            data: featherCurve,
-            borderColor: REFERENCE_COLORS.feather.stroke,
-            backgroundColor: REFERENCE_COLORS.feather.fill,
-            pointRadius: 2,
-            pointHoverRadius: 3.5,
-            borderDash: [8, 5],
-            borderWidth: 2,
-            tension: 0.22,
-          },
-          {
-            label: "Heavy reference",
-            data: heavyCurve,
-            borderColor: REFERENCE_COLORS.heavy.stroke,
-            backgroundColor: REFERENCE_COLORS.heavy.fill,
-            pointRadius: 2,
-            pointHoverRadius: 3.5,
-            borderDash: [8, 5],
-            borderWidth: 2,
-            tension: 0.22,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: "index",
-          intersect: false,
+    const drawChart = () => {
+      if (renderId !== coinChartRenderId || !window.Chart) return;
+      ctx.closest(".cbChartWrap")?.querySelector(".cbChartFallback")?.remove();
+      if (coinChart) coinChart.destroy();
+
+      coinChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: `${character.name} + ${vehicle.name}`,
+              data: selectedCurve,
+              borderColor: REFERENCE_COLORS.selected.stroke,
+              backgroundColor: REFERENCE_COLORS.selected.fill,
+              pointRadius: 2.5,
+              pointHoverRadius: 4,
+              borderWidth: 3,
+              tension: 0.22,
+            },
+            {
+              label: "Feather reference",
+              data: featherCurve,
+              borderColor: REFERENCE_COLORS.feather.stroke,
+              backgroundColor: REFERENCE_COLORS.feather.fill,
+              pointRadius: 2,
+              pointHoverRadius: 3.5,
+              borderDash: [8, 5],
+              borderWidth: 2,
+              tension: 0.22,
+            },
+            {
+              label: "Heavy reference",
+              data: heavyCurve,
+              borderColor: REFERENCE_COLORS.heavy.stroke,
+              backgroundColor: REFERENCE_COLORS.heavy.fill,
+              pointRadius: 2,
+              pointHoverRadius: 3.5,
+              borderDash: [8, 5],
+              borderWidth: 2,
+              tension: 0.22,
+            },
+          ],
         },
-        plugins: {
-          legend: {
-            labels: {
-              color: "#d7deea",
-              boxWidth: 18,
-              boxHeight: 3,
-              usePointStyle: false,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "index",
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: "#d7deea",
+                boxWidth: 18,
+                boxHeight: 3,
+                usePointStyle: false,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  return `${context.dataset.label}: ${fmtPercent(context.parsed.y)}`;
+                },
+              },
             },
           },
-          tooltip: {
-            callbacks: {
-              label(context) {
-                return `${context.dataset.label}: ${fmtPercent(context.parsed.y)}`;
+          scales: {
+            x: {
+              grid: { color: "rgba(255,255,255,.06)" },
+              ticks: { color: "#a8b4ca" },
+              title: {
+                display: true,
+                text: "Coins",
+                color: "#a8b4ca",
+                font: { weight: "700" },
+              },
+            },
+            y: {
+              beginAtZero: true,
+              suggestedMax: 5.1,
+              grid: { color: "rgba(255,255,255,.06)" },
+              ticks: {
+                color: "#a8b4ca",
+                callback(value) {
+                  return `${value}%`;
+                },
+              },
+              title: {
+                display: true,
+                text: "Speed gain",
+                color: "#a8b4ca",
+                font: { weight: "700" },
               },
             },
           },
         },
-        scales: {
-          x: {
-            grid: { color: "rgba(255,255,255,.06)" },
-            ticks: { color: "#a8b4ca" },
-            title: {
-              display: true,
-              text: "Coins",
-              color: "#a8b4ca",
-              font: { weight: "700" },
-            },
-          },
-          y: {
-            beginAtZero: true,
-            suggestedMax: 5.1,
-            grid: { color: "rgba(255,255,255,.06)" },
-            ticks: {
-              color: "#a8b4ca",
-              callback(value) {
-                return `${value}%`;
-              },
-            },
-            title: {
-              display: true,
-              text: "Speed gain",
-              color: "#a8b4ca",
-              font: { weight: "700" },
-            },
-          },
-        },
-      },
+      });
+    };
+
+    if (window.Chart) {
+      drawChart();
+      return;
+    }
+    const loadChart = window.ensureChartJs || window.MKWT?.ensureChartJs;
+    if (!loadChart) return;
+    loadChart().then(drawChart).catch(() => {
+      const wrap = ctx.closest(".cbChartWrap");
+      if (wrap && !wrap.querySelector(".cbChartFallback")) {
+        const fallback = document.createElement("div");
+        fallback.className = "cbEmpty cbChartFallback";
+        fallback.textContent = "Chart could not load.";
+        wrap.appendChild(fallback);
+      }
     });
   }
 

@@ -2,29 +2,32 @@
 
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta charset="utf-8" />
+<meta content="width=device-width,initial-scale=1" name="viewport" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
-<meta name="theme-color" content="#07080a"/><script src="mkwt_bootstrap.js"></script>
+<meta name="theme-color" content="#07080a" /><script>
+(function(){try{var root=document.documentElement;var lockedTheme=(root&&root.getAttribute('data-theme-lock'))||'';var mode=localStorage.getItem('mkwt_mode')||'';var t=lockedTheme||((mode==='guest')?'dendo':(localStorage.getItem('mkwt_theme')||'dark'));root.dataset.theme=t;var themeColors={light:'#f3f4f6',rose:'#f7f0f4',glacier:'#eef6ff',purple:'#07060b',green:'#04100b',red:'#0f0809',dendo:'#05060a',aurora:'#04100f',ember:'#120b0e',arcade:'#090b11',sunset:'#140c14'};var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',themeColors[t]||'#07080a');}catch(e){}})();
+</script>
+<script defer src="mkwt_bootstrap.js"></script>
 <title>MKWT - World Wide Tracker</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
-<script src="mkwt_core.js"></script>
-<script src="mkwt_page_helpers.js"></script>
-<link href="mkwt_theme_v3.css" rel="stylesheet"/>
-<link href="tracker.css" rel="stylesheet"/>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+<script defer src="mkwt_core.js"></script>
+<script defer src="mkwt_page_helpers.js"></script>
+<link href="mkwt_theme_v3.css" rel="stylesheet" />
+<link href="tracker.css" rel="stylesheet" />
 
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
-  
+
   <meta name="robots" content="noindex, nofollow">
 <link rel="canonical" href="https://mkwt.app/tracker.html">
   <link rel="icon" href="/favicon.ico?v=20260503">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=20260503">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260503">
-  
+
   <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://mkwt.app/og-card.png?v=20260503">
@@ -132,11 +135,11 @@
 <div class="row">
 <div class="field">
 <label class="muted" for="setupNickname">Nickname</label>
-<input id="setupNickname" placeholder="e.g. Nickname"/>
+<input id="setupNickname" placeholder="e.g. Nickname" />
 </div>
 <div class="field">
 <label class="muted" for="setupVr">Current VR</label>
-<input id="setupVr" inputmode="numeric" placeholder="e.g. 8500" type="number"/>
+<input id="setupVr" inputmode="numeric" placeholder="e.g. 8500" type="number" />
 <div class="muted"></div>
 </div>
 </div>
@@ -241,13 +244,13 @@
 <label class="muted matchFieldLabel" for="vrChange">VR change</label>
 <div class="vr-delta-wrap">
 <button aria-label="Toggle negative" class="vr-sign" id="vrSignToggle" type="button">-</button>
-<input id="vrChange" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="text"/>
+<input id="vrChange" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="text" />
 </div>
 </div>
 <div class="field hasStratIcon field--metric">
 <label class="muted matchFieldLabel" for="vrAfterInput">new total VR</label>
 <button aria-label="Info" class="stratBtn" data-popup="vrAfter" id="infoBtnVrAfter" type="button">i</button>
-<input id="vrAfterInput" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 7980" type="text"/>
+<input id="vrAfterInput" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 7980" type="text" />
 <div class="muted"></div>
 </div>
 <div class="field field--embeddedLabel">
@@ -341,7 +344,7 @@ Enter your current VR before tracking your first World Wide match. You can chang
 </p>
 <div class="field">
 <label class="muted" for="onboardingVr">Current VR</label>
-<input id="onboardingVr" inputmode="numeric" max="99999" min="0" pattern="[0-9]*" placeholder="8500" type="text"/>
+<input id="onboardingVr" inputmode="numeric" max="99999" min="0" pattern="[0-9]*" placeholder="8500" type="text" />
 </div>
 <div aria-live="polite" class="trackerVrDialog__status" id="vrOnboardingStatus" role="status"></div>
 <div class="mkwtConfirmDialog__actions">
@@ -378,13 +381,13 @@ Enter your current VR before tracking your first World Wide match. You can chang
 <label class="muted" for="editVrChange">VR change</label>
 <div class="vr-delta-wrap">
 <button aria-label="Toggle negative" class="vr-sign" id="editVrSignToggle" type="button">-</button>
-<input id="editVrChange" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" type="text"/>
+<input id="editVrChange" inputmode="numeric" pattern="[0-9]*" placeholder="VR change" type="text" />
 </div>
 </div>
 <div class="field hasStratIcon">
 <label class="muted" for="editVrAfter">new total VR</label>
 <button aria-label="Info" class="stratBtn" data-popup="vrAfter" id="infoBtnVrAfterEdit" type="button">i</button>
-<input id="editVrAfter" inputmode="numeric" placeholder="e.g. 9000" type="number"/>
+<input id="editVrAfter" inputmode="numeric" placeholder="e.g. 9000" type="number" />
 </div>
 <div class="field">
 <label class="muted editFieldLabel--hidden" for="editOpponents">Opponents</label>
@@ -423,9 +426,9 @@ Enter your current VR before tracking your first World Wide match. You can chang
 </div>
 </main>
 
-<script src="mkwt_public.js"></script>
-<script src="tracker_suggestions.js"></script>
-<script src="tracker_intermission.js"></script>
-<script src="tracker.js"></script>
+<script defer src="mkwt_public.js"></script>
+<script defer src="tracker_suggestions.js"></script>
+<script defer src="tracker_intermission.js"></script>
+<script defer src="tracker.js"></script>
 </body>
 </html>

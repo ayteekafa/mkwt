@@ -123,7 +123,7 @@
   async function loadStratsMeta(){
     if (STRATS_META_INTERMISSIONS) return STRATS_META_INTERMISSIONS;
     try{
-      const res = await fetch("strats.json", { cache: "no-cache" });
+      const res = await fetch("strats.json");
       if(!res.ok) throw new Error("HTTP " + res.status);
       const j = await res.json();
       STRATS_META_INTERMISSIONS = j?.META?.INTERMISSIONS || {};

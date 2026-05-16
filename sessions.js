@@ -352,7 +352,7 @@ async function requireSession(){
     }
 
     // Render compact, clean cards
-    
+
       const classForVal = (v) => {
         const n = Number(v);
         if (!Number.isFinite(n)) return "muted";

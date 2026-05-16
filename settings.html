@@ -2,30 +2,33 @@
 
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1" name="viewport" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://imxlssgtzzdfgdscubdx.supabase.co" crossorigin />
-<meta name="theme-color" content="#07080a"/><script src="mkwt_bootstrap.js"></script>
+<meta name="theme-color" content="#07080a" /><script>
+(function(){try{var root=document.documentElement;var lockedTheme=(root&&root.getAttribute('data-theme-lock'))||'';var mode=localStorage.getItem('mkwt_mode')||'';var t=lockedTheme||((mode==='guest')?'dendo':(localStorage.getItem('mkwt_theme')||'dark'));root.dataset.theme=t;var themeColors={light:'#f3f4f6',rose:'#f7f0f4',glacier:'#eef6ff',purple:'#07060b',green:'#04100b',red:'#0f0809',dendo:'#05060a',aurora:'#04100f',ember:'#120b0e',arcade:'#090b11',sunset:'#140c14'};var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',themeColors[t]||'#07080a');}catch(e){}})();
+</script>
+<script defer src="mkwt_bootstrap.js"></script>
 <title>MKWT - Settings</title>
 <!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
-<script src="mkwt_core.js"></script>
-<script src="mkwt_page_helpers.js"></script>
-<link href="mkwt_theme_v3.css" rel="stylesheet"/>
-<link href="settings.css" rel="stylesheet"/>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0"></script>
+<script defer src="mkwt_core.js"></script>
+<script defer src="mkwt_page_helpers.js"></script>
+<link href="mkwt_theme_v3.css" rel="stylesheet" />
+<link href="settings.css" rel="stylesheet" />
 
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
-  
+
   <meta name="robots" content="noindex, nofollow">
 <link rel="canonical" href="https://mkwt.app/settings.html">
   <link rel="icon" href="/favicon.ico?v=20260503">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=20260503">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260503">
-  
+
   <meta property="og:title" content="MKWT - Mario Kart World Match Tracker">
   <meta property="og:description" content="MKWT is an online Mario Kart World match tracker. Track VR, sessions, and intermission routes, and see which tracks you perform best on as you improve over time.">
   <meta property="og:image" content="https://mkwt.app/og-card.png?v=20260503">
@@ -79,7 +82,7 @@
     <div class="settingsHeroCopy">
       <h2 class="heroTitle settingsHeroTitle">
         <span>Settings</span>
-        <img class="settingsHeroBadge" src="assets/picker-icons/characters/rocky-wrench.png" alt="" aria-hidden="true" decoding="async" />
+        <img class="settingsHeroBadge" src="assets/picker-icons/characters/rocky-wrench.png" alt="" aria-hidden="true" decoding="async" width="96" height="72">
       </h2>
     </div>
   </div>
@@ -123,8 +126,8 @@
     <a class="btn2 discordBtn" href="https://discord.com/users/335049995055267840" target="_blank" rel="noopener noreferrer">
       <span class="discordIcon" aria-hidden="true">
         <svg viewBox="0 0 245 240" focusable="false">
-          <path d="M104.4 104.9c-5.7 0-10.2 5-10.2 11.1 0 6.1 4.6 11.1 10.2 11.1 5.7 0 10.2-5 10.2-11.1.1-6.1-4.5-11.1-10.2-11.1zm36.2 0c-5.7 0-10.2 5-10.2 11.1 0 6.1 4.6 11.1 10.2 11.1 5.7 0 10.2-5 10.2-11.1 0-6.1-4.5-11.1-10.2-11.1z"/>
-          <path d="M189.5 20h-134C24.7 20 10 34.7 10 53.5v133C10 205.3 24.7 220 43.5 220h113.7l-5.3-18.5 12.8 11.9 12.1 11.2 21.5 19.4V53.5C199.3 34.7 184.6 20 165.8 20h23.7zm-39.7 135.6s-3.7-4.4-6.8-8.3c13.6-3.9 18.8-12.5 18.8-12.5-4.3 2.8-8.3 4.8-12 6.1-5.2 2.2-10.2 3.6-15.1 4.5-10 1.9-19.2 1.4-27.1-.1-6-1.1-11.2-2.6-15.6-4.5-2.5-1-5.2-2.2-7.9-3.6-.3-.2-.6-.3-.9-.5-.2-.1-.3-.2-.4-.3-1.8-1-2.8-1.7-2.8-1.7s5 8.4 18.2 12.5c-3.1 3.9-6.9 8.5-6.9 8.5-22.7-.7-31.3-15.6-31.3-15.6 0-33 14.8-59.8 14.8-59.8 14.8-11.1 28.8-10.8 28.8-10.8l1 1.2c-18.5 5.3-27 13.3-27 13.3s2.3-1.3 6.2-3.1c11.2-4.9 20.1-6.2 23.8-6.5.6-.1 1.1-.2 1.7-.2 6.1-.8 13-1 20.3-.2 9.6 1.1 19.9 3.9 30.6 9.6 0 0-8.1-7.7-25.6-13l1.4-1.6s14-.3 28.8 10.8c0 0 14.8 26.8 14.8 59.8 0 0-8.7 14.9-31.4 15.6z"/>
+          <path d="M104.4 104.9c-5.7 0-10.2 5-10.2 11.1 0 6.1 4.6 11.1 10.2 11.1 5.7 0 10.2-5 10.2-11.1.1-6.1-4.5-11.1-10.2-11.1zm36.2 0c-5.7 0-10.2 5-10.2 11.1 0 6.1 4.6 11.1 10.2 11.1 5.7 0 10.2-5 10.2-11.1 0-6.1-4.5-11.1-10.2-11.1z" />
+          <path d="M189.5 20h-134C24.7 20 10 34.7 10 53.5v133C10 205.3 24.7 220 43.5 220h113.7l-5.3-18.5 12.8 11.9 12.1 11.2 21.5 19.4V53.5C199.3 34.7 184.6 20 165.8 20h23.7zm-39.7 135.6s-3.7-4.4-6.8-8.3c13.6-3.9 18.8-12.5 18.8-12.5-4.3 2.8-8.3 4.8-12 6.1-5.2 2.2-10.2 3.6-15.1 4.5-10 1.9-19.2 1.4-27.1-.1-6-1.1-11.2-2.6-15.6-4.5-2.5-1-5.2-2.2-7.9-3.6-.3-.2-.6-.3-.9-.5-.2-.1-.3-.2-.4-.3-1.8-1-2.8-1.7-2.8-1.7s5 8.4 18.2 12.5c-3.1 3.9-6.9 8.5-6.9 8.5-22.7-.7-31.3-15.6-31.3-15.6 0-33 14.8-59.8 14.8-59.8 14.8-11.1 28.8-10.8 28.8-10.8l1 1.2c-18.5 5.3-27 13.3-27 13.3s2.3-1.3 6.2-3.1c11.2-4.9 20.1-6.2 23.8-6.5.6-.1 1.1-.2 1.7-.2 6.1-.8 13-1 20.3-.2 9.6 1.1 19.9 3.9 30.6 9.6 0 0-8.1-7.7-25.6-13l1.4-1.6s14-.3 28.8 10.8c0 0 14.8 26.8 14.8 59.8 0 0-8.7 14.9-31.4 15.6z" />
         </svg>
       </span>
       Message me on Discord
@@ -137,7 +140,7 @@
       <button class="btn2" id="btnExport" type="button">Export</button>
       <label class="btn2 cursor-pointer">
         Import
-        <input accept="application/json" class="hidden" id="fileImport" type="file"/>
+        <input accept="application/json" class="hidden" id="fileImport" type="file" />
       </label>
     </div>
     <div class="muted" data-status="shared" id="statusData"></div>
@@ -190,7 +193,7 @@
         <div class="profileSettingsGrid">
           <div class="field">
             <label class="muted" for="settingsNickname">Name</label>
-            <input class="lockableInput" disabled id="settingsNickname"/>
+            <input class="lockableInput" disabled id="settingsNickname" />
           </div>
           <div class="field">
             <div class="fieldHead fieldHead--withInfo">
@@ -199,7 +202,7 @@
                 <button aria-label="Info" class="mcard__infoBtn" data-info="currentVr" title="Info" type="button">i</button>
               </div>
             </div>
-            <input class="lockableInput" disabled id="settingsVr" type="number"/>
+            <input class="lockableInput" disabled id="settingsVr" type="number" />
             <div class="settingsEditHint">Use this after a DC or similar correction. Existing matches are not changed.</div>
           </div>
           <div class="field">
@@ -209,7 +212,7 @@
                 <button aria-label="Info" class="mcard__infoBtn" data-info="mkcentralId" title="Info" type="button">i</button>
               </div>
             </div>
-            <input class="lockableInput" disabled id="settingsMkcentralPlayer" inputmode="url" placeholder="e.g. 78188 or PlayerDetails URL"/>
+            <input class="lockableInput" disabled id="settingsMkcentralPlayer" inputmode="url" placeholder="e.g. 78188 or PlayerDetails URL" />
           </div>
         </div>
         <div class="settingsLowerGrid mt-10">
@@ -245,7 +248,7 @@
             </div>
             <div class="row-inline--gap10">
               <span class="muted mutedSoft">&lt;</span>
-              <input class="lockableInput flex-1" disabled id="settingsMinVr" inputmode="numeric" placeholder="0" type="number"/>
+              <input class="lockableInput flex-1" disabled id="settingsMinVr" inputmode="numeric" placeholder="0" type="number" />
             </div>
           </div>
         </div>
@@ -282,7 +285,7 @@
 </div>
 </div>
 
-<script src="mkwt_public.js"></script>
-<script src="settings.js"></script>
+<script defer src="mkwt_public.js"></script>
+<script defer src="settings.js"></script>
 </body>
 </html>

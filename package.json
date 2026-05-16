@@ -11,8 +11,9 @@
     "check:build": "npm run build",
     "check:js": "node tools/check-js-syntax.cjs",
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "build": "vite build && node scripts/generate-precache-manifest.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "report:assets": "node scripts/report-large-assets.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.4"
