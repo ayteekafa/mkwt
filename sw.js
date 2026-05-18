@@ -1,7 +1,7 @@
 // MKWT Service Worker (Safari-safe)
 // Keep cache behavior simple: generated app shell precache, fresh navigations in
 // the background, and no caching for account/API/CDN traffic.
-const CACHE = "mkwt-v577";
+const CACHE = "mkwt-v578";
 const CACHE_PREFIX = "mkwt-";
 
 try {

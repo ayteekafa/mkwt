@@ -77,6 +77,7 @@
     'mkcentral_format_tag',
     MKCENTRAL_MOGI_DB_FIELDS,
   ].join(', ');
+  const LOUNGE_RACE_SELECT = 'id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at';
   const SESSION_PAGE_SIZE = 10;
   const SUGGESTION_MIN_PLAYS = 10;
   const LOUNGE_TIER_STATS_TRACK_MIN_PLAYS = 10;
@@ -2443,6 +2444,32 @@
       created_at: race.created_at || currentTs(),
     };
   }
+  function sortDbRaces(races){
+    return (races || []).slice().sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0));
+  }
+  function nextCloudRaceNumber(races){
+    const used = new Set((races || []).map(race => Number(race.race_number || 0)).filter(n => Number.isFinite(n) && n > 0));
+    for(let i = 1; i <= 12; i += 1){
+      if(!used.has(i)) return i;
+    }
+    return Math.max(0, ...used) + 1;
+  }
+  async function fetchCloudMogiRaces(mogiId){
+    if(!isCloud() || !mogiId) return [];
+    const { data, error } = await loungeClient
+      .from('lounge_races')
+      .select(LOUNGE_RACE_SELECT)
+      .eq('user_id', loungeSession.user.id)
+      .eq('mogi_id', mogiId)
+      .order('race_number', { ascending: true });
+    if(error) throw error;
+    return sortDbRaces(data || []);
+  }
+  async function syncCurrentMogiRacesFromCloud(mogiId){
+    const rows = await fetchCloudMogiRaces(mogiId);
+    state.current.races = applyAutoRepicks(rows.map(dbRaceToLocal));
+    return rows;
+  }
   function loadAll(){
     state.sessions = (read(STORAGE_SESSIONS, []) || []).map((session) => ({
       ...session,
@@ -2512,7 +2539,7 @@
 
     const { data: races, error: raceError } = await loungeClient
       .from('lounge_races')
-      .select('id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at')
+      .select(LOUNGE_RACE_SELECT)
       .eq('user_id', uid)
       .in('mogi_id', mogiIds)
       .order('race_number', { ascending: true });
@@ -4081,13 +4108,38 @@
       if (isCloud()) {
         setEntryStatus('Saving race...', true, false);
         const mogiId = await ensureCloudCurrentMogi();
-        const raceNumber = (state.current.races || []).length + 1;
+        const cloudRaces = await syncCurrentMogiRacesFromCloud(mogiId);
+        if (cloudRaces.length >= 12) {
+          await updateCloudMogi(state.current);
+          refresh();
+          setEntryStatus('Cloud already has 12 races. Confirm current Mogi first.', false);
+          setStatus('Cloud data refreshed. This Mogi has 12 races. Confirm the result before adding another race.', true);
+          openMogiResultDialog();
+          return;
+        }
+        const raceNumber = nextCloudRaceNumber(cloudRaces);
         const { data, error } = await loungeClient
           .from('lounge_races')
           .insert(raceToDbPayload(race, mogiId, raceNumber))
-          .select('id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at')
+          .select(LOUNGE_RACE_SELECT)
           .single();
-        if (error) throw error;
+        if (error) {
+          const isDuplicate = String(error.code || '') === '23505' || String(error.message || '').includes('duplicate key');
+          if (isDuplicate) {
+            const syncedRaces = await syncCurrentMogiRacesFromCloud(mogiId);
+            await updateCloudMogi(state.current);
+            refresh();
+            if (syncedRaces.length >= 12) {
+              setEntryStatus('Cloud already has 12 races. Confirm current Mogi first.', false);
+              setStatus('Cloud data refreshed. This Mogi has 12 races. Confirm the result before adding another race.', true);
+              openMogiResultDialog();
+              return;
+            }
+            setEntryStatus('Cloud data was out of sync. Try Add again.', false);
+            return;
+          }
+          throw error;
+        }
         state.current.races = applyAutoRepicks([...(state.current.races || []), dbRaceToLocal(data)]);
         await updateCloudMogi(state.current);
       } else {
