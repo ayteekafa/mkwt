@@ -634,6 +634,7 @@ window.mkwtRequireAuth = async function(options = {}){
     if (!window.supabaseClient || !window.SESSION?.user?.id) return null;
     const uid = window.SESSION.user.id;
     const loungePlayerCount = Number(playerCount || 12);
+    const raceSelect = "id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at";
 
     const { data: mogis, error: mogiError } = await supabaseClient
       .from("lounge_mogis")
@@ -645,16 +646,25 @@ window.mkwtRequireAuth = async function(options = {}){
 
     const mogiIds = (mogis || []).map(mogi => mogi.id).filter(Boolean);
     const races = [];
-    for (let i = 0; i < mogiIds.length; i += 100) {
-      const batchIds = mogiIds.slice(i, i + 100);
-      const { data, error } = await supabaseClient
-        .from("lounge_races")
-        .select("id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at")
-        .eq("user_id", uid)
-        .in("mogi_id", batchIds)
-        .order("race_number", { ascending: true });
-      if (error) throw error;
-      races.push(...(data || []));
+    for (let i = 0; i < mogiIds.length; i += 50) {
+      const batchIds = mogiIds.slice(i, i + 50);
+      let from = 0;
+      const chunk = 1000;
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from("lounge_races")
+          .select(raceSelect)
+          .eq("user_id", uid)
+          .in("mogi_id", batchIds)
+          .order("mogi_id", { ascending: true })
+          .order("race_number", { ascending: true })
+          .range(from, from + chunk - 1);
+        if (error) throw error;
+        if (!data || !data.length) break;
+        races.push(...data);
+        if (data.length < chunk) break;
+        from += chunk;
+      }
     }
 
     const racesByMogi = new Map();

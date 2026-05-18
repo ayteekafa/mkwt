@@ -78,6 +78,8 @@
     MKCENTRAL_MOGI_DB_FIELDS,
   ].join(', ');
   const LOUNGE_RACE_SELECT = 'id, mogi_id, race_number, track, race_kind, intermission_start, intermission_end, lobby_size, placement, points, disconnect, created_at, updated_at';
+  const CLOUD_RACE_PAGE_SIZE = 1000;
+  const CLOUD_MOGI_ID_BATCH_SIZE = 50;
   const SESSION_PAGE_SIZE = 10;
   const SUGGESTION_MIN_PLAYS = 10;
   const LOUNGE_TIER_STATS_TRACK_MIN_PLAYS = 10;
@@ -2445,7 +2447,11 @@
     };
   }
   function sortDbRaces(races){
-    return (races || []).slice().sort((a, b) => Number(a.race_number || 0) - Number(b.race_number || 0));
+    return (races || []).slice().sort((a, b) => {
+      const mogiCompare = String(a.mogi_id || '').localeCompare(String(b.mogi_id || ''));
+      if(mogiCompare) return mogiCompare;
+      return Number(a.race_number || 0) - Number(b.race_number || 0);
+    });
   }
   function nextCloudRaceNumber(races){
     const used = new Set((races || []).map(race => Number(race.race_number || 0)).filter(n => Number.isFinite(n) && n > 0));
@@ -2464,6 +2470,31 @@
       .order('race_number', { ascending: true });
     if(error) throw error;
     return sortDbRaces(data || []);
+  }
+  async function fetchCloudRacesForMogiIds(mogiIds){
+    if(!isCloud() || !Array.isArray(mogiIds) || !mogiIds.length) return [];
+    const rows = [];
+    const uid = loungeSession.user.id;
+    for(let i = 0; i < mogiIds.length; i += CLOUD_MOGI_ID_BATCH_SIZE){
+      const batchIds = mogiIds.slice(i, i + CLOUD_MOGI_ID_BATCH_SIZE);
+      let from = 0;
+      while(true){
+        const { data, error } = await loungeClient
+          .from('lounge_races')
+          .select(LOUNGE_RACE_SELECT)
+          .eq('user_id', uid)
+          .in('mogi_id', batchIds)
+          .order('mogi_id', { ascending: true })
+          .order('race_number', { ascending: true })
+          .range(from, from + CLOUD_RACE_PAGE_SIZE - 1);
+        if(error) throw error;
+        if(!data || !data.length) break;
+        rows.push(...data);
+        if(data.length < CLOUD_RACE_PAGE_SIZE) break;
+        from += CLOUD_RACE_PAGE_SIZE;
+      }
+    }
+    return sortDbRaces(rows);
   }
   async function syncCurrentMogiRacesFromCloud(mogiId){
     const rows = await fetchCloudMogiRaces(mogiId);
@@ -2537,13 +2568,7 @@
       return;
     }
 
-    const { data: races, error: raceError } = await loungeClient
-      .from('lounge_races')
-      .select(LOUNGE_RACE_SELECT)
-      .eq('user_id', uid)
-      .in('mogi_id', mogiIds)
-      .order('race_number', { ascending: true });
-    if (raceError) throw raceError;
+    const races = await fetchCloudRacesForMogiIds(mogiIds);
 
     const racesByMogi = new Map();
     for (const race of races || []) {

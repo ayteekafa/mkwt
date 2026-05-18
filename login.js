@@ -6,6 +6,7 @@ const $ = (id) => (window.MKWT?.$ ? window.MKWT.$(id) : document.getElementById(
 const CLIENT_CACHE = {};
 const USERNAME_EMAIL_DOMAIN = "mkwt.local";
 const USERNAME_RE = /^[a-z0-9._-]{3,32}$/;
+const DEFAULT_APP_PAGE = "tracker.html";
 
 function setStatus(msg, ok = true) {
   window.MKWT?.setStatus?.($("status"), msg, ok);
@@ -41,6 +42,23 @@ function resolveLoginEmail(value) {
     throw new Error("Please enter a valid username or email.");
   }
   return `${username}@${USERNAME_EMAIL_DOMAIN}`;
+}
+
+function normalizeAppPageTarget(value) {
+  const fallback = DEFAULT_APP_PAGE;
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return fallback;
+    let page = decodeURIComponent(url.pathname || "").replace(/^\/+/, "");
+    if (!page || page === "index" || page === "index.html") page = fallback;
+    if (!page.includes(".")) page += ".html";
+    if (!/^[a-z0-9_-]+\.html$/i.test(page)) return fallback;
+    return `${page}${url.search || ""}${url.hash || ""}`;
+  } catch (e) {
+    return fallback;
+  }
 }
 
 function clearSupabaseKeys(storage) {
@@ -151,7 +169,7 @@ async function finalizeLogin(stay, session, user) {
   await syncCloudThemePreference(client, user?.id || session?.user?.id || null);
   await maybeOfferGuestImport(client, user?.id || session?.user?.id || null);
   setStatus("Logged in.", true);
-  window.location.href = "/tracker";
+  window.location.href = normalizeAppPageTarget();
 }
 
 async function login() {
@@ -195,9 +213,9 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("mkwt_mode", "guest");
       const lastPage = localStorage.getItem("mkwt_last_page");
       if (lastPage) localStorage.removeItem("mkwt_last_page");
-      window.location.href = lastPage || "/tracker";
+      window.location.href = normalizeAppPageTarget(lastPage);
     } catch (e) {
-      window.location.href = "/tracker";
+      window.location.href = DEFAULT_APP_PAGE;
     }
   });
 

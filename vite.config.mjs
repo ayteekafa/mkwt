@@ -125,11 +125,32 @@ function serveRootCssAsStylesheets(){
   };
 }
 
+function serveCleanHtmlRoutes(){
+  return {
+    name: "mkwt-serve-clean-html-routes",
+    apply: "serve",
+    configureServer(server){
+      server.middlewares.use((req, res, next) => {
+        const url = new URL(req.url || "/", "http://localhost");
+        let pathname = url.pathname || "/";
+        try { pathname = decodeURIComponent(pathname); } catch (e) { return next(); }
+        if(pathname === "/" || pathname.includes(".") || pathname.includes("\\") || pathname.includes("..")) return next();
+        if(pathname.endsWith("/")) pathname = pathname.slice(0, -1);
+        const filename = `${pathname.replace(/^\/+/, "")}.html`;
+        if(!htmlEntries[basename(filename, ".html")]) return next();
+        req.url = `/${filename}${url.search || ""}`;
+        return next();
+      });
+    }
+  };
+}
+
 export default defineConfig({
   root: rootDir,
   appType: "mpa",
   publicDir: false,
   plugins: [
+    serveCleanHtmlRoutes(),
     disableServiceWorkerInDev(),
     serveRootCssAsStylesheets(),
     cleanStaticOutDir(),
