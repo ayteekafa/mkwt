@@ -23,6 +23,7 @@
   const MIN_TRACK_PLAYS_FOR_HIGHLIGHT = 10;
   const SUGGESTION_MIN_PLAYS = 10;
   const QUERY_BATCH_SIZE = 100;
+  const CLOUD_RACE_PAGE_SIZE = 1000;
   const CLAN_ICON_BUCKET = "clan-icons";
   const CLAN_ICON_SIZE = 256;
   const CLAN_ICON_MAX_BYTES = 4 * 1024 * 1024;
@@ -1277,13 +1278,21 @@
     const rows = [];
     for(let i = 0; i < ids.length; i += QUERY_BATCH_SIZE){
       const batchIds = ids.slice(i, i + QUERY_BATCH_SIZE);
-      const { data, error } = await state.client
-        .from("clan_wars_races")
-        .select(CLAN_WARS_RACE_SELECT)
-        .in("match_id", batchIds)
-        .order("race_number", { ascending: true });
-      if(error) throw error;
-      rows.push(...(data || []));
+      let from = 0;
+      while(true){
+        const { data, error } = await state.client
+          .from("clan_wars_races")
+          .select(CLAN_WARS_RACE_SELECT)
+          .in("match_id", batchIds)
+          .order("match_id", { ascending: true })
+          .order("race_number", { ascending: true })
+          .range(from, from + CLOUD_RACE_PAGE_SIZE - 1);
+        if(error) throw error;
+        if(!data || !data.length) break;
+        rows.push(...data);
+        if(data.length < CLOUD_RACE_PAGE_SIZE) break;
+        from += CLOUD_RACE_PAGE_SIZE;
+      }
     }
     return rows;
   }

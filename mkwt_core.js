@@ -909,6 +909,7 @@ window.mkwtRequireAuth = async function(options = {}){
   async function readAccountClanWarsBackup(){
     if (!window.supabaseClient || !window.SESSION?.user?.id) return { source: "supabase", current_match: null, match_count: 0, matches: [] };
     const uid = window.SESSION.user.id;
+    const raceSelect = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at";
     const { data: matches, error: matchError } = await supabaseClient
       .from("clan_wars_matches")
       .select("id, event_type, status, own_total, opponent_total, field_total, race_count, dc_count, opponent_clan_name, completed_at, created_at")
@@ -922,13 +923,22 @@ window.mkwtRequireAuth = async function(options = {}){
     const races = [];
     for (let i = 0; i < ids.length; i += 100) {
       const batchIds = ids.slice(i, i + 100);
-      const { data, error } = await supabaseClient
-        .from("clan_wars_races")
-        .select("id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at")
-        .in("match_id", batchIds)
-        .order("race_number", { ascending: true });
-      if (error) throw error;
-      races.push(...(data || []));
+      let from = 0;
+      const chunk = 1000;
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from("clan_wars_races")
+          .select(raceSelect)
+          .in("match_id", batchIds)
+          .order("match_id", { ascending: true })
+          .order("race_number", { ascending: true })
+          .range(from, from + chunk - 1);
+        if (error) throw error;
+        if (!data || !data.length) break;
+        races.push(...data);
+        if (data.length < chunk) break;
+        from += chunk;
+      }
     }
     const racesByMatch = new Map();
     for (const race of races) {

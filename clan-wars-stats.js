@@ -20,6 +20,7 @@
   const TEAM_SIZE = 6;
   const MIN_TRACK_PLAYS_FOR_HIGHLIGHT = 10;
   const QUERY_BATCH_SIZE = 100;
+  const CLOUD_RACE_PAGE_SIZE = 1000;
   const CLAN_ICON_BUCKET = "clan-icons";
   const CLAN_MEMBER_SELECT = "user_id, role, status, display_name";
   const CLAN_WARS_RACE_SELECT = "id, match_id, race_number, event_type, race_kind, track, intermission_start, intermission_end, placements, max_placement, own_points, opponent_points, field_points, dc, rule_warning, created_at, updated_at";
@@ -536,13 +537,21 @@
     const rows = [];
     for(let i = 0; i < ids.length; i += QUERY_BATCH_SIZE){
       const batchIds = ids.slice(i, i + QUERY_BATCH_SIZE);
-      const { data, error } = await state.client
-        .from("clan_wars_races")
-        .select(CLAN_WARS_RACE_SELECT)
-        .in("match_id", batchIds)
-        .order("race_number", { ascending: true });
-      if(error) throw error;
-      rows.push(...(data || []));
+      let from = 0;
+      while(true){
+        const { data, error } = await state.client
+          .from("clan_wars_races")
+          .select(CLAN_WARS_RACE_SELECT)
+          .in("match_id", batchIds)
+          .order("match_id", { ascending: true })
+          .order("race_number", { ascending: true })
+          .range(from, from + CLOUD_RACE_PAGE_SIZE - 1);
+        if(error) throw error;
+        if(!data || !data.length) break;
+        rows.push(...data);
+        if(data.length < CLOUD_RACE_PAGE_SIZE) break;
+        from += CLOUD_RACE_PAGE_SIZE;
+      }
     }
     return rows;
   }

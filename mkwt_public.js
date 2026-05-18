@@ -36,7 +36,7 @@
         }
         return;
       }
-      navigator.serviceWorker.register('/sw.js?v=579', { updateViaCache: 'none' }).catch(() => {
+      navigator.serviceWorker.register('/sw.js?v=580', { updateViaCache: 'none' }).catch(() => {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       });
     });
